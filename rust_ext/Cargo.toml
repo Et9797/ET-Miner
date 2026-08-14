@@ -1,0 +1,43 @@
+[package]
+name = "et_miner_rust"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance Rust extension for ET-Miner support counting."
+license-file = "../LICENSE"
+authors = ["E. Ahmic <etet1997@hotmail.com"]
+
+[lib]
+name = "et_miner_rust"
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3 for Python bindings (latest for Python 3.14 support)
+pyo3 = { version = "0.27", features = ["extension-module"] }
+
+# NumPy integration for zero-copy array access
+numpy = "0.27"
+
+# Rayon for work-stealing parallelism
+rayon = "1.10"
+
+# Bit vectors for row masks (64 rows per u64 operation)
+bitvec = "1.0"
+
+# Portable SIMD for stable Rust
+wide = "0.7"
+
+# Random number generation for synthetic data
+rand = "0.8"
+rand_xoshiro = "0.6"
+
+[profile.release]
+# Maximum optimization for speed
+opt-level = 3
+lto = "fat"           # Link-time optimization
+codegen-units = 1     # Better optimization at cost of compile time
+panic = "abort"       # Smaller binary, no unwinding overhead
+
+[profile.dev]
+# Fast compile times for development
+opt-level = 0
+debug = true

@@ -1,0 +1,12 @@
+# ET-Miner Rust Extension Build Configuration
+#
+# target-cpu=native enables CPU-specific optimizations:
+# - AVX2/AVX-512 SIMD instructions on modern CPUs
+# - Cache-optimized code generation
+# - Architecture-specific vectorization
+#
+# NOTE: Binaries built with native won't work on older CPUs!
+# For distribution, remove this config or use a portable target.
+
+[build]
+rustflags = ["-C", "target-cpu=native"]

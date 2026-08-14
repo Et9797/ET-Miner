@@ -1,0 +1,58 @@
+# Logs
+logs/
+*.log
+
+# Docs
+docs/
+papers/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+*venv*/
+
+# Rust build artifacts
+rust_ext/target/
+
+# Test / scratch data
+*.parquet
+tests/phh_samples/
+results/
+
+# Editors / IDE
+.vscode/
+.idea/
+
+# OS artifacts
+.DS_Store
+*.Zone.Identifier
+*:Zone.Identifier
+
+# Node.js (docs tooling, if any)
+node_modules/
+package-lock.json
+
+# Environment & credentials (never commit)
+.env
+*.pem
+dev-credentials.json
+.dev-credentials.json
+
+LICENSE_AUDIT.md
+LEAK_REPORT.md
+PAPER_V2_REVIEW.md
+MANIFEST.md
+
+# Plans & specs
+plans/
+specs/
+

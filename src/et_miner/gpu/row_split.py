@@ -20,6 +20,7 @@ from et_miner.core.result import (
     _empty_result,
     _min_count,
 )
+from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse
 from et_miner.gpu.mining import (
     _SparseState,
     _apply_anchor_filter,
@@ -50,7 +51,7 @@ def _apriori_row_split_multi_gpu(
     resume_from_k: int | None = None,  # Resume from K=N+1, loading K=N from parquet
     prune_closed: bool = False,  # V3: prune non-closed itemsets between K-levels
     prune_apriori: bool = False,  # V3: Apriori subset pruning on candidate groups
-    sparse_from_k: int | None = None,  # V3: switch to CSR sparse counting from this K level
+    sparse_from_k: int | str | None = None,  # V3: CSR from this K level, or "auto" = measured density
     anchor_items: set | None = None,  # V3 B6: two-phase anchor filtering
 ) -> "pl.DataFrame":
     """Mine frequent itemsets using row-split bitvecs across multiple GPUs.
@@ -231,6 +232,16 @@ def _apriori_row_split_multi_gpu(
 
         n_loaded = len(itemsets_col)
         prev_frequent_flat = flat_col_ids.reshape(n_loaded, resume_from_k).astype(np.int32)
+
+        # V3: reconstruct raw counts from the flushed support column, so the
+        # first resumed level keeps closed pruning and the "auto" density
+        # transition. count → support → count round-trips exactly through
+        # float64 for any int32-range count.
+        if "support" in table.column_names:
+            supports_np = table.column("support").combine_chunks().to_numpy(zero_copy_only=False)
+            prev_counts_flat = np.rint(supports_np.astype(np.float64) * n_transactions).astype(np.int64)
+        else:
+            prev_counts_flat = None  # counts unknown — closed pruning and auto transition wait one level
         del table, itemsets_col, flat_item_ids, flat_col_ids, item_to_col
 
         resume_time = time.perf_counter() - t_resume
@@ -238,7 +249,6 @@ def _apriori_row_split_multi_gpu(
 
         k = resume_from_k + 1
         prev_live_mgpu = set(prev_frequent_flat.ravel().tolist())
-        prev_counts_flat = None  # V3: counts unavailable from resume — skip closed pruning for first resumed K
         logger.info(f"  RESUME: Jumping to K={k} ({len(prev_live_mgpu)} live columns)")
 
     # ── K=1: parallel popcount across GPUs, sum ────────────────────────
@@ -298,15 +308,33 @@ def _apriori_row_split_multi_gpu(
         while k <= effective_max_length and prev_frequent_flat.shape[0] >= k:
             _k_start = time.perf_counter()
 
-            # V3: Sparse CSR mode — activated at K >= sparse_from_k
-            _sparse_mode = sparse_from_k is not None and k >= sparse_from_k
+            # V3: Sparse CSR mode — fixed K-level or measured density ("auto").
+            # Sticky once entered: the transition frees the bitvecs, so later
+            # levels must never fall back to the dense path.
+            _mean_count = None
+            if (
+                sparse_from_k == SPARSE_AUTO
+                and not sparse_state.active
+                and prev_counts_flat is not None
+                and len(prev_counts_flat) > 0
+            ):
+                _mean_count = float(prev_counts_flat.mean())
+            _sparse_mode = sparse_state.active or should_transition_to_sparse(
+                sparse_from_k, k, n_transactions=n_transactions, mean_count=_mean_count
+            )
 
             if _sparse_mode:
                 # ═══ V3 SPARSE CSR PATH ═══
-                # Shannon density transition: bitvecs → CSR tid-sets at K boundary.
+                # Density transition: bitvecs → CSR tid-sets at the K boundary.
                 # First time entering sparse mode: convert bitvecs → tidsets, free VRAM.
                 if not sparse_state.active:
-                    logger.info(f"  ═══ DENSITY TRANSITION at K={k}: dense bitvec → sparse CSR ═══")
+                    _trigger = (
+                        f"measured mean support {_mean_count / n_transactions:.4%} "
+                        f"< {DENSITY_CROSSOVER:.4%} crossover"
+                        if sparse_from_k == SPARSE_AUTO
+                        else f"fixed sparse_from_k={sparse_from_k}"
+                    )
+                    logger.info(f"  ═══ DENSITY TRANSITION at K={k} ({_trigger}): dense bitvec → sparse CSR ═══")
                     bv0, did0, _ = bitvecs_list[0]
                     with cp.cuda.Device(did0):
                         n_u64s_local = bv0.shape[1]
@@ -852,7 +880,7 @@ def mine_two_phase(
     item_col: str = "items",
     n_gpus: int = 1,
     output_dir: str | None = None,
-    sparse_from_k: int | None = 4,
+    sparse_from_k: int | str | None = SPARSE_AUTO,
     level_callback=None,
 ) -> tuple:
     """Two-phase mining: anchor discovery + neighborhood zoom.
@@ -874,7 +902,10 @@ def mine_two_phase(
         n_gpus: Number of GPUs to use.
         output_dir: Directory for per-K Parquet output. Phase 1 writes to
             output_dir/phase1/, Phase 2 to output_dir/phase2/.
-        sparse_from_k: K-level to switch to sparse CSR counting.
+        sparse_from_k: Dense→sparse CSR transition. "auto" (default) switches
+            when the previous level's measured mean support drops below the
+            n/32 byte-cost crossover; an int fixes the K-level; None never
+            switches.
         level_callback: Optional callback(k, n_candidates, n_frequent, ms).
 
     Returns:

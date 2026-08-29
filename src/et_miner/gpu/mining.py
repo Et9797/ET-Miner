@@ -23,6 +23,7 @@ from et_miner.core.result import (
     _empty_result,
     _min_count,
 )
+from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse
 
 
 @dataclass
@@ -612,7 +613,7 @@ def _apriori_from_bitvecs(
     n_gpus: int = 1,
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
-    sparse_from_k: int | None = None,
+    sparse_from_k: int | str | None = None,
 ) -> pl.DataFrame | tuple[pl.DataFrame, ProfilingSession]:
     """Run Apriori directly from pre-built GPU bitvectors.
 
@@ -628,6 +629,10 @@ def _apriori_from_bitvecs(
         batch_size: Candidates per batch (used for batching CUDA kernel calls).
         profile: If True, return profiling metrics alongside results.
         level_callback: Optional callback for per-level progress updates.
+        sparse_from_k: Dense→sparse CSR transition. Int = fixed K-level
+            (floored to 3), "auto" = transition when the previous level's
+            measured mean support falls below the byte-cost crossover
+            (n_transactions/32 — see et_miner.gpu.density), None = never.
 
     Returns:
         If profile=False: DataFrame with columns [itemset, support].
@@ -639,10 +644,6 @@ def _apriori_from_bitvecs(
         import cupy as cp
     except ImportError:
         raise ImportError("CuPy is required for bitvecs parameter. Install with: pip install cupy-cuda12x")
-
-    # CSR transition requires K>=3 groups; K=2 fused kernel is always faster
-    if sparse_from_k is not None:
-        sparse_from_k = max(sparse_from_k, 3)
 
     # int32 tidset indices can't represent transaction IDs > 2^31
     if n_transactions > np.iinfo(np.int32).max:
@@ -782,8 +783,24 @@ def _apriori_from_bitvecs(
     while k <= effective_max_length and len(prev_frequent) >= k:
         _k_start = time.perf_counter()
 
-        if sparse_from_k is not None and k >= sparse_from_k and tidset_offsets is None:
-            logger.info(f"  ═══ DENSITY TRANSITION at K={k}: dense bitvec → sparse CSR ═══")
+        # Dense→sparse transition: fixed K-level or measured density ("auto").
+        # One-way — the bitvecs are freed below, tidset_offsets keeps it sticky.
+        _go_sparse = False
+        if tidset_offsets is None and sparse_from_k is not None:
+            _mean_count = None
+            if sparse_from_k == SPARSE_AUTO and prev_counts:
+                _mean_count = sum(prev_counts.values()) / len(prev_counts)
+            _go_sparse = should_transition_to_sparse(
+                sparse_from_k, k, n_transactions=n_transactions, mean_count=_mean_count
+            )
+
+        if _go_sparse:
+            _trigger = (
+                f"measured mean support {_mean_count / n_transactions:.4%} < {DENSITY_CROSSOVER:.4%} crossover"
+                if sparse_from_k == SPARSE_AUTO
+                else f"fixed sparse_from_k={sparse_from_k}"
+            )
+            logger.info(f"  ═══ DENSITY TRANSITION at K={k} ({_trigger}): dense bitvec → sparse CSR ═══")
             prev_frequent_flat = np.array(prev_frequent, dtype=np.int32)
             tidset_offsets, tidset_indices = _convert_to_tidsets(
                 bitvecs_gpu,
@@ -969,8 +986,13 @@ def _apriori_from_bitvecs(
             _est_cands = sum(g * (g - 1) // 2 for g in _prefix_groups.values())
 
             if _est_cands >= SAMPLED_PREFILTER_THRESHOLD and n_u64s >= 8:
+                # Measured density of the previous level drives the sampling
+                # stride (falls back to the K ladder when counts are absent)
+                _prev_density = (
+                    sum(prev_counts.values()) / len(prev_counts) / n_transactions if prev_counts else None
+                )
                 frequent_candidates, counts = dispatch_k3plus_sampled(
-                    bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold
+                    bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold, density=_prev_density
                 )
             else:
                 frequent_candidates, counts = dispatch_k3plus_fused(

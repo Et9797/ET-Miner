@@ -8,6 +8,7 @@ dataset-dependent, but work count directly determines computational load.
 from math import comb
 
 from et_miner.backends import get_gpu_count
+from et_miner.gpu.density import prefilter_stride_for_density
 
 # Break-even threshold with ~20% safety margin.
 # Calibrated from RTX 3090 4x scaling data:
@@ -116,14 +117,16 @@ def dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count):
 SAMPLED_PREFILTER_THRESHOLD = 1_000_000  # >1M candidates = worth sampling
 
 
-def dispatch_k3plus_sampled(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, sample_stride=None):
+def dispatch_k3plus_sampled(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, sample_stride=None, density=None):
     """Sampled popcount pre-filter for K>=3: reject ~68% of candidates cheaply.
 
     Two-phase: sampled pass rejects ~68% of candidates, then indirect kernel
     exact-recounts only survivors. Falls back to fully-fused when below threshold.
 
-    Adaptive stride: at high K (sparse bitvectors), use smaller stride for more
-    accurate estimates. Rate-distortion tradeoff — Shannon in a CUDA kernel.
+    Adaptive stride: dense bitvectors tolerate aggressive sampling, sparse
+    ones need more samples for statistical reliability. Rate-distortion
+    tradeoff — Shannon in a CUDA kernel. The stride is keyed on measured
+    density when the caller provides it, on K as a density proxy otherwise.
 
     Args:
         bitvecs_gpu: CuPy array of shape (n_cols, n_u64s) with packed bitvectors.
@@ -131,17 +134,21 @@ def dispatch_k3plus_sampled(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, sa
         k: Current itemset size being generated.
         n_u64s: Number of uint64 words per bitvector.
         min_count: Minimum support count threshold.
-        sample_stride: Sample every Nth u64 word. None = adaptive based on K.
+        sample_stride: Sample every Nth u64 word. None = adaptive (see density).
+        density: Measured mean support fraction of the (k-1)-level frequent
+            itemsets, if the caller carries counts. Drives the adaptive
+            stride; None falls back to the K ladder.
 
     Returns:
         Tuple of (frequent_candidates, counts) — only candidates meeting min_count.
     """
     from .kernels import count_k3plus_sampled_prefilter, count_k3plus_fully_fused
 
-    # Adaptive stride: dense K=3 benefits from aggressive sampling,
-    # sparse K=7+ needs more samples for statistical reliability.
     if sample_stride is None:
-        if k <= 3:
+        if density is not None:
+            sample_stride = prefilter_stride_for_density(density)
+        # K ladder fallback: K as a proxy when no measured density is available
+        elif k <= 3:
             sample_stride = 8  # 12.5% sample — plenty for dense bitvecs
         elif k <= 5:
             sample_stride = 4  # 25% sample — moderate density

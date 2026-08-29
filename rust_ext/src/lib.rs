@@ -83,84 +83,6 @@ fn count_itemsets_simd<'py>(
     PyArray1::from_vec(py, counts)
 }
 
-/// Count support for multiple itemsets in parallel (DENSE matrix version).
-///
-/// Use `count_itemsets_sparse` for CSR format to avoid conversion overhead.
-#[pyfunction]
-fn count_itemsets_parallel<'py>(
-    py: Python<'py>,
-    matrix: PyReadonlyArray2<'py, u8>,
-    itemsets: Vec<Vec<usize>>,
-) -> Bound<'py, PyArray1<u32>> {
-    let matrix_array = matrix.as_array();
-    let n_rows = matrix_array.nrows();
-    let n_cols = matrix_array.ncols();
-
-    // Convert to contiguous slice
-    let matrix_slice: Vec<u8> = matrix_array.iter().copied().collect();
-
-    let counts = core::counting::count_itemsets_parallel_raw(
-        &matrix_slice,
-        n_rows,
-        n_cols,
-        &itemsets,
-    );
-    PyArray1::from_vec(py, counts)
-}
-
-/// Count support for k=2 itemsets using matrix multiplication approach.
-#[pyfunction]
-fn compute_cooccurrence_matrix<'py>(
-    py: Python<'py>,
-    matrix: PyReadonlyArray2<'py, u8>,
-) -> Bound<'py, PyArray2<u32>> {
-    let matrix_array = matrix.as_array();
-    let n_rows = matrix_array.nrows();
-    let n_cols = matrix_array.ncols();
-
-    // Convert to contiguous slice
-    let matrix_slice: Vec<u8> = matrix_array.iter().copied().collect();
-
-    let cooccur = core::cooccurrence::compute_cooccurrence_matrix_raw(
-        &matrix_slice,
-        n_rows,
-        n_cols,
-    );
-
-    // Convert to 2D array
-    let cooccur_2d: Vec<Vec<u32>> = cooccur
-        .chunks(n_cols)
-        .map(|chunk| chunk.to_vec())
-        .collect();
-
-    PyArray2::from_vec2(py, &cooccur_2d).unwrap()
-}
-
-/// Compute k=2 co-occurrence directly from SPARSE CSR format.
-#[pyfunction]
-fn compute_cooccurrence_sparse<'py>(
-    py: Python<'py>,
-    indptr: PyReadonlyArray1<'py, i64>,
-    indices: PyReadonlyArray1<'py, i64>,
-    n_rows: usize,
-    n_cols: usize,
-) -> Bound<'py, PyArray2<u32>> {
-    let cooccur = core::cooccurrence::compute_cooccurrence_sparse_raw(
-        indptr.as_slice().unwrap(),
-        indices.as_slice().unwrap(),
-        n_rows,
-        n_cols,
-    );
-
-    // Convert to 2D array
-    let cooccur_2d: Vec<Vec<u32>> = cooccur
-        .chunks(n_cols)
-        .map(|chunk| chunk.to_vec())
-        .collect();
-
-    PyArray2::from_vec2(py, &cooccur_2d).unwrap()
-}
-
 /// Build column bitvecs as u64 arrays for GPU transfer.
 #[pyfunction]
 fn build_column_bitvecs_u64<'py>(
@@ -208,49 +130,6 @@ fn bitvec_to_tidsets<'py>(
     )
 }
 
-/// Convert boolean predicate matrix to transaction item lists.
-#[pyfunction]
-fn prepare_transactions(
-    _py: Python,
-    predicate_matrix: PyReadonlyArray2<bool>,
-) -> PyResult<Vec<Vec<usize>>> {
-    let matrix = predicate_matrix.as_array();
-    let n_rows = matrix.nrows();
-    let n_cols = matrix.ncols();
-
-    // Convert to contiguous slice
-    let matrix_slice: Vec<bool> = matrix.iter().copied().collect();
-
-    let transactions = core::matrix::prepare_transactions_raw(
-        &matrix_slice,
-        n_rows,
-        n_cols,
-    );
-
-    Ok(transactions)
-}
-
-/// Build CSR matrix from COO format using parallel sorting.
-#[pyfunction]
-fn build_csr_from_coo<'py>(
-    py: Python<'py>,
-    rows: PyReadonlyArray1<'py, i64>,
-    cols: PyReadonlyArray1<'py, i64>,
-    n_rows: usize,
-    _n_cols: usize,  // Not used but kept for API consistency
-) -> (Bound<'py, PyArray1<i64>>, Bound<'py, PyArray1<i64>>) {
-    let (indptr, indices) = core::matrix::build_csr_from_coo_raw(
-        rows.as_slice().unwrap(),
-        cols.as_slice().unwrap(),
-        n_rows,
-    );
-
-    (
-        PyArray1::from_vec(py, indptr),
-        PyArray1::from_vec(py, indices),
-    )
-}
-
 /// Generate random CSR matrix directly in Rust.
 #[pyfunction]
 fn generate_random_csr<'py>(
@@ -273,57 +152,15 @@ fn generate_random_csr<'py>(
     )
 }
 
-/// Generate bootstrapped CSR matrix by sampling source transactions with replacement.
-#[pyfunction]
-fn generate_bootstrap_csr<'py>(
-    py: Python<'py>,
-    source_data: Vec<Vec<i64>>,
-    n_rows: usize,
-    n_cols: usize,
-    seed: u64,
-) -> (Bound<'py, PyArray1<i64>>, Bound<'py, PyArray1<i64>>) {
-    let (indptr, indices) = core::matrix::generate_bootstrap_csr_raw(
-        &source_data,
-        n_rows,
-        n_cols,
-        seed,
-    );
-
-    (
-        PyArray1::from_vec(py, indptr),
-        PyArray1::from_vec(py, indices),
-    )
-}
-
 /// Get the number of threads Rayon will use for parallel operations.
 #[pyfunction]
 fn get_num_threads() -> usize {
     core::utils::get_num_threads()
 }
 
-/// Set the number of threads Rayon will use for parallel operations.
-#[pyfunction]
-fn set_num_threads(n_threads: usize) {
-    core::utils::set_num_threads(n_threads);
-}
-
 // =============================================================================
-// Phase 2: New Functions for CSR-to-CSR Workflow
+// Full-Rust Apriori over CSR
 // =============================================================================
-
-/// Generate k=2 candidate pairs from frequent 1-itemsets.
-///
-/// Given a sorted list of frequent items, generates all pairs (i, j) where i < j.
-#[pyfunction]
-fn generate_candidates_k2(frequent_items: Vec<usize>) -> Vec<(usize, usize)> {
-    core::candidates::generate_candidates_k2(&frequent_items)
-}
-
-/// Generate k+1 candidates from frequent k-itemsets using the Apriori principle.
-#[pyfunction]
-fn generate_candidates_kplus1(frequent_k: Vec<Vec<usize>>) -> Vec<Vec<usize>> {
-    core::candidates::generate_candidates_kplus1(&frequent_k)
-}
 
 /// Run complete Apriori algorithm on CSR matrix.
 ///
@@ -358,22 +195,6 @@ fn apriori_from_csr<'py>(
         max_length,
     );
     result.flatten()
-}
-
-/// Build CSR matrix from list of transactions.
-///
-/// Creates a CSR matrix directly from transaction lists, avoiding Python-side conversion.
-#[pyfunction]
-fn build_csr_from_transactions<'py>(
-    py: Python<'py>,
-    transactions: Vec<Vec<i64>>,
-    n_items: usize,
-) -> (Bound<'py, PyArray1<i64>>, Bound<'py, PyArray1<i64>>) {
-    let (indptr, indices) = core::apriori::build_csr_from_transactions(&transactions, n_items);
-    (
-        PyArray1::from_vec(py, indptr),
-        PyArray1::from_vec(py, indices),
-    )
 }
 
 // =============================================================================
@@ -691,33 +512,19 @@ fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core counting functions
     m.add_function(wrap_pyfunction!(count_itemsets_sparse, m)?)?;
     m.add_function(wrap_pyfunction!(count_itemsets_simd, m)?)?;
-    m.add_function(wrap_pyfunction!(count_itemsets_parallel, m)?)?;
-
-    // Co-occurrence computation
-    m.add_function(wrap_pyfunction!(compute_cooccurrence_sparse, m)?)?;
-    m.add_function(wrap_pyfunction!(compute_cooccurrence_matrix, m)?)?;
 
     // GPU acceleration support
     m.add_function(wrap_pyfunction!(build_column_bitvecs_u64, m)?)?;
     m.add_function(wrap_pyfunction!(bitvec_to_tidsets, m)?)?;  // V3: reverse direction
 
-    // Fast CSR construction
-    m.add_function(wrap_pyfunction!(build_csr_from_coo, m)?)?;
+    // Fast CSR construction (synthetic-data generation for benchmarks)
     m.add_function(wrap_pyfunction!(generate_random_csr, m)?)?;
-    m.add_function(wrap_pyfunction!(generate_bootstrap_csr, m)?)?;
-
-    // Transaction preparation
-    m.add_function(wrap_pyfunction!(prepare_transactions, m)?)?;
 
     // Thread control
     m.add_function(wrap_pyfunction!(get_num_threads, m)?)?;
-    m.add_function(wrap_pyfunction!(set_num_threads, m)?)?;
 
-    // Phase 2: CSR-to-CSR Apriori workflow
-    m.add_function(wrap_pyfunction!(generate_candidates_k2, m)?)?;
-    m.add_function(wrap_pyfunction!(generate_candidates_kplus1, m)?)?;
+    // Full-Rust Apriori over a CSR matrix
     m.add_function(wrap_pyfunction!(apriori_from_csr, m)?)?;
-    m.add_function(wrap_pyfunction!(build_csr_from_transactions, m)?)?;
 
     // Phase 3: K>=3 group building (GPU bottleneck elimination)
     m.add_function(wrap_pyfunction!(build_k3plus_groups_from_flat, m)?)?;

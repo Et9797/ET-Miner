@@ -1,12 +1,14 @@
 # ET-Miner Rust Extension Build Configuration
 #
-# target-cpu=native enables CPU-specific optimizations:
-# - AVX2/AVX-512 SIMD instructions on modern CPUs
-# - Cache-optimized code generation
-# - Architecture-specific vectorization
+# Portable by default: no target-cpu pinning, so built extensions run on any
+# x86-64/aarch64 machine (needed for CI and distributable wheels).
 #
-# NOTE: Binaries built with native won't work on older CPUs!
-# For distribution, remove this config or use a portable target.
+# For a machine-tuned local build (AVX2/AVX-512 SIMD on modern CPUs), opt in
+# at build time instead:
+#
+#     RUSTFLAGS="-C target-cpu=native" maturin develop --release
+#
+# NOTE: Binaries built with target-cpu=native won't run on older CPUs.
 
 [build]
-rustflags = ["-C", "target-cpu=native"]
+# rustflags = ["-C", "target-cpu=native"]   # opt-in via RUSTFLAGS (see above)

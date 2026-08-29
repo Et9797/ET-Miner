@@ -1,7 +1,8 @@
 """Structured logging for ET-Miner.
 
 Provides a configured loguru logger with sensible defaults and easy
-configuration for different use cases.
+configuration for different use cases. loguru is a hard runtime dependency
+(declared in pyproject), so no stdlib fallback is needed.
 
 Example:
     >>> from et_miner._logging import logger
@@ -18,14 +19,9 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-# Try to import loguru, fall back to stdlib logging
-try:
-    from loguru import logger as _loguru_logger
+from loguru import logger as _loguru_logger
 
-    HAS_LOGURU = True
-except ImportError:
-    HAS_LOGURU = False
-    _loguru_logger = None  # type: ignore[assignment]
+from et_miner import _env
 
 if TYPE_CHECKING:
     from loguru import Logger
@@ -57,94 +53,8 @@ JSON_FORMAT = (
 )
 
 
-class LoguruFallback:
-    """Minimal stdlib logging fallback when loguru is not installed.
-
-    Provides the same interface as loguru but uses stdlib logging.
-    """
-
-    def __init__(self):
-        import logging
-
-        self._logger = logging.getLogger("et_miner")
-        self._configured = False
-
-    def _ensure_configured(self):
-        if not self._configured:
-            import logging
-
-            handler = logging.StreamHandler(sys.stderr)
-            handler.setFormatter(
-                logging.Formatter("%(asctime)s | %(levelname)-8s | %(message)s")
-            )
-            self._logger.addHandler(handler)
-            self._logger.setLevel(logging.INFO)
-            self._configured = True
-
-    def _format_message(self, message: str, **kwargs: Any) -> str:
-        if kwargs:
-            extra = " | ".join(f"{k}={v}" for k, v in kwargs.items())
-            return f"{message} | {extra}"
-        return message
-
-    def trace(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.debug(self._format_message(f"[TRACE] {message}", **kwargs))
-
-    def debug(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.debug(self._format_message(message, **kwargs))
-
-    def info(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.info(self._format_message(message, **kwargs))
-
-    def success(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.info(self._format_message(f"[SUCCESS] {message}", **kwargs))
-
-    def warning(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.warning(self._format_message(message, **kwargs))
-
-    def error(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.error(self._format_message(message, **kwargs))
-
-    def critical(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.critical(self._format_message(message, **kwargs))
-
-    def exception(self, message: str, **kwargs: Any) -> None:
-        self._ensure_configured()
-        self._logger.exception(self._format_message(message, **kwargs))
-
-    def bind(self, **kwargs: Any) -> "LoguruFallback":
-        # Fallback doesn't support bind, return self
-        return self
-
-    def opt(self, **kwargs: Any) -> "LoguruFallback":
-        # Fallback doesn't support opt, return self
-        return self
-
-
-def _create_logger() -> "Logger | LoguruFallback":
-    """Create the appropriate logger based on available packages."""
-    if HAS_LOGURU:
-        # Create a child logger for et-miner
-        return _loguru_logger.bind(library="et-miner")
-    return LoguruFallback()
-
-
 # The main logger instance
-logger: "Logger | LoguruFallback" = _create_logger()
-
-
-def _get_log_dir() -> Path:
-    """Resolve the project-level logs/ directory."""
-    log_dir = Path(__file__).parent.parent.parent / "logs"
-    log_dir.mkdir(exist_ok=True)
-    return log_dir
+logger: "Logger" = _loguru_logger.bind(library="et-miner")
 
 
 def configure_logging(
@@ -156,11 +66,14 @@ def configure_logging(
     serialize: bool = False,
     rotation: str = "10 MB",
     retention: int = 3,
+    log_dir: str | Path | None = None,
 ) -> None:
     """Configure topic-based file logging.
 
-    Logs are written to logs/{topic}/{topic}.log with automatic rotation.
-    Terminal output (stderr/stdout) is OFF by default — tail the log files.
+    Logs are written to {log_dir}/{topic}/{topic}.log with automatic
+    rotation. The directory defaults to $ET_MINER_LOG_DIR, falling back to
+    ~/.cache/et-miner/logs — never inside the installed package. Terminal
+    output (stderr/stdout) is OFF by default — tail the log files.
 
     Args:
         topic: Project topic (e.g. 'et-miner')
@@ -171,24 +84,13 @@ def configure_logging(
         serialize: If True, log as JSON
         rotation: Log file rotation size (default: '10 MB')
         retention: Number of rotated files to keep (default: 3)
+        log_dir: Base directory for log files (default: $ET_MINER_LOG_DIR
+            or ~/.cache/et-miner/logs)
 
     Example:
         >>> configure_logging(topic="et-miner", level="DEBUG")
         >>> configure_logging(topic="et-miner", stdout=True)
     """
-    if not HAS_LOGURU:
-        import logging
-
-        level_map = {
-            "TRACE": logging.DEBUG, "DEBUG": logging.DEBUG,
-            "INFO": logging.INFO, "SUCCESS": logging.INFO,
-            "WARNING": logging.WARNING, "ERROR": logging.ERROR,
-            "CRITICAL": logging.CRITICAL,
-        }
-        if isinstance(logger, LoguruFallback):
-            logger._logger.setLevel(level_map.get(level.upper(), logging.INFO))
-        return
-
     # Determine format string
     if format == "default":
         fmt = DEFAULT_FORMAT
@@ -204,9 +106,10 @@ def configure_logging(
     _loguru_logger.remove()
 
     # File sink — topic-based directory
-    log_dir = _get_log_dir() / topic
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / f"{topic}.log"
+    base_dir = Path(log_dir) if log_dir is not None else _env.log_dir()
+    topic_dir = base_dir / topic
+    topic_dir.mkdir(parents=True, exist_ok=True)
+    log_file = topic_dir / f"{topic}.log"
 
     _loguru_logger.add(
         str(log_file),
@@ -229,22 +132,12 @@ def disable_logging() -> None:
 
     Useful for tests or when embedding in other applications.
     """
-    if HAS_LOGURU:
-        _loguru_logger.disable("et_miner")
-    elif isinstance(logger, LoguruFallback):
-        import logging
-
-        logger._logger.setLevel(logging.CRITICAL + 1)
+    _loguru_logger.disable("et_miner")
 
 
 def enable_logging() -> None:
     """Re-enable et-miner logging after disable_logging()."""
-    if HAS_LOGURU:
-        _loguru_logger.enable("et_miner")
-    elif isinstance(logger, LoguruFallback):
-        import logging
-
-        logger._logger.setLevel(logging.INFO)
+    _loguru_logger.enable("et_miner")
 
 
 # =============================================================================
@@ -266,15 +159,13 @@ class LogContext:
         self._token = None
 
     def __enter__(self) -> "LogContext":
-        if HAS_LOGURU:
-            global logger
-            logger = _loguru_logger.bind(**self.context)
+        global logger
+        logger = _loguru_logger.bind(**self.context)
         return self
 
     def __exit__(self, *args: Any) -> None:
-        if HAS_LOGURU:
-            global logger
-            logger = _loguru_logger.bind(library="et-miner")
+        global logger
+        logger = _loguru_logger.bind(library="et-miner")
 
 
 # =============================================================================
@@ -332,7 +223,6 @@ __all__ = [
     "log_mining_start",
     "log_mining_complete",
     "log_phase_timing",
-    "HAS_LOGURU",
     "DEFAULT_FORMAT",
     "COMPACT_FORMAT",
     "JSON_FORMAT",

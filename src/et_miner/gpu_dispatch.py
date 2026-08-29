@@ -7,7 +7,7 @@ dataset-dependent, but work count directly determines computational load.
 
 from math import comb
 
-from .gpu_utils import get_gpu_count
+from et_miner.backends import get_gpu_count
 
 # Break-even threshold with ~20% safety margin.
 # Calibrated from RTX 3090 4x scaling data:

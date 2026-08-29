@@ -26,6 +26,7 @@ from typing import Any
 
 import polars as pl
 
+from . import _env
 from .gcs import (
     GCSUploader,
     is_gs_uri,
@@ -280,7 +281,11 @@ def _prune_closed_flat(current_flat, current_counts, prev_flat, prev_counts):
 
     # --- Rust fast path: HashMap + Rayon parallel, GIL-free ---
     try:
-        import et_miner_rust
+        from et_miner.backends import get_rust_ext
+
+        et_miner_rust = get_rust_ext()
+        if et_miner_rust is None:
+            raise ImportError("et_miner_rust not built")
 
         cf = np.ascontiguousarray(current_flat, dtype=np.int32)
         cc = np.ascontiguousarray(current_counts, dtype=np.int64)
@@ -450,12 +455,10 @@ def _convert_to_tidsets(bitvecs_gpu_or_list, freq_flat, n_u64s, batch_size=10_00
     all_indices_parts = []
     running_offset = 0
 
-    try:
-        import et_miner_rust
+    from et_miner.backends import get_rust_ext
 
-        has_rust = True
-    except ImportError:
-        has_rust = False
+    et_miner_rust = get_rust_ext()
+    has_rust = et_miner_rust is not None
 
     from concurrent.futures import ThreadPoolExecutor
 
@@ -694,7 +697,11 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     # --- Rust fast path: HashSet + Rayon parallel, GIL-free ---
     if prev_flat_np is not None:
         try:
-            import et_miner_rust
+            from et_miner.backends import get_rust_ext
+
+            et_miner_rust = get_rust_ext()
+            if et_miner_rust is None:
+                raise ImportError("et_miner_rust not built")
 
             pf = np.ascontiguousarray(prev_flat_np, dtype=np.int32)
             result = et_miner_rust.prune_groups_apriori(
@@ -1535,11 +1542,11 @@ def _flush_k_parquet(
     n = items_flat.shape[0]
     k_width = items_flat.shape[1] if items_flat.ndim == 2 else 1
 
-    chunk_threshold = int(os.environ.get("ET_MINER_FLUSH_PARALLEL_THRESHOLD", "100000000"))
-    legacy = os.environ.get("ET_MINER_LEGACY_WRITE") == "1"
+    chunk_threshold = _env.flush_parallel_threshold()
+    legacy = _env.legacy_write()
     use_parallel = n >= chunk_threshold and not legacy
 
-    flush_comp = os.environ.get("ET_FLUSH_COMPRESSION", "zstd")
+    flush_comp = _env.flush_compression()
     comp_kw: dict[str, Any] = {"compression": flush_comp, "use_dictionary": False}
     if flush_comp == "zstd":
         comp_kw["compression_level"] = 2
@@ -1581,9 +1588,9 @@ def _flush_k_parquet(
         return
 
     # ── Parallel partitioned write ──
-    chunk_size = int(os.environ.get("ET_FLUSH_CHUNK_SIZE", "50000000"))
+    chunk_size = _env.flush_chunk_size()
     n_threads = min(
-        int(os.environ.get("ET_FLUSH_THREADS", "4")),
+        _env.flush_threads(),
         max(1, (os.cpu_count() or 4) // 4),
     )
 
@@ -1595,7 +1602,7 @@ def _flush_k_parquet(
     )
 
     if is_remote:
-        tmpdir = os.environ.get("ET_PARQUET_TMPDIR", "/workspace/tmp")
+        tmpdir = _env.parquet_tmpdir()
         os.makedirs(tmpdir, exist_ok=True)
         local_part_dir = os.path.join(tmpdir, f"frequent_k{k_level}")
     else:
@@ -1840,7 +1847,7 @@ def _apriori_row_split_multi_gpu(
     _upload_local = bool(output_dir) and not _output_is_remote
     _need_upload = (is_upload_enabled() and _upload_local) or _output_is_remote
     uploader = GCSUploader(
-        prefix=os.environ.get("ET_UPLOAD_TAG", f"run_{int(time.time())}"),
+        prefix=_env.upload_tag(f"run_{int(time.time())}"),
         max_workers=2,
         enabled=_need_upload,
     )
@@ -1866,7 +1873,7 @@ def _apriori_row_split_multi_gpu(
                 output_dir=output_dir,
                 is_remote=_output_is_remote,
                 uploader=uploader,
-                backup_dir=os.environ.get("ET_PARQUET_BACKUP_DIR"),
+                backup_dir=_env.parquet_backup_dir(),
             )
         finally:
             items_flat.flags.writeable = True
@@ -2417,8 +2424,9 @@ def _apriori_row_split_multi_gpu(
             # (n, k) int32 (~30-90s on K=6's 2.58B elements) with Rust parallel
             # bitset extract (sub-second). Falls back to np.unique if older wheel.
             try:
-                import et_miner_rust
+                from et_miner.backends import get_rust_ext
 
+                et_miner_rust = get_rust_ext()
                 if hasattr(et_miner_rust, "unique_columns_from_flat"):
                     current_live_mgpu = set(
                         int(x)

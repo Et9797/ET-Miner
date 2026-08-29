@@ -9,6 +9,8 @@ Provides:
 from typing import TYPE_CHECKING, Optional, List, Tuple
 import numpy as np
 
+from et_miner.backends import get_gpu_count
+
 if TYPE_CHECKING:
     import cupy as cp
 
@@ -57,18 +59,6 @@ def transfer_pinned(array: np.ndarray) -> "cp.ndarray":
     gpu_array = cp.asarray(pinned_array)
 
     return gpu_array
-
-
-def get_gpu_count() -> int:
-    """Get number of available CUDA GPUs."""
-    try:
-        import cupy as cp
-
-        return cp.cuda.runtime.getDeviceCount()
-    except ImportError:
-        return 0
-    except Exception:
-        return 0
 
 
 def get_gpu_memory_info(device_id: int = 0) -> Tuple[int, int]:

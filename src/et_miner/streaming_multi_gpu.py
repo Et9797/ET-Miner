@@ -53,6 +53,8 @@ from et_miner.matrix import (
     build_boolean_matrix,
     count_support_batched,
 )
+from et_miner.backends import CUPY_INSTALLED, get_gpu_count, has_cupy
+from et_miner.exceptions import MiningError
 
 
 if TYPE_CHECKING:
@@ -60,46 +62,6 @@ if TYPE_CHECKING:
 
 
 from loguru import logger
-
-
-# =============================================================================
-# CuPy/GPU Detection
-# =============================================================================
-
-try:
-    import cupy as cp
-    _HAS_CUPY = True
-except ImportError:
-    _HAS_CUPY = False
-    cp = None  # type: ignore[assignment]
-
-
-def has_cupy() -> bool:
-    """Check if CuPy (GPU acceleration) is available.
-
-    Returns:
-        True if CuPy is installed and at least one GPU is accessible.
-    """
-    if not _HAS_CUPY:
-        return False
-    try:
-        return cp.cuda.runtime.getDeviceCount() > 0
-    except Exception:
-        return False
-
-
-def get_gpu_count() -> int:
-    """Get number of available CUDA GPUs.
-
-    Returns:
-        Number of GPUs, or 0 if CuPy is not available.
-    """
-    if not _HAS_CUPY:
-        return 0
-    try:
-        return cp.cuda.runtime.getDeviceCount()
-    except Exception:
-        return 0
 
 
 def _get_gpu_memory_info(device_id: int = 0) -> tuple[float, float]:
@@ -111,9 +73,11 @@ def _get_gpu_memory_info(device_id: int = 0) -> tuple[float, float]:
     Returns:
         Tuple of (free_gb, total_gb).
     """
-    if not _HAS_CUPY:
+    if not CUPY_INSTALLED:
         return (0.0, 0.0)
     try:
+        import cupy as cp
+
         with cp.cuda.Device(device_id):
             free, total = cp.cuda.runtime.memGetInfo()
             return free / 1e9, total / 1e9
@@ -127,9 +91,11 @@ def _cleanup_gpu_memory(device_id: int) -> None:
     Args:
         device_id: GPU device ID to clean.
     """
-    if not _HAS_CUPY:
+    if not CUPY_INSTALLED:
         return
     try:
+        import cupy as cp
+
         with cp.cuda.Device(device_id):
             cp.get_default_memory_pool().free_all_blocks()
             cp.get_default_pinned_memory_pool().free_all_blocks()
@@ -212,13 +178,16 @@ def apriori_streaming_multi_gpu(
     """
     # Validate GPU availability
     if not has_cupy():
-        raise RuntimeError(
-            "CuPy not available. Install with: pip install cupy-cuda12x"
+        raise MiningError(
+            "apriori_streaming_multi_gpu requires CuPy and a CUDA device. "
+            "Install GPU support with: pip install 'et-miner[gpu]'"
         )
 
     available_gpus = get_gpu_count()
     if available_gpus == 0:
-        raise RuntimeError("No CUDA GPUs detected")
+        raise MiningError("No CUDA GPUs detected")
+
+    import cupy as cp
 
     effective_n_gpus = min(n_gpus, available_gpus)
     if effective_n_gpus < n_gpus:

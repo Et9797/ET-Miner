@@ -683,7 +683,11 @@ def benchmark_csr_generation(
     # Rust comparison
     if compare_rust:
         try:
-            import et_miner_rust as rust
+            from et_miner.backends import get_rust_ext
+
+            rust = get_rust_ext()
+            if rust is None:
+                raise ImportError("et_miner_rust not built")
 
             logger.info(f"Benchmarking Rust CSR generation ({benchmark_rounds} rounds)...")
             rust_times = []

@@ -32,11 +32,11 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
+from et_miner import _env
+
 if TYPE_CHECKING:
     from google.cloud.storage import Client
 
-
-GCS_BUCKET = "gs://et-miner-results"
 
 CHUNK_SIZE_MB = 128
 PARALLEL_WORKERS = 8
@@ -44,7 +44,7 @@ PARALLEL_THRESHOLD_MB = 64
 
 
 def is_upload_enabled() -> bool:
-    return os.environ.get("ET_UPLOAD_GCS", "").strip() == "1"
+    return _env.upload_gcs_enabled()
 
 
 def is_gs_uri(uri: object) -> bool:
@@ -113,13 +113,12 @@ def resolve_k_parquet(base_dir: str, k: int) -> str:
 
 
 def default_creds_path() -> Path | None:
-    env = os.environ.get("ET_MINER_GCS_CREDENTIALS")
+    env = _env.gcs_credentials_path()
     if env:
         p = Path(env)
         return p if p.exists() else None
-    repo_root = Path(__file__).resolve().parents[2]
     candidates = [
-        repo_root / "dev-credentials.json",
+        Path.cwd() / "dev-credentials.json",
         Path.home() / ".config/gcloud/application_default_credentials.json",
     ]
     for c in candidates:
@@ -176,14 +175,14 @@ def make_client(creds_path: Path | None = None) -> Client:
         )
         return _Client(credentials=creds, project=data.get("quota_project_id"))
 
-    raw_token = os.environ.get("GCS_TOKEN")
+    raw_token = _env.gcs_token()
     if raw_token:
         return _Client(credentials=Credentials(token=raw_token))
 
     raise FileNotFoundError(
         "GCS credentials not found — set ET_MINER_GCS_CREDENTIALS, place "
-        "dev-credentials.json in repo root, run `gcloud auth application-default login`, "
-        "or set GCS_TOKEN env var",
+        "dev-credentials.json in the working directory, run "
+        "`gcloud auth application-default login`, or set GCS_TOKEN env var",
     )
 
 
@@ -230,14 +229,14 @@ def upload_to_uri(
 
 
 def upload_file(local_path: str | Path, gcs_prefix: str) -> None:
-    """Upload a single file to gs://et-miner-results/{prefix}/{filename}.
+    """Upload a single file to {ET_MINER_GCS_BUCKET}/{prefix}/{filename}.
 
     Uses chunked parallel transfer when google-cloud-storage is importable,
     falls back to `gcloud storage cp` subprocess otherwise.
     """
     local = Path(local_path)
     fname = local.name
-    gs_uri = f"{GCS_BUCKET}/{gcs_prefix}/{fname}"
+    gs_uri = f"{_env.gcs_bucket()}/{gcs_prefix}/{fname}"
 
     try:
         from google.cloud import storage  # noqa: F401

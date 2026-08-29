@@ -2945,8 +2945,9 @@ def build_k3plus_groups_from_flat(freq_flat):
 
     # ── Rust fast path: Rayon parallel sort, GIL-free ──────────────
     try:
-        import et_miner_rust
+        from et_miner.backends import get_rust_ext
 
+        et_miner_rust = get_rust_ext()
         if hasattr(et_miner_rust, "build_k3plus_groups_from_flat"):
             result = et_miner_rust.build_k3plus_groups_from_flat(np.ascontiguousarray(freq_flat, dtype=np.int32))
             if result is None:

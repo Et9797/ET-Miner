@@ -28,36 +28,15 @@ import polars as pl
 from loguru import logger
 
 from et_miner._compat import HAS_TQDM, tqdm
+from et_miner.backends import CUPY_INSTALLED, RUST_INSTALLED, get_rust_ext
 
 # Scipy for sparse matrix operations
 from scipy.sparse import coo_matrix, csr_matrix
 
 
 if TYPE_CHECKING:
+    import cupy as cp
     from scipy.sparse import csr_matrix as CSRMatrix
-
-
-# =============================================================================
-# Rust Extension Detection
-# =============================================================================
-
-try:
-    import et_miner_rust as _rust_ext
-
-    _HAS_RUST_EXT = True
-    _RUST_VERSION = getattr(_rust_ext, "__version__", "unknown")
-except ImportError:
-    _HAS_RUST_EXT = False
-    _RUST_VERSION = None
-    _rust_ext = None  # type: ignore[assignment]
-
-
-def has_rust_extension() -> bool:
-    return _HAS_RUST_EXT
-
-
-def get_rust_version() -> str | None:
-    return _RUST_VERSION
 
 
 # =============================================================================
@@ -89,36 +68,6 @@ def _build_result_df(results: list[tuple[list, float]]) -> pl.DataFrame:
             "support": [float(r[1]) for r in results],
         }
     )
-
-
-# =============================================================================
-# CuPy/GPU Detection
-# =============================================================================
-
-try:
-    import cupy as cp
-
-    _HAS_CUPY = True
-    _CUPY_VERSION = cp.__version__
-except ImportError:
-    _HAS_CUPY = False
-    _CUPY_VERSION = None
-    cp = None  # type: ignore[assignment]
-
-
-def has_cupy() -> bool:
-    if not _HAS_CUPY:
-        return False
-    try:
-        # Verify GPU is actually accessible, not just CuPy installed
-        cp.cuda.Device(0).compute_capability
-        return True
-    except Exception:
-        return False
-
-
-def get_cupy_version() -> str | None:
-    return _CUPY_VERSION
 
 
 # =============================================================================
@@ -510,8 +459,9 @@ def _count_support_sparse_k_gt_2_rust(
     Returns:
         Dictionary mapping itemsets to support counts.
     """
-    if not _HAS_RUST_EXT:
+    if not RUST_INSTALLED:
         raise RuntimeError("Rust extension not available")
+    rust = get_rust_ext()
 
     if not itemsets:
         return {}
@@ -527,24 +477,24 @@ def _count_support_sparse_k_gt_2_rust(
     n_cols = csr.shape[1]
 
     # Use SIMD bitvec implementation if available and requested
-    _use_simd = use_simd and hasattr(_rust_ext, "count_itemsets_simd")
+    _use_simd = use_simd and hasattr(rust, "count_itemsets_simd")
 
     if _use_simd:
         logger.debug(
             f"[k>2 RUST SIMD] {len(itemsets)} itemsets, "
             f"{n_rows:,} transactions, "
             f"{n_cols} items, "
-            f"{_rust_ext.get_num_threads()} threads"
+            f"{rust.get_num_threads()} threads"
         )
-        counts = _rust_ext.count_itemsets_simd(indptr, indices, n_rows, n_cols, itemsets_indices)
+        counts = rust.count_itemsets_simd(indptr, indices, n_rows, n_cols, itemsets_indices)
     else:
         logger.debug(
             f"[k>2 RUST SPARSE] {len(itemsets)} itemsets, "
             f"{n_rows:,} transactions, "
             f"{n_cols} items, "
-            f"{_rust_ext.get_num_threads()} threads"
+            f"{rust.get_num_threads()} threads"
         )
-        counts = _rust_ext.count_itemsets_sparse(indptr, indices, n_rows, itemsets_indices)
+        counts = rust.count_itemsets_sparse(indptr, indices, n_rows, itemsets_indices)
 
     # Build result dict
     return {itemset: int(count) for itemset, count in zip(itemsets, counts)}
@@ -556,7 +506,7 @@ _RUST_MIN_ITEMSETS = 1  # Rust is now ALWAYS faster due to zero conversion overh
 
 def _should_use_rust(n_itemsets: int, n_items: int) -> bool:
     # v0.2.0+: Rust sparse CSR has zero conversion overhead, always faster when available
-    return _HAS_RUST_EXT
+    return RUST_INSTALLED
 
 
 # =============================================================================
@@ -587,8 +537,9 @@ def _build_gpu_bitvec_matrix(
     Raises:
         RuntimeError: If CuPy or Rust extension not available.
     """
-    if not _HAS_CUPY:
+    if not CUPY_INSTALLED:
         raise RuntimeError("CuPy not available")
+    import cupy as cp
 
     n_rows = csr.shape[0]
     n_cols = csr.shape[1]
@@ -605,7 +556,7 @@ def _build_gpu_bitvec_matrix(
             logger.warning(f"CUDA kernel failed: {e}, falling back to Rust path")
 
     # Fallback: Rust bitvec build + transfer
-    if not _HAS_RUST_EXT:
+    if not RUST_INSTALLED:
         raise RuntimeError("Rust extension not available")
 
     # Extract CSR components
@@ -613,7 +564,7 @@ def _build_gpu_bitvec_matrix(
     indices = csr.indices.astype(np.int64)
 
     # Build bitvecs in Rust (fast CSR→CSC→bitvec)
-    bitvecs_cpu = _rust_ext.build_column_bitvecs_u64(indptr, indices, n_rows, n_cols)
+    bitvecs_cpu = get_rust_ext().build_column_bitvecs_u64(indptr, indices, n_rows, n_cols)
 
     # Transfer to GPU
     return cp.asarray(bitvecs_cpu)
@@ -642,8 +593,9 @@ def _count_support_gpu_bitvec(
         >>> bitvecs = _build_gpu_bitvec_matrix(csr)
         >>> counts = _count_support_gpu_bitvec(bitvecs, [[0, 1, 2], [1, 2, 3]], 1000000)
     """
-    if not _HAS_CUPY:
+    if not CUPY_INSTALLED:
         raise RuntimeError("CuPy not available")
+    import cupy as cp
 
     n_itemsets = len(itemsets_indices)
     if n_itemsets == 0:
@@ -722,9 +674,9 @@ def count_support_gpu_bitvec(
     Example:
         >>> counts = count_support_gpu_bitvec(matrix, [("i_0", "i_1"), ("i_1", "i_2")])
     """
-    if not _HAS_CUPY:
+    if not CUPY_INSTALLED:
         raise RuntimeError("CuPy not available - install with: pip install cupy-cuda12x")
-    if not _HAS_RUST_EXT:
+    if not RUST_INSTALLED:
         raise RuntimeError("Rust extension not available")
     if not itemsets:
         return {}
@@ -1042,7 +994,7 @@ def count_support_batched(
 
     # GPU path: use_gpu=True means custom CUDA kernels, period.
     if use_gpu:
-        if not _HAS_CUPY:
+        if not CUPY_INSTALLED:
             raise ImportError(
                 "GPU support requires CuPy. Install with: pip install et-miner[gpu]\nor: pip install cupy-cuda12x"
             )

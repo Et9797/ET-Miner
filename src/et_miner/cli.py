@@ -241,17 +241,23 @@ def cmd_mine(args: argparse.Namespace, config: Config) -> int:
 
 def cmd_info(args: argparse.Namespace, config: Config) -> int:
     """Execute the info command."""
-    from et_miner import (
-        HAS_TQDM,
-        HAS_LOGURU,
+    from et_miner._compat import HAS_TQDM
+    from et_miner.backends import (
+        CUPY_INSTALLED,
+        get_cupy_version,
+        get_gpu_count,
+        get_rust_version,
+        has_rust_extension,
     )
 
     # Print to stdout so `info` stays visible regardless of the --quiet log level.
     print(f"et-miner {__version__}")
     print("Dependencies:")
     print(f"  polars: {pl.__version__}")
-    print(f"  loguru: {'installed' if HAS_LOGURU else 'not installed'}")
     print(f"  tqdm: {'installed' if HAS_TQDM else 'not installed'}")
+    print("Backends:")
+    print(f"  rust: {get_rust_version() if has_rust_extension() else 'not built'}")
+    print(f"  cupy: {get_cupy_version() if CUPY_INSTALLED else 'not installed'} ({get_gpu_count()} GPUs)")
     print("Configuration:")
     print(f"  min_support: {config.apriori.min_support}")
     print(f"  chunk_size: {config.streaming.chunk_size}")

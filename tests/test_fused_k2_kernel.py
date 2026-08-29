@@ -11,7 +11,7 @@ import pytest
 
 cupy = pytest.importorskip("cupy")
 
-from et_miner.cuda_kernels import (
+from et_miner.gpu.kernels import (
     count_pairs_fused_k2,
     count_itemsets_cuda,
     get_cuda_kernel,

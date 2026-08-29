@@ -41,12 +41,12 @@ import polars as pl
 from et_miner._compat import HAS_TQDM, tqdm
 
 # SON-specific helpers live in streaming.py; generic ones in matrix.py (foundation layer)
-from et_miner.streaming import (
+from et_miner.streaming.son import (
     _build_matrix_for_items,
     _get_memory_gb,
     _mine_chunk_frequent,
 )
-from et_miner.matrix import (
+from et_miner.core.matrix import (
     _build_result_df,
     _empty_result,
     _min_count,
@@ -218,7 +218,7 @@ def apriori_streaming_multi_gpu(
             n_total,
             chunk_size,
         )
-        from et_miner.apriori import apriori
+        from et_miner.core.apriori import apriori
 
         return apriori(
             transactions,

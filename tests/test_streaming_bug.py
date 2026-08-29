@@ -10,7 +10,7 @@ Regression test for: https://github.com/pola-rs/polars/issues/XXXXX
 import polars as pl
 
 from et_miner import apriori, apriori_streaming
-from et_miner.matrix import build_boolean_matrix, count_support_batched
+from et_miner.core.matrix import build_boolean_matrix, count_support_batched
 
 
 class TestStreamingBugRegression:

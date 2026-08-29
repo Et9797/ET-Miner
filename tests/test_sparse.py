@@ -11,7 +11,7 @@ import numpy as np
 import polars as pl
 import pytest
 
-from et_miner.matrix import (
+from et_miner.core.matrix import (
     _choose_counting_strategy,
     _estimate_density,
     _polars_to_sparse_csr,
@@ -361,7 +361,7 @@ class TestParallelSparseSupport:
 
     def test_parallel_matches_sequential_small(self):
         """Test parallel results match sequential for small datasets."""
-        from et_miner.matrix import (
+        from et_miner.core.matrix import (
             _count_support_sparse_k_gt_2,
             _polars_to_sparse_csr,
         )
@@ -399,7 +399,7 @@ class TestParallelSparseSupport:
 
     def test_parallel_matches_sequential_large(self):
         """Test parallel results match sequential for larger datasets with many itemsets."""
-        from et_miner.matrix import (
+        from et_miner.core.matrix import (
             _count_support_sparse_k_gt_2,
             _polars_to_sparse_csr,
             _PARALLEL_THRESHOLD,
@@ -472,14 +472,14 @@ class TestGilDetection:
 
     def test_is_gil_disabled_returns_bool(self):
         """Test that _is_gil_disabled returns a boolean."""
-        from et_miner.matrix import _is_gil_disabled
+        from et_miner.core.matrix import _is_gil_disabled
 
         result = _is_gil_disabled()
         assert isinstance(result, bool)
 
     def test_get_effective_workers(self):
         """Test _get_effective_workers helper."""
-        from et_miner.matrix import _get_effective_workers
+        from et_miner.core.matrix import _get_effective_workers
         import os
 
         # -1 should use all CPUs
@@ -500,7 +500,7 @@ class TestSparseMkl:
 
     def test_sparse_matmul_correctness(self):
         """_sparse_matmul produces same result as scipy @ operator."""
-        from et_miner.matrix import _sparse_matmul
+        from et_miner.core.matrix import _sparse_matmul
         from scipy.sparse import csr_matrix
 
         # Create test matrix (5 transactions x 4 items)
@@ -522,7 +522,7 @@ class TestSparseMkl:
 
     def test_sparse_matmul_handles_int_dtype(self):
         """_sparse_matmul handles integer matrices (converts to float)."""
-        from et_miner.matrix import _sparse_matmul
+        from et_miner.core.matrix import _sparse_matmul
         from scipy.sparse import csr_matrix
 
         # Create int32 sparse matrix
@@ -543,7 +543,7 @@ class TestSparseMkl:
 
     def test_sparse_matmul_fallback_works(self):
         """_sparse_matmul falls back to scipy when MKL unavailable."""
-        from et_miner.matrix import _sparse_matmul
+        from et_miner.core.matrix import _sparse_matmul
         from scipy.sparse import csr_matrix
 
         # Create a simple matrix - this test verifies the function works
@@ -569,7 +569,7 @@ class TestAdaptiveParallelConfig:
 
     def test_returns_required_keys(self):
         """Config dict contains workers, chunk_size, gil_disabled."""
-        from et_miner.matrix import _get_adaptive_parallel_config
+        from et_miner.core.matrix import _get_adaptive_parallel_config
 
         config = _get_adaptive_parallel_config(n_itemsets=5000, n_workers=4)
 
@@ -582,7 +582,7 @@ class TestAdaptiveParallelConfig:
 
     def test_workers_capped(self):
         """Workers are capped at reasonable maximum."""
-        from et_miner.matrix import _get_adaptive_parallel_config
+        from et_miner.core.matrix import _get_adaptive_parallel_config
 
         # With n_workers=100, should be capped at 8 (GIL) or 12 (no GIL)
         config = _get_adaptive_parallel_config(n_itemsets=10000, n_workers=100)
@@ -596,7 +596,7 @@ class TestAdaptiveParallelConfig:
 
     def test_chunk_size_minimum(self):
         """Chunk size has minimum floor."""
-        from et_miner.matrix import _get_adaptive_parallel_config
+        from et_miner.core.matrix import _get_adaptive_parallel_config
 
         # With small n_itemsets, chunk_size should still have a minimum
         config = _get_adaptive_parallel_config(n_itemsets=10, n_workers=4)
@@ -609,7 +609,7 @@ class TestAdaptiveParallelConfig:
 
     def test_chunk_size_scales_with_itemsets(self):
         """Chunk size scales appropriately with number of itemsets."""
-        from et_miner.matrix import _get_adaptive_parallel_config
+        from et_miner.core.matrix import _get_adaptive_parallel_config
 
         config_small = _get_adaptive_parallel_config(n_itemsets=1000, n_workers=4)
         config_large = _get_adaptive_parallel_config(n_itemsets=100000, n_workers=4)
@@ -619,7 +619,7 @@ class TestAdaptiveParallelConfig:
 
     def test_config_with_single_worker(self):
         """Config still works with single worker."""
-        from et_miner.matrix import _get_adaptive_parallel_config
+        from et_miner.core.matrix import _get_adaptive_parallel_config
 
         config = _get_adaptive_parallel_config(n_itemsets=5000, n_workers=1)
 

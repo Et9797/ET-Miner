@@ -384,7 +384,7 @@ def csr_to_bitvecs_gpu(
         >>> counts = count_itemsets_cuda(bitvecs, itemsets)
     """
     import cupy as cp
-    from et_miner.cuda_csr_bitvec import get_csr_to_bitvec_kernel
+    from et_miner.gpu.csr_bitvec import get_csr_to_bitvec_kernel
 
     with cp.cuda.Device(device_id):
         # Ensure data is on correct device

@@ -7,7 +7,7 @@ import polars as pl
 import pytest
 
 from et_miner import apriori
-from et_miner.matrix import (
+from et_miner.core.matrix import (
     build_boolean_matrix,
     count_support_batched,
     count_support_vectorized,
@@ -404,7 +404,7 @@ class TestBitvecsIntegration:
 
     def test_cpu_fallback_consistency(self):
         """Test that CPU fallback produces consistent results with same seed."""
-        from et_miner.cuda_multi_gpu import (
+        from et_miner.gpu.multi_gpu import (
             generate_bitvecs_cpu_fallback,
             count_itemsets_cpu_fallback,
         )
@@ -437,7 +437,7 @@ class TestBitvecsIntegration:
 
     def test_cpu_fallback_monotonicity(self):
         """Test that larger itemsets have <= support than their subsets (anti-monotonicity)."""
-        from et_miner.cuda_multi_gpu import (
+        from et_miner.gpu.multi_gpu import (
             generate_bitvecs_cpu_fallback,
             count_itemsets_cpu_fallback,
         )

@@ -13,7 +13,7 @@ import pytest
 cupy = pytest.importorskip("cupy")
 
 
-from et_miner.cuda_csr_bitvec import (
+from et_miner.gpu.csr_bitvec import (
     build_bitvecs_gpu,
     build_bitvecs_gpu_from_scipy,
     get_csr_to_bitvec_kernel,

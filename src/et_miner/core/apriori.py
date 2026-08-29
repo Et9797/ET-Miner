@@ -26,8 +26,8 @@ from typing import Any
 
 import polars as pl
 
-from . import _env
-from .gcs import (
+from et_miner import _env
+from et_miner.io.gcs import (
     GCSUploader,
     is_gs_uri,
     is_upload_enabled,
@@ -485,7 +485,7 @@ def _convert_to_tidsets(bitvecs_gpu_or_list, freq_flat, n_u64s, batch_size=10_00
                         and_results &= bv[col_indices]
 
                     try:
-                        from .cuda_kernels import get_cuda_kernel, get_popcount_kernel
+                        from et_miner.gpu.kernels import get_cuda_kernel, get_popcount_kernel
 
                         extract_kernel = get_cuda_kernel("bitvec_extract_tids")
                         popcount_kernel = get_popcount_kernel()
@@ -630,7 +630,7 @@ def _convert_to_tidsets(bitvecs_gpu_or_list, freq_flat, n_u64s, batch_size=10_00
 
     # Verification step: sample random itemsets, cross-check
     if verify and n_freq > 0:
-        from .cuda_kernels import get_popcount_kernel
+        from et_miner.gpu.kernels import get_popcount_kernel
 
         n_verify = min(1000, n_freq)
         rng = np.random.RandomState(42)
@@ -692,7 +692,7 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
         Pruned K3PlusGroups or None if all candidates pruned.
     """
     import numpy as np
-    from .cuda_kernels import K3PlusGroups
+    from et_miner.gpu.kernels import K3PlusGroups
 
     # --- Rust fast path: HashSet + Rayon parallel, GIL-free ---
     if prev_flat_np is not None:
@@ -844,7 +844,7 @@ def _apriori_from_bitvecs(
             f"n_transactions={n_transactions:,} exceeds int32 max. CSR tidset indices require int64 upgrade."
         )
 
-    from .cuda_kernels import get_popcount_kernel, count_csr_intersections, build_k3plus_groups_from_flat
+    from et_miner.gpu.kernels import get_popcount_kernel, count_csr_intersections, build_k3plus_groups_from_flat
 
     session = ProfilingSession() if profile else None
 
@@ -1115,7 +1115,7 @@ def _apriori_from_bitvecs(
             if session:
                 session.start_phase("k2_fused_gpu")
 
-            from .gpu_dispatch import dispatch_k2
+            from et_miner.gpu.dispatch import dispatch_k2
 
             pairs, counts = dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count_threshold)
 
@@ -1152,7 +1152,7 @@ def _apriori_from_bitvecs(
             if session:
                 session.start_phase(f"k{k}_fully_fused_gpu")
 
-            from .gpu_dispatch import dispatch_k3plus_fused, dispatch_k3plus_sampled, SAMPLED_PREFILTER_THRESHOLD
+            from et_miner.gpu.dispatch import dispatch_k3plus_fused, dispatch_k3plus_sampled, SAMPLED_PREFILTER_THRESHOLD
 
             # V3: use sampled prefilter when candidate count is high enough
             # Estimate candidate count from prefix groups
@@ -1298,8 +1298,8 @@ def _apriori_from_bitvecs_gpu_resident(
     except ImportError:
         raise ImportError("CuPy required for gpu_resident mode")
 
-    from .cuda_kernels import get_popcount_kernel
-    from .gpu_dispatch import dispatch_k2_gpu_resident, dispatch_k3plus_gpu_resident
+    from et_miner.gpu.kernels import get_popcount_kernel
+    from et_miner.gpu.dispatch import dispatch_k2_gpu_resident, dispatch_k3plus_gpu_resident
 
     session = ProfilingSession() if profile else None
 
@@ -1759,8 +1759,8 @@ def _apriori_row_split_multi_gpu(
 
     from concurrent.futures import ThreadPoolExecutor
 
-    from .cuda_csr_bitvec import build_bitvecs_row_split
-    from .cuda_kernels import (
+    from et_miner.gpu.csr_bitvec import build_bitvecs_row_split
+    from et_miner.gpu.kernels import (
         get_popcount_kernel,
         count_pairs_k2_allcounts,
         count_k3plus_allcounts,
@@ -1883,7 +1883,7 @@ def _apriori_row_split_multi_gpu(
     _resume_active = bool(resume_from_k and resume_from_k >= 2 and output_dir)
 
     if _resume_active:
-        from .gcs import clear_resolve_cache, resolve_k_parquet
+        from et_miner.io.gcs import clear_resolve_cache, resolve_k_parquet
 
         clear_resolve_cache()
         resume_path = resolve_k_parquet(output_dir, resume_from_k)
@@ -2236,7 +2236,7 @@ def _apriori_row_split_multi_gpu(
                         with cp.cuda.Device(did):
                             cp.get_default_memory_pool().free_all_blocks()
 
-                    from .memory_budget import safe_threshold_filter
+                    from et_miner.gpu.memory_budget import safe_threshold_filter
 
                     freq_pair_indices, freq_pair_counts = safe_threshold_filter(global_counts, min_count_threshold)
                     del global_counts
@@ -2311,7 +2311,7 @@ def _apriori_row_split_multi_gpu(
                     for bv, did, _ in bitvecs_list:
                         all_groups_gpu[did] = upload_k3plus_groups(groups_info, did)
 
-                    from .memory_budget import safe_threshold_filter
+                    from et_miner.gpu.memory_budget import safe_threshold_filter
 
                     all_freq_indices = []
                     all_freq_counts = []
@@ -2799,7 +2799,7 @@ def apriori(
     if streaming:
         # Multi-GPU streaming if n_gpus > 1
         if n_gpus > 1:
-            from et_miner.streaming_multi_gpu import apriori_streaming_multi_gpu
+            from et_miner.streaming.multi_gpu import apriori_streaming_multi_gpu
 
             return apriori_streaming_multi_gpu(
                 transactions,
@@ -2816,7 +2816,7 @@ def apriori(
             )
 
         # Single-GPU/CPU streaming
-        from et_miner.streaming import apriori_streaming
+        from et_miner.streaming.son import apriori_streaming
 
         return apriori_streaming(
             transactions,

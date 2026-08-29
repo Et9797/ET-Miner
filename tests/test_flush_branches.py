@@ -22,11 +22,11 @@ import numpy as np
 import polars as pl
 import pytest
 
-# `import et_miner.apriori as X` resolves to the FUNCTION not the module —
-# et_miner/__init__.py's `from et_miner.apriori import apriori` rebinds the
+# `import et_miner.core.apriori as X` resolves to the FUNCTION not the module —
+# et_miner/__init__.py's `from et_miner.core.apriori import apriori` rebinds the
 # package attribute. importlib.import_module bypasses the rebind.
-apriori_mod = importlib.import_module("et_miner.apriori")
-from et_miner.gcs import GCSUploader  # noqa: E402
+apriori_mod = importlib.import_module("et_miner.core.apriori")
+from et_miner.io.gcs import GCSUploader  # noqa: E402
 
 requires_flush_extraction = pytest.mark.skipif(
     not hasattr(apriori_mod, "_flush_k_parquet"),

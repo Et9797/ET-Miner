@@ -42,8 +42,8 @@ def warmup_cuda_multi_gpu(n_gpus: int, n_cols: int = 100) -> None:
         n_cols: Number of columns for warmup test (default 100)
     """
     import cupy as cp
-    from et_miner.cuda_csr_build import generate_bitvecs_gpu
-    from et_miner.cuda_kernels import count_itemsets_cuda
+    from et_miner.gpu.csr_build import generate_bitvecs_gpu
+    from et_miner.gpu.kernels import count_itemsets_cuda
 
     # Limit to available GPUs
     available_gpus = cp.cuda.runtime.getDeviceCount()
@@ -112,7 +112,7 @@ def generate_bitvecs_multi_gpu(
         bitvecs_gpu is a CuPy array on the corresponding GPU.
     """
     import cupy as cp
-    from et_miner.cuda_csr_build import generate_bitvecs_gpu
+    from et_miner.gpu.csr_build import generate_bitvecs_gpu
 
     # Limit to available GPUs
     available_gpus = cp.cuda.runtime.getDeviceCount()
@@ -181,7 +181,7 @@ def count_itemsets_multi_gpu(
         Numpy array of total counts across all GPUs
     """
     import cupy as cp
-    from et_miner.cuda_kernels import count_itemsets_cuda
+    from et_miner.gpu.kernels import count_itemsets_cuda
 
     n_itemsets = len(itemsets)
     n_gpus = len(bitvecs_per_gpu)

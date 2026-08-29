@@ -547,7 +547,7 @@ def _build_gpu_bitvec_matrix(
     # Try CUDA kernel path (Phase 2 optimization)
     if use_cuda_kernel:
         try:
-            from et_miner.cuda_csr_bitvec import build_bitvecs_gpu_from_scipy
+            from et_miner.gpu.csr_bitvec import build_bitvecs_gpu_from_scipy
 
             return build_bitvecs_gpu_from_scipy(csr)
         except ImportError:
@@ -638,7 +638,7 @@ def _popcount_u64_array(arr: "cp.ndarray") -> int:
     Returns:
         Total count of set bits across all u64s.
     """
-    from et_miner.cuda_kernels import get_popcount_kernel
+    from et_miner.gpu.kernels import get_popcount_kernel
 
     # Use hardware __popcll intrinsic - much faster than software bit manipulation
     kernel = get_popcount_kernel()

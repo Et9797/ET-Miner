@@ -32,14 +32,14 @@ import numpy as np
 import polars as pl
 
 from et_miner._compat import HAS_TQDM, tqdm
-from et_miner.matrix import (
+from et_miner.core.matrix import (
     _build_result_df,
     _empty_result,
     _min_count,
     build_boolean_matrix,
     count_support_batched,
 )
-from et_miner.profiling import ProfilingSession
+from et_miner.core.profiling import ProfilingSession
 
 
 if TYPE_CHECKING:
@@ -176,7 +176,7 @@ def apriori_streaming(
             effective_chunk_size,
         )
         # Import here to avoid circular dependency
-        from et_miner.apriori import apriori
+        from et_miner.core.apriori import apriori
 
         return apriori(
             transactions,
@@ -487,7 +487,7 @@ def _build_bitvecs_for_chunk(
     Returns None on any failure so callers can gracefully fall back to CPU.
     """
     try:
-        from et_miner.matrix import _polars_to_sparse_csr, _build_gpu_bitvec_matrix
+        from et_miner.core.matrix import _polars_to_sparse_csr, _build_gpu_bitvec_matrix
 
         csr, col_name_to_idx = _polars_to_sparse_csr(matrix)
         bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
@@ -508,7 +508,7 @@ def _mine_chunk_gpu_resident(
     """Mine chunk with GPU-resident Apriori. Returns list of itemsets or None on failure."""
     try:
         import cupy as cp
-        from et_miner.apriori import _apriori_from_bitvecs_gpu_resident
+        from et_miner.core.apriori import _apriori_from_bitvecs_gpu_resident
 
         result = _build_bitvecs_for_chunk(matrix, col_to_item)
         if result is None:
@@ -541,7 +541,7 @@ def _count_candidates_gpu(
     """Count all candidates on GPU via bitvec AND+popcount. Returns counts dict or None."""
     try:
         import cupy as cp
-        from et_miner.cuda_kernels import count_itemsets_cuda
+        from et_miner.gpu.kernels import count_itemsets_cuda
 
         result = _build_bitvecs_for_chunk(matrix)
         if result is None:
@@ -583,7 +583,7 @@ def _mine_chunk_frequent(
     Returns:
         List of frequent itemsets as tuples of item IDs.
     """
-    from et_miner.apriori import _generate_candidates
+    from et_miner.core.apriori import _generate_candidates
 
     min_count_threshold = _min_count(min_support, n_transactions)
     item_cols = list(col_to_item.keys())

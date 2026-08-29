@@ -404,9 +404,9 @@ def test_real_kernel_pattern():
     print("=" * 70)
 
     try:
-        from et_miner.cuda_csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
     except ImportError:
-        print("\n  [SKIP] et_miner.cuda_csr_build not available")
+        print("\n  [SKIP] et_miner.gpu.csr_build not available")
         print("         Install et-miner to test real kernel paths")
         return None
 

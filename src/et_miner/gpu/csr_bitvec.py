@@ -281,7 +281,7 @@ def build_bitvecs_gpu(
 
     Example:
         >>> import numpy as np
-        >>> from et_miner.cuda_csr_bitvec import PinnedBufferPool
+        >>> from et_miner.gpu.csr_bitvec import PinnedBufferPool
         >>> # Create pool ONCE, reuse for all chunks
         >>> pool = PinnedBufferPool()
         >>> indptr = np.array([0, 2, 3, 6], dtype=np.int64)
@@ -442,7 +442,7 @@ def build_bitvecs_gpu_from_scipy(
 
     Example:
         >>> from scipy.sparse import csr_matrix
-        >>> from et_miner.cuda_csr_bitvec import PinnedBufferPool
+        >>> from et_miner.gpu.csr_bitvec import PinnedBufferPool
         >>> pool = PinnedBufferPool()  # Create once, reuse
         >>> csr = csr_matrix([[1, 0, 1], [0, 1, 0], [1, 1, 1]])
         >>> bitvecs = build_bitvecs_gpu_from_scipy(csr, buffer_pool=pool)

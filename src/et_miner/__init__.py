@@ -22,19 +22,19 @@ from et_miner import backends
 from et_miner.exceptions import MiningError
 
 # Core API
-from et_miner.apriori import apriori
-from et_miner.rules import (
+from et_miner.core.apriori import apriori
+from et_miner.core.rules import (
     Rule,
     generate_rules,
     generate_rules_drop1,
     generate_rules_top_n,
     compute_self_sufficiency,
 )
-from et_miner.streaming import apriori_streaming
-from et_miner.streaming_multi_gpu import apriori_streaming_multi_gpu
+from et_miner.streaming.son import apriori_streaming
+from et_miner.streaming.multi_gpu import apriori_streaming_multi_gpu
 
 # Matrix operations (advanced)
-from et_miner.matrix import (
+from et_miner.core.matrix import (
     build_boolean_matrix,
     count_support_batched,
     count_support_sparse,
@@ -46,8 +46,8 @@ from et_miner.config import Config, load_config
 from et_miner._logging import configure_logging, logger
 
 # Progress & profiling
-from et_miner.profiling import ProfilingSession
-from et_miner.progress import (
+from et_miner.core.profiling import ProfilingSession
+from et_miner.core.progress import (
     LevelStats,
     ProgressTracker,
     create_live_level_printer,

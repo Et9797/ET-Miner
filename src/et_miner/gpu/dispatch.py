@@ -38,7 +38,7 @@ def dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count):
     Returns:
         Tuple of (pairs, counts) — same as count_pairs_fused_k2().
     """
-    from .cuda_kernels import count_pairs_fused_k2, count_pairs_fused_k2_multi_gpu
+    from .kernels import count_pairs_fused_k2, count_pairs_fused_k2_multi_gpu
 
     n_freq = len(freq_cols)
     if should_use_multi_gpu(n_freq):
@@ -70,7 +70,7 @@ def dispatch_k3plus(bitvecs_gpu, candidates, n_u64s, min_count):
     Returns:
         Tuple of (frequent_candidates, counts) — only candidates meeting min_count.
     """
-    from .cuda_kernels import (
+    from .kernels import (
         count_itemsets_fused_k3plus,
         count_itemsets_fused_k3plus_multi_gpu,
     )
@@ -99,7 +99,7 @@ def dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count):
     Returns:
         Tuple of (frequent_candidates, counts) — only candidates meeting min_count.
     """
-    from .cuda_kernels import count_k3plus_fully_fused, count_k3plus_fully_fused_multi_gpu
+    from .kernels import count_k3plus_fully_fused, count_k3plus_fully_fused_multi_gpu
 
     # Estimate candidate count for multi-GPU threshold
     prefix_groups: dict[tuple, int] = {}
@@ -136,7 +136,7 @@ def dispatch_k3plus_sampled(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, sa
     Returns:
         Tuple of (frequent_candidates, counts) — only candidates meeting min_count.
     """
-    from .cuda_kernels import count_k3plus_sampled_prefilter, count_k3plus_fully_fused
+    from .kernels import count_k3plus_sampled_prefilter, count_k3plus_fully_fused
 
     # Adaptive stride: dense K=3 benefits from aggressive sampling,
     # sparse K=7+ needs more samples for statistical reliability.
@@ -175,7 +175,7 @@ def dispatch_k2_gpu_resident(bitvecs_gpu, freq_cols_gpu, n_u64s, min_count):
         Tuple of (pair_itemsets_gpu, counts_gpu) CuPy arrays in VRAM,
         or (None, None) if no frequent pairs.
     """
-    from .cuda_kernels import (
+    from .kernels import (
         count_pairs_fused_k2_gpu_resident,
         count_pairs_fused_k2_gpu_resident_multi_gpu,
     )
@@ -204,7 +204,7 @@ def dispatch_k3plus_gpu_resident(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count):
         Tuple of (freq_itemsets_gpu, counts_gpu) CuPy arrays in VRAM,
         or (None, None) if no frequent itemsets.
     """
-    from .cuda_kernels import (
+    from .kernels import (
         count_k3plus_gpu_resident,
         count_k3plus_gpu_resident_multi_gpu,
         build_prefix_groups_gpu,

@@ -203,7 +203,7 @@ def _prefetch_on_stream(
         WaveData with CSR and bitvecs on GPU (still on gen_stream)
     """
     import cupy as cp
-    from et_miner.cuda_csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
+    from et_miner.gpu.csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
 
     with cp.cuda.Device(ctx.gpu_id):
         # Execute generation on gen_stream
@@ -270,8 +270,8 @@ def _compute_on_stream(
         Tuple of (total_itemsets_found, compute_time_seconds)
     """
     import cupy as cp
-    from et_miner.cuda_kernels import get_popcount_kernel
-    from et_miner.apriori import _generate_candidates
+    from et_miner.gpu.kernels import get_popcount_kernel
+    from et_miner.core.apriori import _generate_candidates
 
     total_itemsets = 0
     start_time = time.time()
@@ -303,8 +303,8 @@ def _compute_on_stream(
 
                 # k>=2: Fused CUDA kernel for ALL candidates at once
                 if len(k1_itemsets) > 0 and max_length > 1:
-                    from et_miner.cuda_kernels import count_itemsets_fused_k3plus
-                    from et_miner.gpu_dispatch import dispatch_k2
+                    from et_miner.gpu.kernels import count_itemsets_fused_k3plus
+                    from et_miner.gpu.dispatch import dispatch_k2
                     prev_frequent = [tuple([idx]) for idx, _ in k1_itemsets]
 
                     k = 2
@@ -643,9 +643,9 @@ def run_streams_benchmark_sequential(
         Dictionary with benchmark metrics
     """
     import cupy as cp
-    from et_miner.cuda_csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
-    from et_miner.cuda_kernels import get_popcount_kernel
-    from et_miner.apriori import _generate_candidates
+    from et_miner.gpu.csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
+    from et_miner.gpu.kernels import get_popcount_kernel
+    from et_miner.core.apriori import _generate_candidates
 
     # Validate GPU availability
     try:

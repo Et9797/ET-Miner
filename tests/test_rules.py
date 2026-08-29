@@ -3,7 +3,7 @@
 import polars as pl
 
 from et_miner import generate_rules
-from et_miner.rules import Rule
+from et_miner.core.rules import Rule
 
 
 class TestRuleDataclass:

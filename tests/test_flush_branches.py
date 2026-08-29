@@ -14,7 +14,6 @@ ET_MINER_FLUSH_PARALLEL_THRESHOLD.
 
 from __future__ import annotations
 
-import importlib
 import os
 from pathlib import Path
 
@@ -22,16 +21,8 @@ import numpy as np
 import polars as pl
 import pytest
 
-# `import et_miner.apriori as X` resolves to the FUNCTION not the module —
-# et_miner/__init__.py's `from et_miner.apriori import apriori` rebinds the
-# package attribute. importlib.import_module bypasses the rebind.
-apriori_mod = importlib.import_module("et_miner.apriori")
-from et_miner.gcs import GCSUploader  # noqa: E402
-
-requires_flush_extraction = pytest.mark.skipif(
-    not hasattr(apriori_mod, "_flush_k_parquet"),
-    reason="Awaits _flush_k_parquet module-level extraction.",
-)
+from et_miner.io import flush as flush_mod
+from et_miner.io.gcs import GCSUploader
 
 
 def _has_gcs_creds() -> bool:
@@ -50,10 +41,9 @@ def _synth(n: int, k: int, seed: int = 42) -> tuple[np.ndarray, np.ndarray]:
 # ── Branch 1: single-table local ────────────────────────────────────────
 
 
-@requires_flush_extraction
 def test_branch_1_single_table_local(tmp_path: Path):
     items, sup = _synth(n=5_000, k=3)
-    apriori_mod._flush_k_parquet(
+    flush_mod._flush_k_parquet(
         items,
         sup,
         k_level=3,
@@ -72,11 +62,10 @@ def test_branch_1_single_table_local(tmp_path: Path):
     assert df["support"][0] == pytest.approx(sup[0])
 
 
-@requires_flush_extraction
 def test_branch_1_k1_single_column(tmp_path: Path):
     """K=1 case: items_flat is (n, 1) — verify it still produces lists of length 1."""
     items, sup = _synth(n=200, k=1)
-    apriori_mod._flush_k_parquet(
+    flush_mod._flush_k_parquet(
         items,
         sup,
         k_level=1,
@@ -93,7 +82,6 @@ def test_branch_1_k1_single_column(tmp_path: Path):
 # ── Branch 3: parallel partitioned local ─────────────────────────────────
 
 
-@requires_flush_extraction
 def test_branch_3_parallel_partitioned_local(tmp_path: Path, monkeypatch):
     """Force parallel branch via lowered threshold — verifies row count + schema preserved."""
     monkeypatch.setenv("ET_MINER_FLUSH_PARALLEL_THRESHOLD", "1000")
@@ -101,7 +89,7 @@ def test_branch_3_parallel_partitioned_local(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("ET_FLUSH_CHUNK_SIZE", "750")
 
     items, sup = _synth(n=5_000, k=2)
-    apriori_mod._flush_k_parquet(
+    flush_mod._flush_k_parquet(
         items,
         sup,
         k_level=2,
@@ -121,7 +109,6 @@ def test_branch_3_parallel_partitioned_local(tmp_path: Path, monkeypatch):
     assert df.height == 5_000
 
 
-@requires_flush_extraction
 def test_branch_3_partition_split_correctness(tmp_path: Path, monkeypatch):
     """All input rows present after partition merge, no duplicates, no losses."""
     monkeypatch.setenv("ET_MINER_FLUSH_PARALLEL_THRESHOLD", "100")
@@ -132,7 +119,7 @@ def test_branch_3_partition_split_correctness(tmp_path: Path, monkeypatch):
     items = np.arange(n * 2, dtype=np.int32).reshape(n, 2)
     sup = np.linspace(0.01, 0.5, n, dtype=np.float64)
 
-    apriori_mod._flush_k_parquet(
+    flush_mod._flush_k_parquet(
         items,
         sup,
         k_level=2,
@@ -152,7 +139,6 @@ def test_branch_3_partition_split_correctness(tmp_path: Path, monkeypatch):
 # ── Caller-side writeable safety (Auditor punt 1) ────────────────────────
 
 
-@requires_flush_extraction
 def test_caller_writeable_safety_pattern(tmp_path: Path):
     """The caller's writeable=False/True wrap must be respected; _flush_k_parquet
     itself must NOT touch writeable flags (Auditor R2 voorwaarde)."""
@@ -161,7 +147,7 @@ def test_caller_writeable_safety_pattern(tmp_path: Path):
     items.flags.writeable = False
     sup.flags.writeable = False
     try:
-        apriori_mod._flush_k_parquet(
+        flush_mod._flush_k_parquet(
             items,
             sup,
             k_level=2,
@@ -184,7 +170,6 @@ def test_caller_writeable_safety_pattern(tmp_path: Path):
 # ── Backup path ─────────────────────────────────────────────────────────
 
 
-@requires_flush_extraction
 def test_backup_dir_creates_copy(tmp_path: Path):
     """ET_PARQUET_BACKUP_DIR / backup_dir param mirrors the output."""
     items, sup = _synth(n=300, k=2)
@@ -192,7 +177,7 @@ def test_backup_dir_creates_copy(tmp_path: Path):
     out = tmp_path / "out"
     out.mkdir()
 
-    apriori_mod._flush_k_parquet(
+    flush_mod._flush_k_parquet(
         items,
         sup,
         k_level=2,
@@ -236,24 +221,3 @@ def test_uploader_disabled_is_noop(tmp_path: Path):
     u.upload(str(tmp_path / "nonexistent.parquet"))
     u.upload_to_uri(str(tmp_path / "nonexistent.parquet"), "gs://bucket/x")
     assert u._futures == []
-
-
-# ── GCS-credentialed branches: skipped without creds ─────────────────────
-
-
-@pytest.mark.skipif(not _has_gcs_creds(), reason="GCS credentials not configured")
-def test_branch_2_single_table_direct_gs():
-    """Branch 2 verification path requires a live bucket and is exercised
-    manually via scripts/smoke_*.py — placeholder ensures the branch isn't
-    silently dropped during refactor."""
-    pytest.skip("Live-GCS branch — manual smoke (scripts/smoke_gcs_flush.py)")
-
-
-@pytest.mark.skipif(not _has_gcs_creds(), reason="GCS credentials not configured")
-def test_branch_4_partitioned_nvme_first_to_gs():
-    pytest.skip("Live-GCS branch — manual smoke (scripts/smoke_gcs_flush.py)")
-
-
-@pytest.mark.skipif(not _has_gcs_creds(), reason="GCS credentials not configured")
-def test_branch_5_disk_low_fallback_chunked_direct_gs():
-    pytest.skip("Live-GCS branch — manual smoke (scripts/smoke_gcs_flush.py)")

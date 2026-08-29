@@ -14,21 +14,20 @@ Three possible outcomes:
   3. DOESN'T WORK: Kernels go to null stream despite context → need explicit
      stream parameter in kernel wrappers
 
-Usage:
-    python benchmarks/stream_sync_test.py          # Quick validation
-    python benchmarks/stream_sync_test.py --full    # Full test with real kernels
-
-Date: 2026-02-06
+These are hardware-behaviour diagnostics: each test prints its finding
+(run with -s to see them) and asserts only that the probe itself executed;
+the [WARN] outcomes are informative, not failures, because stream overlap
+varies by GPU and driver.
 """
 
-import sys
 import time
-import argparse
 
 import pytest
 
 # Whole module is GPU-only: kernel-stream behaviour needs a real CUDA device.
 pytest.importorskip("cupy")
+
+pytestmark = pytest.mark.gpu
 
 
 def test_stream_context_redirect():
@@ -122,10 +121,8 @@ def test_stream_context_redirect():
     if time_concurrent_total < (time_a + time_b) * 0.85:
         print("\n  [PASS] Streams overlap! Concurrent < 85% of sequential sum")
         print("         `with stream:` correctly redirects kernel launches")
-        return True
     else:
         print("\n  [WARN] Minimal overlap detected. Streams may not be independent")
-        return False
 
 
 def test_null_sync_blocks_other_streams():
@@ -189,16 +186,13 @@ def test_null_sync_blocks_other_streams():
         print("\n  [PASS] null sync did NOT block stream_a!")
         print("         non_blocking=True streams are independent of null stream")
         print("         → No suppress_null_sync() needed")
-        return True
     elif wall_null_sync * 1000 >= time_stream_a * 0.8:
         print("\n  [FAIL] null sync BLOCKED until stream_a completed!")
         print("         non_blocking=True doesn't prevent null sync from blocking")
         print("         → NEED suppress_null_sync() context manager")
-        return False
     else:
         print("\n  [PARTIAL] null sync partially blocked stream_a")
         print("            May need suppress_null_sync() for safety")
-        return False
 
 
 def test_with_stream_plus_null_sync():
@@ -285,12 +279,10 @@ def test_with_stream_plus_null_sync():
         print(f"\n  [PASS] {overlap*100:.0f}% stream overlap achieved!")
         print("         null sync inside `with stream:` does NOT block other streams")
         print("         → Existing async_pipeline.py code should work as-is")
-        return True
     else:
         print(f"\n  [FAIL] Only {overlap*100:.0f}% overlap — streams are serialized")
         print("         null sync blocks even non-blocking streams")
         print("         → Need suppress_null_sync() wrapper")
-        return False
 
 
 def test_suppress_null_sync():
@@ -381,13 +373,10 @@ def test_suppress_null_sync():
         print(f"\n  [PASS] {overlap*100:.0f}% overlap with suppress_null_sync()!")
         print("         Results are valid (no data corruption)")
         print("         → suppress_null_sync() is a safe fallback")
-        return True
     elif not results_valid:
         print("\n  [FAIL] Data corruption detected! suppress_null_sync() is NOT safe")
-        return False
     else:
         print(f"\n  [FAIL] Only {overlap*100:.0f}% overlap even with suppress")
-        return False
 
 
 def test_real_kernel_pattern():
@@ -404,11 +393,9 @@ def test_real_kernel_pattern():
     print("=" * 70)
 
     try:
-        from et_miner.cuda_csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
     except ImportError:
-        print("\n  [SKIP] et_miner.cuda_csr_build not available")
-        print("         Install et-miner to test real kernel paths")
-        return None
+        pytest.skip("et_miner.gpu.csr_build not available")
 
     stream_a = cp.cuda.Stream(non_blocking=True)
     stream_b = cp.cuda.Stream(non_blocking=True)
@@ -478,115 +465,6 @@ def test_real_kernel_pattern():
     if overlap > 0.10:
         print(f"\n  [PASS] Real kernel streams show {overlap*100:.0f}% overlap!")
         print("         The current _prefetch_on_stream() pattern should work")
-        return True
     else:
         print(f"\n  [WARN] Minimal overlap with real kernels ({overlap*100:.0f}%)")
         print("         May need suppress_null_sync() for production code")
-        return False
-
-
-def print_summary(results: dict):
-    """Print final summary with verdict."""
-    print("\n" + "=" * 70)
-    print("  STREAM SYNC VALIDATION SUMMARY")
-    print("=" * 70)
-
-    for test_name, passed in results.items():
-        status = "PASS" if passed else ("SKIP" if passed is None else "FAIL")
-        icon = {"PASS": "[+]", "FAIL": "[-]", "SKIP": "[~]"}[status]
-        print(f"  {icon} {test_name}: {status}")
-
-    print()
-
-    # Determine overall verdict
-    if results.get("stream_context_redirect") and results.get("null_sync_blocks") is True:
-        print("  VERDICT: Streams work perfectly!")
-        print("  → No code changes needed in kernel files")
-        print("  → Existing _prefetch_on_stream() / _compute_on_stream() are correct")
-        verdict = "no_changes_needed"
-    elif results.get("suppress_null_sync"):
-        print("  VERDICT: Need suppress_null_sync() wrapper")
-        print("  → Add suppress_null_sync() to async_pipeline.py")
-        print("  → Wrap kernel calls in _prefetch_on_stream() and _compute_on_stream()")
-        verdict = "suppress_null_sync"
-    elif results.get("stream_context_redirect"):
-        print("  VERDICT: Streams redirect correctly but null sync needs handling")
-        print("  → Use suppress_null_sync() OR explicit stream.synchronize()")
-        verdict = "suppress_null_sync"
-    else:
-        print("  VERDICT: Stream context does NOT redirect kernel launches")
-        print("  → Need explicit stream parameter in kernel wrappers")
-        print("  → This is the most invasive change")
-        verdict = "explicit_stream_params"
-
-    print("=" * 70)
-    return verdict
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Stream Sync Validation for Triple-Layer Parallelism"
-    )
-    parser.add_argument(
-        "--full", action="store_true",
-        help="Run full test suite including real et-miner kernels"
-    )
-    parser.add_argument(
-        "--gpu", type=int, default=0,
-        help="GPU device to test on (default: 0)"
-    )
-    args = parser.parse_args()
-
-    print("=" * 70)
-    print("  STREAM SYNC VALIDATION — Phase 1 of Triple-Layer Parallelism")
-    print("  Testing CuPy CUDA stream behavior for overlap potential")
-    print("=" * 70)
-
-    # Check CuPy availability
-    try:
-        import cupy as cp
-        n_gpus = cp.cuda.runtime.getDeviceCount()
-        props = cp.cuda.runtime.getDeviceProperties(args.gpu)
-        gpu_name = props["name"].decode()
-        print(f"\n  GPU {args.gpu}: {gpu_name}")
-        print(f"  CuPy: {cp.__version__}")
-        print(f"  Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
-
-        has_ft = hasattr(sys, '_is_gil_enabled') and not sys._is_gil_enabled()
-        print(f"  Free-threading: {'YES' if has_ft else 'NO (GIL present)'}")
-    except Exception as e:
-        print(f"\n  [ERROR] CuPy not available: {e}")
-        print("  This test requires a GPU with CuPy installed.")
-        sys.exit(1)
-
-    # Set device
-    cp.cuda.Device(args.gpu).use()
-
-    results = {}
-
-    # Test 1: Does `with stream:` redirect kernel launches?
-    results["stream_context_redirect"] = test_stream_context_redirect()
-
-    # Test 2: Does null sync block non-blocking streams?
-    results["null_sync_blocks"] = test_null_sync_blocks_other_streams()
-
-    # Test 3: The actual kernel + null sync pattern
-    results["kernel_null_sync_pattern"] = test_with_stream_plus_null_sync()
-
-    # Test 4: suppress_null_sync() fallback
-    results["suppress_null_sync"] = test_suppress_null_sync()
-
-    # Test 5: Real kernels (if --full)
-    if args.full:
-        results["real_kernel_pattern"] = test_real_kernel_pattern()
-
-    # Summary & verdict
-    verdict = print_summary(results)
-
-    # Return exit code: 0 = no changes needed, 1 = need suppress, 2 = need explicit
-    exit_codes = {"no_changes_needed": 0, "suppress_null_sync": 1, "explicit_stream_params": 2}
-    sys.exit(exit_codes.get(verdict, 2))
-
-
-if __name__ == "__main__":
-    main()

@@ -3,8 +3,8 @@ name = "et_miner_rust"
 version = "0.1.0"
 edition = "2021"
 description = "High-performance Rust extension for ET-Miner support counting."
-license-file = "../LICENSE"
-authors = ["E. Ahmic <etet1997@hotmail.com"]
+license-file = "LICENSE"
+authors = ["E. Ahmic <etet1997@hotmail.com>"]
 
 [lib]
 name = "et_miner_rust"

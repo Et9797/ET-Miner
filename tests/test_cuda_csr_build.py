@@ -11,13 +11,16 @@ import numpy as np
 # Skip all tests if cupy not available
 cupy = pytest.importorskip("cupy")
 
+# Belt for cupy-installed-but-no-device boxes: auto-skipped via the gpu mark.
+pytestmark = pytest.mark.gpu
+
 
 class TestGenerateCSRGPU:
     """Tests for generate_csr_gpu function."""
 
     def test_basic_generation(self):
         """Test basic CSR generation on GPU."""
-        from et_miner.cuda_csr_build import generate_csr_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu
 
         indptr, indices = generate_csr_gpu(
             n_rows=1000,
@@ -42,7 +45,7 @@ class TestGenerateCSRGPU:
 
     def test_exact_items_mode(self):
         """Test fixed items per row mode."""
-        from et_miner.cuda_csr_build import generate_csr_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu
 
         n_rows = 500
         items_per_row = 5
@@ -61,7 +64,7 @@ class TestGenerateCSRGPU:
 
     def test_indices_in_valid_range(self):
         """Test that all indices are within valid column range."""
-        from et_miner.cuda_csr_build import generate_csr_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu
 
         n_cols = 50
         indptr, indices = generate_csr_gpu(
@@ -76,7 +79,7 @@ class TestGenerateCSRGPU:
 
     def test_reproducibility(self):
         """Test that same seed produces same results."""
-        from et_miner.cuda_csr_build import generate_csr_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu
 
         indptr1, indices1 = generate_csr_gpu(
             n_rows=100, n_cols=50, avg_items_per_row=5, seed=42
@@ -96,7 +99,7 @@ class TestCSRToBitvecsGPU:
 
     def test_basic_conversion(self):
         """Test basic CSR to bitvec conversion."""
-        from et_miner.cuda_csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
 
         n_rows = 1000
         n_cols = 100
@@ -117,7 +120,7 @@ class TestCSRToBitvecsGPU:
 
     def test_bitvec_correctness(self):
         """Test that bitvecs correctly represent the CSR data."""
-        from et_miner.cuda_csr_build import csr_to_bitvecs_gpu
+        from et_miner.gpu.csr_build import csr_to_bitvecs_gpu
 
         # Simple known CSR: 3 rows, 3 cols
         # Row 0: cols [0, 2]
@@ -145,7 +148,7 @@ class TestGenerateBitvecsGPU:
 
     def test_full_pipeline(self):
         """Test the combined CSR + bitvec generation."""
-        from et_miner.cuda_csr_build import generate_bitvecs_gpu
+        from et_miner.gpu.csr_build import generate_bitvecs_gpu
 
         n_rows = 2000
         n_cols = 150
@@ -171,7 +174,7 @@ class TestGenerateCSRGPUBatch:
 
     def test_batch_generation_single_gpu(self):
         """Test batch generation with single GPU."""
-        from et_miner.cuda_csr_build import generate_csr_gpu_batch
+        from et_miner.gpu.csr_build import generate_csr_gpu_batch
 
         results = generate_csr_gpu_batch(
             n_rows=1000,
@@ -192,7 +195,7 @@ class TestVerifyCSRCorrectness:
 
     def test_verify_valid_csr(self):
         """Test verification of valid CSR matrix."""
-        from et_miner.cuda_csr_build import generate_csr_gpu, verify_csr_correctness
+        from et_miner.gpu.csr_build import generate_csr_gpu, verify_csr_correctness
 
         indptr, indices = generate_csr_gpu(
             n_rows=100,
@@ -211,7 +214,7 @@ class TestPoissonGeneration:
 
     def test_poisson_distribution(self):
         """Test that Poisson generation produces varied row lengths."""
-        from et_miner.cuda_csr_build import generate_csr_gpu_poisson
+        from et_miner.gpu.csr_build import generate_csr_gpu_poisson
 
         n_rows = 10000
         avg_items = 20
@@ -240,7 +243,7 @@ class TestBootstrapGeneration:
 
     def test_bootstrap_from_source(self):
         """Test bootstrap generation maintains source distribution."""
-        from et_miner.cuda_csr_build import generate_csr_gpu_bootstrap
+        from et_miner.gpu.csr_build import generate_csr_gpu_bootstrap
 
         # Create simple source data (numpy arrays)
         source_indptr = np.array([0, 3, 5, 10], dtype=np.int64)  # 3 transactions
@@ -269,7 +272,7 @@ class TestPerformance:
 
     def test_large_scale_generation(self):
         """Test generation at scale (10M rows)."""
-        from et_miner.cuda_csr_build import generate_csr_gpu
+        from et_miner.gpu.csr_build import generate_csr_gpu
         import time
 
         n_rows = 10_000_000

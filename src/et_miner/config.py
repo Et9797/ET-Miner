@@ -69,41 +69,6 @@ class AprioriConfig:
 
 
 @dataclass
-class RAGConfig:
-    """Configuration for RAG integration features."""
-
-    lift_threshold: float = 1.5
-    """Minimum lift for rule consideration in query expansion."""
-
-    confidence_threshold: float = 0.6
-    """Minimum confidence for rule consideration."""
-
-    semantic_threshold: float = 0.5
-    """Similarity threshold for semantic predicate activation."""
-
-    alpha: float = 0.7
-    """Weight for vector similarity in hybrid scoring (0.0 to 1.0)."""
-
-    max_expansions: int = 5
-    """Maximum predicates to add during expansion."""
-
-    def validate(self) -> None:
-        """Validate configuration values."""
-        if self.lift_threshold < 1.0:
-            raise InvalidConfigurationError("lift_threshold", self.lift_threshold, "must be at least 1.0")
-        if not 0.0 <= self.confidence_threshold <= 1.0:
-            raise InvalidConfigurationError(
-                "confidence_threshold", self.confidence_threshold, "must be between 0.0 and 1.0"
-            )
-        if not 0.0 <= self.semantic_threshold <= 1.0:
-            raise InvalidConfigurationError(
-                "semantic_threshold", self.semantic_threshold, "must be between 0.0 and 1.0"
-            )
-        if not 0.0 <= self.alpha <= 1.0:
-            raise InvalidConfigurationError("alpha", self.alpha, "must be between 0.0 and 1.0")
-
-
-@dataclass
 class StreamingConfig:
     """Configuration for streaming Apriori."""
 
@@ -182,7 +147,6 @@ class Config:
     """
 
     apriori: AprioriConfig = field(default_factory=AprioriConfig)
-    rag: RAGConfig = field(default_factory=RAGConfig)
     streaming: StreamingConfig = field(default_factory=StreamingConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
@@ -190,7 +154,6 @@ class Config:
     def validate(self) -> None:
         """Validate all configuration sections."""
         self.apriori.validate()
-        self.rag.validate()
         self.streaming.validate()
         self.cache.validate()
         self.logging.validate()
@@ -215,11 +178,6 @@ class Config:
             for key, value in data["apriori"].items():
                 if hasattr(config.apriori, key):
                     setattr(config.apriori, key, value)
-
-        if "rag" in data:
-            for key, value in data["rag"].items():
-                if hasattr(config.rag, key):
-                    setattr(config.rag, key, value)
 
         if "streaming" in data:
             for key, value in data["streaming"].items():
@@ -288,10 +246,10 @@ class Config:
             Config instance with env overrides applied
 
         Example:
-            >>> # With ET_MINER_RAG_LIFT_THRESHOLD=2.0 set
+            >>> # With ET_MINER_APRIORI_MIN_SUPPORT=0.05 set
             >>> config = Config.from_env()
-            >>> config.rag.lift_threshold
-            2.0
+            >>> config.apriori.min_support
+            0.05
         """
         config = cls()
 
@@ -301,12 +259,6 @@ class Config:
             f"{prefix}_APRIORI_MAX_LENGTH": ("apriori", "max_length", lambda x: None if x == "" else int(x)),
             f"{prefix}_APRIORI_SPARSE": ("apriori", "sparse", lambda x: x.lower() in ("true", "1", "yes")),
             f"{prefix}_APRIORI_N_JOBS": ("apriori", "n_jobs", int),
-            # RAG
-            f"{prefix}_RAG_LIFT_THRESHOLD": ("rag", "lift_threshold", float),
-            f"{prefix}_RAG_CONFIDENCE_THRESHOLD": ("rag", "confidence_threshold", float),
-            f"{prefix}_RAG_SEMANTIC_THRESHOLD": ("rag", "semantic_threshold", float),
-            f"{prefix}_RAG_ALPHA": ("rag", "alpha", float),
-            f"{prefix}_RAG_MAX_EXPANSIONS": ("rag", "max_expansions", int),
             # Streaming
             f"{prefix}_STREAMING_CHUNK_SIZE": ("streaming", "chunk_size", int),
             f"{prefix}_STREAMING_MEMORY_BUDGET_MB": ("streaming", "memory_budget_mb", int),
@@ -344,13 +296,6 @@ class Config:
                 "max_length": self.apriori.max_length,
                 "sparse": self.apriori.sparse,
                 "n_jobs": self.apriori.n_jobs,
-            },
-            "rag": {
-                "lift_threshold": self.rag.lift_threshold,
-                "confidence_threshold": self.rag.confidence_threshold,
-                "semantic_threshold": self.rag.semantic_threshold,
-                "alpha": self.rag.alpha,
-                "max_expansions": self.rag.max_expansions,
             },
             "streaming": {
                 "chunk_size": self.streaming.chunk_size,
@@ -489,7 +434,6 @@ def set_config(config: Config) -> None:
 __all__ = [
     "Config",
     "AprioriConfig",
-    "RAGConfig",
     "StreamingConfig",
     "CacheConfig",
     "LoggingConfig",

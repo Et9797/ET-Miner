@@ -57,9 +57,9 @@ def create_bootstrap_sample(
     logger.info(f"Saved: {output_path} ({target_transactions:,} transactions)")
 
     item_counts = sampled.select(pl.col("items").list.len())
-    logger.info(f"Dataset statistics:")
+    logger.info("Dataset statistics:")
     logger.debug(f"  Transactions: {sampled.height:,}")
-    logger.debug(f"  Items per transaction:")
+    logger.debug("  Items per transaction:")
     logger.debug(f"    Min: {item_counts.min().item()}")
     logger.debug(f"    Max: {item_counts.max().item()}")
     logger.debug(f"    Mean: {item_counts.mean().item():.1f}")

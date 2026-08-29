@@ -1,13 +1,11 @@
 """Tests for the CLI interface."""
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 import polars as pl
 
-from et_miner.cli import main, create_parser
+from et_miner.cli import main
 
 
 class TestCLIParser:

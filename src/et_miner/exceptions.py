@@ -1,7 +1,7 @@
 """Custom exceptions for et-miner.
 
 This module provides a hierarchy of exceptions for better error handling
-and debugging. All exceptions inherit from PolarsAprioriError for easy
+and debugging. All exceptions inherit from ETMinerError for easy
 catching of library-specific errors.
 
 Example:
@@ -13,7 +13,7 @@ Example:
 """
 
 
-class PolarsAprioriError(Exception):
+class ETMinerError(Exception):
     """Base exception for all et-miner errors.
 
     All library-specific exceptions inherit from this class, making it easy
@@ -21,7 +21,7 @@ class PolarsAprioriError(Exception):
 
         try:
             result = some_operation()
-        except PolarsAprioriError as e:
+        except ETMinerError as e:
             logger.error(f"et-miner error: {e}")
     """
 
@@ -33,7 +33,7 @@ class PolarsAprioriError(Exception):
 # =============================================================================
 
 
-class MiningError(PolarsAprioriError):
+class MiningError(ETMinerError):
     """Base class for errors during the mining process."""
 
     pass
@@ -136,114 +136,11 @@ class InsufficientDataError(MiningError):
 
 
 # =============================================================================
-# Predicate Errors
-# =============================================================================
-
-
-class PredicateError(PolarsAprioriError):
-    """Base class for predicate-related errors."""
-
-    pass
-
-
-class PredicateMismatchError(PredicateError):
-    """Raised when predicates in rules don't match expected predicates.
-
-    This is a critical error that indicates mining and querying are using
-    different predicate definitions, which causes silent query expansion failures.
-
-    Attributes:
-        unknown_predicates: List of predicate names that weren't recognized
-        available_predicates: List of valid predicate names
-    """
-
-    def __init__(
-        self,
-        message: str = "Predicate mismatch detected",
-        unknown_predicates: list[str] | None = None,
-        available_predicates: list[str] | None = None,
-    ):
-        self.unknown_predicates = unknown_predicates or []
-        self.available_predicates = available_predicates
-
-        if unknown_predicates:
-            message = f"{message}: unknown predicates {unknown_predicates}"
-        message += ". Ensure rules were mined with the same PredicateRegistry."
-
-        super().__init__(message)
-
-
-class InvalidPredicatePatternError(PredicateError):
-    """Raised when a predicate pattern is invalid.
-
-    Attributes:
-        predicate_name: Name of the predicate with the invalid pattern
-        pattern: The invalid pattern string
-        reason: Why the pattern is invalid
-    """
-
-    def __init__(
-        self,
-        predicate_name: str,
-        pattern: str,
-        reason: str = "invalid regex",
-    ):
-        self.predicate_name = predicate_name
-        self.pattern = pattern
-        self.reason = reason
-
-        message = f"Invalid pattern for '{predicate_name}': {reason}"
-        super().__init__(message)
-
-
-# =============================================================================
-# Embedding Errors
-# =============================================================================
-
-
-class EmbeddingError(PolarsAprioriError):
-    """Base class for embedding-related errors."""
-
-    pass
-
-
-class EmbeddingModelNotAvailableError(EmbeddingError):
-    """Raised when sentence-transformers is not installed.
-
-    Provides installation instructions.
-    """
-
-    def __init__(self, feature: str = "embeddings"):
-        message = (
-            f"sentence-transformers is required for {feature}. "
-            "Install with: pip install 'et-miner[semantic]' "
-            "or: pip install sentence-transformers"
-        )
-        super().__init__(message)
-
-
-class EmbeddingDimensionMismatchError(EmbeddingError):
-    """Raised when embedding dimensions don't match.
-
-    Attributes:
-        expected_dim: Expected embedding dimension
-        actual_dim: Actual embedding dimension
-    """
-
-    def __init__(self, expected_dim: int, actual_dim: int):
-        self.expected_dim = expected_dim
-        self.actual_dim = actual_dim
-
-        message = f"Embedding dimension mismatch: expected {expected_dim}, got {actual_dim}"
-        super().__init__(message)
-
-
-# =============================================================================
 # Configuration Errors
 # =============================================================================
 
 
-class ConfigurationError(PolarsAprioriError):
+class ConfigurationError(ETMinerError):
     """Base class for configuration-related errors."""
 
     pass
@@ -285,7 +182,7 @@ class ConfigFileNotFoundError(ConfigurationError):
 # =============================================================================
 
 
-class CacheError(PolarsAprioriError):
+class CacheError(ETMinerError):
     """Base class for caching-related errors."""
 
     pass
@@ -331,7 +228,7 @@ class CacheVersionMismatchError(CacheError):
 # =============================================================================
 
 
-class StreamingError(PolarsAprioriError):
+class StreamingError(ETMinerError):
     """Base class for streaming-related errors."""
 
     pass
@@ -369,20 +266,12 @@ class ChunkProcessingError(StreamingError):
 
 __all__ = [
     # Base
-    "PolarsAprioriError",
+    "ETMinerError",
     # Mining
     "MiningError",
     "NoFrequentItemsetsError",
     "NoRulesFoundError",
     "InsufficientDataError",
-    # Predicates
-    "PredicateError",
-    "PredicateMismatchError",
-    "InvalidPredicatePatternError",
-    # Embeddings
-    "EmbeddingError",
-    "EmbeddingModelNotAvailableError",
-    "EmbeddingDimensionMismatchError",
     # Configuration
     "ConfigurationError",
     "InvalidConfigurationError",

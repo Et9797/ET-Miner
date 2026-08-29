@@ -157,7 +157,7 @@ def save_datasets(
     logger.info(f"Unique items: {item_mapping.height:,}")
 
     item_counts = transactions.select(pl.col("items").list.len())
-    logger.info(f"Items per transaction:")
+    logger.info("Items per transaction:")
     logger.debug(f"  Min: {item_counts.min().item()}")
     logger.debug(f"  Max: {item_counts.max().item()}")
     logger.debug(f"  Mean: {item_counts.mean().item():.1f}")

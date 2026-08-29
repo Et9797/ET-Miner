@@ -12,8 +12,11 @@ import pytest
 # Skip all tests if CuPy not available
 cupy = pytest.importorskip("cupy")
 
+# Belt for cupy-installed-but-no-device boxes: auto-skipped via the gpu mark.
+pytestmark = pytest.mark.gpu
 
-from et_miner.cuda_csr_bitvec import (
+
+from et_miner.gpu.csr_bitvec import (
     build_bitvecs_gpu,
     build_bitvecs_gpu_from_scipy,
     get_csr_to_bitvec_kernel,

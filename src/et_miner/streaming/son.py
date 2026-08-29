@@ -511,7 +511,7 @@ def _mine_chunk_gpu_resident(
     """Mine chunk with GPU-resident Apriori. Returns list of itemsets or None on failure."""
     try:
         import cupy as cp
-        from et_miner.core.apriori import _apriori_from_bitvecs_gpu_resident
+        from et_miner.gpu.mining import _apriori_from_bitvecs_gpu_resident
 
         result = _build_bitvecs_for_chunk(matrix, col_to_item)
         if result is None:
@@ -586,7 +586,7 @@ def _mine_chunk_frequent(
     Returns:
         List of frequent itemsets as tuples of item IDs.
     """
-    from et_miner.core.apriori import _generate_candidates
+    from et_miner.core.candidates import _generate_candidates
 
     min_count_threshold = _min_count(min_support, n_transactions)
     item_cols = list(col_to_item.keys())

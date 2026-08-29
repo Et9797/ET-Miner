@@ -11,6 +11,9 @@ import numpy as np
 # Skip all tests if cupy not available
 cupy = pytest.importorskip("cupy")
 
+# Belt for cupy-installed-but-no-device boxes: auto-skipped via the gpu mark.
+pytestmark = pytest.mark.gpu
+
 
 class TestGenerateCSRGPU:
     """Tests for generate_csr_gpu function."""

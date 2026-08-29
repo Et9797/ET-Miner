@@ -1,16 +1,23 @@
 """Smoke test: verify et_miner CPU, GPU, and efficient_apriori produce identical results.
 
-Uses the real online retail dataset (819K transactions) at multiple support levels.
-Catches regressions in kernel correctness, pruning logic, and counting arithmetic.
+Uses the real Online Retail II dataset at multiple support levels. Catches
+regressions in kernel correctness, pruning logic, and counting arithmetic.
+
+The dataset is generated locally (it is gitignored):
+
+    python datasets/prepare_online_retail.py
 """
 
 from pathlib import Path
 
 import pytest
 
-DATASET = Path(__file__).parent.parent / "benchmarks" / "datasets" / "all_transactions.parquet"
+pytest.importorskip("efficient_apriori", reason="efficient_apriori not installed")
+
+DATASET = Path(__file__).parent.parent / "datasets" / "online_retail_ii" / "transactions.parquet"
 SKIP_NO_DATASET = pytest.mark.skipif(
-    not DATASET.exists(), reason=f"Dataset not found: {DATASET}"
+    not DATASET.exists(),
+    reason=f"Dataset not found: {DATASET} — generate it with: python datasets/prepare_online_retail.py",
 )
 
 
@@ -38,20 +45,23 @@ class TestCPUvsEfficientApriori:
         lf = self._load()
         cpu = _run_et_miner(lf, 0.005).height
         ea = _run_efficient_apriori(lf, 0.005)
-        assert cpu == ea == 9
+        assert cpu == ea
+        assert cpu > 0
 
     def test_support_001(self):
         lf = self._load()
         cpu = _run_et_miner(lf, 0.001).height
         ea = _run_efficient_apriori(lf, 0.001)
-        assert cpu == ea == 326
+        assert cpu == ea
+        assert cpu > 0
 
     @pytest.mark.slow
     def test_support_0001(self):
         lf = self._load()
         cpu = _run_et_miner(lf, 0.0001).height
         ea = _run_efficient_apriori(lf, 0.0001)
-        assert cpu == ea == 11_159
+        assert cpu == ea
+        assert cpu > 0
 
 
 @SKIP_NO_DATASET

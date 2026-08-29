@@ -11,6 +11,9 @@ import pytest
 
 cupy = pytest.importorskip("cupy")
 
+# Belt for cupy-installed-but-no-device boxes: auto-skipped via the gpu mark.
+pytestmark = pytest.mark.gpu
+
 from et_miner.gpu.kernels import (
     count_pairs_fused_k2,
     count_itemsets_cuda,

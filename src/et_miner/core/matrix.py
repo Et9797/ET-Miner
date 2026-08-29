@@ -150,7 +150,6 @@ def build_boolean_matrix(
     # with list.contains() that undercounts True values by ~2%. This causes items
     # near the support threshold to be incorrectly filtered out.
     # Verified on 2.5M transactions: streaming counted 4,073 vs correct 4,156.
-    # See: docs/UNIMPLEMENTED_IDEAS.md for full analysis.
     matrix = transactions.select(exprs).collect()
 
     return matrix, col_to_item, n_transactions

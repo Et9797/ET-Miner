@@ -6,8 +6,11 @@ Provides:
 - Memory management utilities
 """
 
-from typing import Optional, List, Tuple
+from typing import TYPE_CHECKING, Optional, List, Tuple
 import numpy as np
+
+if TYPE_CHECKING:
+    import cupy as cp
 
 __all__ = [
     "transfer_pinned",

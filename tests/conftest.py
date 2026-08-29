@@ -6,20 +6,23 @@ import polars as pl
 import pytest
 
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "gpu: mark test as requiring GPU (use --run-gpu)")
+def _gpu_count() -> int:
+    """CUDA device count, 0 when CuPy is absent or no device is usable.
 
-
-def pytest_addoption(parser):
+    Kept self-contained (not imported from et_miner) so test collection
+    still works even when the package itself is broken.
+    """
     try:
-        parser.addoption("--run-gpu", action="store_true", default=False, help="Run GPU tests")
-    except ValueError:
-        pass  # Already added
+        import cupy
+
+        return cupy.cuda.runtime.getDeviceCount()
+    except Exception:
+        return 0
 
 
 def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-gpu", default=False):
-        skip_gpu = pytest.mark.skip(reason="need --run-gpu option to run")
+    if _gpu_count() == 0:
+        skip_gpu = pytest.mark.skip(reason="no CUDA device available")
         for item in items:
             if "gpu" in item.keywords:
                 item.add_marker(skip_gpu)

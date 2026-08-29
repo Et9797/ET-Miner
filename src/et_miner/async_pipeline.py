@@ -36,14 +36,12 @@ Expected results:
 
 import contextlib
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, Future
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Any, Dict
 import numpy as np
-
-# Import asyncio only for backwards-compat API
-import asyncio
 
 from loguru import logger
 
@@ -61,8 +59,6 @@ __all__ = [
     'compare_pipelines',
 ]
 
-
-import threading
 
 _suppress_lock = threading.Lock()
 _suppress_count = 0
@@ -848,7 +844,7 @@ def compare_pipelines(
     logger.info(f"  Streams+Thread: {streams_results['total_seconds']:.2f}s ({streams_results['throughput_total']:.0f} tx/s)")
     logger.info(f"  Speedup:        {speedup:.2f}x")
     if HAS_FREE_THREADING:
-        logger.info(f"  Free-threading: ENABLED (true parallel GPU submission)")
+        logger.info("  Free-threading: ENABLED (true parallel GPU submission)")
     logger.info("=" * 70)
 
     return {

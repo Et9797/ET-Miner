@@ -22,9 +22,13 @@ Memory layout:
 
 import numpy as np
 import threading
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    import cupy as cp
+    import scipy.sparse
 
 __all__ = [
     'build_bitvecs_gpu',

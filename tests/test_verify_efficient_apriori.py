@@ -405,7 +405,7 @@ def test_k3_validation() -> list[tuple[str, bool]]:
 
     if not ea_k3 and not pa_k3:
         print(f"  No k=3 itemsets found at min_support={min_support}")
-        print(f"  Trying with lower support on a denser synthetic dataset...")
+        print("  Trying with lower support on a denser synthetic dataset...")
 
         # Generate a denser dataset that's more likely to produce k=3
         rng = np.random.RandomState(123)

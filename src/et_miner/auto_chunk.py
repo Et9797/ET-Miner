@@ -12,7 +12,7 @@ Memory Formula:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Tuple
+from typing import Optional, List
 import math
 
 from loguru import logger
@@ -251,5 +251,5 @@ def print_memory_breakdown(
     logger.info(f"  Bitvecs ({n_cols} cols × {math.ceil(n_rows/64):,} u64s): {mem['bitvec_gb']:.2f} GB")
     logger.info(f"  CSR indptr ({n_rows+1:,} entries):                      {mem['csr_indptr_gb']:.2f} GB")
     logger.info(f"  CSR indices (~{n_rows * avg_items_per_row:,} entries):           {mem['csr_indices_gb']:.2f} GB")
-    logger.info(f"  ─────────────────────────────────────────────────────")
+    logger.info("  ─────────────────────────────────────────────────────")
     logger.info(f"  TOTAL:                                               {mem['total_gb']:.2f} GB")

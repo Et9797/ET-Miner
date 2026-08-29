@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import polars as pl
+from loguru import logger
 
 from et_miner._compat import HAS_TQDM, tqdm
 
@@ -276,8 +277,6 @@ _PARALLEL_THRESHOLD = 100
 # Streaming chunk size for wide boolean matrices (Polars 1.37+ width-aware chunking)
 # Smaller chunks reduce memory pressure when matrix has many columns (1 per item)
 _STREAMING_CHUNK_SIZE = 25_000
-
-from loguru import logger
 
 
 def _log_parallel_decision(

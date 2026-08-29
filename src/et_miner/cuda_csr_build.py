@@ -310,7 +310,6 @@ def generate_csr_gpu_batch(
         ... )
         >>> # 250M rows per GPU, data stays distributed
     """
-    import cupy as cp
     from concurrent.futures import ThreadPoolExecutor
 
     rows_per_gpu = (n_rows + n_gpus - 1) // n_gpus

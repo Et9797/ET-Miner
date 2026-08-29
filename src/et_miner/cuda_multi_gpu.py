@@ -12,7 +12,10 @@ This approach scales linearly with GPU count for large datasets.
 import numpy as np
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
+
+if TYPE_CHECKING:
+    import cupy as cp
 
 # Lock for thread-safe CUDA device context switching
 # Required when multiple threads access different GPUs concurrently

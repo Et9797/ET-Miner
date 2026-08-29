@@ -1,7 +1,6 @@
 """Tests for generate_rules() and Rule dataclass."""
 
 import polars as pl
-import pytest
 
 from et_miner import generate_rules
 from et_miner.rules import Rule

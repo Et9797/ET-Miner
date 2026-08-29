@@ -11,6 +11,7 @@ separate CuPy operations by:
 
 import numpy as np
 import threading
+from collections import namedtuple
 
 from loguru import logger
 
@@ -2633,8 +2634,6 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
 # Eliminates the recount phase by outputting counts for ALL candidates.
 # In row-split mode, all GPUs generate the same candidates (same prev_frequent),
 # so element-wise sum of dense count arrays = exact global counts.
-
-from collections import namedtuple
 
 K3PlusGroups = namedtuple(
     "K3PlusGroups",

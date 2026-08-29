@@ -31,7 +31,6 @@ Usage:
 """
 
 import os
-import sys
 import struct
 import subprocess
 import time
@@ -137,7 +136,7 @@ def setup_ramdisk(size_gb: int, mount_point: str = "/mnt/ramdisk") -> Path:
         return path
 
     except subprocess.TimeoutExpired:
-        raise RuntimeError(f"Timeout during ramdisk setup")
+        raise RuntimeError("Timeout during ramdisk setup")
     except Exception as e:
         raise RuntimeError(f"Ramdisk setup failed: {e}")
 
@@ -529,7 +528,7 @@ def load_wave_from_disk(
 
         except ImportError:
             raise ImportError(
-                f"CuPy not available. Install with: pip install cupy-cuda12x"
+                "CuPy not available. Install with: pip install cupy-cuda12x"
             )
 
     except FileNotFoundError:

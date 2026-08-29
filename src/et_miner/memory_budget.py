@@ -11,7 +11,6 @@ Key insight: CuPy boolean indexing `array[bool_mask]` allocates:
 For 10B elements, that's 10GB mask + 80GB prefix-sum = 90GB hidden allocation.
 """
 
-import warnings
 import numpy as np
 from loguru import logger
 

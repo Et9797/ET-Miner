@@ -23,8 +23,9 @@ wheels/
 # Rust build artifacts
 rust_ext/target/
 
-# Test / scratch data
+# Test / scratch data (generated locally; see datasets/prepare_online_retail.py)
 *.parquet
+datasets/online_retail_ii/*.zip
 tests/phh_samples/
 results/
 

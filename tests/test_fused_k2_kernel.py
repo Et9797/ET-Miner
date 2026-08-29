@@ -15,7 +15,6 @@ from et_miner.cuda_kernels import (
     count_pairs_fused_k2,
     count_itemsets_cuda,
     get_cuda_kernel,
-    clear_kernel_cache,
 )
 
 

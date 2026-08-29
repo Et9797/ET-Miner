@@ -47,11 +47,13 @@ from et_miner.streaming.son import (
     _mine_chunk_frequent,
 )
 from et_miner.core.matrix import (
+    build_boolean_matrix,
+    count_support_batched,
+)
+from et_miner.core.result import (
     _build_result_df,
     _empty_result,
     _min_count,
-    build_boolean_matrix,
-    count_support_batched,
 )
 from et_miner.backends import CUPY_INSTALLED, get_gpu_count, has_cupy
 from et_miner.exceptions import MiningError

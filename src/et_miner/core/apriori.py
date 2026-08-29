@@ -37,11 +37,13 @@ from et_miner.io.gcs import (
     pyarrow_gcs_filesystem,
 )
 from .matrix import (
+    build_boolean_matrix,
+    count_support_batched,
+)
+from .result import (
     _build_result_df,
     _empty_result,
     _min_count,
-    build_boolean_matrix,
-    count_support_batched,
 )
 from .profiling import ProfilingSession
 
@@ -2841,7 +2843,9 @@ def apriori(
     # Bypasses the dense boolean matrix entirely.
     # For 205M × 1006: ~5 GB CPU + ~25 GB GPU  instead of  206 GB CPU.
     if use_gpu:
-        from .matrix import _build_csr_from_transactions, _build_gpu_bitvec_matrix
+        from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
+
+        from .matrix import _build_csr_from_transactions
 
         csr_result = _build_csr_from_transactions(lf, min_support, item_col)
         if csr_result is None:

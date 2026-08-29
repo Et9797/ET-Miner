@@ -33,11 +33,13 @@ import polars as pl
 
 from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.core.matrix import (
+    build_boolean_matrix,
+    count_support_batched,
+)
+from et_miner.core.result import (
     _build_result_df,
     _empty_result,
     _min_count,
-    build_boolean_matrix,
-    count_support_batched,
 )
 from et_miner.core.profiling import ProfilingSession
 
@@ -487,7 +489,8 @@ def _build_bitvecs_for_chunk(
     Returns None on any failure so callers can gracefully fall back to CPU.
     """
     try:
-        from et_miner.core.matrix import _polars_to_sparse_csr, _build_gpu_bitvec_matrix
+        from et_miner.core.matrix import _polars_to_sparse_csr
+        from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
 
         csr, col_name_to_idx = _polars_to_sparse_csr(matrix)
         bitvecs_gpu = _build_gpu_bitvec_matrix(csr)

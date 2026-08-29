@@ -4,9 +4,9 @@ from et_miner.core.apriori import apriori
 from et_miner.core.matrix import (
     build_boolean_matrix,
     count_support_batched,
-    count_support_sparse,
     count_support_vectorized,
 )
+from et_miner.core.sparse import count_support_sparse
 from et_miner.core.rules import (
     Rule,
     compute_self_sufficiency,

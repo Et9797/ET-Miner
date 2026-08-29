@@ -37,9 +37,9 @@ from et_miner.streaming.multi_gpu import apriori_streaming_multi_gpu
 from et_miner.core.matrix import (
     build_boolean_matrix,
     count_support_batched,
-    count_support_sparse,
     count_support_vectorized,
 )
+from et_miner.core.sparse import count_support_sparse
 
 # Config & logging
 from et_miner.config import Config, load_config

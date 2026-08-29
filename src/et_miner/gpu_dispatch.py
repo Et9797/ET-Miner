@@ -83,7 +83,7 @@ def dispatch_k3plus(bitvecs_gpu, candidates, n_u64s, min_count):
 def dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count):
     """Fully-fused k>=3: candidate gen + count + filter all on GPU.
 
-    Eliminates _generate_candidates_int() entirely. Prefix groups are built
+    Eliminates CPU-side candidate generation entirely. Prefix groups are built
     on CPU (O(n_frequent)), transferred to GPU, and candidates are generated
     on-the-fly in the kernel via triangular number inverse.
 

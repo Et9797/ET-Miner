@@ -1416,8 +1416,6 @@ def _apriori_from_bitvecs_gpu_resident(
     return result_df
 
 
-# _generate_candidates_int removed — dead code (never called in GPU paths).
-# GPU paths use fused kernels; CPU path uses _generate_candidates_simple.
 
 
 def _infer_count_from_subsets(

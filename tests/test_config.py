@@ -7,7 +7,6 @@ import tempfile
 from et_miner.config import (
     Config,
     AprioriConfig,
-    RAGConfig,
     LoggingConfig,
     load_config,
     get_default_config,
@@ -52,32 +51,6 @@ class TestAprioriConfig:
             config.validate()
 
 
-class TestRAGConfig:
-    """Tests for RAGConfig validation."""
-
-    def test_valid_config(self):
-        """Test valid RAG config."""
-        config = RAGConfig(
-            lift_threshold=2.0,
-            confidence_threshold=0.8,
-            semantic_threshold=0.6,
-            alpha=0.5,
-        )
-        config.validate()
-
-    def test_invalid_lift_threshold(self):
-        """Test that lift < 1 raises error."""
-        config = RAGConfig(lift_threshold=0.5)
-        with pytest.raises(InvalidConfigurationError):
-            config.validate()
-
-    def test_invalid_alpha(self):
-        """Test that alpha outside [0,1] raises error."""
-        config = RAGConfig(alpha=1.5)
-        with pytest.raises(InvalidConfigurationError):
-            config.validate()
-
-
 class TestConfig:
     """Tests for main Config class."""
 
@@ -85,7 +58,6 @@ class TestConfig:
         """Test default config values."""
         config = Config()
         assert config.apriori.min_support == 0.01
-        assert config.rag.lift_threshold == 1.5
         assert config.streaming.chunk_size == 100_000
 
     def test_validate_all(self):
@@ -100,13 +72,12 @@ class TestConfig:
         """Test creating config from dict."""
         data = {
             "apriori": {"min_support": 0.05},
-            "rag": {"lift_threshold": 2.5, "alpha": 0.8},
+            "streaming": {"memory_budget_mb": 2048},
         }
         config = Config.from_dict(data)
 
         assert config.apriori.min_support == 0.05
-        assert config.rag.lift_threshold == 2.5
-        assert config.rag.alpha == 0.8
+        assert config.streaming.memory_budget_mb == 2048
         # Defaults preserved
         assert config.streaming.chunk_size == 100_000
 
@@ -118,7 +89,6 @@ class TestConfig:
         data = config.to_dict()
 
         assert data["apriori"]["min_support"] == 0.02
-        assert "rag" in data
         assert "streaming" in data
 
 
@@ -137,9 +107,8 @@ class TestConfigFromFile:
 min_support = 0.03
 max_length = 5
 
-[rag]
-lift_threshold = 2.0
-alpha = 0.6
+[streaming]
+chunk_size = 50000
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(toml_content)
@@ -149,8 +118,7 @@ alpha = 0.6
             config = Config.from_file(temp_path)
             assert config.apriori.min_support == 0.03
             assert config.apriori.max_length == 5
-            assert config.rag.lift_threshold == 2.0
-            assert config.rag.alpha == 0.6
+            assert config.streaming.chunk_size == 50000
         finally:
             os.unlink(temp_path)
 
@@ -169,7 +137,7 @@ min_support = 0.05
             assert config.apriori.min_support == 0.05
             # Defaults
             assert config.apriori.sparse is True
-            assert config.rag.lift_threshold == 1.5
+            assert config.streaming.chunk_size == 100_000
         finally:
             os.unlink(temp_path)
 
@@ -274,7 +242,7 @@ class TestGetDefaultConfig:
         config = get_default_config()
         assert config.apriori.min_support == 0.01
         assert config.apriori.sparse is True
-        assert config.rag.lift_threshold == 1.5
+        assert config.streaming.chunk_size == 100_000
 
 
 class TestLoggingConfig:

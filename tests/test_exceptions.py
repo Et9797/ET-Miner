@@ -3,17 +3,11 @@
 import pytest
 
 from et_miner.exceptions import (
-    PolarsAprioriError,
+    ETMinerError,
     MiningError,
     NoFrequentItemsetsError,
     NoRulesFoundError,
     InsufficientDataError,
-    PredicateError,
-    PredicateMismatchError,
-    InvalidPredicatePatternError,
-    EmbeddingError,
-    EmbeddingModelNotAvailableError,
-    EmbeddingDimensionMismatchError,
     ConfigurationError,
     InvalidConfigurationError,
     ConfigFileNotFoundError,
@@ -29,18 +23,12 @@ class TestExceptionHierarchy:
     """Test that exception hierarchy is correct."""
 
     def test_all_inherit_from_base(self):
-        """All exceptions should inherit from PolarsAprioriError."""
+        """All exceptions should inherit from ETMinerError."""
         exceptions = [
             MiningError,
             NoFrequentItemsetsError,
             NoRulesFoundError,
             InsufficientDataError,
-            PredicateError,
-            PredicateMismatchError,
-            InvalidPredicatePatternError,
-            EmbeddingError,
-            EmbeddingModelNotAvailableError,
-            EmbeddingDimensionMismatchError,
             ConfigurationError,
             InvalidConfigurationError,
             ConfigFileNotFoundError,
@@ -52,24 +40,14 @@ class TestExceptionHierarchy:
         ]
 
         for exc_class in exceptions:
-            assert issubclass(exc_class, PolarsAprioriError), \
-                f"{exc_class.__name__} should inherit from PolarsAprioriError"
+            assert issubclass(exc_class, ETMinerError), \
+                f"{exc_class.__name__} should inherit from ETMinerError"
 
     def test_mining_errors_inherit_from_mining_error(self):
         """Mining-related exceptions should inherit from MiningError."""
         assert issubclass(NoFrequentItemsetsError, MiningError)
         assert issubclass(NoRulesFoundError, MiningError)
         assert issubclass(InsufficientDataError, MiningError)
-
-    def test_predicate_errors_inherit_from_predicate_error(self):
-        """Predicate-related exceptions should inherit from PredicateError."""
-        assert issubclass(PredicateMismatchError, PredicateError)
-        assert issubclass(InvalidPredicatePatternError, PredicateError)
-
-    def test_embedding_errors_inherit_from_embedding_error(self):
-        """Embedding-related exceptions should inherit from EmbeddingError."""
-        assert issubclass(EmbeddingModelNotAvailableError, EmbeddingError)
-        assert issubclass(EmbeddingDimensionMismatchError, EmbeddingError)
 
 
 class TestMiningExceptions:
@@ -119,54 +97,6 @@ class TestMiningExceptions:
         assert "100" in str(exc)
         assert "10" in str(exc)
         assert "transactions" in str(exc)
-
-
-class TestPredicateExceptions:
-    """Test predicate-related exceptions."""
-
-    def test_predicate_mismatch_basic(self):
-        """Test PredicateMismatchError with basic message."""
-        exc = PredicateMismatchError()
-        assert "Predicate mismatch" in str(exc)
-        assert "PredicateRegistry" in str(exc)
-
-    def test_predicate_mismatch_with_unknown(self):
-        """Test PredicateMismatchError with unknown predicates."""
-        exc = PredicateMismatchError(
-            unknown_predicates=["mentions_typo", "mentions_old"],
-        )
-        assert "mentions_typo" in str(exc)
-        assert "mentions_old" in str(exc)
-        assert exc.unknown_predicates == ["mentions_typo", "mentions_old"]
-
-    def test_invalid_predicate_pattern(self):
-        """Test InvalidPredicatePatternError."""
-        exc = InvalidPredicatePatternError(
-            predicate_name="test_pred",
-            pattern="[invalid(",
-            reason="unmatched bracket",
-        )
-        assert "test_pred" in str(exc)
-        assert "unmatched bracket" in str(exc)
-
-
-class TestEmbeddingExceptions:
-    """Test embedding-related exceptions."""
-
-    def test_model_not_available(self):
-        """Test EmbeddingModelNotAvailableError provides install instructions."""
-        exc = EmbeddingModelNotAvailableError("semantic predicates")
-        assert "sentence-transformers" in str(exc)
-        assert "pip install" in str(exc)
-        assert "semantic predicates" in str(exc)
-
-    def test_dimension_mismatch(self):
-        """Test EmbeddingDimensionMismatchError."""
-        exc = EmbeddingDimensionMismatchError(expected_dim=384, actual_dim=768)
-        assert "384" in str(exc)
-        assert "768" in str(exc)
-        assert exc.expected_dim == 384
-        assert exc.actual_dim == 768
 
 
 class TestConfigurationExceptions:
@@ -234,15 +164,12 @@ class TestExceptionCatching:
     """Test that exceptions can be caught at various hierarchy levels."""
 
     def test_catch_by_base_class(self):
-        """Test catching by PolarsAprioriError catches all."""
-        with pytest.raises(PolarsAprioriError):
+        """Test catching by ETMinerError catches all."""
+        with pytest.raises(ETMinerError):
             raise NoFrequentItemsetsError()
 
-        with pytest.raises(PolarsAprioriError):
-            raise PredicateMismatchError()
-
-        with pytest.raises(PolarsAprioriError):
-            raise EmbeddingModelNotAvailableError()
+        with pytest.raises(ETMinerError):
+            raise ConfigFileNotFoundError("/nonexistent.toml")
 
     def test_catch_by_category(self):
         """Test catching by category catches related errors."""
@@ -252,14 +179,11 @@ class TestExceptionCatching:
         with pytest.raises(MiningError):
             raise NoRulesFoundError()
 
-        with pytest.raises(EmbeddingError):
-            raise EmbeddingModelNotAvailableError()
-
     def test_specific_catch_doesnt_catch_unrelated(self):
         """Test that specific catches don't catch unrelated errors."""
         with pytest.raises(MiningError):
-            # This should NOT be caught by EmbeddingError
+            # This should NOT be caught by CacheError
             try:
                 raise NoRulesFoundError()
-            except EmbeddingError:
-                pytest.fail("EmbeddingError shouldn't catch MiningError")
+            except CacheError:
+                pytest.fail("CacheError shouldn't catch MiningError")

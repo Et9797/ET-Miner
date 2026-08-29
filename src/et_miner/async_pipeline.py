@@ -275,7 +275,7 @@ def _compute_on_stream(
     """
     import cupy as cp
     from et_miner.cuda_kernels import get_popcount_kernel
-    from et_miner.apriori import _generate_candidates_int
+    from et_miner.apriori import _generate_candidates
 
     total_itemsets = 0
     start_time = time.time()
@@ -314,7 +314,7 @@ def _compute_on_stream(
                     k = 2
                     n_u64s = bitvecs.shape[1]
                     while k <= max_length and len(prev_frequent) >= k:
-                        candidates = _generate_candidates_int(prev_frequent, k)
+                        candidates = _generate_candidates(prev_frequent, k)
                         if not candidates:
                             break
 
@@ -649,7 +649,7 @@ def run_streams_benchmark_sequential(
     import cupy as cp
     from et_miner.cuda_csr_build import generate_csr_gpu, csr_to_bitvecs_gpu
     from et_miner.cuda_kernels import get_popcount_kernel
-    from et_miner.apriori import _generate_candidates_int
+    from et_miner.apriori import _generate_candidates
 
     # Validate GPU availability
     try:
@@ -714,7 +714,7 @@ def run_streams_benchmark_sequential(
                 prev_frequent = [tuple([idx]) for idx, _ in k1_itemsets]
                 k = 2
                 while k <= max_length and len(prev_frequent) >= k:
-                    candidates = _generate_candidates_int(prev_frequent, k)
+                    candidates = _generate_candidates(prev_frequent, k)
                     if not candidates:
                         break
 

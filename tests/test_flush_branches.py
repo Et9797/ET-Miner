@@ -236,24 +236,3 @@ def test_uploader_disabled_is_noop(tmp_path: Path):
     u.upload(str(tmp_path / "nonexistent.parquet"))
     u.upload_to_uri(str(tmp_path / "nonexistent.parquet"), "gs://bucket/x")
     assert u._futures == []
-
-
-# ── GCS-credentialed branches: skipped without creds ─────────────────────
-
-
-@pytest.mark.skipif(not _has_gcs_creds(), reason="GCS credentials not configured")
-def test_branch_2_single_table_direct_gs():
-    """Branch 2 verification path requires a live bucket and is exercised
-    manually via scripts/smoke_*.py — placeholder ensures the branch isn't
-    silently dropped during refactor."""
-    pytest.skip("Live-GCS branch — manual smoke (scripts/smoke_gcs_flush.py)")
-
-
-@pytest.mark.skipif(not _has_gcs_creds(), reason="GCS credentials not configured")
-def test_branch_4_partitioned_nvme_first_to_gs():
-    pytest.skip("Live-GCS branch — manual smoke (scripts/smoke_gcs_flush.py)")
-
-
-@pytest.mark.skipif(not _has_gcs_creds(), reason="GCS credentials not configured")
-def test_branch_5_disk_low_fallback_chunked_direct_gs():
-    pytest.skip("Live-GCS branch — manual smoke (scripts/smoke_gcs_flush.py)")

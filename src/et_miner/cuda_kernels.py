@@ -1235,7 +1235,7 @@ def count_pairs_fused_k2(bitvecs_gpu, freq_item_cols, n_u64s, min_count):
     """Fused k=2 kernel: generate pairs + AND + popcount + filter in ONE launch.
 
     Replaces the entire Python pipeline of:
-      _generate_candidates_int() -> np.array per candidate -> _count_batch() -> filter
+      _generate_candidates() -> np.array per candidate -> _count_batch() -> filter
 
     Args:
         bitvecs_gpu: CuPy array of shape (n_cols, n_u64s) with packed bitvectors.

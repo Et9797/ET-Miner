@@ -26,7 +26,6 @@ This integrates with build_bitvecs_gpu which expects (indptr, indices) arrays.
 """
 
 from typing import Tuple, Optional, List
-import threading
 import numpy as np
 
 from loguru import logger
@@ -180,37 +179,11 @@ def _sort_csr_indices_gpu(
 
 
 # Kernel cache for row ID filling
-_fill_row_ids_kernel_cache = {}
-_fill_row_ids_lock = threading.Lock()
-
-
 def _get_fill_row_ids_kernel():
     """Get compiled kernel for filling row IDs. Thread-safe."""
-    import cupy as cp
+    from et_miner.gpu.kernels.loader import get_cuda_kernel
 
-    with _fill_row_ids_lock:
-        if 'fill_row_ids' not in _fill_row_ids_kernel_cache:
-            kernel_code = r'''
-            extern "C" __global__
-            void fill_row_ids(
-                const long long* __restrict__ indptr,
-                long long* __restrict__ row_ids,
-                long long n_rows
-            ) {
-                long long row = (long long)blockIdx.x * blockDim.x + threadIdx.x;
-                if (row >= n_rows) return;
-
-                long long start = indptr[row];
-                long long end = indptr[row + 1];
-
-                for (long long i = start; i < end; i++) {
-                    row_ids[i] = row;
-                }
-            }
-            '''
-            _fill_row_ids_kernel_cache['fill_row_ids'] = cp.RawKernel(kernel_code, 'fill_row_ids')
-
-    return _fill_row_ids_kernel_cache['fill_row_ids']
+    return get_cuda_kernel("fill_row_ids")
 
 
 # =============================================================================
@@ -560,46 +533,11 @@ def generate_csr_gpu_bootstrap(
         return indptr, indices
 
 
-_bootstrap_copy_kernel_cache = {}
-_bootstrap_copy_lock = threading.Lock()
-
-
 def _get_bootstrap_copy_kernel():
     """Get kernel for copying bootstrap indices. Thread-safe."""
-    import cupy as cp
+    from et_miner.gpu.kernels.loader import get_cuda_kernel
 
-    with _bootstrap_copy_lock:
-        if 'bootstrap_copy' not in _bootstrap_copy_kernel_cache:
-            kernel_code = r'''
-            extern "C" __global__
-            void bootstrap_copy(
-                const long long* __restrict__ src_indptr,
-                const long long* __restrict__ src_indices,
-                const long long* __restrict__ sampled_rows,
-                const long long* __restrict__ dst_indptr,
-                long long* __restrict__ dst_indices,
-                long long n_rows
-            ) {
-                long long row = (long long)blockIdx.x * blockDim.x + threadIdx.x;
-                if (row >= n_rows) return;
-
-                // Source row to copy from
-                long long src_row = sampled_rows[row];
-                long long src_start = src_indptr[src_row];
-                long long src_end = src_indptr[src_row + 1];
-
-                // Destination in output
-                long long dst_start = dst_indptr[row];
-
-                // Copy indices
-                for (long long i = 0; i < src_end - src_start; i++) {
-                    dst_indices[dst_start + i] = src_indices[src_start + i];
-                }
-            }
-            '''
-            _bootstrap_copy_kernel_cache['bootstrap_copy'] = cp.RawKernel(kernel_code, 'bootstrap_copy')
-
-    return _bootstrap_copy_kernel_cache['bootstrap_copy']
+    return get_cuda_kernel("bootstrap_copy")
 
 
 # =============================================================================

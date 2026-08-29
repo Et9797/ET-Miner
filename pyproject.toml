@@ -83,6 +83,8 @@ Issues = "https://github.com/Et9797/et-miner/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/et_miner"]
+# Belt-and-braces: the CUDA sources are package data and must ship.
+artifacts = ["src/et_miner/gpu/kernels/_src/*.cu"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

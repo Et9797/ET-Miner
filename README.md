@@ -201,6 +201,7 @@ flush/upload pipeline are environment variables, documented in
 - Direct CSR-to-GPU bitvector conversion (bypasses dense matrix construction)
 - Fused CUDA kernels: candidate generation + support counting + filtering in a single launch
 - GPU-resident mining: zero PCIe transfers between K-levels (~264 bytes total across 22 levels)
+- Density-adaptive layout: `sparse_from_k="auto"` measures each level's mean support and switches from dense bitvectors to sparse CSR tidsets when tidsets become the smaller representation (mean support < n/32); an int pins the switch to a fixed K-level
 - Multi-GPU support with per-device work distribution (tested up to 8x H200)
 
 ## AlphaFold Application

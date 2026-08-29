@@ -102,7 +102,7 @@ def _cleanup_gpu_memory(device_id: int) -> None:
             cp.get_default_memory_pool().free_all_blocks()
             cp.get_default_pinned_memory_pool().free_all_blocks()
     except Exception as e:
-        logger.warning("Failed to cleanup GPU %d memory: %s", device_id, e)
+        logger.warning("Failed to cleanup GPU {} memory: {}", device_id, e)
 
 
 # =============================================================================
@@ -203,7 +203,7 @@ def apriori_streaming_multi_gpu(
     # Log GPU memory info
     for gpu_id in range(effective_n_gpus):
         free_gb, total_gb = _get_gpu_memory_info(gpu_id)
-        logger.info("GPU %d: %.1f GB free / %.1f GB total", gpu_id, free_gb, total_gb)
+        logger.info("GPU {}: {:.1f} GB free / {:.1f} GB total", gpu_id, free_gb, total_gb)
 
     lf = transactions.lazy() if isinstance(transactions, pl.DataFrame) else transactions
 
@@ -289,7 +289,7 @@ def apriori_streaming_multi_gpu(
                         item_col,
                     )
                 except Exception as e:
-                    logger.warning("GPU %d chunk %d failed: %s", gpu_id, chunk_idx, e)
+                    logger.warning("GPU {} chunk {} failed: {}", gpu_id, chunk_idx, e)
                     return set(), set()
 
                 if not col_to_item:
@@ -368,7 +368,7 @@ def apriori_streaming_multi_gpu(
                             },
                         )
                 except Exception as e:
-                    logger.error("Chunk %d on GPU %d failed: %s", chunk_idx, gpu_id, e)
+                    logger.error("Chunk {} on GPU {} failed: {}", chunk_idx, gpu_id, e)
 
         if show_progress and HAS_TQDM:
             wave_iter.set_postfix(  # type: ignore
@@ -525,7 +525,7 @@ def apriori_streaming_multi_gpu(
                             },
                         )
                 except Exception as e:
-                    logger.error("Chunk %d on GPU %d failed: %s", chunk_idx, gpu_id, e)
+                    logger.error("Chunk {} on GPU {} failed: {}", chunk_idx, gpu_id, e)
 
     # =========================================================================
     # Filter to globally frequent itemsets

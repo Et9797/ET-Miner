@@ -25,10 +25,12 @@ import time
 import warnings
 from collections.abc import Callable
 from math import comb
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
 from loguru import logger
+
+from et_miner.gpu.density import validate_sparse_from_k
 
 from .candidates import _generate_candidates
 from .matrix import (
@@ -73,6 +75,7 @@ def _validate_parameters(
     min_support: float,
     max_length: int | None,
     batch_size: int | None,
+    sparse_from_k: int | str | None = None,
 ) -> None:
     """Validate apriori parameters with clear error messages."""
     # min_support: must be numeric in [0.0, 1.0]
@@ -97,6 +100,9 @@ def _validate_parameters(
             raise TypeError(f"batch_size must be int or None, got {type(batch_size).__name__}")
         if batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+
+    # sparse_from_k: int K-level, "auto", or None
+    validate_sparse_from_k(sparse_from_k)
 
 
 def _prune_equal_support(
@@ -229,8 +235,8 @@ def apriori(
     # Memory guard limits for exhaustive mining
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
-    # V3: switch to sparse CSR counting from this K level
-    sparse_from_k: int | None = None,
+    # V3: dense→sparse CSR transition — int K-level, "auto" = measured density
+    sparse_from_k: int | Literal["auto"] | None = None,
     # V3 B6: restrict candidates to anchor neighborhoods (two-phase mining)
     anchor_items: set | None = None,
 ) -> pl.DataFrame | tuple[pl.DataFrame, ProfilingSession]:
@@ -271,6 +277,11 @@ def apriori(
             (k, n_candidates, n_frequent, duration_ms).
         bitvecs: Pre-built GPU bitvectors tuple (bitvecs_gpu, col_to_item, n_transactions).
             Skips DataFrame conversion; transactions must be None when provided.
+        sparse_from_k: GPU paths only — when to switch support counting from
+            dense bitvectors to sparse CSR tidsets. An int fixes the K-level;
+            "auto" transitions when the previous level's measured mean support
+            drops below n_transactions/32 (the point where tidsets become
+            smaller than bitvectors); None (default) never switches.
 
     Returns:
         DataFrame with itemset (List[Int64]) and support (Float64) columns.
@@ -283,7 +294,7 @@ def apriori(
         >>> result = apriori(df, min_support=0.0001, sparse=True, n_jobs=-1)
         >>> result = apriori(huge_df, min_support=0.001, streaming=True, n_gpus=8)
     """
-    _validate_parameters(min_support, max_length, batch_size)
+    _validate_parameters(min_support, max_length, batch_size, sparse_from_k)
 
     # Route to bitvecs fast path if pre-built GPU bitvectors provided
     if bitvecs is not None:
@@ -351,6 +362,7 @@ def apriori(
             n_gpus=n_gpus,
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
+            sparse_from_k=sparse_from_k,
         )
 
     # Validate transactions is provided when bitvecs is not

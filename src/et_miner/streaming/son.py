@@ -255,7 +255,7 @@ def apriori_streaming(
                 item_col,
             )
         except Exception as e:
-            logger.warning("Chunk %d failed: %s", chunk_idx, e)
+            logger.warning("Chunk {} failed: {}", chunk_idx, e)
             continue
 
         if not col_to_item:
@@ -497,7 +497,7 @@ def _build_bitvecs_for_chunk(
         idx_to_item = {col_name_to_idx[col]: col_to_item[col] for col in col_to_item} if col_to_item else None
         return bitvecs_gpu, idx_to_item
     except Exception as e:
-        logger.warning("GPU bitvec build failed: %s", e)
+        logger.warning("GPU bitvec build failed: {}", e)
         return None
 
 
@@ -532,7 +532,7 @@ def _mine_chunk_gpu_resident(
         cp.get_default_memory_pool().free_all_blocks()
         return itemsets
     except Exception as e:
-        logger.warning("GPU-resident chunk mining failed: %s", e)
+        logger.warning("GPU-resident chunk mining failed: {}", e)
         return None
 
 
@@ -563,7 +563,7 @@ def _count_candidates_gpu(
 
         return {itemset: int(counts[i]) for i, itemset in enumerate(candidate_itemsets)}
     except Exception as e:
-        logger.warning("GPU candidate counting failed: %s", e)
+        logger.warning("GPU candidate counting failed: {}", e)
         return None
 
 

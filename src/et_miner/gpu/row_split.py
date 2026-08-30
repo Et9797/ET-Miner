@@ -65,18 +65,22 @@ def _apriori_row_split_multi_gpu(
     Splits the bitvec by transaction rows across GPUs. Each GPU holds ~1/n_gpus
     of the data.
 
-    GPU-resident dense counting architecture (no recount, no D2H for arrays):
-      1. Each GPU runs fused kernel on ALL candidates → dense count array in VRAM
-      2. Device-to-device sum on GPU 0 (NVLink if available) → global counts
-      3. Filter + where on GPU 0 → only freq_indices cross PCIe to CPU
+    GPU-resident dense counting architecture, per VRAM-budgeted candidate
+    chunk (both K=2 and K>=3 — see gpu.row_split_chunks):
+      1. Each GPU runs the dense kernel on the chunk → int32 partial counts
+      2. ncclReduce to GPU 0 (or the bounded staged D2D fallback)
+      3. compact_threshold on GPU 0 → only survivors cross PCIe to CPU
 
     Since all GPUs share the same prev_frequent, they generate the same
     candidates in the same deterministic order. The dense output at index i
     from GPU 0 is the partial count for the same candidate as index i from
     GPU 1. Element-wise sum = exact global counts.
 
-    PCIe transfer: only len(freq_indices) × 16 bytes (index + count).
-    For K=2 with 35K features: ~600K pairs × 16 = 9.6 MB instead of 19.5 GB.
+    PCIe transfer per chunk: only survivors × 12 bytes (int64 index +
+    int32 count). For K=2 with 35K features: ~600K frequent pairs × 12 =
+    7.2 MB instead of the 2.4 GB dense array. (The default `compact`
+    filter keeps this guarantee at any survivor count; the `cpu` A/B
+    baseline impl deliberately re-enacts the historical full-array D2H.)
     """
     import numpy as np
 

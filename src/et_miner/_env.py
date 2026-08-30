@@ -104,9 +104,18 @@ def filter_impl() -> str:
     return os.environ.get("ET_MINER_FILTER_IMPL", "compact").strip().lower()
 
 
+def _int_env(name: str, default: int | None) -> int | None:
+    v = os.environ.get(name)
+    if not v:
+        return default
+    try:
+        return int(v)
+    except ValueError:
+        raise ValueError(f"{name} must be an integer, got {v!r}") from None
+
+
 def max_chunk_candidates() -> int | None:
-    v = os.environ.get("ET_MINER_MAX_CHUNK_CANDS")
-    return int(v) if v else None
+    return _int_env("ET_MINER_MAX_CHUNK_CANDS", None)
 
 
 def disable_nccl() -> bool:
@@ -122,7 +131,7 @@ def kernel_variant() -> str:
 
 
 def tiled_min_group_pairs() -> int:
-    return int(os.environ.get("ET_MINER_TILED_MIN_GROUP_PAIRS", "64"))
+    return _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", 64)
 
 
 def disable_prefilter() -> bool:

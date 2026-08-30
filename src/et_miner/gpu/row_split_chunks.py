@@ -116,14 +116,19 @@ def compute_chunk_budget(
     device_ids,
     group_data_bytes: int = 0,
     use_nccl: bool = True,
-    staging_bytes: int = 0,
+    staging_bytes: int | None = None,
 ) -> int:
     """Measure per-device headroom and apply the byte model.
 
     Availability is the minimum across participating GPUs (shards can be
     unequal), each measured under its own device context with its own
-    pool limit honored.
+    pool limit honored. When NCCL is off, the fallback reduce's fixed
+    staging buffer is reserved automatically.
     """
+    if staging_bytes is None:
+        from et_miner.gpu.nccl import STAGING_BYTES
+
+        staging_bytes = 0 if use_nccl else STAGING_BYTES
     per_device = [_device_available_bytes(d) for d in device_ids]
     avail = min(free for free, _ in per_device)
     total = min(t for _, t in per_device)
@@ -222,7 +227,7 @@ def run_chunked_dense_level(
     import cupy as cp
 
     from et_miner.gpu.kernels.filter import compact_threshold_filter
-    from et_miner.gpu.nccl import _nccl_allreduce_sum
+    from et_miner.gpu.nccl import reduce_sum_to_gpu0
 
     device_ids = [did for _, did, _ in bitvecs_list]
     all_indices: list[np.ndarray] = []
@@ -240,15 +245,12 @@ def run_chunked_dense_level(
             futures = [pool.submit(launch_chunk, bv, did, chunk) for bv, did, _ in bitvecs_list]
             gpu_results = [f.result() for f in futures]
 
-            if use_nccl:
-                _nccl_allreduce_sum(gpu_results, nccl_comms, device_ids)
+            # Sum partials onto GPU 0: ncclReduce to root, or the bounded
+            # staged D2D fallback (never a full peer copy).
+            reduce_sum_to_gpu0(gpu_results, device_ids, comms=nccl_comms if use_nccl else None)
 
             with cp.cuda.Device(device_ids[0]):
                 global_counts = gpu_results[0]
-                if not use_nccl:
-                    for i in range(1, len(gpu_results)):
-                        cp.add(global_counts, cp.asarray(gpu_results[i]), out=global_counts)
-
                 freq_idx, freq_cnt = compact_threshold_filter(global_counts, min_count)
                 n_freq_chunk = len(freq_idx)
                 pass_rate = 100 * n_freq_chunk / chunk.size if chunk.size else 0.0

@@ -28,6 +28,8 @@ Variables:
     ET_MINER_MAX_CHUNK_CANDS           caps the measured dense-chunk budget
                                        (candidates per chunk) — lets tests
                                        force multi-chunk runs on small data
+    ET_MINER_DISABLE_NCCL              "1" skips NCCL init and forces the
+                                       staged D2D reduce fallback
 """
 
 from __future__ import annotations
@@ -92,6 +94,10 @@ def filter_impl() -> str:
 def max_chunk_candidates() -> int | None:
     v = os.environ.get("ET_MINER_MAX_CHUNK_CANDS")
     return int(v) if v else None
+
+
+def disable_nccl() -> bool:
+    return os.environ.get("ET_MINER_DISABLE_NCCL", "").strip() == "1"
 
 
 def log_dir() -> Path:

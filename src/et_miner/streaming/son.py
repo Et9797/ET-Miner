@@ -163,7 +163,7 @@ def apriori_streaming(
     if memory_budget_gb is not None:
         effective_chunk_size = _estimate_chunk_size_from_memory(memory_budget_gb)
         logger.info(
-            "Memory budget %.1f GB → chunk size %d",
+            "Memory budget {:.1f} GB → chunk size {}",
             memory_budget_gb,
             effective_chunk_size,
         )
@@ -173,7 +173,7 @@ def apriori_streaming(
     # Single chunk optimization: use standard apriori if data fits
     if n_total <= effective_chunk_size:
         logger.info(
-            "Dataset (%d) fits in single chunk (%d), using standard apriori",
+            "Dataset ({}) fits in single chunk ({}), using standard apriori",
             n_total,
             effective_chunk_size,
         )
@@ -206,7 +206,7 @@ def apriori_streaming(
         chunk_sizes.append(min(effective_chunk_size, remaining))
 
     logger.info(
-        "SON streaming: %d total transactions, %d chunks of %d, local_support=%.6f (%.1f%% of %.6f)",
+        "SON streaming: {} total transactions, {} chunks of {}, local_support={:.6f} ({:.1f}% of {:.6f})",
         n_total,
         n_chunks,
         effective_chunk_size,
@@ -276,7 +276,7 @@ def apriori_streaming(
             )
             if local_frequent is None:
                 logger.warning(
-                    "GPU-resident failed for chunk %d, falling back to CPU",
+                    "GPU-resident failed for chunk {}, falling back to CPU",
                     chunk_idx,
                 )
 
@@ -329,7 +329,7 @@ def apriori_streaming(
         return result
 
     logger.info(
-        "Pass 1 complete: %d candidate itemsets from %d items",
+        "Pass 1 complete: {} candidate itemsets from {} items",
         len(candidate_itemsets),
         len(all_items),
     )
@@ -348,7 +348,7 @@ def apriori_streaming(
         candidate_items.update(itemset)
 
     logger.info(
-        "Pass 2 optimization: %d/%d items needed for candidates (%.1f%% reduction)",
+        "Pass 2 optimization: {}/{} items needed for candidates ({:.1f}% reduction)",
         len(candidate_items),
         len(all_items),
         (1 - len(candidate_items) / len(all_items)) * 100 if all_items else 0,
@@ -411,7 +411,7 @@ def apriori_streaming(
             )
             if gpu_chunk_counts is None:
                 logger.warning(
-                    "GPU counting failed for chunk %d, falling back to CPU",
+                    "GPU counting failed for chunk {}, falling back to CPU",
                     chunk_idx,
                 )
 
@@ -466,7 +466,7 @@ def apriori_streaming(
             results.append((list(itemset), support))
 
     logger.info(
-        "Pass 2 complete: %d/%d candidates are globally frequent (support >= %.6f)",
+        "Pass 2 complete: {}/{} candidates are globally frequent (support >= {:.6f})",
         len(results),
         len(candidate_itemsets),
         min_support,

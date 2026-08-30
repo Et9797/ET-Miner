@@ -28,6 +28,9 @@ rust_ext/target/
 datasets/online_retail_ii/*.zip
 tests/phh_samples/
 results/
+# ...but curated GPU campaign reports are committed deliberately
+!bench/results/
+!bench/results/**
 
 # Editors / IDE
 .vscode/

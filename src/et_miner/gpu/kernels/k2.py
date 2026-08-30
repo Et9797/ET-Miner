@@ -228,10 +228,13 @@ def count_pairs_k2_allcounts(bitvecs_gpu, freq_item_cols, n_u64s):
     No threshold filtering — outputs counts for every C(n_freq, 2) pair.
     For row-split multi-GPU: sum arrays across GPUs = exact global counts.
 
-    Memory: n_pairs × 8 bytes (int64). For 35K items: 609M pairs × 8 = 4.88 GB.
+    Memory: n_pairs × 4 bytes (int32 — counts are bounded by n_transactions,
+    which the row-split caller guards to < 2^31; the ≤8-GPU sum of per-shard
+    partials is bounded by the same n_transactions, so the NCCL int32 SUM
+    cannot overflow either). For 35K items: 609M pairs × 4 = 2.44 GB.
 
     Returns CuPy array (stays in VRAM). Caller sums on GPU, only transfers
-    the final freq_indices to CPU. GPU-resident: no D2H for the full array.
+    the final freq_indices to CPU, and widens to int64 host-side.
 
     Args:
         bitvecs_gpu: CuPy array of shape (n_cols, n_u64s).
@@ -239,7 +242,7 @@ def count_pairs_k2_allcounts(bitvecs_gpu, freq_item_cols, n_u64s):
         n_u64s: Number of uint64 words per bitvector.
 
     Returns:
-        CuPy int64 array of shape (n_pairs,) with counts — stays in VRAM.
+        CuPy int32 array of shape (n_pairs,) with counts — stays in VRAM.
     """
     import cupy as cp
 
@@ -247,7 +250,7 @@ def count_pairs_k2_allcounts(bitvecs_gpu, freq_item_cols, n_u64s):
     n_pairs = n_freq * (n_freq - 1) // 2
 
     freq_items_gpu = cp.array(freq_item_cols, dtype=cp.int32)
-    result_counts = cp.zeros(n_pairs, dtype=cp.int64)
+    result_counts = cp.zeros(n_pairs, dtype=cp.int32)
 
     kernel = get_cuda_kernel("count_pairs_k2_dense")
     block_size = 256

@@ -552,7 +552,7 @@ def _apriori_row_split_multi_gpu(
             elif k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
-                _mem_gb = n_pairs * 8 / (1 << 30)  # int64 dense counts
+                _mem_gb = n_pairs * 4 / (1 << 30)  # int32 dense counts
                 logger.info(f"  K=2: {n_pairs:,} total pairs, dense output {_mem_gb:.2f} GB/GPU")
 
                 def _k2_dense_on_gpu(bitvec_gpu, device_id):

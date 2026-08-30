@@ -5,7 +5,7 @@ void count_pairs_k2_dense(
     const int* __restrict__ freq_items,
     const long long n_u64s,
     const int n_freq,
-    long long* __restrict__ result_counts,
+    int* __restrict__ result_counts,  // int32: counts <= n_transactions < 2^31 (guarded host-side)
     const long long pair_offset
 ) {
     long long pair_idx = (long long)blockIdx.y * (long long)gridDim.x
@@ -40,6 +40,6 @@ void count_pairs_k2_dense(
         unsigned long long total = 0;
         int n_warps = (blockDim.x + 31) / 32;
         for (int w = 0; w < n_warps; w++) total += warp_sums[w];
-        result_counts[pair_idx] = (long long)total;
+        result_counts[pair_idx] = (int)total;
     }
 }

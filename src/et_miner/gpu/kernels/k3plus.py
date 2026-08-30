@@ -756,7 +756,9 @@ def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chun
     When groups_gpu is provided, skips group data upload (already resident).
     This is critical for K=8+: ~40 GB group data uploaded once, not per chunk.
 
-    Memory: chunk_size × 8 bytes (int64, not total_candidates × 8 bytes).
+    Memory: chunk_size × 4 bytes (int32, not total_candidates × 8 — counts
+    are bounded by n_transactions, guarded to < 2^31 by the row-split caller,
+    and the ≤8-GPU partial sum is bounded by the same n_transactions).
 
     Args:
         bitvecs_gpu: CuPy array of shape (n_cols, n_u64s).
@@ -768,7 +770,7 @@ def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chun
             If None, uploads fresh (backward compatible legacy path).
 
     Returns:
-        CuPy int64 array of shape (chunk_size,) with counts — stays in VRAM.
+        CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
     """
     import cupy as cp
 
@@ -780,7 +782,7 @@ def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chun
         # Legacy path: upload fresh (backward compat for existing callers)
         groups_gpu = upload_k3plus_groups(groups_info, int(cp.cuda.Device()))
 
-    result_counts = cp.zeros(chunk_size, dtype=cp.int64)
+    result_counts = cp.zeros(chunk_size, dtype=cp.int32)
 
     kernel = get_cuda_kernel("count_k3plus_dense")
     block_size = 256

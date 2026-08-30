@@ -10,7 +10,7 @@ void count_k3plus_dense(
     const long long n_u64s,
     const long long n_groups,  // int64: >2.1B groups at K>=9
     const long long total_candidates,
-    long long* __restrict__ result_counts,
+    int* __restrict__ result_counts,  // int32: counts <= n_transactions < 2^31 (guarded host-side)
     const long long candidate_offset
 ) {
     long long cand_idx = (long long)blockIdx.y * (long long)gridDim.x
@@ -74,6 +74,6 @@ void count_k3plus_dense(
         unsigned long long total = 0;
         int n_warps = (blockDim.x + 31) / 32;
         for (int w = 0; w < n_warps; w++) total += warp_sums[w];
-        result_counts[cand_idx - candidate_offset] = (long long)total;
+        result_counts[cand_idx - candidate_offset] = (int)total;
     }
 }

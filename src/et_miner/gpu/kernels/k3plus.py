@@ -729,8 +729,14 @@ def build_k3plus_groups(prev_frequent):
 
 
 def upload_k3plus_groups(groups_info, device_id):
-    """Upload K3+ group data to GPU once, keep resident across chunks — ~40 GB at K=8."""
+    """Upload K3+ group data to GPU once, keep resident across chunks — ~40 GB at K=8.
+
+    Includes "ctp" (cumulative tile-pairs) for the shared/tiled kernel;
+    negligible extra bytes (one int64 per group + 1) for the legacy path.
+    """
     import cupy as cp
+
+    from .shared_tiled import compute_cumulative_tilepairs
 
     with cp.cuda.Device(device_id):
         return {
@@ -739,10 +745,11 @@ def upload_k3plus_groups(groups_info, device_id):
             "gs": cp.array(groups_info.suffixes, dtype=cp.int32),
             "gso": cp.array(groups_info.suffix_offsets, dtype=cp.int64),
             "cp": cp.array(groups_info.cumulative_pairs, dtype=cp.int64),
+            "ctp": cp.array(compute_cumulative_tilepairs(groups_info.suffix_offsets), dtype=cp.int64),
         }
 
 
-def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None):
+def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, variant=None):
     """Dense K>=3 counting: returns support count for candidates in range.
 
     Takes pre-built groups_info from build_k3plus_groups().
@@ -768,11 +775,26 @@ def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chun
         chunk_size: Number of candidates to process (default: all).
         groups_gpu: Pre-uploaded group data dict from upload_k3plus_groups().
             If None, uploads fresh (backward compatible legacy path).
+        variant: "legacy" | "shared" | None (None resolves
+            ET_MINER_KERNEL_VARIANT). The shared/tiled kernel requires
+            group-aligned chunks — callers route mega-group sub-chunks
+            here with variant="legacy" (see plan_group_chunks).
 
     Returns:
         CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
     """
     import cupy as cp
+
+    if variant is None:
+        from et_miner.gpu.dispatch import resolved_kernel_variant
+
+        variant = resolved_kernel_variant()
+    if variant == "shared":
+        from .shared_tiled import count_shared_tiled_allcounts
+
+        return count_shared_tiled_allcounts(
+            bitvecs_gpu, groups_info, n_u64s, chunk_start=chunk_start, chunk_size=chunk_size, groups_gpu=groups_gpu
+        )
 
     tc = groups_info.total_candidates
     if chunk_size is None:

@@ -33,6 +33,16 @@ Variables:
     ET_MINER_ROW_BALANCE               multi-GPU row-split mode: "rows"
                                        (default, equal row counts) or "nnz"
                                        (equal cumulative nnz cuts)
+    ET_MINER_KERNEL_VARIANT            dense counting kernel: "auto"
+                                       (default; currently = shared),
+                                       "legacy", or "shared" (tiled
+                                       prefix-sharing kernel)
+    ET_MINER_TILED_MIN_GROUP_PAIRS     groups with fewer candidate pairs
+                                       route to the legacy kernel even
+                                       under the shared variant (default 64)
+    ET_MINER_DISABLE_PREFILTER         "1" skips the sampled popcount
+                                       prefilter on the single-GPU K>=3
+                                       path (benchmark A/B datapoint)
 """
 
 from __future__ import annotations
@@ -105,6 +115,18 @@ def disable_nccl() -> bool:
 
 def row_balance() -> str:
     return os.environ.get("ET_MINER_ROW_BALANCE", "rows").strip().lower()
+
+
+def kernel_variant() -> str:
+    return os.environ.get("ET_MINER_KERNEL_VARIANT", "auto").strip().lower()
+
+
+def tiled_min_group_pairs() -> int:
+    return int(os.environ.get("ET_MINER_TILED_MIN_GROUP_PAIRS", "64"))
+
+
+def disable_prefilter() -> bool:
+    return os.environ.get("ET_MINER_DISABLE_PREFILTER", "").strip() == "1"
 
 
 def log_dir() -> Path:

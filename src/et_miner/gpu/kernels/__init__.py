@@ -8,6 +8,13 @@ Import-safe without CuPy.
 from .batch import count_itemsets_cuda
 from .decode import decode_k2_pairs_flat, decode_k3plus_candidates, decode_k3plus_flat
 from .filter import compact_threshold_filter
+from .shared_tiled import (
+    compute_cumulative_tilepairs,
+    count_k3plus_shared_fused,
+    count_pairs_k2_shared,
+    count_pairs_k2_shared_fused,
+    count_shared_tiled_allcounts,
+)
 from .gpu_resident import (
     build_prefix_groups_gpu,
     count_k3plus_gpu_resident,
@@ -69,4 +76,9 @@ __all__ = [
     "decode_k3plus_candidates",
     "decode_k3plus_flat",
     "compact_threshold_filter",
+    "compute_cumulative_tilepairs",
+    "count_shared_tiled_allcounts",
+    "count_k3plus_shared_fused",
+    "count_pairs_k2_shared",
+    "count_pairs_k2_shared_fused",
 ]

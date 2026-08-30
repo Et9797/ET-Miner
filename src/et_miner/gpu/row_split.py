@@ -31,7 +31,6 @@ from et_miner.gpu.mining import (
 from et_miner.gpu.nccl import _init_nccl
 from et_miner.gpu.row_split_chunks import (
     compute_chunk_budget,
-    plan_candidate_chunks,
     plan_group_chunks,
     run_chunked_dense_level,
 )
@@ -564,9 +563,13 @@ def _apriori_row_split_multi_gpu(
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
 
                 # Chunked by measured VRAM budget — big cards get one chunk,
-                # small (or pool-limited) cards split the pair space.
+                # small (or pool-limited) cards split the pair space. The
+                # pair space is one synthetic group: whole-in-one-chunk runs
+                # may use the shared/tiled kernel, multi-chunk runs are
+                # legacy sub-chunks (a partial pair range can't be tiled).
                 _k2_budget = compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
-                k2_chunks = plan_candidate_chunks(n_pairs, _k2_budget)
+                _k2_cp = np.array([0, n_pairs], dtype=np.int64)
+                k2_chunks = plan_group_chunks(_k2_cp, _k2_budget)
                 logger.info(
                     f"  K=2: {n_pairs:,} total pairs, {len(k2_chunks)} chunk(s), "
                     f"dense output {min(_k2_budget, n_pairs) * 4 / (1 << 30):.2f} GB/GPU per chunk"
@@ -580,6 +583,7 @@ def _apriori_row_split_multi_gpu(
                             bitvec_gpu.shape[1],
                             chunk_start=chunk.start,
                             chunk_size=chunk.size,
+                            variant="legacy" if chunk.use_legacy else None,
                         )
 
                 freq_pair_indices, freq_pair_counts = run_chunked_dense_level(
@@ -668,6 +672,7 @@ def _apriori_row_split_multi_gpu(
                                 chunk_start=chunk.start,
                                 chunk_size=chunk.size,
                                 groups_gpu=all_groups_gpu[device_id],
+                                variant="legacy" if chunk.use_legacy else None,
                             )
 
                     freq_cand_indices, freq_cand_counts = run_chunked_dense_level(

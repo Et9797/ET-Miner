@@ -222,7 +222,7 @@ def count_pairs_fused_k2_multi_gpu(bitvecs_gpu, freq_item_cols, n_u64s, min_coun
 
 
 
-def count_pairs_k2_allcounts(bitvecs_gpu, freq_item_cols, n_u64s, chunk_start=0, chunk_size=None):
+def count_pairs_k2_allcounts(bitvecs_gpu, freq_item_cols, n_u64s, chunk_start=0, chunk_size=None, variant=None):
     """Dense K=2 counting: support counts for pairs in a candidate range.
 
     No threshold filtering — outputs counts for every pair in
@@ -245,6 +245,10 @@ def count_pairs_k2_allcounts(bitvecs_gpu, freq_item_cols, n_u64s, chunk_start=0,
         n_u64s: Number of uint64 words per bitvector.
         chunk_start: First pair index to process (default: 0).
         chunk_size: Number of pairs to process (default: all remaining).
+        variant: "legacy" | "shared" | None (None resolves
+            ET_MINER_KERNEL_VARIANT). The shared/tiled kernel can only
+            serve the FULL pair space (a partial pair range cannot be
+            tile-served) — partial chunks always run legacy.
 
     Returns:
         CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
@@ -255,6 +259,15 @@ def count_pairs_k2_allcounts(bitvecs_gpu, freq_item_cols, n_u64s, chunk_start=0,
     n_pairs = n_freq * (n_freq - 1) // 2
     if chunk_size is None:
         chunk_size = n_pairs - chunk_start
+
+    if variant is None:
+        from et_miner.gpu.dispatch import resolved_kernel_variant
+
+        variant = resolved_kernel_variant()
+    if variant == "shared" and chunk_start == 0 and chunk_size == n_pairs and n_freq >= 2:
+        from .shared_tiled import count_pairs_k2_shared
+
+        return count_pairs_k2_shared(bitvecs_gpu, freq_item_cols, n_u64s)
 
     freq_items_gpu = cp.array(freq_item_cols, dtype=cp.int32)
     result_counts = cp.zeros(chunk_size, dtype=cp.int32)

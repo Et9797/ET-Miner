@@ -158,24 +158,31 @@ def plan_candidate_chunks(total_candidates: int, max_cands: int) -> list[ChunkPl
     ]
 
 
-def plan_group_chunks(cumulative_pairs, max_cands: int) -> list[ChunkPlan]:
+def plan_group_chunks(
+    cumulative_pairs, max_cands: int, tiled_min_group_pairs: int | None = None
+) -> list[ChunkPlan]:
     """Group-aligned contiguous ranges over the K>=3 candidate space.
 
     Every chunk boundary lands on a prefix-group boundary, which kernels
-    that stage per-group state (the shared/tiled variant) require. A single
-    group whose pair count exceeds ``max_cands`` cannot be group-aligned;
-    it is emitted as plain candidate-range sub-chunks flagged
-    ``use_legacy=True`` so the per-candidate legacy kernel handles it.
+    that stage per-group state (the shared/tiled variant) require. Two
+    kinds of group are routed to the legacy per-candidate kernel via
+    ``use_legacy=True``:
 
-    The plan is a deterministic function of (cumulative_pairs, max_cands),
-    so every GPU in a row-split run derives the identical plan — a
-    requirement for the collective reduce.
+    - **mega-groups** (pairs > ``max_cands``): cannot be group-aligned —
+      emitted as plain candidate-range sub-chunks;
+    - **tiny groups** (pairs < ``tiled_min_group_pairs``, default from
+      ``ET_MINER_TILED_MIN_GROUP_PAIRS``): a 256-thread tile-pair block
+      would idle on a handful of pairs, so contiguous runs of them go to
+      the legacy kernel wholesale. ``tiled_min_group_pairs=0`` disables
+      the routing.
 
-    Args:
-        cumulative_pairs: int64 array, len n_groups + 1; prefix sums of
-            per-group candidate counts (``K3PlusGroups.cumulative_pairs``).
-        max_cands: Chunk budget from ``compute_chunk_budget``.
+    The plan is a deterministic function of its inputs, so every GPU in a
+    row-split run derives the identical plan — a requirement for the
+    collective reduce. Chunks are emitted in ascending candidate order and
+    cover the space exactly.
     """
+    if tiled_min_group_pairs is None:
+        tiled_min_group_pairs = _env.tiled_min_group_pairs()
     cp_arr = np.asarray(cumulative_pairs, dtype=np.int64)
     n_groups = len(cp_arr) - 1
     total = int(cp_arr[-1]) if n_groups >= 0 and len(cp_arr) else 0
@@ -183,25 +190,41 @@ def plan_group_chunks(cumulative_pairs, max_cands: int) -> list[ChunkPlan]:
         return []
     max_cands = max(1, max_cands)
 
+    sizes = np.diff(cp_arr)
+    # class 2 = mega (legacy sub-chunks), 1 = tiny (legacy), 0 = tiled
+    klass = np.where(sizes > max_cands, 2, np.where(sizes < tiled_min_group_pairs, 1, 0))
+    change = np.nonzero(np.diff(klass))[0] + 1
+    if len(change) > 100_000:
+        # Pathological tiny/tiled alternation would fragment the plan;
+        # fall back to alignment-only classification (mega vs tiled).
+        klass = np.where(sizes > max_cands, 2, 0)
+        change = np.nonzero(np.diff(klass))[0] + 1
+    run_bounds = np.concatenate([[0], change, [n_groups]])
+
     plans: list[ChunkPlan] = []
-    g = 0
-    while g < n_groups:
-        g_start = int(cp_arr[g])
-        g_size = int(cp_arr[g + 1]) - g_start
-        if g_size > max_cands:
-            # Mega-group: sub-chunk by candidate range on the legacy kernel.
-            plans.extend(
-                ChunkPlan(start, min(max_cands, g_start + g_size - start), use_legacy=True)
-                for start in range(g_start, g_start + g_size, max_cands)
-            )
-            g += 1
+    for r in range(len(run_bounds) - 1):
+        g_lo, g_hi = int(run_bounds[r]), int(run_bounds[r + 1])
+        k = int(klass[g_lo])
+        if k == 2:
+            # Each mega-group individually sub-chunked by candidate range.
+            for g in range(g_lo, g_hi):
+                g_start, g_end = int(cp_arr[g]), int(cp_arr[g + 1])
+                plans.extend(
+                    ChunkPlan(start, min(max_cands, g_end - start), use_legacy=True)
+                    for start in range(g_start, g_end, max_cands)
+                )
             continue
-        # Greedily take whole groups while the range stays within budget.
-        # searchsorted(right) - 1 = last boundary <= g_start + max_cands.
-        j = int(np.searchsorted(cp_arr, g_start + max_cands, side="right")) - 1
-        j = max(j, g + 1)
-        plans.append(ChunkPlan(g_start, int(cp_arr[j]) - g_start))
-        g = j
+        # Greedy whole-group chunks within the run, budget-bounded.
+        use_legacy = k == 1
+        g = g_lo
+        while g < g_hi:
+            start = int(cp_arr[g])
+            j = int(np.searchsorted(cp_arr, start + max_cands, side="right")) - 1
+            j = min(max(j, g + 1), g_hi)
+            size = int(cp_arr[j]) - start
+            if size > 0:
+                plans.append(ChunkPlan(start, size, use_legacy=use_legacy))
+            g = j
     return plans
 
 

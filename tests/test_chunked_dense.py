@@ -135,13 +135,13 @@ class TestPlanGroupChunks:
         assert plan_group_chunks(_cum([0, 0]), 100) == []
 
     def test_all_fit_one_chunk(self):
-        plans = plan_group_chunks(_cum([10, 20, 30]), 100)
+        plans = plan_group_chunks(_cum([10, 20, 30]), 100, tiled_min_group_pairs=0)
         assert plans == [ChunkPlan(0, 60, use_legacy=False)]
 
     def test_boundaries_land_on_groups(self):
         sizes = [7, 11, 13, 17, 19, 23]
         cum = _cum(sizes)
-        plans = plan_group_chunks(cum, 30)
+        plans = plan_group_chunks(cum, 30, tiled_min_group_pairs=0)
         boundaries = set(int(x) for x in cum)
         for p in plans:
             assert p.start in boundaries
@@ -150,12 +150,12 @@ class TestPlanGroupChunks:
             assert not p.use_legacy
 
     def test_exact_fit_boundary(self):
-        plans = plan_group_chunks(_cum([5, 5, 5]), 10)
+        plans = plan_group_chunks(_cum([5, 5, 5]), 10, tiled_min_group_pairs=0)
         assert plans == [ChunkPlan(0, 10, False), ChunkPlan(10, 5, False)]
 
     def test_mega_group_goes_legacy(self):
         # middle group (250 pairs) exceeds the 100-candidate budget
-        plans = plan_group_chunks(_cum([40, 250, 40]), 100)
+        plans = plan_group_chunks(_cum([40, 250, 40]), 100, tiled_min_group_pairs=0)
         legacy = [p for p in plans if p.use_legacy]
         assert [(p.start, p.size) for p in legacy] == [(40, 100), (140, 100), (240, 50)]
         aligned = [p for p in plans if not p.use_legacy]
@@ -172,7 +172,7 @@ class TestPlanGroupChunks:
         rng = np.random.default_rng(7)
         sizes = rng.integers(1, 500, size=200)
         cum = _cum(sizes)
-        plans = plan_group_chunks(cum, 777)
+        plans = plan_group_chunks(cum, 777)  # default tiny-threshold: mixed classes
         assert plans[0].start == 0
         assert all(a.start + a.size == b.start for a, b in zip(plans, plans[1:]))
         assert sum(p.size for p in plans) == int(cum[-1])
@@ -188,6 +188,29 @@ class TestPlanGroupChunks:
         plans = plan_group_chunks(_cum([2, 3]), 1)
         assert all(p.use_legacy for p in plans)
         assert sum(p.size for p in plans) == 5
+
+    def test_tiny_groups_routed_legacy_by_default(self):
+        """Groups under ET_MINER_TILED_MIN_GROUP_PAIRS (64) waste a
+        256-thread tile-pair block — contiguous runs go legacy wholesale."""
+        plans = plan_group_chunks(_cum([5, 5, 5]), 100)
+        assert plans == [ChunkPlan(0, 15, use_legacy=True)]
+
+    def test_mixed_tiny_and_mid_runs(self):
+        plans = plan_group_chunks(_cum([5, 5, 200, 200, 5]), 500, tiled_min_group_pairs=64)
+        assert plans == [
+            ChunkPlan(0, 10, use_legacy=True),
+            ChunkPlan(10, 400, use_legacy=False),
+            ChunkPlan(410, 5, use_legacy=True),
+        ]
+
+    def test_k2_synthetic_single_group(self):
+        """The K=2 pair space is planned as one synthetic group: tiled when
+        whole-in-one-chunk, legacy sub-chunks when it exceeds the budget,
+        legacy when trivially small."""
+        assert plan_group_chunks(_cum([1000]), 10_000) == [ChunkPlan(0, 1000, False)]
+        assert plan_group_chunks(_cum([30]), 10_000) == [ChunkPlan(0, 30, True)]
+        mega = plan_group_chunks(_cum([25_000]), 10_000)
+        assert all(p.use_legacy for p in mega) and sum(p.size for p in mega) == 25_000
 
 
 class TestEnvCapAccessor:

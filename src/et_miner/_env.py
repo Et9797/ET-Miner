@@ -30,6 +30,9 @@ Variables:
                                        force multi-chunk runs on small data
     ET_MINER_DISABLE_NCCL              "1" skips NCCL init and forces the
                                        staged D2D reduce fallback
+    ET_MINER_ROW_BALANCE               multi-GPU row-split mode: "rows"
+                                       (default, equal row counts) or "nnz"
+                                       (equal cumulative nnz cuts)
 """
 
 from __future__ import annotations
@@ -98,6 +101,10 @@ def max_chunk_candidates() -> int | None:
 
 def disable_nccl() -> bool:
     return os.environ.get("ET_MINER_DISABLE_NCCL", "").strip() == "1"
+
+
+def row_balance() -> str:
+    return os.environ.get("ET_MINER_ROW_BALANCE", "rows").strip().lower()
 
 
 def log_dir() -> Path:

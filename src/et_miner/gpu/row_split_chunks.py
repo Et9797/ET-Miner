@@ -78,7 +78,12 @@ def chunk_budget_from_bytes(
     Returns:
         Maximum candidates per chunk (>= 1).
     """
+    # Safety margin: max(1 GiB, 4% of VRAM), but never more than a quarter
+    # of what is actually available — a small pool limit must shrink the
+    # chunks, not zero out the budget (1-candidate chunks are a de-facto
+    # hang at scale).
     margin = max(MARGIN_FLOOR_BYTES, int(total_vram_bytes * MARGIN_VRAM_FRACTION))
+    margin = min(margin, max(0, avail_bytes) // 4)
     usable = avail_bytes - group_data_bytes - margin - (0 if use_nccl else staging_bytes)
     if use_nccl or staging_bytes > 0:
         # counts + slack for allocator fragmentation

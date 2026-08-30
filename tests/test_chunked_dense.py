@@ -7,6 +7,7 @@ classes appended for the box campaign.
 """
 
 import numpy as np
+import pytest
 
 from et_miner.gpu.kernels.filter import HOST_SORT_BYTES_PER_SURVIVOR
 from et_miner.gpu.row_split_chunks import (
@@ -67,6 +68,15 @@ class TestChunkBudgetFormula:
     def test_exhausted_budget_still_progresses(self):
         """Negative usable never deadlocks the loop — floor is 1 candidate."""
         assert chunk_budget_from_bytes(1 * GIB, 24 * GIB, group_data_bytes=5 * GIB) == 1
+
+    def test_small_pool_limit_keeps_usable_budget(self):
+        """A tight per-device pool limit (the OOM-regression scenario) must
+        shrink chunks, not collapse them: the margin is capped at a quarter
+        of available, so ~512 MB of headroom still yields millions of
+        candidates per chunk instead of a 1-candidate de-facto hang."""
+        mc = chunk_budget_from_bytes(512 * (1 << 20), 24 * GIB)
+        assert mc >= 10_000_000
+        assert mc * CHUNK_BYTES_PER_CANDIDATE <= 512 * (1 << 20)
 
     def test_all_survivors_worst_case_host_model(self):
         """100%-survivor chunks: sort workspace is host-side, per the model.
@@ -198,3 +208,51 @@ class TestEnvCapAccessor:
         from et_miner import _env
 
         assert _env.filter_impl() == "compact"
+
+
+@pytest.mark.gpu
+class TestChunkedEquivalenceGPU:
+    """Forced multi-chunk runs must produce exactly the single-chunk result.
+
+    ET_MINER_MAX_CHUNK_CANDS caps the measured budget, so tiny caps force
+    many chunks on small data — including K>=3 chunk boundaries landing
+    between prefix groups (group-aligned planner) and, with a cap smaller
+    than a group, the legacy mega-group sub-chunk path.
+    """
+
+    @pytest.fixture(scope="class")
+    def smoke_run(self):
+        cp = pytest.importorskip("cupy")  # noqa: F841
+        from et_miner.core.apriori import apriori
+        from et_miner.synthetic import PRESETS, generate_transactions
+
+        spec = PRESETS["smoke"]
+        df, _ = generate_transactions(spec)
+
+        def run():
+            res = apriori(df, min_support=spec.min_support, item_col="items", use_gpu=True, n_gpus=2)
+            return {
+                (tuple(sorted(int(i) for i in s)), round(sup * spec.n_rows))
+                for s, sup in zip(res["itemset"].to_list(), res["support"].to_list())
+            }
+
+        return run
+
+    def test_unforced_baseline(self, smoke_run, monkeypatch):
+        monkeypatch.delenv("ET_MINER_MAX_CHUNK_CANDS", raising=False)
+        assert len(smoke_run()) > 0
+
+    @pytest.mark.parametrize("cap", [50_000, 5_000, 700])
+    def test_forced_chunks_equal_unforced(self, smoke_run, monkeypatch, cap):
+        monkeypatch.delenv("ET_MINER_MAX_CHUNK_CANDS", raising=False)
+        baseline = smoke_run()
+        monkeypatch.setenv("ET_MINER_MAX_CHUNK_CANDS", str(cap))
+        assert smoke_run() == baseline
+
+    def test_forced_chunks_all_filter_impls_agree(self, smoke_run, monkeypatch):
+        monkeypatch.setenv("ET_MINER_MAX_CHUNK_CANDS", "5000")
+        results = []
+        for impl in ("compact", "cupy", "cpu"):
+            monkeypatch.setenv("ET_MINER_FILTER_IMPL", impl)
+            results.append(smoke_run())
+        assert results[0] == results[1] == results[2]

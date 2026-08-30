@@ -86,3 +86,69 @@ class TestRowBalanceEnv:
         from et_miner import _env
 
         assert _env.row_balance() == "nnz"
+
+
+@pytest.mark.gpu
+class TestBalanceSplitGPU:
+    """On clustered (skewed_rows-shaped) data, the nnz split must shard nnz
+    near-evenly AND produce mining results identical to the rows split."""
+
+    @pytest.fixture(scope="class")
+    def skewed(self):
+        pytest.importorskip("cupy")
+        from et_miner.synthetic import SynthSpec, generate_transactions
+
+        spec = SynthSpec(
+            name="skew_mini",
+            n_rows=80_000,
+            vocab_size=1_200,
+            zipf_a=1.1,
+            row_len_mean=8,
+            row_len_max=64,
+            skew_frac=0.2,
+            skew_mult=5.0,
+            min_support=0.01,
+            seed=31,
+        )
+        df, data = generate_transactions(spec)
+        return spec, df, data
+
+    def test_nnz_shards_balanced_and_correct(self, skewed):
+        import cupy as cp
+
+        from et_miner.gpu.csr_bitvec import build_bitvecs_row_split_from_arrays
+
+        if cp.cuda.runtime.getDeviceCount() < 2:
+            pytest.skip("needs 2 CUDA devices")
+        spec, _, data = skewed
+        shards = build_bitvecs_row_split_from_arrays(
+            data.indptr, data.indices.astype(np.int64), data.n_rows, data.n_cols, n_gpus=2, balance="nnz"
+        )
+        assert sum(rows for _, _, rows in shards) == data.n_rows
+        total_nnz = int(data.indptr[-1])
+        # Reconstruct per-shard nnz from the contiguous row ranges.
+        row0 = shards[0][2]
+        nnz0 = int(data.indptr[row0])
+        assert abs(nnz0 - total_nnz / 2) < 0.1 * total_nnz, "nnz split failed to balance clustered data"
+        for bv, did, _ in shards:
+            with cp.cuda.Device(did):
+                del bv
+                cp.get_default_memory_pool().free_all_blocks()
+
+    def test_nnz_results_equal_rows_results(self, skewed, monkeypatch):
+        from et_miner.core.apriori import apriori
+
+        spec, df, _ = skewed
+
+        def run():
+            res = apriori(df, min_support=spec.min_support, item_col="items", use_gpu=True, n_gpus=2)
+            return {
+                (tuple(sorted(int(i) for i in s)), round(sup * spec.n_rows))
+                for s, sup in zip(res["itemset"].to_list(), res["support"].to_list())
+            }
+
+        monkeypatch.setenv("ET_MINER_ROW_BALANCE", "rows")
+        rows_result = run()
+        monkeypatch.setenv("ET_MINER_ROW_BALANCE", "nnz")
+        assert run() == rows_result
+        assert len(rows_result) > 0

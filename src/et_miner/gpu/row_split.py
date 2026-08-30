@@ -28,7 +28,13 @@ from et_miner.gpu.mining import (
     _prune_closed_flat,
     _prune_groups_apriori,
 )
-from et_miner.gpu.nccl import _init_nccl, _nccl_allreduce_sum
+from et_miner.gpu.nccl import _init_nccl
+from et_miner.gpu.row_split_chunks import (
+    compute_chunk_budget,
+    plan_candidate_chunks,
+    plan_group_chunks,
+    run_chunked_dense_level,
+)
 from et_miner.io.flush import _flush_k_parquet
 from et_miner.io.gcs import (
     GCSUploader,
@@ -552,49 +558,40 @@ def _apriori_row_split_multi_gpu(
             elif k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
-                _mem_gb = n_pairs * 4 / (1 << 30)  # int32 dense counts
-                logger.info(f"  K=2: {n_pairs:,} total pairs, dense output {_mem_gb:.2f} GB/GPU")
 
-                def _k2_dense_on_gpu(bitvec_gpu, device_id):
+                # Chunked by measured VRAM budget — big cards get one chunk,
+                # small (or pool-limited) cards split the pair space.
+                _k2_budget = compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
+                k2_chunks = plan_candidate_chunks(n_pairs, _k2_budget)
+                logger.info(
+                    f"  K=2: {n_pairs:,} total pairs, {len(k2_chunks)} chunk(s), "
+                    f"dense output {min(_k2_budget, n_pairs) * 4 / (1 << 30):.2f} GB/GPU per chunk"
+                )
+
+                def _k2_chunk_on_gpu(bitvec_gpu, device_id, chunk):
                     with cp.cuda.Device(device_id):
-                        n_u64s = bitvec_gpu.shape[1]
                         return count_pairs_k2_allcounts(
                             bitvec_gpu,
                             freq_cols,
-                            n_u64s,
+                            bitvec_gpu.shape[1],
+                            chunk_start=chunk.start,
+                            chunk_size=chunk.size,
                         )
 
-                with ThreadPoolExecutor(max_workers=len(bitvecs_list)) as pool:
-                    futures = [pool.submit(_k2_dense_on_gpu, bv, did) for bv, did, _ in bitvecs_list]
-                    gpu_results = [f.result() for f in futures]
-
-                # Multi-GPU reduction: NCCL ring all-reduce or sequential D2D
-                if _use_nccl:
-                    _nccl_allreduce_sum(gpu_results, nccl_comms, device_ids)
-
-                with cp.cuda.Device(bitvecs_list[0][1]):
-                    global_counts = gpu_results[0]
-                    if not _use_nccl:
-                        for i in range(1, len(gpu_results)):
-                            cp.add(global_counts, cp.asarray(gpu_results[i]), out=global_counts)
-                    for i in range(1, len(gpu_results)):
-                        gpu_results[i] = None
-                    del gpu_results
-                    # Free memory pool on ALL GPUs, not just GPU 0 (P2: VRAM zombie fix)
-                    for _, did, _ in bitvecs_list:
-                        with cp.cuda.Device(did):
-                            cp.get_default_memory_pool().free_all_blocks()
-
-                    from et_miner.gpu.kernels.filter import compact_threshold_filter
-
-                    freq_pair_indices, freq_pair_counts = compact_threshold_filter(global_counts, min_count_threshold)
-                    del global_counts
-                    cp.get_default_memory_pool().free_all_blocks()
+                freq_pair_indices, freq_pair_counts = run_chunked_dense_level(
+                    bitvecs_list,
+                    k2_chunks,
+                    _k2_chunk_on_gpu,
+                    min_count_threshold,
+                    nccl_comms,
+                    _use_nccl,
+                    level_label="K=2",
+                )
 
                 n_freq = len(freq_pair_indices)
                 if n_freq > 0:
                     current_flat = decode_k2_pairs_flat(freq_pair_indices, freq_cols)
-                    current_counts_raw = freq_pair_counts.astype(np.int64)  # V3: preserve
+                    current_counts_raw = freq_pair_counts  # already int64
 
                     # V3 B6: Anchor filter (K=2 dense path)
                     current_flat, current_counts_raw, n_freq = _apply_anchor_filter(
@@ -631,9 +628,9 @@ def _apriori_row_split_multi_gpu(
                 if groups_info is not None:
                     tc = groups_info.total_candidates
 
-                    # VRAM budget for candidate-range chunking.
-                    # Group data stays resident across all chunks; only the dense
-                    # output array (chunk_size × 8 bytes, int64) varies per chunk.
+                    # VRAM budget for candidate-range chunking. Group data
+                    # stays resident across all chunks; only the dense int32
+                    # output (chunk_size × 4 bytes) varies per chunk.
                     group_data_bytes = (
                         len(groups_info.prefix_items) * 4
                         + len(groups_info.prefix_offsets) * 8
@@ -642,17 +639,15 @@ def _apriori_row_split_multi_gpu(
                         + len(groups_info.cumulative_pairs) * 8
                     )
 
-                    # Estimate free VRAM from first GPU (all GPUs have same bitvecs)
-                    with cp.cuda.Device(bitvecs_list[0][1]):
-                        cp.get_default_memory_pool().free_all_blocks()  # flush cached blocks for accurate reading
-                        free_vram, _ = cp.cuda.Device().mem_info
-                    dense_budget = free_vram - group_data_bytes - 6 * (1 << 30)  # 6 GB safety
-                    # Assumes NCCL in-place reduce; non-NCCL fallback may need // 16
-                    max_cands_per_chunk = max(1, int(dense_budget // 10))  # 8B result + 2B margin for reduction temps
-                    n_chunks = max(1, (tc + max_cands_per_chunk - 1) // max_cands_per_chunk)
+                    max_cands_per_chunk = compute_chunk_budget(
+                        device_ids, group_data_bytes=group_data_bytes, use_nccl=_use_nccl
+                    )
+                    k3_chunks = plan_group_chunks(groups_info.cumulative_pairs, max_cands_per_chunk)
 
                     logger.debug(
-                        f"  K={k}: {tc:,} candidates, {n_chunks} chunk(s), group data {group_data_bytes / (1 << 30):.1f} GB, dense budget {dense_budget / (1 << 30):.1f} GB"
+                        f"  K={k}: {tc:,} candidates, {len(k3_chunks)} chunk(s), "
+                        f"group data {group_data_bytes / (1 << 30):.1f} GB, "
+                        f"budget {max_cands_per_chunk:,} cands/chunk"
                     )
 
                     # Upload group data to all GPUs ONCE — stays resident across chunks
@@ -660,74 +655,26 @@ def _apriori_row_split_multi_gpu(
                     for bv, did, _ in bitvecs_list:
                         all_groups_gpu[did] = upload_k3plus_groups(groups_info, did)
 
-                    from et_miner.gpu.kernels.filter import compact_threshold_filter
-
-                    all_freq_indices = []
-                    all_freq_counts = []
-
-                    _chunk_pool = ThreadPoolExecutor(max_workers=len(bitvecs_list))
-
-                    for chunk_idx in range(n_chunks):
-                        chunk_start = chunk_idx * max_cands_per_chunk
-                        chunk_size = min(max_cands_per_chunk, tc - chunk_start)
-
-                        if n_chunks > 1:
-                            logger.debug(
-                                f"    chunk {chunk_idx + 1}/{n_chunks}: candidates [{chunk_start:,}, {chunk_start + chunk_size:,})"
+                    def _k3plus_chunk_on_gpu(bitvec_gpu, device_id, chunk):
+                        with cp.cuda.Device(device_id):
+                            return count_k3plus_allcounts(
+                                bitvec_gpu,
+                                groups_info,
+                                bitvec_gpu.shape[1],
+                                chunk_start=chunk.start,
+                                chunk_size=chunk.size,
+                                groups_gpu=all_groups_gpu[device_id],
                             )
 
-                        # Per-GPU counting with pre-uploaded groups
-                        def _k3plus_chunk_on_gpu(bitvec_gpu, device_id, _cs=chunk_start, _csz=chunk_size):
-                            with cp.cuda.Device(device_id):
-                                return count_k3plus_allcounts(
-                                    bitvec_gpu,
-                                    groups_info,
-                                    bitvec_gpu.shape[1],
-                                    chunk_start=_cs,
-                                    chunk_size=_csz,
-                                    groups_gpu=all_groups_gpu[device_id],
-                                )
-
-                        futures = [_chunk_pool.submit(_k3plus_chunk_on_gpu, bv, did) for bv, did, _ in bitvecs_list]
-                        gpu_results = [f.result() for f in futures]
-
-                        # Multi-GPU reduction: NCCL ring all-reduce (chunk-sized arrays)
-                        if _use_nccl:
-                            _nccl_allreduce_sum(gpu_results, nccl_comms, device_ids)
-
-                        # Reduce across GPUs, then threshold on GPU (sparse transfer)
-                        with cp.cuda.Device(bitvecs_list[0][1]):
-                            global_counts = gpu_results[0]
-                            if not _use_nccl:
-                                for i in range(1, len(gpu_results)):
-                                    cp.add(global_counts, cp.asarray(gpu_results[i]), out=global_counts)
-
-                            # Survivor compaction on GPU 0 — only survivors cross
-                            # PCIe (see gpu.kernels.filter for the impl choices)
-                            freq_indices_chunk, freq_counts = compact_threshold_filter(global_counts, min_count_threshold)
-                            n_freq_chunk = len(freq_indices_chunk)
-                            pass_rate = 100 * n_freq_chunk / chunk_size if chunk_size > 0 else 0
-                            logger.info(
-                                f"  Chunk {chunk_idx + 1}/{n_chunks} filtering: "
-                                f"{chunk_size:,} candidates → {n_freq_chunk:,} frequent "
-                                f"({pass_rate:.1f}% pass rate, min_count={min_count_threshold:,})"
-                            )
-
-                            if n_freq_chunk > 0:
-                                all_freq_indices.append(freq_indices_chunk + chunk_start)
-                                all_freq_counts.append(freq_counts)
-
-                            # Free all GPU memory from this chunk
-                            del global_counts
-                            for i in range(len(gpu_results)):
-                                gpu_results[i] = None
-                            del gpu_results
-                            # Free ALL GPUs, not just primary — prevents pool fragmentation
-                            for _, did, _ in bitvecs_list:
-                                with cp.cuda.Device(did):
-                                    cp.get_default_memory_pool().free_all_blocks()
-
-                    _chunk_pool.shutdown(wait=False)
+                    freq_cand_indices, freq_cand_counts = run_chunked_dense_level(
+                        bitvecs_list,
+                        k3_chunks,
+                        _k3plus_chunk_on_gpu,
+                        min_count_threshold,
+                        nccl_comms,
+                        _use_nccl,
+                        level_label=f"K={k}",
+                    )
 
                     # Free group data from all GPUs
                     for did in list(all_groups_gpu):
@@ -736,17 +683,14 @@ def _apriori_row_split_multi_gpu(
                             cp.get_default_memory_pool().free_all_blocks()
                     del all_groups_gpu
 
-                    # Combine chunk results
-                    if all_freq_indices:
-                        freq_cand_indices = np.concatenate(all_freq_indices)
-                        freq_cand_counts = np.concatenate(all_freq_counts)
-                        n_freq = len(freq_cand_indices)
+                    n_freq = len(freq_cand_indices)
+                    if n_freq > 0:
                         current_flat = decode_k3plus_flat(
                             freq_cand_indices,
                             groups_info,
                             k,
                         )
-                        current_counts_raw = freq_cand_counts.astype(np.int64)  # V3: preserve
+                        current_counts_raw = freq_cand_counts  # already int64
 
                         # V3 B6: Anchor filter (K>=3 dense path)
                         current_flat, current_counts_raw, n_freq = _apply_anchor_filter(

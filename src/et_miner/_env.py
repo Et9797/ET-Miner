@@ -25,6 +25,9 @@ Variables:
     ET_MINER_FILTER_IMPL               dense-count threshold filter impl:
                                        "compact" (default) | "cupy" | "cpu"
                                        (see et_miner.gpu.kernels.filter)
+    ET_MINER_MAX_CHUNK_CANDS           caps the measured dense-chunk budget
+                                       (candidates per chunk) — lets tests
+                                       force multi-chunk runs on small data
 """
 
 from __future__ import annotations
@@ -84,6 +87,11 @@ def gcs_token() -> str | None:
 
 def filter_impl() -> str:
     return os.environ.get("ET_MINER_FILTER_IMPL", "compact").strip().lower()
+
+
+def max_chunk_candidates() -> int | None:
+    v = os.environ.get("ET_MINER_MAX_CHUNK_CANDS")
+    return int(v) if v else None
 
 
 def log_dir() -> Path:

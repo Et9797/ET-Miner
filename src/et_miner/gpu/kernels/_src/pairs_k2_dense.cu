@@ -40,6 +40,6 @@ void count_pairs_k2_dense(
         unsigned long long total = 0;
         int n_warps = (blockDim.x + 31) / 32;
         for (int w = 0; w < n_warps; w++) total += warp_sums[w];
-        result_counts[pair_idx] = (int)total;
+        result_counts[pair_idx - pair_offset] = (int)total;  // chunk-relative
     }
 }

@@ -11,7 +11,6 @@ Key insight: CuPy boolean indexing `array[bool_mask]` allocates:
 For 10B elements, that's 10GB mask + 80GB prefix-sum = 90GB hidden allocation.
 """
 
-import numpy as np
 from loguru import logger
 
 __all__ = [
@@ -84,53 +83,21 @@ def check_vram_budget(required_bytes: int, safety_margin: float = 0.1) -> None:
 
 
 def safe_threshold_filter(counts_gpu, threshold: int, max_gpu_elements: int = 100_000_000):
-    """Threshold filter with automatic CPU fallback for large arrays.
+    """Deprecated shim — delegates to et_miner.gpu.kernels.filter.
 
-    This is the CORRECT pattern for filtering billion-scale count arrays.
-    For small arrays (<100M), GPU filtering is fine. For large arrays,
-    CPU filtering avoids the hidden 8× prefix-sum allocation.
-
-    The K=8 fix used this exact pattern: transfer to CPU, filter with NumPy,
-    return indices. No hidden 85GB allocation.
-
-    Args:
-        counts_gpu: CuPy array of support counts.
-        threshold: Minimum count threshold.
-        max_gpu_elements: Above this, use CPU fallback (default 100M).
+    The historical implementation (full-array D2H above ``max_gpu_elements``,
+    whole-array ``cp.where`` below it) lives on verbatim as the ``cpu``
+    implementation there; the default is now the on-GPU ``compact_threshold``
+    kernel, which transfers only survivors. ``max_gpu_elements`` is honored
+    only by the ``cpu`` implementation and is otherwise ignored.
 
     Returns:
-        Tuple of (indices, filtered_counts) as NumPy arrays.
-
-    Example:
-        >>> # Safe for 10B elements — uses CPU path
-        >>> indices, counts = safe_threshold_filter(huge_counts_gpu, min_support)
+        Tuple of (indices, filtered_counts) as int64 NumPy arrays, indices
+        ascending.
     """
-    import cupy as cp
+    from et_miner.gpu.kernels.filter import compact_threshold_filter
 
-    n = len(counts_gpu)
-
-    if n > max_gpu_elements:
-        # CPU path — no hidden GPU temporaries
-        counts_cpu = counts_gpu.get()
-
-        # Free GPU memory immediately
-        del counts_gpu
-        cp.get_default_memory_pool().free_all_blocks()
-
-        # Filter on CPU (2TB RAM has plenty of headroom)
-        mask = counts_cpu >= threshold
-        indices = np.where(mask)[0]
-        filtered_counts = counts_cpu[indices]
-
-        return indices, filtered_counts
-    else:
-        # GPU path — safe for small arrays
-        mask = counts_gpu >= threshold
-        indices_gpu = cp.where(mask)[0]
-        indices = indices_gpu.get()
-        filtered_counts = counts_gpu[indices_gpu].get()
-
-        return indices, filtered_counts
+    return compact_threshold_filter(counts_gpu, threshold)
 
 
 def set_mempool_limit(limit_gb: float = None) -> None:

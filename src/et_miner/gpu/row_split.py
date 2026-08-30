@@ -585,9 +585,9 @@ def _apriori_row_split_multi_gpu(
                         with cp.cuda.Device(did):
                             cp.get_default_memory_pool().free_all_blocks()
 
-                    from et_miner.gpu.memory_budget import safe_threshold_filter
+                    from et_miner.gpu.kernels.filter import compact_threshold_filter
 
-                    freq_pair_indices, freq_pair_counts = safe_threshold_filter(global_counts, min_count_threshold)
+                    freq_pair_indices, freq_pair_counts = compact_threshold_filter(global_counts, min_count_threshold)
                     del global_counts
                     cp.get_default_memory_pool().free_all_blocks()
 
@@ -660,7 +660,7 @@ def _apriori_row_split_multi_gpu(
                     for bv, did, _ in bitvecs_list:
                         all_groups_gpu[did] = upload_k3plus_groups(groups_info, did)
 
-                    from et_miner.gpu.memory_budget import safe_threshold_filter
+                    from et_miner.gpu.kernels.filter import compact_threshold_filter
 
                     all_freq_indices = []
                     all_freq_counts = []
@@ -702,9 +702,9 @@ def _apriori_row_split_multi_gpu(
                                 for i in range(1, len(gpu_results)):
                                     cp.add(global_counts, cp.asarray(gpu_results[i]), out=global_counts)
 
-                            # Safe threshold: CPU fallback for large chunks avoids
-                            # hidden cp.where() temporaries (13.5 GB prefix-sum at 1.5B elements)
-                            freq_indices_chunk, freq_counts = safe_threshold_filter(global_counts, min_count_threshold)
+                            # Survivor compaction on GPU 0 — only survivors cross
+                            # PCIe (see gpu.kernels.filter for the impl choices)
+                            freq_indices_chunk, freq_counts = compact_threshold_filter(global_counts, min_count_threshold)
                             n_freq_chunk = len(freq_indices_chunk)
                             pass_rate = 100 * n_freq_chunk / chunk_size if chunk_size > 0 else 0
                             logger.info(

@@ -7,6 +7,7 @@ Import-safe without CuPy.
 
 from .batch import count_itemsets_cuda
 from .decode import decode_k2_pairs_flat, decode_k3plus_candidates, decode_k3plus_flat
+from .filter import compact_threshold_filter
 from .gpu_resident import (
     build_prefix_groups_gpu,
     count_k3plus_gpu_resident,
@@ -67,4 +68,5 @@ __all__ = [
     "decode_k2_pairs_flat",
     "decode_k3plus_candidates",
     "decode_k3plus_flat",
+    "compact_threshold_filter",
 ]

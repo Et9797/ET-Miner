@@ -22,6 +22,9 @@ Variables:
     ET_MINER_GCS_CREDENTIALS           path to a service-account JSON
     GCS_TOKEN                          raw OAuth token (alternative to creds)
     ET_MINER_LOG_DIR                   directory for optional file logging
+    ET_MINER_FILTER_IMPL               dense-count threshold filter impl:
+                                       "compact" (default) | "cupy" | "cpu"
+                                       (see et_miner.gpu.kernels.filter)
 """
 
 from __future__ import annotations
@@ -77,6 +80,10 @@ def gcs_credentials_path() -> str | None:
 
 def gcs_token() -> str | None:
     return os.environ.get("GCS_TOKEN")
+
+
+def filter_impl() -> str:
+    return os.environ.get("ET_MINER_FILTER_IMPL", "compact").strip().lower()
 
 
 def log_dir() -> Path:

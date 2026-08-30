@@ -114,7 +114,7 @@ def test_small_dataset(min_support):
     transactions_raw = [[1, 2, 3], [2, 3, 4], [1, 3, 5], [2, 3], [1, 2, 3, 4]]
     n_trans = len(transactions_raw)
 
-    ea_itemsets, _ = ea_apriori([tuple(t) for t in transactions_raw], min_support=min_support)
+    ea_itemsets, _ = ea_apriori([tuple(t) for t in transactions_raw], min_support=min_support, max_length=100)
     ea_by_k = itemsets_by_k(ea_to_set(ea_itemsets, n_trans))
 
     pa_result = pa_apriori(pl.DataFrame({"items": transactions_raw}), min_support=min_support, use_gpu=True)
@@ -133,7 +133,7 @@ def test_large_dataset(min_support):
     transactions_raw, pa_df = _load_dataset()
     n_trans = len(transactions_raw)
 
-    ea_itemsets, _ = ea_apriori([tuple(t) for t in transactions_raw], min_support=min_support)
+    ea_itemsets, _ = ea_apriori([tuple(t) for t in transactions_raw], min_support=min_support, max_length=100)
     ea_set = ea_to_set(ea_itemsets, n_trans)
 
     pa_result = pa_apriori(pa_df, min_support=min_support, use_gpu=True)
@@ -154,7 +154,7 @@ def test_k3_validation():
     n_trans = len(dense_txns)
     min_support = 0.05
 
-    ea_itemsets, _ = ea_apriori([tuple(t) for t in dense_txns], min_support=min_support)
+    ea_itemsets, _ = ea_apriori([tuple(t) for t in dense_txns], min_support=min_support, max_length=100)
     ea_by_k = itemsets_by_k(ea_to_set(ea_itemsets, n_trans))
 
     pa_result = pa_apriori(pl.DataFrame({"items": dense_txns}), min_support=min_support, use_gpu=True)

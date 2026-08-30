@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python environment
+        run: uv sync --locked
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust_ext -> target
+
+      - name: Build Rust extension
+        # NOTE: run from inside rust_ext — `-m rust_ext/Cargo.toml` from the
+        # repo root makes maturin adopt the ROOT pyproject and clobber the
+        # editable et-miner install (verified the hard way).
+        working-directory: rust_ext
+        run: uv run maturin develop --release
+
+      - name: Ruff
+        run: uv run ruff check src tests
+
+      - name: Tests (CPU — includes the tier-equivalence gate vs efficient-apriori)
+        run: uv run pytest -q -m "not slow"

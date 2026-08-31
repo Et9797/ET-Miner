@@ -1,0 +1,13 @@
+# AlphaFold application dependencies (not part of et-miner core)
+# Install via: uv pip install -r requirements.txt
+biopython>=1.80
+polars>=1.0
+pyarrow>=14.0
+numpy>=1.24
+scipy>=1.10
+pronto>=2.5
+loguru>=0.7
+
+# System packages also needed:
+# apt install dssp mmseqs2
+# pip install gsutil (or: apt install google-cloud-cli)

@@ -56,8 +56,9 @@ dev-credentials.json
 
 LICENSE_AUDIT.md
 LEAK_REPORT.md
-PAPER_V2_REVIEW.md
 MANIFEST.md
+
+misc/
 
 # Plans & specs
 plans/
@@ -66,3 +67,5 @@ specs/
 bench/results/campaign/
 bench/results/*_run.log
 datasets/synth/
+
+paper/refs

@@ -91,6 +91,9 @@ def main() -> int:
         print("KERNEL COMPILE FAILURES:")
         for f in failures:
             print(f"  {f}")
+        if any("Failed to find CUDA headers" in f for f in failures):
+            print("REMEDY: uv pip install 'cupy-cuda12x[ctk]'   # CUDA header wheels (runtime images ship none)")
+            print("    or: export CUDA_PATH=/usr/local/cuda     # when the image has a toolkit")
         return 1
     print("  all kernels compiled")
 

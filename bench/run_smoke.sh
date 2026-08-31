@@ -5,6 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 export NCCL_DEBUG=INFO
+# Fresh shells don't inherit setup's environment — re-derive CUDA_PATH.
+if [ -z "${CUDA_PATH:-}" ] && [ -d /usr/local/cuda ]; then export CUDA_PATH=/usr/local/cuda; fi
 
 echo "== [1/3] Tier-equivalence gate (CLAUDE.md policy — hard gate) =="
 uv run pytest tests/test_tier_equivalence.py -q

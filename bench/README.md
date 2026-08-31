@@ -6,8 +6,12 @@ while they run.
 
 ## Renting the box (vast.ai)
 
-- **Image**: a CUDA **12.x devel** image (e.g. `nvidia/cuda:12.4.1-devel-ubuntu22.04`),
-  host driver **≥ 525**. `cupy-cuda12x` wheels need the 12.x runtime family.
+- **Image**: prefer a CUDA **12.x devel** image (e.g.
+  `nvidia/cuda:12.4.1-devel-ubuntu22.04`), host driver **≥ 525**. Runtime or
+  driver-only images ship **no CUDA headers**, which NVRTC needs to compile
+  the kernels — the gpu extra now installs them via pip
+  (`cupy-cuda12x[ctk]`) and `setup_box.sh` probes a trivial kernel compile
+  and self-heals, so a runtime image works too; devel just skips that step.
 - **`--shm-size` ≥ 2 GB** (vast.ai: the "docker options"/shm setting). Docker's
   default `/dev/shm` is 64 MB, and without P2P NCCL rides its SHM transport —
   too-small shm shows up as hangs or `NCCL WARN SHM` errors. `selfcheck.py`
@@ -53,7 +57,10 @@ number is worth recording from a miner that disagrees with the oracle.
 
 ## Troubleshooting
 
-- `selfcheck.py` failing on kernel compile = NVRTC/sm_86 problem: report the
+- `selfcheck.py` failing on kernel compile with "Failed to find CUDA
+  headers" = missing toolkit headers: `uv pip install "cupy-cuda12x[ctk]"`
+  (or `export CUDA_PATH=/usr/local/cuda` when the image has a toolkit) and
+  re-run. Any *other* compile failure is an NVRTC/sm_86 problem: report the
   full log; nothing else is worth running.
 - NCCL init warnings with P2P absent are expected on PCIe boxes; the run
   falls back automatically (and one matrix config measures the fallback

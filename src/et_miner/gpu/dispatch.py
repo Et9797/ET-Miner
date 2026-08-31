@@ -141,12 +141,14 @@ SAMPLED_PREFILTER_THRESHOLD = 1_000_000  # >1M candidates = worth sampling
 def use_sampled_prefilter(est_candidates: int, n_u64s: int) -> bool:
     """Whether the single-GPU K>=3 path should run the sampled prefilter.
 
-    Bypassed under the shared/tiled variant — the tiled kernel enumerates
-    whole tile grids and cannot consume a pruned candidate subset — and
-    under ET_MINER_DISABLE_PREFILTER=1 (the benchmark A/B datapoint that
-    measures what the prefilter is still worth on the legacy kernel).
+    OPT-IN via ET_MINER_ENABLE_PREFILTER=1 and off by default: the 2x3090
+    campaign proved the prefilter lossy — its 0.7*min_count sampled-reject
+    has no recount, and on stress_k2 it silently dropped 9,285 true K=3
+    itemsets (-0.7%) vs the exact paths. Also bypassed under the
+    shared/tiled variant, which enumerates whole tile grids and cannot
+    consume a pruned candidate subset (and outruns the prefilter anyway).
     """
-    if _env.disable_prefilter():
+    if not _env.enable_prefilter():
         return False
     if resolved_kernel_variant() == "shared":
         return False

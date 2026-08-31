@@ -978,8 +978,8 @@ def _apriori_from_bitvecs(
             from et_miner.gpu.dispatch import dispatch_k3plus_fused, dispatch_k3plus_sampled, use_sampled_prefilter
 
             # V3: use sampled prefilter when candidate count is high enough
-            # (bypassed under the shared/tiled kernel variant and via
-            # ET_MINER_DISABLE_PREFILTER — see dispatch.use_sampled_prefilter)
+            # (opt-in via ET_MINER_ENABLE_PREFILTER; off by default — the
+            # prefilter is approximate. See dispatch.use_sampled_prefilter)
             # Estimate candidate count from prefix groups
             _prefix_groups: dict[tuple, int] = {}
             for itemset in prev_frequent:

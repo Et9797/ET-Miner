@@ -60,3 +60,5 @@ MANIFEST.md
 plans/
 specs/
 
+bench/results/campaign/
+bench/results/*_run.log

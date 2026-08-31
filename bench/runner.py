@@ -42,16 +42,21 @@ def _gpu_count() -> int:
 
 def _cfg(id_, preset, *, variant="legacy", filter_impl=None, n_gpus=2, balance=None,
          disable_nccl=False, sparse_from_k=None, max_length=None, min_support=None,
-         two_phase=False, disable_prefilter=False, rep=0, timeout_s=1800):
+         two_phase=False, enable_prefilter=False, rep=0, timeout_s=1800):
     env = {"ET_MINER_KERNEL_VARIANT": variant}
+    if n_gpus == 1:
+        # Make "1 GPU" mean it: dispatch auto-detects physical devices and
+        # would otherwise route big levels to the pair-split multi-GPU path,
+        # silently muddying the 1g-vs-2g benchmark axis (observed on-box).
+        env["CUDA_VISIBLE_DEVICES"] = "0"
     if filter_impl:
         env["ET_MINER_FILTER_IMPL"] = filter_impl
     if balance:
         env["ET_MINER_ROW_BALANCE"] = balance
     if disable_nccl:
         env["ET_MINER_DISABLE_NCCL"] = "1"
-    if disable_prefilter:
-        env["ET_MINER_DISABLE_PREFILTER"] = "1"
+    if enable_prefilter:
+        env["ET_MINER_ENABLE_PREFILTER"] = "1"
     return {
         "id": f"{id_}#r{rep}",
         "preset": preset,
@@ -79,25 +84,32 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
             )
         return cfgs
 
-    # full
-    for rep in range(3):
-        for v in ("legacy", "shared"):
-            for g in gpus:
-                cfgs.append(_cfg(f"stressk2-{v}-{g}g", "stress_k2", variant=v, n_gpus=g,
-                                 max_length=3, rep=rep, timeout_s=3600))
-                cfgs.append(_cfg(f"deepk-{v}-{g}g", "deep_k", variant=v, n_gpus=g, rep=rep))
+    # full — on-box recalibration: stress_k2's K=3 is ~76B candidates, so a
+    # single legacy stress run costs ~37 min. Legacy stress gets ONE rep
+    # (the slow baseline needs no variance estimate at that cost); shared
+    # and deep_k keep 3. One-off axes run FIRST so a --max-hours stop can
+    # only ever shed redundant reps, never whole measurement axes.
+    for impl in ("compact", "cupy", "cpu"):
+        cfgs.append(_cfg(f"stressk2-filter-{impl}", "stress_k2", filter_impl=impl,
+                         n_gpus=max(gpus), max_length=2, timeout_s=1800))
+    cfgs.append(_cfg("deepk-nonccl", "deep_k", disable_nccl=True, n_gpus=max(gpus)))
+    cfgs.append(_cfg("deepk-density-auto", "deep_k", sparse_from_k="auto", n_gpus=max(gpus)))
+    cfgs.append(_cfg("deepk-prefilter-off", "deep_k", n_gpus=1))
+    cfgs.append(_cfg("deepk-single-prefilter-on", "deep_k", n_gpus=1, enable_prefilter=True))
+    cfgs.append(_cfg("twophase-smoke", "smoke", two_phase=True, n_gpus=max(gpus)))
     for rep in range(2):
         for bal in ("rows", "nnz"):
             cfgs.append(_cfg(f"skew-{bal}", "skewed_rows", balance=bal, n_gpus=max(gpus), rep=rep))
-    # one-off axes (all still members of their equivalence groups)
-    for impl in ("cupy", "cpu"):
-        cfgs.append(_cfg(f"stressk2-filter-{impl}", "stress_k2", filter_impl=impl,
-                         n_gpus=max(gpus), max_length=3, timeout_s=3600))
-    cfgs.append(_cfg("deepk-nonccl", "deep_k", disable_nccl=True, n_gpus=max(gpus)))
-    cfgs.append(_cfg("deepk-density-auto", "deep_k", sparse_from_k="auto", n_gpus=max(gpus)))
-    cfgs.append(_cfg("deepk-prefilter-off", "deep_k", n_gpus=1, disable_prefilter=True))
-    cfgs.append(_cfg("deepk-single-prefilter-on", "deep_k", n_gpus=1))
-    cfgs.append(_cfg("twophase-smoke", "smoke", two_phase=True, n_gpus=max(gpus)))
+    for g in gpus:
+        cfgs.append(_cfg(f"stressk2-legacy-{g}g", "stress_k2", variant="legacy", n_gpus=g,
+                         max_length=3, rep=0, timeout_s=3600))
+    for rep in range(3):
+        for g in gpus:
+            cfgs.append(_cfg(f"stressk2-shared-{g}g", "stress_k2", variant="shared", n_gpus=g,
+                             max_length=3, rep=rep, timeout_s=3600))
+            for v in ("legacy", "shared"):
+                if rep == 0 or v == "shared":
+                    cfgs.append(_cfg(f"deepk-{v}-{g}g", "deep_k", variant=v, n_gpus=g, rep=rep))
     return cfgs
 
 

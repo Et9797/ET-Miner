@@ -62,3 +62,4 @@ specs/
 
 bench/results/campaign/
 bench/results/*_run.log
+datasets/synth/

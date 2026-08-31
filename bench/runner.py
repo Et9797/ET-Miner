@@ -122,7 +122,10 @@ def capture_environment(out_dir: Path) -> None:
 
 def run_config(cfg: dict, out_dir: Path) -> dict:
     print(f"→ {cfg['id']} (timeout {cfg['timeout_s']}s) env={cfg['env']}", flush=True)
-    log_path = out_dir / f"{cfg['id'].replace('#', '_')}.log"
+    safe_id = cfg["id"].replace("#", "_")
+    log_path = out_dir / f"{safe_id}.log"
+    result_path = out_dir / f"{safe_id}.result.json"
+    cfg = {**cfg, "result_path": str(result_path)}
     with log_path.open("w") as log_f:
         proc = subprocess.Popen(
             [sys.executable, str(CHILD), json.dumps(cfg)],
@@ -138,6 +141,13 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
             return {"id": cfg["id"], "config": cfg, "status": "timeout"}
+    # Result file first (immune to NCCL's raw fd-1 writes splicing the
+    # child's stdout); stdout scan as debug fallback.
+    if result_path.exists():
+        try:
+            return json.loads(result_path.read_text())
+        except json.JSONDecodeError:
+            pass
     for line in reversed(stdout.strip().splitlines() or [""]):
         if line.startswith("{"):
             try:

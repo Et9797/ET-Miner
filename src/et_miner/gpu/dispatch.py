@@ -58,7 +58,7 @@ def dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count):
     if should_use_multi_gpu(n_freq):
         return count_pairs_fused_k2_multi_gpu(bitvecs_gpu, freq_cols, n_u64s, min_count, get_gpu_count())
     if resolved_kernel_variant() == "shared":
-        from .shared_tiled import count_pairs_k2_shared_fused
+        from .kernels.shared_tiled import count_pairs_k2_shared_fused
 
         return count_pairs_k2_shared_fused(bitvecs_gpu, freq_cols, n_u64s, min_count)
     return count_pairs_fused_k2(bitvecs_gpu, freq_cols, n_u64s, min_count)
@@ -129,7 +129,7 @@ def dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count):
     if n_cands >= CANDIDATE_COUNT_THRESHOLD_K3 and get_gpu_count() > 1:
         return count_k3plus_fully_fused_multi_gpu(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, get_gpu_count())
     if resolved_kernel_variant() == "shared":
-        from .shared_tiled import count_k3plus_shared_fused
+        from .kernels.shared_tiled import count_k3plus_shared_fused
 
         return count_k3plus_shared_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count)
     return count_k3plus_fully_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count)

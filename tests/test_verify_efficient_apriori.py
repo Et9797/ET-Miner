@@ -152,7 +152,11 @@ def test_k3_validation():
         dense_txns.append(sorted(rng.choice(item_pool, size=size, replace=False).tolist()))
 
     n_trans = len(dense_txns)
-    min_support = 0.05
+    # 0.02, not 0.05: at 0.05 this dataset provably has ZERO k=3 itemsets
+    # (verified with efficient-apriori directly), so the ground-truth assert
+    # below can never hold — a latent bug exposed the first time this
+    # gpu-marked test ran on a real device. At 0.02 there are ~459.
+    min_support = 0.02
 
     ea_itemsets, _ = ea_apriori([tuple(t) for t in dense_txns], min_support=min_support, max_length=100)
     ea_by_k = itemsets_by_k(ea_to_set(ea_itemsets, n_trans))

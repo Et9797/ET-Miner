@@ -33,7 +33,7 @@ class VramSampler(threading.Thread):
         super().__init__(daemon=True)
         self.peak_mb: dict[int, int] = {}
         self.throttle_reasons: set[str] = set()
-        self._stop = threading.Event()
+        self._halt = threading.Event()
         self._query_idx = 0
 
     def _poll_once(self) -> bool:
@@ -55,16 +55,16 @@ class VramSampler(threading.Thread):
         return True
 
     def run(self):
-        while not self._stop.is_set():
+        while not self._halt.is_set():
             try:
                 if not self._poll_once() and self._query_idx < len(self._QUERIES) - 1:
                     self._query_idx += 1  # field unsupported — degrade the query
             except Exception:
                 pass
-            self._stop.wait(0.5)
+            self._halt.wait(0.5)
 
     def stop(self):
-        self._stop.set()
+        self._halt.set()
 
 
 def result_signatures(res, n_rows: int) -> dict:
@@ -170,21 +170,25 @@ def main() -> int:
         sampler.stop()
         sampler.join(timeout=3)
 
-    print(
-        json.dumps(
-            {
-                "id": cfg["id"],
-                "config": cfg,
-                "status": status,
-                "wall_s": round(wall_s, 3),
-                "levels": levels,
-                "peak_vram_mb": sampler.peak_mb,
-                "throttle_reasons": sorted(sampler.throttle_reasons),
-                "motifs_ok": motifs_ok,
-                **signatures,
-            }
-        )
+    payload = json.dumps(
+        {
+            "id": cfg["id"],
+            "config": cfg,
+            "status": status,
+            "wall_s": round(wall_s, 3),
+            "levels": levels,
+            "peak_vram_mb": sampler.peak_mb,
+            "throttle_reasons": sorted(sampler.throttle_reasons),
+            "motifs_ok": motifs_ok,
+            **signatures,
+        }
     )
+    # Primary channel is a file: NCCL (and anything else writing raw to
+    # fd 1) interleaves with Python's buffered stdout and can splice the
+    # JSON mid-line, so stdout is only a debug fallback.
+    if cfg.get("result_path"):
+        Path(cfg["result_path"]).write_text(payload + "\n")
+    print(payload)
     if status != "ok":
         return 1
     return 0 if motifs_ok else 3

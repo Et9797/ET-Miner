@@ -34,11 +34,17 @@ def _counted(df: pl.DataFrame, n_rows: int) -> set:
 
 
 def _counted_from_parquet_dir(directory, n_rows: int) -> set:
+    # Branch on is_file/is_dir rather than a trailing-slash glob: Python
+    # 3.10's pathlib has no directory-only glob matching, so "frequent_k*/"
+    # would re-match the plain .parquet files (and then read zero parts).
     out = set()
-    for f in sorted(directory.glob("frequent_k*.parquet")):
-        out |= _counted(pl.read_parquet(f), n_rows)
-    for d in sorted(directory.glob("frequent_k*/")):
-        out |= _counted(pl.read_parquet(sorted(d.glob("part_*.parquet"))), n_rows)
+    for p in sorted(directory.glob("frequent_k*")):
+        if p.is_file() and p.suffix == ".parquet":
+            out |= _counted(pl.read_parquet(p), n_rows)
+        elif p.is_dir():
+            parts = sorted(p.glob("part_*.parquet"))
+            if parts:
+                out |= _counted(pl.read_parquet(parts), n_rows)
     return out
 
 

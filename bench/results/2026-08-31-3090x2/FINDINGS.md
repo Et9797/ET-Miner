@@ -61,6 +61,12 @@ The n/32 crossover optimizes memory, not yet time, at this scale.
 **Decision: defaults unchanged** (`apriori(sparse_from_k=None)`); revisit
 after the CSR pair-building loop is vectorized.
 
+> Follow-up (2026-09-01): the attribution above was wrong — the host
+> tidset rebuild, not the pair loop, cost ~2.5 s per level. With the
+> sparse levels made GPU-resident and row-split, `deepk-density-auto`
+> runs in 1.34 s (== dense) with the identical signature. See
+> `bench/results/2026-09-01-3090x2-sparse/FINDINGS.md`.
+
 ## Smaller readings
 
 - **Filter impls** (compact/cupy/cpu) indistinguishable at this scale

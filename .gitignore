@@ -31,6 +31,9 @@ results/
 # ...but curated GPU campaign reports are committed deliberately
 !bench/results/
 !bench/results/**
+# ...except the per-config logs/results the runner writes into any results dir
+bench/results/**/*.log
+bench/results/**/*.result.json
 
 # Editors / IDE
 .vscode/

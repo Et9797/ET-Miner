@@ -177,7 +177,13 @@ def reduce_sum_to_gpu0(gpu_arrays, device_ids, comms=None):
     allReduce when the binding lacks ``reduce``. Without: the bounded
     staged D2D fallback. Non-root arrays are left in an unspecified state
     — callers must only consume ``gpu_arrays[0]`` afterwards.
+
+    A single array is already the sum: return without touching NCCL or the
+    staged fallback (which would otherwise allocate up to STAGING_BYTES on
+    the lone device to add nothing — the 1-GPU miner and 1-GPU boxes).
     """
+    if len(gpu_arrays) <= 1:
+        return
     if comms is not None:
         try:
             _nccl_reduce_sum_to_root(gpu_arrays, comms, device_ids)

@@ -16,6 +16,7 @@
 //! - **ZERO-COPY sparse CSR support**
 
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 // Core modules containing pure Rust algorithms
@@ -273,7 +274,7 @@ fn prune_closed_flat<'py>(
     current_counts: PyReadonlyArray1<'py, i64>,
     prev_flat: PyReadonlyArray2<'py, i32>,
     prev_counts: PyReadonlyArray1<'py, i64>,
-) -> Bound<'py, PyArray1<bool>> {
+) -> PyResult<Bound<'py, PyArray1<bool>>> {
     let n_current = current_flat.shape()[0];
     let k = current_flat.shape()[1];
     let n_prev = prev_flat.shape()[0];
@@ -315,6 +316,13 @@ fn prune_closed_flat<'py>(
         }
     };
 
+    if k >= 2 && !core::groups::is_sorted_by_row(prev_flat_slice, n_prev, k - 1) {
+        return Err(PyValueError::new_err(
+            "prev_flat must be sorted lexicographically by row for the closed-prune binary search \
+             (K>=3 decode order is j-major within a group, not lex order — lexsort current_flat at level end)",
+        ));
+    }
+
     #[allow(deprecated)]
     let mask = py.allow_threads(|| {
         core::groups::prune_closed_flat_raw(
@@ -328,7 +336,7 @@ fn prune_closed_flat<'py>(
         )
     });
 
-    PyArray1::from_vec(py, mask)
+    Ok(PyArray1::from_vec(py, mask))
 }
 
 /// Compact variant: prune non-closed itemsets and return pruned (flat, counts)
@@ -349,7 +357,7 @@ fn prune_closed_flat_compact<'py>(
     current_counts: PyReadonlyArray1<'py, i64>,
     prev_flat: PyReadonlyArray2<'py, i32>,
     prev_counts: PyReadonlyArray1<'py, i64>,
-) -> (Bound<'py, PyArray1<i32>>, Bound<'py, PyArray1<i64>>, usize) {
+) -> PyResult<(Bound<'py, PyArray1<i32>>, Bound<'py, PyArray1<i64>>, usize)> {
     let n_current = current_flat.shape()[0];
     let k = current_flat.shape()[1];
     let n_prev = prev_flat.shape()[0];
@@ -391,6 +399,13 @@ fn prune_closed_flat_compact<'py>(
         }
     };
 
+    if k >= 2 && !core::groups::is_sorted_by_row(prev_flat_slice, n_prev, k - 1) {
+        return Err(PyValueError::new_err(
+            "prev_flat must be sorted lexicographically by row for the closed-prune binary search \
+             (K>=3 decode order is j-major within a group, not lex order — lexsort current_flat at level end)",
+        ));
+    }
+
     #[allow(deprecated)]
     let (out_flat, out_counts) = py.allow_threads(|| {
         core::groups::prune_closed_flat_compact_raw(
@@ -407,7 +422,7 @@ fn prune_closed_flat_compact<'py>(
     let n_kept = out_counts.len();
     let flat_arr = PyArray1::from_vec(py, out_flat);
     let counts_arr = PyArray1::from_vec(py, out_counts);
-    (flat_arr, counts_arr, n_kept)
+    Ok((flat_arr, counts_arr, n_kept))
 }
 
 /// Parallel unique-column extraction from a flat

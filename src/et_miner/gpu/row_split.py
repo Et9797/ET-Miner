@@ -26,6 +26,7 @@ from et_miner.gpu.mining import (
     _apply_anchor_filter,
     _convert_to_tidsets,
     _prune_closed_flat,
+    _rows_sorted,
     _prune_groups_apriori,
 )
 from et_miner.gpu.nccl import _init_nccl
@@ -760,12 +761,23 @@ def _apriori_row_split_multi_gpu(
                 )
                 n_freq = len(current_flat)
 
-            # R2 invariant: binary search in prune_closed_flat_raw requires
-            # prev_flat to be sorted-by-row. K>=3 decode produces sorted output
-            # (groups sorted by prefix), but K=2 decode (triangular enumeration)
-            # is NOT lex-sorted. Sort here at K=2 to guarantee the invariant.
-            # Cost: ~10K rows at K=2 = sub-millisecond.
-            if n_freq > 0 and k == 2:
+            # The Rust closed-prune binary-searches prev_flat, so the table
+            # handed to the NEXT level must be lexicographically sorted by row
+            # whenever pruning is on. Neither decode guarantees that by itself:
+            # K=2 enumerates pairs triangularly, and K>=3 emits each prefix
+            # group's pairs in j-major order ((0,1),(0,2),(1,2),(0,3),...),
+            # which is not lex order once a group has >= 4 suffixes. The old
+            # "K>=3 output is sorted" claim silently under-pruned and let
+            # dense+prune emit itemsets the CPU tier never generates
+            # (tests/test_row_split_e2e.py::TestClosedPruning, Spec B). Sort at
+            # K=2 (as before) and at every pruning level, skipping levels that
+            # are already sorted (_rows_sorted is O(n·k), no sort). The legacy
+            # sparse branch keeps its own row order until it is replaced.
+            if (
+                n_freq > 0
+                and (k == 2 or (prune_closed and not sparse_state.active))
+                and not _rows_sorted(current_flat)
+            ):
                 sort_idx = np.lexsort(current_flat[:, ::-1].T)
                 current_flat = current_flat[sort_idx]
                 current_counts_raw = current_counts_raw[sort_idx]

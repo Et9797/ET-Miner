@@ -211,7 +211,14 @@ pub fn build_k3plus_groups_from_flat_raw(
 /// with the same support count — the k-th item adds no discriminative power.
 ///
 /// # Algorithm
-/// 1. Binary-search lookup on prev_flat (sorted-by-row since groups.rs:79 fix)
+/// 1. Binary-search lookup on prev_flat, which the CALLER must have sorted
+///    lexicographically by row. Nothing upstream guarantees that by itself:
+///    the group builder sorts its own output, but the K>=3 GPU decode emits
+///    each prefix group's pairs in j-major order ((0,1),(0,2),(1,2),(0,3),…),
+///    which is not lex order once a group has >= 4 suffixes. The GPU miners
+///    therefore lexsort `current_flat` at level end while pruning, and the
+///    PyO3 wrappers enforce the invariant with an always-on O(n·k) check
+///    (`is_sorted_by_row`) that raises ValueError instead of under-pruning.
 /// 2. For each current itemset, try all k drop positions
 /// 3. If any (k-1)-subset has equal count in prev → mark as closed (prune)
 /// 4. Rayon parallel over current itemsets
@@ -251,17 +258,15 @@ pub fn prune_closed_flat_raw(
     assert_eq!(current_counts.len(), n_current, "current_counts length mismatch");
     assert_eq!(prev_counts.len(), n_prev, "prev_counts length mismatch");
 
-    // prev_flat is sorted-by-full-row
-    // sinds groups.rs:79 sort fix (commit 4f0bbab9). Binary search op de sorted
-    // slice vervangt de HashMap zonder de 5-15s sequential build cost. Per-lookup
-    // is binary search 2-6x slower dan HashMap (~200ns vs ~50ns), maar de gespaarde
-    // build dominates: 67M HashMap entries × ~100ns insert = 6.7s wegvallen.
-    //
-    // Invariant assertion (debug builds only — compiles away in release):
+    // prev_flat must be sorted lexicographically by full row: binary search on
+    // the sorted slice replaces a HashMap without its 5-15 s sequential build
+    // (per lookup ~200 ns vs ~50 ns, but 67M inserts × ~100 ns no longer paid).
+    // The sortedness is the caller's job (the GPU miners lexsort at level end
+    // while pruning) and the PyO3 wrappers check it on every call; this
+    // debug_assert! is a second net for direct Rust callers.
     debug_assert!(
         is_sorted_by_row(prev_flat, n_prev, prev_k),
-        "prev_flat must be sorted-by-full-row for binary search lookup. \
-         If this fires, did groups.rs:79 sort fix regress?"
+        "prev_flat must be sorted lexicographically by row for the binary-search lookup"
     );
 
     // Parallel check — for each current itemset, see if any (k-1)-subset has the
@@ -294,9 +299,11 @@ pub fn prune_closed_flat_raw(
         .collect()
 }
 
-/// Verify that flat row-major data is sorted lexicographically by row.
-/// Used for debug_assert! invariant checking before binary-search lookups.
-fn is_sorted_by_row(flat: &[i32], n_rows: usize, row_len: usize) -> bool {
+/// Verify that flat row-major data is sorted lexicographically by row
+/// (non-descending). O(n_rows × row_len). Used by the PyO3 closed-prune
+/// wrappers as an always-on invariant check before the binary-search lookup,
+/// and by the debug_assert! in `prune_closed_flat_raw`.
+pub fn is_sorted_by_row(flat: &[i32], n_rows: usize, row_len: usize) -> bool {
     if n_rows < 2 || row_len == 0 {
         return true;
     }
@@ -315,7 +322,8 @@ fn is_sorted_by_row(flat: &[i32], n_rows: usize, row_len: usize) -> bool {
 ///
 /// Replaces the HashMap.get() lookup in prune_closed_flat_raw, eliminating the
 /// O(n_prev) sequential HashMap build phase. Caller must ensure prev_flat is
-/// sorted-by-row (verified via debug_assert! in prune_closed_flat_raw).
+/// sorted-by-row (enforced by the PyO3 wrappers; debug_assert! in
+/// prune_closed_flat_raw).
 fn binary_search_row(
     prev_flat: &[i32],
     prev_counts: &[i64],

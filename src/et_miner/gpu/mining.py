@@ -62,6 +62,30 @@ def _deallocate_dead_bitvecs(bitvecs_gpu, live_cols, prev_live_cols, k_level):
 
 
 
+def _rows_sorted(flat) -> bool:
+    """True iff the rows of an (n, k) integer array are in STRICT lexicographic
+    ascending order — vectorized O(n·k), no sort.
+
+    Semantics: for every adjacent pair the first differing column must be
+    ascending. Duplicate adjacent rows make ``argmax`` over ``a != b`` return
+    column 0, where ``a < b`` is false, so duplicates count as UNSORTED and
+    merely trigger a (harmless) redundant sort. Rows are unique itemsets, so
+    this is by design, not a defect. Used to skip the level-end lexsort that
+    the closed-prune binary search requires when the level is already sorted.
+    """
+    import numpy as np
+
+    n = len(flat)
+    if n < 2:
+        return True
+    a = np.asarray(flat[:-1])
+    b = np.asarray(flat[1:])
+    neq = a != b
+    first = neq.argmax(axis=1)
+    rows = np.arange(n - 1)
+    return bool(np.all(a[rows, first] < b[rows, first]))
+
+
 def _prune_closed_flat(current_flat, current_counts, prev_flat, prev_counts):
     """Prune non-closed itemsets from flat numpy arrays.
 

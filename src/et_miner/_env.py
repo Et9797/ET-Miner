@@ -22,6 +22,30 @@ Variables:
     ET_MINER_GCS_CREDENTIALS           path to a service-account JSON
     GCS_TOKEN                          raw OAuth token (alternative to creds)
     ET_MINER_LOG_DIR                   directory for optional file logging
+    ET_MINER_FILTER_IMPL               dense-count threshold filter impl:
+                                       "compact" (default) | "cupy" | "cpu"
+                                       (see et_miner.gpu.kernels.filter)
+    ET_MINER_MAX_CHUNK_CANDS           caps the measured dense-chunk budget
+                                       (candidates per chunk) — lets tests
+                                       force multi-chunk runs on small data
+    ET_MINER_DISABLE_NCCL              "1" skips NCCL init and forces the
+                                       staged D2D reduce fallback
+    ET_MINER_ROW_BALANCE               multi-GPU row-split mode: "rows"
+                                       (default, equal row counts) or "nnz"
+                                       (equal cumulative nnz cuts)
+    ET_MINER_KERNEL_VARIANT            dense counting kernel: "auto"
+                                       (default; currently = shared),
+                                       "legacy", or "shared" (tiled
+                                       prefix-sharing kernel)
+    ET_MINER_TILED_MIN_GROUP_PAIRS     groups with fewer candidate pairs
+                                       route to the legacy kernel even
+                                       under the shared variant (default 64)
+    ET_MINER_ENABLE_PREFILTER          "1" opts in to the sampled popcount
+                                       prefilter on the legacy single-GPU
+                                       K>=3 path. OFF by default: it is
+                                       approximate and measurably drops
+                                       borderline itemsets (-0.7% of K=3
+                                       on the stress_k2 campaign preset)
 """
 
 from __future__ import annotations
@@ -77,6 +101,44 @@ def gcs_credentials_path() -> str | None:
 
 def gcs_token() -> str | None:
     return os.environ.get("GCS_TOKEN")
+
+
+def filter_impl() -> str:
+    return os.environ.get("ET_MINER_FILTER_IMPL", "compact").strip().lower()
+
+
+def _int_env(name: str, default: int | None) -> int | None:
+    v = os.environ.get(name)
+    if not v:
+        return default
+    try:
+        return int(v)
+    except ValueError:
+        raise ValueError(f"{name} must be an integer, got {v!r}") from None
+
+
+def max_chunk_candidates() -> int | None:
+    return _int_env("ET_MINER_MAX_CHUNK_CANDS", None)
+
+
+def disable_nccl() -> bool:
+    return os.environ.get("ET_MINER_DISABLE_NCCL", "").strip() == "1"
+
+
+def row_balance() -> str:
+    return os.environ.get("ET_MINER_ROW_BALANCE", "rows").strip().lower()
+
+
+def kernel_variant() -> str:
+    return os.environ.get("ET_MINER_KERNEL_VARIANT", "auto").strip().lower()
+
+
+def tiled_min_group_pairs() -> int:
+    return _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", 64)
+
+
+def enable_prefilter() -> bool:
+    return os.environ.get("ET_MINER_ENABLE_PREFILTER", "").strip() == "1"
 
 
 def log_dir() -> Path:

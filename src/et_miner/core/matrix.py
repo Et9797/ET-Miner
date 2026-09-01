@@ -324,7 +324,7 @@ def count_support_batched(
         # Log filtering results
         if n_filtered > 0:
             logger.debug(
-                "Transaction length filter: removed %d/%d transactions (%.1f%%) with < %d items",
+                "Transaction length filter: removed {}/{} transactions ({:.1f}%) with < {} items",
                 n_filtered,
                 n_transactions,
                 100.0 * n_filtered / n_transactions,

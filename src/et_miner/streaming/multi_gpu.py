@@ -194,7 +194,7 @@ def apriori_streaming_multi_gpu(
     effective_n_gpus = min(n_gpus, available_gpus)
     if effective_n_gpus < n_gpus:
         logger.warning(
-            "Requested %d GPUs but only %d available, using %d",
+            "Requested {} GPUs but only {} available, using {}",
             n_gpus,
             available_gpus,
             effective_n_gpus,
@@ -216,7 +216,7 @@ def apriori_streaming_multi_gpu(
     # Single chunk optimization: use standard apriori if data fits
     if n_total <= chunk_size:
         logger.info(
-            "Dataset (%d) fits in single chunk (%d), using standard apriori",
+            "Dataset ({}) fits in single chunk ({}), using standard apriori",
             n_total,
             chunk_size,
         )
@@ -247,8 +247,8 @@ def apriori_streaming_multi_gpu(
         chunk_sizes.append(min(chunk_size, remaining))
 
     logger.info(
-        "Multi-GPU SON streaming: %d total transactions, %d chunks, %d waves, "
-        "%d GPUs, local_support=%.6f (%.1f%% of %.6f)",
+        "Multi-GPU SON streaming: {} total transactions, {} chunks, {} waves, "
+        "{} GPUs, local_support={:.6f} ({:.1f}% of {:.6f})",
         n_total,
         n_chunks,
         n_waves,
@@ -331,7 +331,7 @@ def apriori_streaming_multi_gpu(
         end_chunk = min(start_chunk + effective_n_gpus, n_chunks)
 
         logger.debug(
-            "Wave %d: chunks %d-%d on GPUs 0-%d",
+            "Wave {}: chunks {}-{} on GPUs 0-{}",
             wave_idx,
             start_chunk,
             end_chunk - 1,
@@ -380,7 +380,7 @@ def apriori_streaming_multi_gpu(
         return _empty_result()
 
     logger.info(
-        "Pass 1 complete: %d candidate itemsets from %d items",
+        "Pass 1 complete: {} candidate itemsets from {} items",
         len(candidate_itemsets),
         len(all_items),
     )
@@ -393,7 +393,7 @@ def apriori_streaming_multi_gpu(
         candidate_items.update(itemset)
 
     logger.info(
-        "Pass 2 optimization: %d/%d items needed for candidates (%.1f%% reduction)",
+        "Pass 2 optimization: {}/{} items needed for candidates ({:.1f}% reduction)",
         len(candidate_items),
         len(all_items),
         (1 - len(candidate_items) / len(all_items)) * 100 if all_items else 0,
@@ -488,7 +488,7 @@ def apriori_streaming_multi_gpu(
         end_chunk = min(start_chunk + effective_n_gpus, n_chunks)
 
         logger.debug(
-            "Wave %d: chunks %d-%d on GPUs 0-%d",
+            "Wave {}: chunks {}-{} on GPUs 0-{}",
             wave_idx,
             start_chunk,
             end_chunk - 1,
@@ -539,7 +539,7 @@ def apriori_streaming_multi_gpu(
             results.append((list(itemset), support))
 
     logger.info(
-        "Pass 2 complete: %d/%d candidates are globally frequent (support >= %.6f)",
+        "Pass 2 complete: {}/{} candidates are globally frequent (support >= {:.6f})",
         len(results),
         len(candidate_itemsets),
         min_support,

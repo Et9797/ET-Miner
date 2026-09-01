@@ -590,7 +590,7 @@ def _count_support_sparse_k2_parallel(
     # Coordinate MKL threads with ThreadPoolExecutor
     mkl_threads = _configure_mkl_for_parallel(n_workers)
     logger.debug(
-        "k=2 PARALLEL: %d pairs, %d chunks, %d workers, %d MKL threads/worker",
+        "k=2 PARALLEL: {} pairs, {} chunks, {} workers, {} MKL threads/worker",
         n_pairs,
         len(chunks),
         n_workers,
@@ -673,7 +673,7 @@ def count_support_sparse(
 
         if use_parallel:
             logger.debug(
-                "k=2 strategy: PARALLEL (pairs=%d, txns=%d, n_jobs=%d)",
+                "k=2 strategy: PARALLEL (pairs={}, txns={}, n_jobs={})",
                 n_pairs,
                 n_transactions,
                 n_jobs,
@@ -681,7 +681,7 @@ def count_support_sparse(
             k2_results = _count_support_sparse_k2_parallel(csr, col_to_idx, k2_itemsets, n_jobs)
         else:
             logger.debug(
-                "k=2 strategy: BATCH (pairs=%d, txns=%d)",
+                "k=2 strategy: BATCH (pairs={}, txns={})",
                 n_pairs,
                 n_transactions,
             )
@@ -765,27 +765,27 @@ def _choose_counting_strategy(
     k2_candidates = n_items * (n_items - 1) // 2
     if k2_candidates > 100_000:
         logger.debug(
-            "[auto-detect] k2 candidate explosion: %d pairs from %d items -> sparse",
+            "[auto-detect] k2 candidate explosion: {} pairs from {} items -> sparse",
             k2_candidates,
             n_items,
         )
         return "sparse"
     if n_items > 500 and density < 0.10:
         logger.debug(
-            "[auto-detect] n_items=%d, density=%.4f -> sparse",
+            "[auto-detect] n_items={}, density={:.4f} -> sparse",
             n_items,
             density,
         )
         return "sparse"
     if estimated_dense_gb > 1:
         logger.debug(
-            "[auto-detect] estimated_dense_gb=%.2f -> sparse",
+            "[auto-detect] estimated_dense_gb={:.2f} -> sparse",
             estimated_dense_gb,
         )
         return "sparse"
 
     logger.debug(
-        "[auto-detect] n_items=%d, density=%.4f, k2=%d, dense_gb=%.2f -> polars",
+        "[auto-detect] n_items={}, density={:.4f}, k2={}, dense_gb={:.2f} -> polars",
         n_items,
         density,
         k2_candidates,

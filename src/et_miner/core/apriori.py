@@ -282,6 +282,11 @@ def apriori(
             "auto" transitions when the previous level's measured mean support
             drops below n_transactions/32 (the point where tidsets become
             smaller than bitvectors); None (default) never switches.
+        max_ram_gb / max_vram_gb: Memory guards for the single-GPU
+            exhaustive mining loop only (checked between K-levels via RSS
+            and the CuPy pool). The multi-GPU row-split path does not read
+            them — it sizes candidate chunks from measured free VRAM and
+            honors CuPy memory-pool limits instead.
 
     Returns:
         DataFrame with itemset (List[Int64]) and support (Float64) columns.

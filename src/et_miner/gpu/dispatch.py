@@ -7,8 +7,21 @@ dataset-dependent, but work count directly determines computational load.
 
 from math import comb
 
+from et_miner import _env
 from et_miner.backends import get_gpu_count
 from et_miner.gpu.density import prefilter_stride_for_density
+
+
+def resolved_kernel_variant() -> str:
+    """ET_MINER_KERNEL_VARIANT with "auto" resolved to a concrete choice.
+
+    "auto" currently means the shared/tiled kernel; this indirection is the
+    single point to flip if the benchmark campaign favors legacy.
+    """
+    v = _env.kernel_variant()
+    if v not in ("auto", "legacy", "shared"):
+        raise ValueError(f"ET_MINER_KERNEL_VARIANT must be auto/legacy/shared, got {v!r}")
+    return "shared" if v == "auto" else v
 
 # Break-even threshold with ~20% safety margin.
 # Calibrated from RTX 3090 4x scaling data:
@@ -44,6 +57,10 @@ def dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count):
     n_freq = len(freq_cols)
     if should_use_multi_gpu(n_freq):
         return count_pairs_fused_k2_multi_gpu(bitvecs_gpu, freq_cols, n_u64s, min_count, get_gpu_count())
+    if resolved_kernel_variant() == "shared":
+        from .kernels.shared_tiled import count_pairs_k2_shared_fused
+
+        return count_pairs_k2_shared_fused(bitvecs_gpu, freq_cols, n_u64s, min_count)
     return count_pairs_fused_k2(bitvecs_gpu, freq_cols, n_u64s, min_count)
 
 
@@ -111,10 +128,31 @@ def dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count):
 
     if n_cands >= CANDIDATE_COUNT_THRESHOLD_K3 and get_gpu_count() > 1:
         return count_k3plus_fully_fused_multi_gpu(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, get_gpu_count())
+    if resolved_kernel_variant() == "shared":
+        from .kernels.shared_tiled import count_k3plus_shared_fused
+
+        return count_k3plus_shared_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count)
     return count_k3plus_fully_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count)
 
 
 SAMPLED_PREFILTER_THRESHOLD = 1_000_000  # >1M candidates = worth sampling
+
+
+def use_sampled_prefilter(est_candidates: int, n_u64s: int) -> bool:
+    """Whether the single-GPU K>=3 path should run the sampled prefilter.
+
+    OPT-IN via ET_MINER_ENABLE_PREFILTER=1 and off by default: the 2x3090
+    campaign proved the prefilter lossy — its 0.7*min_count sampled-reject
+    has no recount, and on stress_k2 it silently dropped 9,285 true K=3
+    itemsets (-0.7%) vs the exact paths. Also bypassed under the
+    shared/tiled variant, which enumerates whole tile grids and cannot
+    consume a pruned candidate subset (and outruns the prefilter anyway).
+    """
+    if not _env.enable_prefilter():
+        return False
+    if resolved_kernel_variant() == "shared":
+        return False
+    return est_candidates >= SAMPLED_PREFILTER_THRESHOLD and n_u64s >= 8
 
 
 def dispatch_k3plus_sampled(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, sample_stride=None, density=None):

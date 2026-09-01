@@ -1,0 +1,117 @@
+== [1/3] Tier-equivalence gate (CLAUDE.md policy — hard gate) ==
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[33m                                                                  [100%][0m
+[33m=============================== warnings summary ===============================[0m
+tests/test_tier_equivalence.py::test_tier1_polars_matches_oracle
+tests/test_tier_equivalence.py::test_tier2_rust_matches_oracle
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:122: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode().alias("item"))
+
+tests/test_tier_equivalence.py: 590 warnings
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:449: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    true_indices = all_indices.get_column(col_name).explode().drop_nulls().to_numpy()
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_shared_matches_oracle
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:509: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode())
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_shared_matches_oracle
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:536: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    .explode(item_col)
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+  /root/projects/ET-Miner/tests/test_tier_equivalence.py:164: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    got = _result_to_counted_set(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[33m[32m7 passed[0m, [33m[1m599 warnings[0m[33m in 4.17s[0m[0m
+ between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+482cf356a22c:21502:21954 [1] NCCL INFO Channel 01 : 1[1] -> 0[0] via SHM/direct
+482cf356a22c:21502:21953 [0] NCCL INFO Channel 01 : 0[0] -> 1[1] via SHM/direct
+482cf356a22c:21502:21954 [1] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+482cf356a22c:21502:21953 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+== [2/3] GPU test suite (not slow) ==
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[33m [ 65%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[33ms[0m[33ms[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[33m                                   [100%][0m
+[33m=============================== warnings summary ===============================[0m
+tests/test_balance_split.py::TestBalanceSplitGPU::test_nnz_shards_balanced_and_correct
+tests/test_chunked_dense.py::TestChunkedEquivalenceGPU::test_unforced_baseline
+  /root/projects/ET-Miner/.venv/lib/python3.10/site-packages/_pytest/fixtures.py:1313: PytestRemovedIn10Warning: Class-scoped fixture defined as instance method is deprecated.
+  Instance attributes set in this fixture will NOT be visible to test methods,
+  as each test gets a new instance while the fixture runs only once per class.
+  Use @classmethod decorator and set attributes on cls instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#class-scoped-fixture-as-instance-method
+    fixturefunc = resolve_fixture_function(fixturedef, request)
+
+tests/test_balance_split.py: 2 warnings
+tests/test_chunked_dense.py: 10 warnings
+tests/test_density_auto_gpu.py: 5 warnings
+tests/test_row_split_e2e.py: 9 warnings
+tests/test_tier_equivalence.py: 3 warnings
+tests/test_verify_efficient_apriori.py: 3 warnings
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:509: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode())
+
+tests/test_balance_split.py: 2 warnings
+tests/test_chunked_dense.py: 10 warnings
+tests/test_density_auto_gpu.py: 5 warnings
+tests/test_row_split_e2e.py: 9 warnings
+tests/test_tier_equivalence.py: 3 warnings
+tests/test_verify_efficient_apriori.py: 3 warnings
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:536: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    .explode(item_col)
+
+tests/test_row_split_e2e.py::TestRowSplitEquivalence::test_matches_cpu_reference
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:122: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode().alias("item"))
+
+tests/test_row_split_e2e.py::TestRowSplitEquivalence::test_two_gpu_matches_single_gpu_path
+  /root/projects/ET-Miner/tests/test_row_split_e2e.py:79: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    single = apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True)
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+  /root/projects/ET-Miner/tests/test_tier_equivalence.py:164: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    got = _result_to_counted_set(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True))
+
+tests/test_verify_efficient_apriori.py::test_small_dataset[0.3]
+tests/test_verify_efficient_apriori.py::test_small_dataset[0.4]
+  /root/projects/ET-Miner/tests/test_verify_efficient_apriori.py:120: UserWarning: 100% of items are frequent (min_count=2). Mining may produce combinatorially explosive results. Consider raising min_support.
+    pa_result = pa_apriori(pl.DataFrame({"items": transactions_raw}), min_support=min_support, use_gpu=True)
+
+tests/test_verify_efficient_apriori.py::test_k3_validation
+  /root/projects/ET-Miner/tests/test_verify_efficient_apriori.py:164: UserWarning: 100% of items are frequent (min_count=20). Mining may produce combinatorially explosive results. Consider raising min_support.
+    pa_result = pa_apriori(pl.DataFrame({"items": dense_txns}), min_support=min_support, use_gpu=True)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[33m[32m108 passed[0m, [33m[1m2 skipped[0m, [33m[1m303 deselected[0m, [33m[1m72 warnings[0m[33m in 36.20s[0m[0m
+ith NCCL_IGNORE_DISABLED_P2P=1.
+482cf356a22c:21983:24182 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+482cf356a22c:21983:24181 [0] NCCL INFO Channel 00 : 0[0] -> 1[1] via SHM/direct
+482cf356a22c:21983:24181 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+482cf356a22c:21983:24182 [1] NCCL INFO Channel 00 : 1[1] -> 0[0] via SHM/direct
+482cf356a22c:21983:24182 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+482cf356a22c:21983:24181 [0] NCCL INFO Channel 01 : 0[0] -> 1[1] via SHM/direct
+482cf356a22c:21983:24182 [1] NCCL INFO Channel 01 : 1[1] -> 0[0] via SHM/direct
+482cf356a22c:21983:24181 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+482cf356a22c:21983:24182 [1] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+== [3/3] Smoke benchmark matrix ==
+→ smoke-legacy-1g#r0 (timeout 900s) env={'ET_MINER_KERNEL_VARIANT': 'legacy'}
+   ok wall=0.186s peak={'0': 4, '1': 4}
+→ smoke-legacy-2g#r0 (timeout 900s) env={'ET_MINER_KERNEL_VARIANT': 'legacy'}
+   ok wall=1.005s peak={'0': 408, '1': 408}
+→ smoke-shared-1g#r0 (timeout 900s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=0.174s peak={'0': 4, '1': 4}
+→ smoke-shared-2g#r0 (timeout 900s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=1.011s peak={'0': 380, '1': 380}
+→ stressk2ml2-legacy-2g#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy'}
+   ok wall=89.674s peak={'0': 6942, '1': 6920}
+→ stressk2ml2-shared-2g#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=10.628s peak={'0': 6920, '1': 6920}
+
+equivalence groups consistent ✓
+wrote /root/projects/ET-Miner/bench/results/campaign/report.md
+== smoke campaign complete — copy bench/results/ back ==
+EXIT=0

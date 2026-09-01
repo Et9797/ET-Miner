@@ -17,21 +17,11 @@ void count_k3plus_dense(
                        + (long long)blockIdx.x + candidate_offset;
     if (cand_idx >= total_candidates) return;
 
-    long long lo = 0, hi = n_groups - 1;
-    while (lo < hi) {
-        long long mid = (lo + hi + 1) / 2;
-        if (cumulative_pairs[mid] <= cand_idx) lo = mid;
-        else hi = mid - 1;
-    }
-    long long g = lo;
-    long long pair_idx = cand_idx - cumulative_pairs[g];
-
+    // Shared decode (_decode_common.cu, prepended by the loader): identical
+    // arithmetic to the host-side decode_k3plus_flat.
+    long long g, i_val, j_val;
+    if (!_decode_candidate(cumulative_pairs, group_suffix_offsets, n_groups, cand_idx, &g, &i_val, &j_val)) return;
     long long suf_start = group_suffix_offsets[g];
-    long long group_size = group_suffix_offsets[g + 1] - suf_start;
-
-    long long j_val = (long long)floor(0.5 + sqrt(0.25 + 2.0 * (double)pair_idx));
-    long long i_val = pair_idx - j_val * (j_val - 1) / 2;
-    if (j_val >= group_size || i_val >= j_val || i_val < 0) return;
 
     int suffix_i = group_suffixes[suf_start + i_val];
     int suffix_j = group_suffixes[suf_start + j_val];

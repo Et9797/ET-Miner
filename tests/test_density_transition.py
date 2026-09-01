@@ -14,7 +14,6 @@ from et_miner.gpu.density import (
     DENSITY_CROSSOVER,
     MIN_SPARSE_K,
     SPARSE_AUTO,
-    prefilter_stride_for_density,
     should_transition_to_sparse,
     validate_sparse_from_k,
 )
@@ -130,23 +129,6 @@ class TestAutoVersusFixedEquivalence:
         n = 10_000
         means = {k: 5_000.0 for k in range(2, 10)}
         assert self._first_sparse_level(SPARSE_AUTO, means, n) is None
-
-
-class TestPrefilterStride:
-    """Density-keyed sampling stride mirrors the old K-ladder intent."""
-
-    def test_dense_aggressive_sampling(self):
-        assert prefilter_stride_for_density(0.5) == 8
-        assert prefilter_stride_for_density(0.021) == 8
-
-    def test_moderate(self):
-        assert prefilter_stride_for_density(0.02) == 4
-        assert prefilter_stride_for_density(0.0051) == 4
-
-    def test_sparse_needs_accuracy(self):
-        assert prefilter_stride_for_density(0.005) == 2
-        assert prefilter_stride_for_density(0.0001) == 2
-        assert prefilter_stride_for_density(0.0) == 2
 
 
 class TestResumeCountRoundTrip:

@@ -9,7 +9,6 @@ from math import comb
 
 from et_miner import _env
 from et_miner.backends import get_gpu_count
-from et_miner.gpu.density import prefilter_stride_for_density
 
 
 def resolved_kernel_variant() -> str:
@@ -133,78 +132,6 @@ def dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count):
 
         return count_k3plus_shared_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count)
     return count_k3plus_fully_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count)
-
-
-SAMPLED_PREFILTER_THRESHOLD = 1_000_000  # >1M candidates = worth sampling
-
-
-def use_sampled_prefilter(est_candidates: int, n_u64s: int) -> bool:
-    """Whether the single-GPU K>=3 path should run the sampled prefilter.
-
-    OPT-IN via ET_MINER_ENABLE_PREFILTER=1 and off by default: the 2x3090
-    campaign proved the prefilter lossy — its 0.7*min_count sampled-reject
-    has no recount, and on stress_k2 it silently dropped 9,285 true K=3
-    itemsets (-0.7%) vs the exact paths. Also bypassed under the
-    shared/tiled variant, which enumerates whole tile grids and cannot
-    consume a pruned candidate subset (and outruns the prefilter anyway).
-    """
-    if not _env.enable_prefilter():
-        return False
-    if resolved_kernel_variant() == "shared":
-        return False
-    return est_candidates >= SAMPLED_PREFILTER_THRESHOLD and n_u64s >= 8
-
-
-def dispatch_k3plus_sampled(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, sample_stride=None, density=None):
-    """Sampled popcount pre-filter for K>=3: reject ~68% of candidates cheaply.
-
-    Two-phase: sampled pass rejects ~68% of candidates, then indirect kernel
-    exact-recounts only survivors. Falls back to fully-fused when below threshold.
-
-    Adaptive stride: dense bitvectors tolerate aggressive sampling, sparse
-    ones need more samples for statistical reliability. Rate-distortion
-    tradeoff — Shannon in a CUDA kernel. The stride is keyed on measured
-    density when the caller provides it, on K as a density proxy otherwise.
-
-    Args:
-        bitvecs_gpu: CuPy array of shape (n_cols, n_u64s) with packed bitvectors.
-        prev_frequent: List of frequent (k-1)-itemsets as tuples of column indices.
-        k: Current itemset size being generated.
-        n_u64s: Number of uint64 words per bitvector.
-        min_count: Minimum support count threshold.
-        sample_stride: Sample every Nth u64 word. None = adaptive (see density).
-        density: Measured mean support fraction of the (k-1)-level frequent
-            itemsets, if the caller carries counts. Drives the adaptive
-            stride; None falls back to the K ladder.
-
-    Returns:
-        Tuple of (frequent_candidates, counts) — only candidates meeting min_count.
-    """
-    from .kernels import count_k3plus_sampled_prefilter, count_k3plus_fully_fused
-
-    if sample_stride is None:
-        if density is not None:
-            sample_stride = prefilter_stride_for_density(density)
-        # K ladder fallback: K as a proxy when no measured density is available
-        elif k <= 3:
-            sample_stride = 8  # 12.5% sample — plenty for dense bitvecs
-        elif k <= 5:
-            sample_stride = 4  # 25% sample — moderate density
-        else:
-            sample_stride = 2  # 50% sample — sparse, need accuracy
-
-    # Estimate candidate count
-    prefix_groups: dict[tuple, int] = {}
-    for itemset in prev_frequent:
-        prefix = itemset[:-1]
-        prefix_groups[prefix] = prefix_groups.get(prefix, 0) + 1
-    n_cands = sum(g * (g - 1) // 2 for g in prefix_groups.values())
-
-    if n_cands < SAMPLED_PREFILTER_THRESHOLD or n_u64s < sample_stride:
-        # Not enough candidates or bitvecs too small for sampling
-        return count_k3plus_fully_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count)
-
-    return count_k3plus_sampled_prefilter(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, sample_stride=sample_stride)
 
 
 def dispatch_k2_gpu_resident(bitvecs_gpu, freq_cols_gpu, n_u64s, min_count):

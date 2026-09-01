@@ -76,7 +76,7 @@ class TestThresholdValue:
 
 
 class TestKernelVariantResolution:
-    """resolved_kernel_variant + the prefilter gate (CPU-only decision logic)."""
+    """resolved_kernel_variant (CPU-only decision logic)."""
 
     def test_auto_resolves_to_shared(self, monkeypatch):
         from et_miner.gpu.dispatch import resolved_kernel_variant
@@ -101,33 +101,3 @@ class TestKernelVariantResolution:
         monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "turbo")
         with pytest.raises(ValueError, match="ET_MINER_KERNEL_VARIANT"):
             resolved_kernel_variant()
-
-
-class TestSampledPrefilterGate:
-    def test_off_by_default(self, monkeypatch):
-        """The prefilter is approximate — the 2x3090 campaign measured it
-        silently dropping 9,285 true K=3 itemsets on stress_k2 — so it must
-        never engage without an explicit opt-in."""
-        from et_miner.gpu.dispatch import use_sampled_prefilter
-
-        monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "legacy")
-        monkeypatch.delenv("ET_MINER_ENABLE_PREFILTER", raising=False)
-        assert use_sampled_prefilter(10_000_000, 64) is False
-
-    def test_opt_in_on_legacy_above_threshold(self, monkeypatch):
-        from et_miner.gpu.dispatch import SAMPLED_PREFILTER_THRESHOLD, use_sampled_prefilter
-
-        monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "legacy")
-        monkeypatch.setenv("ET_MINER_ENABLE_PREFILTER", "1")
-        assert use_sampled_prefilter(SAMPLED_PREFILTER_THRESHOLD, 8) is True
-        assert use_sampled_prefilter(SAMPLED_PREFILTER_THRESHOLD - 1, 8) is False
-        assert use_sampled_prefilter(SAMPLED_PREFILTER_THRESHOLD, 7) is False
-
-    def test_bypassed_under_shared_variant_even_when_enabled(self, monkeypatch):
-        """The tiled kernel enumerates whole tile grids — it cannot consume a
-        pruned candidate subset, so the prefilter is bypassed."""
-        from et_miner.gpu.dispatch import use_sampled_prefilter
-
-        monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "shared")
-        monkeypatch.setenv("ET_MINER_ENABLE_PREFILTER", "1")
-        assert use_sampled_prefilter(10_000_000, 64) is False

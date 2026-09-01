@@ -37,7 +37,6 @@ from .k3plus import (
     count_k3plus_allcounts,
     count_k3plus_fully_fused,
     count_k3plus_fully_fused_multi_gpu,
-    count_k3plus_sampled_prefilter,
     upload_k3plus_groups,
 )
 from .loader import (
@@ -66,7 +65,6 @@ __all__ = [
     "count_k3plus_gpu_resident_multi_gpu",
     "count_pairs_k2_allcounts",
     "count_k3plus_allcounts",
-    "count_k3plus_sampled_prefilter",
     "CANDS_PER_BLOCK",
     "count_csr_range",
     "count_csr_gather",

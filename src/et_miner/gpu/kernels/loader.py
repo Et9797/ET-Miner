@@ -67,8 +67,6 @@ _KERNEL_FILES: dict[str, str] = {
     "compact_threshold": "compact_threshold.cu",
     "count_shared_tiled_dense": "shared_tiled.cu",
     "count_shared_tiled_fused": "shared_tiled.cu",
-    "count_k3plus_sampled": "k3plus_sampled.cu",
-    "count_k3plus_indirect": "k3plus_indirect.cu",
     "csr_count_range": "csr_warp.cu",
     "csr_count_gather": "csr_warp.cu",
     "csr_write_gather": "csr_warp.cu",
@@ -83,6 +81,9 @@ _KERNEL_FILES: dict[str, str] = {
 # kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
     "k3plus_dense.cu": ["_decode_common.cu"],
+    "k3plus_fullyfused.cu": ["_decode_common.cu"],
+    "k3plus_gpu_resident.cu": ["_decode_common.cu"],
+    "decode_candidates.cu": ["_decode_common.cu"],
     "csr_warp.cu": ["_decode_common.cu"],
 }
 

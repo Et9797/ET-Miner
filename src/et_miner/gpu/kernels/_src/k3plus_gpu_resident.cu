@@ -21,23 +21,11 @@ void count_k3plus_gpu_resident(
                        + (long long)blockIdx.x + candidate_offset;
     if (cand_idx >= total_candidates) return;
 
-    // Binary search: find group g
-    long long lo = 0, hi = n_groups - 1;
-    while (lo < hi) {
-        long long mid = (lo + hi + 1) / 2;
-        if (cumulative_pairs[mid] <= cand_idx) lo = mid;
-        else hi = mid - 1;
-    }
-    long long g = lo;
-    long long pair_idx = cand_idx - cumulative_pairs[g];
-
-    // Triangular inverse -> suffix pair (i, j) within group
+    // Shared decode (_decode_common.cu, prepended by the loader), sized variant:
+    // groups are runs of rows of the sorted prev-level table.
+    long long g, i_val, j_val;
+    if (!_decode_candidate_sized(cumulative_pairs, group_sizes, n_groups, cand_idx, &g, &i_val, &j_val)) return;
     long long gs = group_starts[g];
-    long long gsize = group_sizes[g];
-
-    long long j_val = (long long)floor(0.5 + sqrt(0.25 + 2.0 * (double)pair_idx));
-    long long i_val = pair_idx - j_val * (j_val - 1) / 2;
-    if (j_val >= gsize || i_val >= j_val || i_val < 0) return;
 
     // Build candidate in shared memory:
     // prefix = first k_prev-1 cols of row gs (shared by all rows in group)

@@ -714,31 +714,16 @@ def _apriori_from_bitvecs(
             if session:
                 session.start_phase(f"k{k}_fully_fused_gpu")
 
-            from et_miner.gpu.dispatch import dispatch_k3plus_fused, dispatch_k3plus_sampled, use_sampled_prefilter
+            from et_miner.gpu.dispatch import dispatch_k3plus_fused
 
-            # V3: use sampled prefilter when candidate count is high enough
-            # (opt-in via ET_MINER_ENABLE_PREFILTER; off by default — the
-            # prefilter is approximate. See dispatch.use_sampled_prefilter)
-            # Estimate candidate count from prefix groups
+            # Estimate candidate count from prefix groups (level logging only)
             _prefix_groups: dict[tuple, int] = {}
             for itemset in prev_frequent:
                 _p = itemset[:-1]
                 _prefix_groups[_p] = _prefix_groups.get(_p, 0) + 1
             _est_cands = sum(g * (g - 1) // 2 for g in _prefix_groups.values())
 
-            if use_sampled_prefilter(_est_cands, n_u64s):
-                # Measured density of the previous level drives the sampling
-                # stride (falls back to the K ladder when counts are absent)
-                _prev_density = (
-                    sum(prev_counts.values()) / len(prev_counts) / n_transactions if prev_counts else None
-                )
-                frequent_candidates, counts = dispatch_k3plus_sampled(
-                    bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold, density=_prev_density
-                )
-            else:
-                frequent_candidates, counts = dispatch_k3plus_fused(
-                    bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold
-                )
+            frequent_candidates, counts = dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold)
 
             # Build results from frequent candidates (already filtered by kernel)
             current_frequent = []

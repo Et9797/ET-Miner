@@ -30,6 +30,11 @@ pub struct K3PlusGroupsResult {
     pub cumulative_pairs: Vec<i64>,
     /// Total number of candidate pairs across all groups
     pub total_candidates: i64,
+    /// Source row (index into the builder's input flat array) of each suffix
+    /// slot; parallels `suffixes`. Empty unless requested (`with_src_rows`):
+    /// it costs 8 B per row and only the sparse-CSR GPU path needs it (its
+    /// kernels map a candidate's two suffix slots back to prev-level rows).
+    pub suffix_src_rows: Vec<i64>,
 }
 
 /// Build prefix group arrays from flat (n_freq, k) row-major i32 array.
@@ -45,6 +50,8 @@ pub struct K3PlusGroupsResult {
 /// * `data` - Row-major flat slice of shape (n_freq, k), i32. NOT modified.
 /// * `n_freq` - Number of frequent itemsets (rows)
 /// * `k` - Itemset length (columns), must be >= 2
+/// * `with_src_rows` - Also record each suffix slot's source row
+///   (`suffix_src_rows`); false leaves it empty.
 ///
 /// # Returns
 /// `Some(K3PlusGroupsResult)` if valid groups exist, `None` otherwise.
@@ -55,6 +62,7 @@ pub fn build_k3plus_groups_from_flat_raw(
     data: &[i32],
     n_freq: usize,
     k: usize,
+    with_src_rows: bool,
 ) -> Option<K3PlusGroupsResult> {
     if n_freq < 2 || k < 2 {
         return None;
@@ -150,6 +158,8 @@ pub fn build_k3plus_groups_from_flat_raw(
     let mut suffixes: Vec<i32> = Vec::with_capacity(total_suffixes);
     let mut suffix_offsets: Vec<i64> = Vec::with_capacity(n_valid + 1);
     let mut cumulative_pairs: Vec<i64> = Vec::with_capacity(n_valid + 1);
+    let mut suffix_src_rows: Vec<i64> =
+        Vec::with_capacity(if with_src_rows { total_suffixes } else { 0 });
 
     prefix_offsets.push(0);
     suffix_offsets.push(0);
@@ -168,6 +178,9 @@ pub fn build_k3plus_groups_from_flat_raw(
         for j in 0..group.size {
             let row_idx = indices[group.start + j] as usize;
             suffixes.push(data[row_idx * k + prefix_len]);
+            if with_src_rows {
+                suffix_src_rows.push(row_idx as i64);
+            }
         }
         suffix_offsets.push(suffixes.len() as i64);
 
@@ -188,6 +201,7 @@ pub fn build_k3plus_groups_from_flat_raw(
         suffix_offsets,
         cumulative_pairs,
         total_candidates: cum_pairs,
+        suffix_src_rows,
     })
 }
 
@@ -473,8 +487,18 @@ pub fn prune_groups_apriori_raw(
     let n_groups = groups.suffix_offsets.len() - 1;
     let prefix_len = k - 2; // prefix items per group (candidate = prefix + 2 suffixes)
 
-    // Process groups in parallel, collect (prefix, valid_suffixes) per group
-    let group_results: Vec<(Vec<i32>, Vec<i32>)> = (0..n_groups)
+    // suffix_src_rows is optional but, when present, must parallel suffixes.
+    let with_rows = !groups.suffix_src_rows.is_empty();
+    if with_rows {
+        assert_eq!(
+            groups.suffix_src_rows.len(),
+            groups.suffixes.len(),
+            "suffix_src_rows must parallel suffixes"
+        );
+    }
+
+    // Process groups in parallel, collect (prefix, valid_suffixes, valid_rows) per group
+    let group_results: Vec<(Vec<i32>, Vec<i32>, Vec<i64>)> = (0..n_groups)
         .into_par_iter()
         .map(|g| {
             let pstart = groups.prefix_offsets[g] as usize;
@@ -531,8 +555,15 @@ pub fn prune_groups_apriori_raw(
                 .filter(|&(idx, _)| valid[idx])
                 .map(|(_, &v)| v)
                 .collect();
+            // ...and the same slots' source rows, when tracked.
+            let valid_rows: Vec<i64> = if with_rows {
+                let grows = &groups.suffix_src_rows[sstart..send];
+                (0..gsuf.len()).filter(|&idx| valid[idx]).map(|idx| grows[idx]).collect()
+            } else {
+                Vec::new()
+            };
 
-            (prefix.to_vec(), valid_sorted)
+            (prefix.to_vec(), valid_sorted, valid_rows)
         })
         .collect();
 
@@ -542,14 +573,16 @@ pub fn prune_groups_apriori_raw(
     let mut new_suffixes: Vec<i32> = Vec::new();
     let mut new_suffix_offsets: Vec<i64> = vec![0];
     let mut new_cumulative_pairs: Vec<i64> = vec![0];
+    let mut new_suffix_src_rows: Vec<i64> = Vec::new();
     let mut total_candidates: i64 = 0;
 
-    for (prefix, valid_sorted) in &group_results {
+    for (prefix, valid_sorted, valid_rows) in &group_results {
         if valid_sorted.len() >= 2 {
             new_prefix_items.extend_from_slice(prefix);
             new_prefix_offsets.push(new_prefix_items.len() as i64);
             new_suffixes.extend_from_slice(valid_sorted);
             new_suffix_offsets.push(new_suffixes.len() as i64);
+            new_suffix_src_rows.extend_from_slice(valid_rows);
             let n = valid_sorted.len() as i64;
             total_candidates += n * (n - 1) / 2;
             new_cumulative_pairs.push(total_candidates);
@@ -567,6 +600,7 @@ pub fn prune_groups_apriori_raw(
         suffix_offsets: new_suffix_offsets,
         cumulative_pairs: new_cumulative_pairs,
         total_candidates,
+        suffix_src_rows: new_suffix_src_rows,
     })
 }
 
@@ -590,7 +624,7 @@ mod tests {
             2, 3, 8, // row 5 — singleton group, should be filtered
         ];
 
-        let result = build_k3plus_groups_from_flat_raw(&data, 6, 3).unwrap();
+        let result = build_k3plus_groups_from_flat_raw(&data, 6, 3, false).unwrap();
 
         // 2 valid groups
         assert_eq!(result.prefix_offsets.len(), 3); // n_valid + 1
@@ -621,7 +655,7 @@ mod tests {
             1, 2, 7, // row 5
         ];
 
-        let result = build_k3plus_groups_from_flat_raw(&data, 6, 3).unwrap();
+        let result = build_k3plus_groups_from_flat_raw(&data, 6, 3, false).unwrap();
         assert_eq!(result.total_candidates, 4);
 
         // Suffixes should be sorted within each group (due to stable sort by full prefix)
@@ -640,13 +674,13 @@ mod tests {
     fn test_all_singletons() {
         // Every prefix is unique → no valid groups
         let data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
-        assert!(build_k3plus_groups_from_flat_raw(&data, 3, 3).is_none());
+        assert!(build_k3plus_groups_from_flat_raw(&data, 3, 3, false).is_none());
     }
 
     #[test]
     fn test_too_few_items() {
         let data: Vec<i32> = vec![1, 2, 3];
-        assert!(build_k3plus_groups_from_flat_raw(&data, 1, 3).is_none());
+        assert!(build_k3plus_groups_from_flat_raw(&data, 1, 3, false).is_none());
     }
 
     #[test]
@@ -660,7 +694,7 @@ mod tests {
             3, 4, // prefix [3], suffix 4
         ];
 
-        let result = build_k3plus_groups_from_flat_raw(&data, 5, 2).unwrap();
+        let result = build_k3plus_groups_from_flat_raw(&data, 5, 2, false).unwrap();
         assert_eq!(result.total_candidates, 2); // C(2,2) + C(2,2) = 1 + 1 = 2
     }
 
@@ -928,6 +962,7 @@ mod tests {
             suffix_offsets: vec![0, 3],
             cumulative_pairs: vec![0, 3],
             total_candidates: 3,
+            suffix_src_rows: vec![],
         };
 
         let prev_flat: Vec<i32> = vec![1, 2, 1, 3, 2, 3, 1, 4];
@@ -951,6 +986,7 @@ mod tests {
             suffix_offsets: vec![0, 2],
             cumulative_pairs: vec![0, 1],
             total_candidates: 1,
+            suffix_src_rows: vec![],
         };
 
         let prev_flat: Vec<i32> = vec![2, 3]; // (2,3) exists
@@ -968,6 +1004,7 @@ mod tests {
             suffix_offsets: vec![0, 2],
             cumulative_pairs: vec![0, 1],
             total_candidates: 1,
+            suffix_src_rows: vec![],
         };
 
         let prev_flat: Vec<i32> = vec![5, 6]; // (2,3) not in prev
@@ -991,6 +1028,7 @@ mod tests {
             suffix_offsets: vec![0, 2],
             cumulative_pairs: vec![0, 1],
             total_candidates: 1,
+            suffix_src_rows: vec![],
         };
 
         let prev_flat: Vec<i32> = vec![2, 3, 4, 1, 3, 4, 1, 2, 3, 1, 2, 4];
@@ -1010,6 +1048,7 @@ mod tests {
             suffix_offsets: vec![0, 2],
             cumulative_pairs: vec![0, 1],
             total_candidates: 1,
+            suffix_src_rows: vec![],
         };
 
         let prev_flat: Vec<i32> = vec![2, 3, 4]; // [1,3,4] missing
@@ -1030,11 +1069,72 @@ mod tests {
             suffix_offsets: vec![0, 2, 4],
             cumulative_pairs: vec![0, 1, 2],
             total_candidates: 2,
+            suffix_src_rows: vec![],
         };
 
         let prev_flat: Vec<i32> = vec![2, 3];
         let result = prune_groups_apriori_raw(&groups, &prev_flat, 1, 3).unwrap();
         assert_eq!(result.total_candidates, 1);
         assert_eq!(&result.prefix_items, &[1]);
+    }
+
+    #[test]
+    fn test_src_rows_map_back() {
+        // Shuffled input: every slot's source row must reproduce prefix + suffix,
+        // suffixes stay ascending within a group, and rows are only recorded
+        // when requested.
+        let data: Vec<i32> = vec![
+            1, 3, 6, // row 0
+            2, 3, 8, // row 1 — singleton group, dropped
+            1, 2, 9, // row 2
+            1, 2, 5, // row 3
+            1, 3, 4, // row 4
+            1, 2, 7, // row 5
+        ];
+        let (n, k) = (6usize, 3usize);
+        let r = build_k3plus_groups_from_flat_raw(&data, n, k, true).unwrap();
+        assert_eq!(r.suffix_src_rows.len(), r.suffixes.len());
+        let n_groups = r.suffix_offsets.len() - 1;
+        for g in 0..n_groups {
+            let prefix = &r.prefix_items[r.prefix_offsets[g] as usize..r.prefix_offsets[g + 1] as usize];
+            let (s0, s1) = (r.suffix_offsets[g] as usize, r.suffix_offsets[g + 1] as usize);
+            for s in s0..s1 {
+                let row = r.suffix_src_rows[s] as usize;
+                assert_eq!(&data[row * k..row * k + k - 1], prefix);
+                assert_eq!(data[row * k + k - 1], r.suffixes[s]);
+            }
+            assert!(r.suffixes[s0..s1].windows(2).all(|w| w[0] < w[1]));
+        }
+        let mut rows = r.suffix_src_rows.clone();
+        rows.sort();
+        assert_eq!(rows, vec![0, 2, 3, 4, 5]); // row 1 is the dropped singleton
+
+        let r2 = build_k3plus_groups_from_flat_raw(&data, n, k, false).unwrap();
+        assert!(r2.suffix_src_rows.is_empty());
+        assert_eq!(r2.suffixes, r.suffixes);
+    }
+
+    #[test]
+    fn test_prune_carries_src_rows() {
+        // Same fixture as test_prune_groups_k3_basic, with rows attached:
+        // suffix 4 is pruned, so its row (30) must disappear with it.
+        let groups = K3PlusGroupsResult {
+            prefix_items: vec![1],
+            prefix_offsets: vec![0, 1],
+            suffixes: vec![2, 3, 4],
+            suffix_offsets: vec![0, 3],
+            cumulative_pairs: vec![0, 3],
+            total_candidates: 3,
+            suffix_src_rows: vec![10, 20, 30],
+        };
+        let prev_flat: Vec<i32> = vec![1, 2, 1, 3, 2, 3, 1, 4];
+        let result = prune_groups_apriori_raw(&groups, &prev_flat, 4, 3).unwrap();
+        assert_eq!(result.suffixes, vec![2, 3]);
+        assert_eq!(result.suffix_src_rows, vec![10, 20]);
+
+        // Without rows nothing is tracked and nothing is asserted about them.
+        let bare = K3PlusGroupsResult { suffix_src_rows: vec![], ..groups };
+        let result = prune_groups_apriori_raw(&bare, &prev_flat, 4, 3).unwrap();
+        assert!(result.suffix_src_rows.is_empty());
     }
 }

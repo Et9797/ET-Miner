@@ -117,6 +117,28 @@ def main() -> int:
             idx, cnt = compact_threshold_filter(arr, 5, impl="compact")
             assert idx.tolist() == [0, 2, 3] and cnt.tolist() == [5, 7, 7]
 
+            # CSR warp kernels (sparse path): rows [0,2,4], [0,4], [1,2,4];
+            # one group over the three rows -> candidates (r0,r1), (r0,r2), (r1,r2)
+            from et_miner.gpu.kernels.csr_warp import count_csr_gather, count_csr_range, write_csr_gather
+
+            off = cp.asarray(np.array([0, 3, 5, 8], dtype=np.int64))
+            tids = cp.asarray(np.array([0, 2, 4, 0, 4, 1, 2, 4], dtype=np.int32))
+            g = {
+                "cp": cp.asarray(np.array([0, 3], dtype=np.int64)),
+                "gso": cp.asarray(np.array([0, 3], dtype=np.int64)),
+                "gsr": cp.asarray(np.array([0, 1, 2], dtype=np.int64)),
+                "tc": 3,
+            }
+            assert count_csr_range(off, tids, g, 0, 3).tolist() == [2, 2, 1]
+            ids = cp.asarray(np.array([0, 2], dtype=np.int64))
+            cnt = count_csr_gather(off, tids, g, ids)
+            assert cnt.tolist() == [2, 1]
+            out_off = cp.zeros(3, dtype=cp.int64)
+            cp.cumsum(cnt.astype(cp.int64), out=out_off[1:])
+            out_idx = cp.empty(int(out_off[-1]), dtype=cp.int32)
+            write_csr_gather(off, tids, g, ids, out_off, out_idx)
+            assert out_off.tolist() == [0, 2, 3] and out_idx.tolist() == [0, 4, 4]
+
             print("critical-wrapper smoke launches: OK")
         except Exception as e:
             print(f"CRITICAL WRAPPER LAUNCH FAILED: {type(e).__name__}: {e}")

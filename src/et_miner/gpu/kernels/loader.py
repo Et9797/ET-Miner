@@ -70,6 +70,9 @@ _KERNEL_FILES: dict[str, str] = {
     "count_k3plus_sampled": "k3plus_sampled.cu",
     "count_k3plus_indirect": "k3plus_indirect.cu",
     "csr_intersect_count": "csr_intersect.cu",
+    "csr_count_range": "csr_warp.cu",
+    "csr_count_gather": "csr_warp.cu",
+    "csr_write_gather": "csr_warp.cu",
     "bitvec_extract_tids": "bitvec_extract_tids.cu",
     "fill_row_ids": "fill_row_ids.cu",
     "bootstrap_copy": "bootstrap_copy.cu",
@@ -81,6 +84,7 @@ _KERNEL_FILES: dict[str, str] = {
 # kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
     "k3plus_dense.cu": ["_decode_common.cu"],
+    "csr_warp.cu": ["_decode_common.cu"],
 }
 
 _source_cache: dict[str, str] = {}

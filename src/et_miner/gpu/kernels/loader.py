@@ -81,6 +81,9 @@ _KERNEL_FILES: dict[str, str] = {
 # kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
     "k3plus_dense.cu": ["_decode_common.cu"],
+    "k3plus_fullyfused.cu": ["_decode_common.cu"],
+    "k3plus_gpu_resident.cu": ["_decode_common.cu"],
+    "decode_candidates.cu": ["_decode_common.cu"],
     "csr_warp.cu": ["_decode_common.cu"],
 }
 

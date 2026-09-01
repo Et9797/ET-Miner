@@ -19,21 +19,12 @@ void decode_candidates_gpu(
     long long cand_idx = result_indices[tid];  // int64: index exceeds 2^31 at K>=7
     int k = k_prev + 1;
 
-    // Binary search for group
-    long long lo = 0, hi = n_groups - 1;
-    while (lo < hi) {
-        long long mid = (lo + hi + 1) / 2;
-        if (cumulative_pairs[mid] <= cand_idx) lo = mid;
-        else hi = mid - 1;
-    }
-    long long g = lo;
-    long long pair_idx = (long long)cand_idx - cumulative_pairs[g];
-
+    // Shared decode (_decode_common.cu, prepended by the loader), sized variant.
+    // Survivor indices come from the counting kernel, so a failed decode is an
+    // upstream bug: leave the slot untouched rather than read out of bounds.
+    long long g, i_val, j_val;
+    if (!_decode_candidate_sized(cumulative_pairs, group_sizes, n_groups, cand_idx, &g, &i_val, &j_val)) return;
     long long gs = group_starts[g];
-
-    // Triangular inverse
-    long long j_val = (long long)floor(0.5 + sqrt(0.25 + 2.0 * (double)pair_idx));
-    long long i_val = pair_idx - j_val * (j_val - 1) / 2;
 
     // Write prefix (first k_prev-1 items from any row in group)
     long long out_base = tid * k;

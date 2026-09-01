@@ -94,19 +94,3 @@ def should_transition_to_sparse(
             return False
         return mean_count < n_transactions * DENSITY_CROSSOVER
     return k >= sparse_from_k
-
-
-def prefilter_stride_for_density(density: float) -> int:
-    """Sampling stride for the popcount prefilter, from measured density.
-
-    Dense bitvectors tolerate aggressive subsampling (any stride sees many
-    set bits); sparse ones need more words for a statistically reliable
-    estimate. Mirrors the old K-ladder (K<=3 → 8, K<=5 → 4, else 2) but
-    keyed on the previous level's mean support fraction instead of using K
-    as a density proxy.
-    """
-    if density > 0.02:
-        return 8  # 12.5% sample — plenty for dense bitvecs
-    if density > 0.005:
-        return 4  # 25% sample — moderate density
-    return 2  # 50% sample — sparse, need accuracy

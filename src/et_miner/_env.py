@@ -40,12 +40,6 @@ Variables:
     ET_MINER_TILED_MIN_GROUP_PAIRS     groups with fewer candidate pairs
                                        route to the legacy kernel even
                                        under the shared variant (default 64)
-    ET_MINER_ENABLE_PREFILTER          "1" opts in to the sampled popcount
-                                       prefilter on the legacy single-GPU
-                                       K>=3 path. OFF by default: it is
-                                       approximate and measurably drops
-                                       borderline itemsets (-0.7% of K=3
-                                       on the stress_k2 campaign preset)
 """
 
 from __future__ import annotations
@@ -135,10 +129,6 @@ def kernel_variant() -> str:
 
 def tiled_min_group_pairs() -> int:
     return _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", 64)
-
-
-def enable_prefilter() -> bool:
-    return os.environ.get("ET_MINER_ENABLE_PREFILTER", "").strip() == "1"
 
 
 def log_dir() -> Path:

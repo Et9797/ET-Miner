@@ -94,6 +94,7 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
                          n_gpus=max(gpus), max_length=2, timeout_s=1800))
     cfgs.append(_cfg("deepk-nonccl", "deep_k", disable_nccl=True, n_gpus=max(gpus)))
     cfgs.append(_cfg("deepk-density-auto", "deep_k", sparse_from_k="auto", n_gpus=max(gpus)))
+    cfgs.append(_cfg("deepk-density-auto-1g", "deep_k", sparse_from_k="auto", n_gpus=1))
     cfgs.append(_cfg("deepk-prefilter-off", "deep_k", n_gpus=1))
     cfgs.append(_cfg("deepk-single-prefilter-on", "deep_k", n_gpus=1, enable_prefilter=True))
     cfgs.append(_cfg("twophase-smoke", "smoke", two_phase=True, n_gpus=max(gpus)))

@@ -69,11 +69,21 @@ _KERNEL_FILES: dict[str, str] = {
     "count_shared_tiled_fused": "shared_tiled.cu",
     "count_k3plus_sampled": "k3plus_sampled.cu",
     "count_k3plus_indirect": "k3plus_indirect.cu",
-    "csr_intersect_count": "csr_intersect.cu",
+    "csr_count_range": "csr_warp.cu",
+    "csr_count_gather": "csr_warp.cu",
+    "csr_write_gather": "csr_warp.cu",
     "bitvec_extract_tids": "bitvec_extract_tids.cu",
     "fill_row_ids": "fill_row_ids.cu",
     "bootstrap_copy": "bootstrap_copy.cu",
     "csr_to_bitvec": "csr_to_bitvec.cu",
+}
+
+# Shared preludes prepended at NVRTC compile time: .cu file -> list of _src/
+# snippets it needs. Keeps one copy of code that must stay identical across
+# kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
+_KERNEL_PRELUDES: dict[str, list[str]] = {
+    "k3plus_dense.cu": ["_decode_common.cu"],
+    "csr_warp.cu": ["_decode_common.cu"],
 }
 
 _source_cache: dict[str, str] = {}
@@ -81,12 +91,17 @@ _kernel_cache: dict = {}
 _kernel_cache_lock = threading.Lock()
 
 
+def _read_src(cu_name: str) -> str:
+    return (resources.files("et_miner.gpu.kernels") / "_src" / cu_name).read_text(encoding="utf-8")
+
+
 def get_kernel_source(cu_name: str) -> str:
-    """Raw CUDA C source of a _src/*.cu file (cached)."""
+    """CUDA C source of a _src/*.cu file as compiled: its preludes
+    (``_KERNEL_PRELUDES``) followed by the file itself (cached)."""
     if cu_name not in _source_cache:
-        _source_cache[cu_name] = (
-            resources.files("et_miner.gpu.kernels") / "_src" / cu_name
-        ).read_text(encoding="utf-8")
+        parts = [_read_src(p) for p in _KERNEL_PRELUDES.get(cu_name, [])]
+        parts.append(_read_src(cu_name))
+        _source_cache[cu_name] = "\n".join(parts)
     return _source_cache[cu_name]
 
 

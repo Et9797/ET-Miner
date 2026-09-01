@@ -16,6 +16,7 @@
 //! - **ZERO-COPY sparse CSR support**
 
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 // Core modules containing pure Rust algorithms
@@ -208,15 +209,21 @@ fn apriori_from_csr<'py>(
 /// and GIL-free execution.
 ///
 /// Returns tuple of (prefix_items, prefix_offsets, suffixes, suffix_offsets,
-///                    cumulative_pairs, total_candidates) or None.
+///                    cumulative_pairs, suffix_src_rows, total_candidates) or None.
+/// `suffix_src_rows` (int64, parallel to `suffixes`) maps each suffix slot
+/// back to its row in `freq_flat`; it is empty unless `with_src_rows=True`
+/// (only the sparse-CSR GPU path needs it — 8 B per row otherwise wasted).
 #[pyfunction]
+#[pyo3(signature = (freq_flat, with_src_rows = false))]
 fn build_k3plus_groups_from_flat<'py>(
     py: Python<'py>,
     freq_flat: PyReadonlyArray2<'py, i32>,
+    with_src_rows: bool,
 ) -> Option<(
     Bound<'py, PyArray1<i32>>,
     Bound<'py, PyArray1<i64>>,
     Bound<'py, PyArray1<i32>>,
+    Bound<'py, PyArray1<i64>>,
     Bound<'py, PyArray1<i64>>,
     Bound<'py, PyArray1<i64>>,
     i64,
@@ -238,7 +245,7 @@ fn build_k3plus_groups_from_flat<'py>(
     // Release GIL during heavy computation (parallel sort + boundary scan)
     #[allow(deprecated)]  // allow_threads → detach in PyO3 0.28
     let result = py.allow_threads(|| {
-        core::groups::build_k3plus_groups_from_flat_raw(data, n_freq, k)
+        core::groups::build_k3plus_groups_from_flat_raw(data, n_freq, k, with_src_rows)
     })?;
 
     Some((
@@ -247,6 +254,7 @@ fn build_k3plus_groups_from_flat<'py>(
         PyArray1::from_vec(py, result.suffixes),
         PyArray1::from_vec(py, result.suffix_offsets),
         PyArray1::from_vec(py, result.cumulative_pairs),
+        PyArray1::from_vec(py, result.suffix_src_rows),
         result.total_candidates,
     ))
 }
@@ -266,7 +274,7 @@ fn prune_closed_flat<'py>(
     current_counts: PyReadonlyArray1<'py, i64>,
     prev_flat: PyReadonlyArray2<'py, i32>,
     prev_counts: PyReadonlyArray1<'py, i64>,
-) -> Bound<'py, PyArray1<bool>> {
+) -> PyResult<Bound<'py, PyArray1<bool>>> {
     let n_current = current_flat.shape()[0];
     let k = current_flat.shape()[1];
     let n_prev = prev_flat.shape()[0];
@@ -308,6 +316,13 @@ fn prune_closed_flat<'py>(
         }
     };
 
+    if k >= 2 && !core::groups::is_sorted_by_row(prev_flat_slice, n_prev, k - 1) {
+        return Err(PyValueError::new_err(
+            "prev_flat must be sorted lexicographically by row for the closed-prune binary search \
+             (K>=3 decode order is j-major within a group, not lex order — lexsort current_flat at level end)",
+        ));
+    }
+
     #[allow(deprecated)]
     let mask = py.allow_threads(|| {
         core::groups::prune_closed_flat_raw(
@@ -321,7 +336,7 @@ fn prune_closed_flat<'py>(
         )
     });
 
-    PyArray1::from_vec(py, mask)
+    Ok(PyArray1::from_vec(py, mask))
 }
 
 /// Compact variant: prune non-closed itemsets and return pruned (flat, counts)
@@ -342,7 +357,7 @@ fn prune_closed_flat_compact<'py>(
     current_counts: PyReadonlyArray1<'py, i64>,
     prev_flat: PyReadonlyArray2<'py, i32>,
     prev_counts: PyReadonlyArray1<'py, i64>,
-) -> (Bound<'py, PyArray1<i32>>, Bound<'py, PyArray1<i64>>, usize) {
+) -> PyResult<(Bound<'py, PyArray1<i32>>, Bound<'py, PyArray1<i64>>, usize)> {
     let n_current = current_flat.shape()[0];
     let k = current_flat.shape()[1];
     let n_prev = prev_flat.shape()[0];
@@ -384,6 +399,13 @@ fn prune_closed_flat_compact<'py>(
         }
     };
 
+    if k >= 2 && !core::groups::is_sorted_by_row(prev_flat_slice, n_prev, k - 1) {
+        return Err(PyValueError::new_err(
+            "prev_flat must be sorted lexicographically by row for the closed-prune binary search \
+             (K>=3 decode order is j-major within a group, not lex order — lexsort current_flat at level end)",
+        ));
+    }
+
     #[allow(deprecated)]
     let (out_flat, out_counts) = py.allow_threads(|| {
         core::groups::prune_closed_flat_compact_raw(
@@ -400,7 +422,7 @@ fn prune_closed_flat_compact<'py>(
     let n_kept = out_counts.len();
     let flat_arr = PyArray1::from_vec(py, out_flat);
     let counts_arr = PyArray1::from_vec(py, out_counts);
-    (flat_arr, counts_arr, n_kept)
+    Ok((flat_arr, counts_arr, n_kept))
 }
 
 /// Parallel unique-column extraction from a flat
@@ -435,7 +457,11 @@ fn unique_columns_from_flat<'py>(
 ///
 /// Takes group arrays + prev_flat, returns pruned group arrays or None.
 /// Uses Rayon parallel iteration over groups with HashSet membership tests.
+/// The optional `suffix_src_rows` (int64, parallel to `suffixes`) is carried
+/// through the prune slot-for-slot; the result tuple always has it as its
+/// sixth element (empty when it was not supplied).
 #[pyfunction]
+#[pyo3(signature = (prefix_items, prefix_offsets, suffixes, suffix_offsets, cumulative_pairs, total_candidates, prev_flat, suffix_src_rows = None))]
 fn prune_groups_apriori<'py>(
     py: Python<'py>,
     prefix_items: PyReadonlyArray1<'py, i32>,
@@ -445,10 +471,12 @@ fn prune_groups_apriori<'py>(
     cumulative_pairs: PyReadonlyArray1<'py, i64>,
     total_candidates: i64,
     prev_flat: PyReadonlyArray2<'py, i32>,
+    suffix_src_rows: Option<PyReadonlyArray1<'py, i64>>,
 ) -> Option<(
     Bound<'py, PyArray1<i32>>,
     Bound<'py, PyArray1<i64>>,
     Bound<'py, PyArray1<i32>>,
+    Bound<'py, PyArray1<i64>>,
     Bound<'py, PyArray1<i64>>,
     Bound<'py, PyArray1<i64>>,
     i64,
@@ -476,6 +504,7 @@ fn prune_groups_apriori<'py>(
         suffix_offsets: slice_or_copy_i64(&suffix_offsets),
         cumulative_pairs: slice_or_copy_i64(&cumulative_pairs),
         total_candidates,
+        suffix_src_rows: suffix_src_rows.as_ref().map(slice_or_copy_i64).unwrap_or_default(),
     };
 
     let prev_flat_owned: Vec<i32>;
@@ -498,6 +527,7 @@ fn prune_groups_apriori<'py>(
         PyArray1::from_vec(py, result.suffixes),
         PyArray1::from_vec(py, result.suffix_offsets),
         PyArray1::from_vec(py, result.cumulative_pairs),
+        PyArray1::from_vec(py, result.suffix_src_rows),
         result.total_candidates,
     ))
 }
@@ -538,7 +568,7 @@ fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(unique_columns_from_flat, m)?)?;
 
     // Version info
-    m.add("__version__", "0.1.0")?;
+    m.add("__version__", "0.2.0")?;
     m.add("__author__",  "E. Ahmic")?;
 
     Ok(())

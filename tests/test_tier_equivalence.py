@@ -4,6 +4,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
 
     Tier 1 Polars == Tier 2 Rust (sparse=True)
         == single-GPU legacy == multi-GPU legacy == shared multi-GPU
+        == single-GPU sparse CSR (sparse_from_k=3) == multi-GPU sparse CSR
         == efficient-apriori (the canonical oracle)
 
 Comparisons are exact on itemsets AND absolute counts — never weakened to
@@ -190,3 +191,25 @@ def test_multi_gpu_shared_matches_oracle(smoke_dataset, oracle_set, monkeypatch)
         apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2)
     )
     _assert_counted_sets_equal(got, oracle_set, "shared multi-GPU vs efficient-apriori")
+
+
+@pytest.mark.gpu
+def test_single_gpu_sparse_matches_oracle(smoke_dataset, oracle_set):
+    """sparse_from_k=3 forces the dense→sparse CSR transition on the dense-shaped
+    smoke preset, so every level from K=3 runs on the GPU-resident shard."""
+    df, _ = smoke_dataset
+    got = _result_to_counted_set(
+        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, sparse_from_k=3)
+    )
+    _assert_counted_sets_equal(got, oracle_set, "single-GPU sparse CSR (sparse_from_k=3) vs efficient-apriori")
+
+
+@pytest.mark.gpu
+def test_multi_gpu_sparse_matches_oracle(smoke_dataset, oracle_set):
+    if _gpu_count() < 2:
+        pytest.skip("needs 2 CUDA devices")
+    df, _ = smoke_dataset
+    got = _result_to_counted_set(
+        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2, sparse_from_k=3)
+    )
+    _assert_counted_sets_equal(got, oracle_set, "multi-GPU sparse CSR (sparse_from_k=3) vs efficient-apriori")

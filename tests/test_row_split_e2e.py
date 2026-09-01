@@ -190,3 +190,111 @@ class TestOOMRegression:
 
         assert limited == unlimited
         assert len(limited) > 0
+
+
+# ── Closed-itemset pruning on the sparse path (regression) ─────────────────
+# Two datasets, each asserting sparse+prune == dense+prune == CPU+prune on
+# exact itemsets AND counts. Both were run against the unfixed tree
+# (main @ 3d94c52) first: Spec A's sparse leg fails (the CSR tidset rows
+# are built before prune_closed filters current_flat, so rows misalign at
+# the next level whenever a pruned row precedes a surviving one); Spec B's
+# dense leg fails (the Rust closed-prune binary-searches a K=3 table that
+# is emitted in j-major group order, not lex order, under-prunes, and then
+# emits K=5 itemsets the CPU tier never generates).
+
+PRUNE_BG_SPEC = SynthSpec(
+    name="prune_bg",
+    n_rows=50_000,
+    vocab_size=1_500,
+    zipf_a=1.3,
+    row_len_mean=10,
+    row_len_max=40,
+    motif_count=4,
+    motif_size=6,
+    motif_penetration=0.015,
+    min_support=0.004,
+    seed=23,
+)
+
+
+def _spec_a_df() -> tuple[pl.DataFrame, float]:
+    """Sparse-shaped background with item IDs shifted by +10 (so the block
+    owns the lowest columns), plus a 1,000-row block [0..5] and 500
+    single-item rows per block item. Block pairs are closed (1,000 vs 1,500
+    singles) but every block triple equals its pairs (1,000), so closed
+    pruning removes the 20 triples at K=3 — a sparse level under
+    sparse_from_k=3 — from row positions 0..19, ahead of every survivor."""
+    df, _ = generate_transactions(PRUNE_BG_SPEC)
+    dtype = df.schema["items"]
+    background = df.select(pl.col("items").list.eval(pl.element() + 10).cast(dtype))
+    block = pl.DataFrame({"items": [[0, 1, 2, 3, 4, 5]] * 1000}).with_columns(pl.col("items").cast(dtype))
+    singles = pl.DataFrame({"items": [[i] for i in range(6) for _ in range(500)]}).with_columns(
+        pl.col("items").cast(dtype)
+    )
+    return pl.concat([background, block, singles]), PRUNE_BG_SPEC.min_support
+
+
+def _spec_b_df(m: int = 12) -> tuple[pl.DataFrame, float]:
+    """1,000 rows [0..m), 100 rows per pair and 100 rows per item: singles
+    2,200, pairs 1,100, triples and deeper 1,000. Pairs and triples are
+    closed, so the K=3 table is emitted in j-major group order (the K=2
+    group (0,) has 11 suffixes → 55 triangular-order candidates) and
+    pruning first fires at K=4, where every quad equals its triples. Block
+    sizes 6 and 8 do not reproduce the under-pruning (lucky lookups still
+    prune all or all-but-one quads); 12 does."""
+    import itertools
+
+    rows = [list(range(m))] * 1000
+    rows += [[i, j] for i, j in itertools.combinations(range(m), 2) for _ in range(100)]
+    rows += [[i] for i in range(m) for _ in range(100)]
+    df = pl.DataFrame({"items": rows}, schema={"items": pl.List(pl.Int64)})
+    return df, 900 / df.height
+
+
+def _prune_legs(df: pl.DataFrame, min_support: float, *, sparse_from_k=3) -> tuple[set, set, set]:
+    n = df.height
+    kw = dict(min_support=min_support, item_col="items", prune_equal_support=True)
+    cpu = _counted(apriori(df, **kw), n)
+    dense = _counted(apriori(df, use_gpu=True, n_gpus=2, **kw), n)
+    sparse = _counted(apriori(df, use_gpu=True, n_gpus=2, sparse_from_k=sparse_from_k, **kw), n)
+    return cpu, dense, sparse
+
+
+class TestClosedPruning:
+    def test_spec_a_sparse_misalignment(self):
+        df, min_support = _spec_a_df()
+        cpu, dense, sparse = _prune_legs(df, min_support)
+        assert len(cpu) > 0
+        assert dense == cpu, "dense+prune diverged from CPU+prune"
+        assert sparse == cpu, "sparse+prune diverged from CPU+prune (CSR rows misaligned after prune_closed)"
+
+    def test_spec_b_dense_under_pruning(self):
+        df, min_support = _spec_b_df()
+        cpu, dense, sparse = _prune_legs(df, min_support)
+        assert len(cpu) > 0
+        assert dense == cpu, "dense+prune emitted itemsets CPU+prune never generates (closed-prune under-pruning)"
+        assert sparse == cpu, "sparse+prune diverged from CPU+prune"
+
+
+class TestTwoPhaseSparse:
+    """The exact reported combination: mine_two_phase defaults to
+    sparse_from_k="auto" and forces prune_equal_support=True."""
+
+    def test_auto_prune_matches_cpu(self, tmp_path):
+        from et_miner.gpu.row_split import mine_two_phase
+
+        df, min_support = _spec_a_df()
+        n = df.height
+        out = tmp_path / "two_phase"
+        out.mkdir()
+        mine_two_phase(
+            df,
+            phase1_support=min_support,
+            phase2_support=min_support,
+            item_col="items",
+            n_gpus=2,
+            output_dir=str(out),
+        )
+        got = _counted_from_parquet_dir(out / "phase2", n)
+        expected = _counted(apriori(df, min_support=min_support, item_col="items", prune_equal_support=True), n)
+        assert got == expected

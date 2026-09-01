@@ -6,6 +6,7 @@ Import-safe without CuPy.
 """
 
 from .batch import count_itemsets_cuda
+from .csr_warp import CANDS_PER_BLOCK, count_csr_gather, count_csr_range, write_csr_gather
 from .decode import decode_k2_pairs_flat, decode_k3plus_candidates, decode_k3plus_flat
 from .filter import compact_threshold_filter
 from .shared_tiled import (
@@ -31,7 +32,6 @@ from .k3plus import (
     K3PlusGroups,
     build_k3plus_groups,
     build_k3plus_groups_from_flat,
-    count_csr_intersections,
     count_itemsets_fused_k3plus,
     count_itemsets_fused_k3plus_multi_gpu,
     count_k3plus_allcounts,
@@ -67,7 +67,10 @@ __all__ = [
     "count_pairs_k2_allcounts",
     "count_k3plus_allcounts",
     "count_k3plus_sampled_prefilter",
-    "count_csr_intersections",
+    "CANDS_PER_BLOCK",
+    "count_csr_range",
+    "count_csr_gather",
+    "write_csr_gather",
     "upload_k3plus_groups",
     "build_k3plus_groups",
     "build_k3plus_groups_from_flat",

@@ -22,14 +22,23 @@ from et_miner.core.result import (
 )
 from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse
 from et_miner.gpu.mining import (
-    _SparseState,
+    _anchor_keep_mask,
     _apply_anchor_filter,
-    _convert_to_tidsets,
     _prune_closed_flat,
-    _rows_sorted,
+    _prune_closed_mask,
     _prune_groups_apriori,
+    _rows_sorted,
 )
 from et_miner.gpu.nccl import _init_nccl
+from et_miner.gpu.sparse_csr import (
+    SparseMiningState,
+    convert_shards_to_csr,
+    free_groups,
+    log_new_shards,
+    materialize_survivors,
+    run_sparse_level,
+    upload_groups_to_shards,
+)
 from et_miner.gpu.row_split_chunks import (
     compute_chunk_budget,
     plan_group_chunks,
@@ -96,7 +105,6 @@ def _apriori_row_split_multi_gpu(
         get_popcount_kernel,
         count_pairs_k2_allcounts,
         count_k3plus_allcounts,
-        count_csr_intersections,
         upload_k3plus_groups,
         build_k3plus_groups_from_flat,
         decode_k2_pairs_flat,
@@ -111,8 +119,10 @@ def _apriori_row_split_multi_gpu(
 
     min_count_threshold = _min_count(min_support, n_transactions)
 
-    # Local state for sparse CSR mode (replaces old function-attribute mutation)
-    sparse_state = _SparseState()
+    # Sparse CSR mode state: one GPU-resident shard per device (gpu.sparse_csr),
+    # sticky once the transition fires.
+    sparse_state = SparseMiningState()
+    _sparse_groups_gpu = None
 
     logger.info(
         f"  Row-split multi-GPU: {n_gpus} GPUs, min_count={min_count_threshold:,} (GPU-resident dense counting)"
@@ -253,6 +263,12 @@ def _apriori_row_split_multi_gpu(
         else:
             prev_counts_flat = None  # counts unknown — closed pruning and auto transition wait one level
         del table, itemsets_col, flat_item_ids, flat_col_ids, item_to_col
+        if prune_closed and not _rows_sorted(prev_frequent_flat):
+            # Parquet order is not row-sorted; the closed-prune binary search needs it.
+            _order = np.lexsort(prev_frequent_flat[:, ::-1].T)
+            prev_frequent_flat = prev_frequent_flat[_order]
+            if prev_counts_flat is not None:
+                prev_counts_flat = prev_counts_flat[_order]
 
         resume_time = time.perf_counter() - t_resume
         logger.info(f"  RESUME: {n_loaded:,} itemsets → col indices in {resume_time:.1f}s")
@@ -317,6 +333,13 @@ def _apriori_row_split_multi_gpu(
     try:
         while k <= effective_max_length and prev_frequent_flat.shape[0] >= k:
             _k_start = time.perf_counter()
+            # Sparse mode bookkeeping: the survivor candidate indices (filtered and
+            # permuted in lockstep with current_flat by every later step, so the
+            # shards are materialized in the final row order), the resident group
+            # arrays of this level, and the candidate count for the level callback.
+            _surv = None
+            _sparse_groups_gpu = None
+            _n_cands_cb = 0
 
             # V3: Sparse CSR mode — fixed K-level or measured density ("auto").
             # Sticky once entered: the transition frees the bitvecs, so later
@@ -334,9 +357,7 @@ def _apriori_row_split_multi_gpu(
             )
 
             if _sparse_mode:
-                # ═══ V3 SPARSE CSR PATH ═══
-                # Density transition: bitvecs → CSR tid-sets at the K boundary.
-                # First time entering sparse mode: convert bitvecs → tidsets, free VRAM.
+                # ═══ SPARSE CSR PATH — GPU-resident row-split shards (gpu.sparse_csr) ═══
                 if not sparse_state.active:
                     _trigger = (
                         f"measured mean support {_mean_count / n_transactions:.4%} "
@@ -345,24 +366,10 @@ def _apriori_row_split_multi_gpu(
                         else f"fixed sparse_from_k={sparse_from_k}"
                     )
                     logger.info(f"  ═══ DENSITY TRANSITION at K={k} ({_trigger}): dense bitvec → sparse CSR ═══")
-                    bv0, did0, _ = bitvecs_list[0]
-                    with cp.cuda.Device(did0):
-                        n_u64s_local = bv0.shape[1]
-                    # Adaptive batch_size: fit in VRAM headroom (H100=81GB, H200=141GB)
-                    with cp.cuda.Device(did0):
-                        free_mem = cp.cuda.Device(did0).mem_info[0]
-                    bytes_per_row = n_u64s_local * 8  # uint64 words → bytes
-                    # 2× bytes_per_row: one for and_results + one for bv[col_indices] gather
-                    max_batch = max(100, int(free_mem * 0.5 / (2 * bytes_per_row)))
-                    tidset_offsets, tidset_indices = _convert_to_tidsets(
-                        bitvecs_list,
-                        prev_frequent_flat,
-                        n_u64s_local,
-                        batch_size=min(max_batch, 10_000),
-                        verify=True,
-                    )
-                    # Store device IDs for multi-GPU CSR (bitvecs_list about to be cleared)
-                    sparse_state.device_ids = [did for _, did, _ in bitvecs_list]
+                    # Each GPU converts its own bitvec shard on-device (shard-local
+                    # tids, no host merge); per-shard row lengths are verified
+                    # against the dense counts of the previous level exactly.
+                    sparse_state.shards = convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat)
 
                     # Free ALL bitvec VRAM across all GPUs
                     for bv, did, _ in bitvecs_list:
@@ -371,11 +378,10 @@ def _apriori_row_split_multi_gpu(
                             cp.get_default_memory_pool().free_all_blocks()
                     bitvecs_list.clear()
                     logger.debug("    Freed bitvec VRAM across all GPUs")
-                    # Store state for subsequent K-levels
-                    sparse_state.active = True
 
-                # Build groups from prev_frequent
-                groups_info = build_k3plus_groups_from_flat(prev_frequent_flat)
+                # Build groups from prev_frequent, with the suffix-slot → row
+                # permutation the CSR kernels enumerate candidates from.
+                groups_info = build_k3plus_groups_from_flat(prev_frequent_flat, with_src_rows=True)
 
                 # Apriori pruning (reuse A3) — Rust fast path with Python fallback
                 if prune_apriori and groups_info is not None:
@@ -394,170 +400,43 @@ def _apriori_row_split_multi_gpu(
 
                 if groups_info is not None and groups_info.total_candidates > 0:
                     tc = groups_info.total_candidates
+                    _n_cands_cb = tc
                     logger.info(f"  K={k}: {tc:,} candidates (CSR sparse mode)")
 
-                    # Build candidate pair arrays: for each group, enumerate suffix pairs
-                    # Each pair (i, j) maps to indices in prev_frequent_flat
-                    pair_a_list, pair_b_list = [], []
-                    so = groups_info.suffix_offsets
-                    cp_arr = groups_info.cumulative_pairs
+                    # Count on every shard (in-kernel candidate enumeration), reduce
+                    # the int32 partials, compact survivors — the dense chunk loop.
+                    _sparse_groups_gpu = upload_groups_to_shards(groups_info, sparse_state.shards)
+                    _surv, current_counts_raw = run_sparse_level(
+                        sparse_state.shards,
+                        groups_info,
+                        _sparse_groups_gpu,
+                        min_count_threshold,
+                        nccl_comms=nccl_comms,
+                        use_nccl=_use_nccl,
+                        level_label=f"K={k}",
+                    )
+                    n_freq = len(_surv)
 
-                    for g in range(len(so) - 1):
-                        sstart, send = int(so[g]), int(so[g + 1])
-                        gsuf = groups_info.suffixes[sstart:send]
-                        prefix = tuple(
-                            int(x)
-                            for x in groups_info.prefix_items[
-                                int(groups_info.prefix_offsets[g]) : int(groups_info.prefix_offsets[g + 1])
-                            ]
-                        )
+                    if n_freq > 0:
+                        current_flat = decode_k3plus_flat(_surv, groups_info, k)
+                        current_counts_raw = current_counts_raw.astype(np.int64)
 
-                        # Map suffix → index in prev_frequent_flat
-                        # Build lookup: tuple(itemset) → index
-                        if sparse_state.prev_idx_lookup is None:
-                            sparse_state.prev_idx_lookup = {
-                                tuple(int(x) for x in prev_frequent_flat[i]): i for i in range(len(prev_frequent_flat))
-                            }
-                        idx_lookup = sparse_state.prev_idx_lookup
-
-                        for si_pos in range(len(gsuf)):
-                            for sj_pos in range(si_pos + 1, len(gsuf)):
-                                si, sj = int(gsuf[si_pos]), int(gsuf[sj_pos])
-                                key_i = prefix + (si,)
-                                key_j = prefix + (sj,)
-                                idx_i = idx_lookup.get(key_i)
-                                idx_j = idx_lookup.get(key_j)
-                                if idx_i is not None and idx_j is not None:
-                                    pair_a_list.append(idx_i)
-                                    pair_b_list.append(idx_j)
-
-                    if pair_a_list:
-                        n_pairs = len(pair_a_list)
-                        pair_a_np = np.array(pair_a_list, dtype=np.int64)
-                        pair_b_np = np.array(pair_b_list, dtype=np.int64)
-
-                        device_ids_csr = sparse_state.device_ids
-                        n_gpus_avail = len(device_ids_csr)
-
-                        if n_gpus_avail <= 1 or n_pairs < 1000:
-                            # Single GPU: direct (avoid ThreadPool overhead for small workloads)
-                            with cp.cuda.Device(device_ids_csr[0] if device_ids_csr else 0):
-                                offsets_gpu = cp.array(tidset_offsets, dtype=cp.int64)
-                                indices_gpu = cp.array(tidset_indices, dtype=cp.int32)
-                                pa_gpu = cp.array(pair_a_np, dtype=cp.int64)
-                                pb_gpu = cp.array(pair_b_np, dtype=cp.int64)
-                                counts_gpu = count_csr_intersections(offsets_gpu, indices_gpu, pa_gpu, pb_gpu, n_pairs)
-                                counts_cpu = counts_gpu.get()
-                                del offsets_gpu, indices_gpu, pa_gpu, pb_gpu, counts_gpu
-                                cp.get_default_memory_pool().free_all_blocks()
-                        else:
-                            # Multi-GPU: partition pairs across GPUs
-                            pairs_per_gpu = (n_pairs + n_gpus_avail - 1) // n_gpus_avail
-
-                            def _csr_on_gpu(device_id, p_start, p_end):
-                                with cp.cuda.Device(device_id):
-                                    off_gpu = cp.array(tidset_offsets, dtype=cp.int64)
-                                    idx_gpu = cp.array(tidset_indices, dtype=cp.int32)
-                                    pa_gpu = cp.array(pair_a_np[p_start:p_end], dtype=cp.int64)
-                                    pb_gpu = cp.array(pair_b_np[p_start:p_end], dtype=cp.int64)
-                                    result = count_csr_intersections(off_gpu, idx_gpu, pa_gpu, pb_gpu, p_end - p_start)
-                                    result_cpu = result.get()
-                                    del off_gpu, idx_gpu, pa_gpu, pb_gpu, result
-                                    cp.get_default_memory_pool().free_all_blocks()
-                                    return result_cpu
-
-                            with ThreadPoolExecutor(max_workers=n_gpus_avail) as pool:
-                                futures = []
-                                for i, did in enumerate(device_ids_csr):
-                                    ps = i * pairs_per_gpu
-                                    pe = min(ps + pairs_per_gpu, n_pairs)
-                                    if ps < pe:
-                                        futures.append(pool.submit(_csr_on_gpu, did, ps, pe))
-                                counts_cpu = np.concatenate([f.result() for f in futures])
-
-                            logger.debug(f"    CSR intersect: {n_pairs:,} pairs across {n_gpus_avail} GPUs")
-
-                        # Filter frequent candidates
-                        freq_mask = counts_cpu >= min_count_threshold
-                        freq_pair_indices = np.where(freq_mask)[0]
-                        freq_cand_counts = counts_cpu[freq_mask]
-                        n_freq = len(freq_pair_indices)
+                        # V3 B6: Anchor filter (sparse CSR path) — survivors in lockstep
+                        _keep = _anchor_keep_mask(current_flat, anchor_col_arr, k)
+                        if _keep is not None:
+                            _n_before = n_freq
+                            current_flat = current_flat[_keep]
+                            current_counts_raw = current_counts_raw[_keep]
+                            _surv = _surv[_keep]
+                            n_freq = len(_surv)
+                            if n_freq < _n_before:
+                                logger.debug(
+                                    f"    Anchor filter K={k}: {_n_before:,} → {n_freq:,} ({100 * (1 - n_freq / _n_before):.1f}% filtered)"
+                                )
 
                         if n_freq > 0:
-                            # Decode candidate pairs → flat itemset array
-                            decoded = []
-                            for pi in freq_pair_indices:
-                                a_idx, b_idx = pair_a_list[pi], pair_b_list[pi]
-                                itemset_a = tuple(int(x) for x in prev_frequent_flat[a_idx])
-                                itemset_b = tuple(int(x) for x in prev_frequent_flat[b_idx])
-                                # Join: shared prefix + two suffixes
-                                prefix = itemset_a[:-1]
-                                new_itemset = prefix + (itemset_a[-1], itemset_b[-1])
-                                decoded.append(new_itemset)
-
-                            current_flat = np.array(decoded, dtype=np.int32)
-                            current_counts_raw = freq_cand_counts.astype(np.int64)
-
-                            # V3 B6: Anchor filter (sparse CSR path)
-                            if anchor_col_arr is not None:
-                                _n_before = len(current_flat)
-                                current_flat, current_counts_raw, n_freq = _apply_anchor_filter(
-                                    current_flat, current_counts_raw, anchor_col_arr, k
-                                )
-                                if n_freq < _n_before:
-                                    # Rebuild freq_pair_indices to match filtered current_flat
-                                    anchor_mask_csr = np.zeros(_n_before, dtype=bool)
-                                    _tmp_flat = np.array(decoded, dtype=np.int32)
-                                    for _col in range(_tmp_flat.shape[1]):
-                                        anchor_mask_csr |= np.isin(_tmp_flat[:, _col], anchor_col_arr)
-                                    freq_pair_indices = freq_pair_indices[anchor_mask_csr]
-                                    freq_cand_counts = freq_cand_counts[anchor_mask_csr]
-                                    del _tmp_flat, anchor_mask_csr
-
                             items_flat = col_to_item_arr[current_flat]
                             _flush_or_defer(items_flat, current_counts_raw / n_transactions, k)
-
-                            # Skip tidset building at max_length — no K+1 iteration needed
-                            if k >= effective_max_length:
-                                break
-
-                            # Build new tid-sets for K+1: intersect parent tid-sets on CPU
-                            # Pre-allocate numpy buffer using known intersection sizes
-                            total_tids_new = int(np.sum(freq_cand_counts))
-                            new_offsets = np.empty(n_freq + 1, dtype=np.int64)
-                            new_offsets[0] = 0
-                            new_indices = np.empty(total_tids_new, dtype=np.int32)
-                            write_pos = 0
-                            for out_i, pi in enumerate(freq_pair_indices):
-                                a_idx, b_idx = pair_a_list[pi], pair_b_list[pi]
-                                a_start = int(tidset_offsets[a_idx])
-                                a_end = int(tidset_offsets[a_idx + 1])
-                                b_start = int(tidset_offsets[b_idx])
-                                b_end = int(tidset_offsets[b_idx + 1])
-                                tids_a = tidset_indices[a_start:a_end]
-                                tids_b = tidset_indices[b_start:b_end]
-                                isect = np.intersect1d(tids_a, tids_b, assume_unique=True)
-                                n_isect = len(isect)
-                                assert write_pos + n_isect <= total_tids_new, (
-                                    f"CSR buffer overrun at itemset {out_i}: {write_pos} + {n_isect} > {total_tids_new}"
-                                )
-                                new_indices[write_pos : write_pos + n_isect] = isect
-                                write_pos += n_isect
-                                new_offsets[out_i + 1] = write_pos
-
-                            assert write_pos <= total_tids_new, f"CSR buffer overrun: {write_pos} > {total_tids_new}"
-                            tidset_offsets = new_offsets
-                            tidset_indices = new_indices[:write_pos]
-
-                            total_tids = len(tidset_indices)
-                            avg_sup = total_tids / n_freq if n_freq > 0 else 0
-                            tidset_mb = (len(tidset_offsets) * 8 + len(tidset_indices) * 4) / 1024**2
-                            logger.debug(
-                                f"    New tidsets: {n_freq:,} itemsets, avg support {avg_sup:.0f}, {tidset_mb:.1f} MB"
-                            )
-
-                # Clean up per-K state (NOT device_ids — persists across K-levels)
-                sparse_state.prev_idx_lookup = None
 
             elif k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
@@ -716,7 +595,7 @@ def _apriori_row_split_multi_gpu(
 
             k_time = time.perf_counter() - _k_start
             if level_callback:
-                level_callback(k, 0, n_freq, k_time * 1000)
+                level_callback(k, _n_cands_cb, n_freq, k_time * 1000)
             logger.info(f"  K={k}: {n_freq:,} frequent in {k_time:.1f}s")
 
             if n_freq == 0:
@@ -756,9 +635,18 @@ def _apriori_row_split_multi_gpu(
 
             # V3: Closed itemset pruning — remove non-closed before next-level candidate gen
             if prune_closed and n_freq > 0:
-                current_flat, current_counts_raw = _prune_closed_flat(
-                    current_flat, current_counts_raw, prev_frequent_flat, prev_counts_flat
-                )
+                if _surv is not None:
+                    # Sparse mode: filter the survivor index array in lockstep so the
+                    # shards are materialized for exactly the kept rows (the old
+                    # host-CSR path pruned AFTER building tidsets and misaligned).
+                    _keep = _prune_closed_mask(current_flat, current_counts_raw, prev_frequent_flat, prev_counts_flat)
+                    current_flat = current_flat[_keep]
+                    current_counts_raw = current_counts_raw[_keep]
+                    _surv = _surv[_keep]
+                else:
+                    current_flat, current_counts_raw = _prune_closed_flat(
+                        current_flat, current_counts_raw, prev_frequent_flat, prev_counts_flat
+                    )
                 n_freq = len(current_flat)
 
             # The Rust closed-prune binary-searches prev_flat, so the table
@@ -771,22 +659,40 @@ def _apriori_row_split_multi_gpu(
             # dense+prune emit itemsets the CPU tier never generates
             # (tests/test_row_split_e2e.py::TestClosedPruning, Spec B). Sort at
             # K=2 (as before) and at every pruning level, skipping levels that
-            # are already sorted (_rows_sorted is O(n·k), no sort). The legacy
-            # sparse branch keeps its own row order until it is replaced.
-            if (
-                n_freq > 0
-                and (k == 2 or (prune_closed and not sparse_state.active))
-                and not _rows_sorted(current_flat)
-            ):
+            # are already sorted (_rows_sorted is O(n·k), no sort). In sparse
+            # mode the survivor index array is permuted in lockstep.
+            if n_freq > 0 and (k == 2 or prune_closed) and not _rows_sorted(current_flat):
                 sort_idx = np.lexsort(current_flat[:, ::-1].T)
                 current_flat = current_flat[sort_idx]
                 current_counts_raw = current_counts_raw[sort_idx]
+                if _surv is not None:
+                    _surv = _surv[sort_idx]
+
+            if sparse_state.active and _sparse_groups_gpu is not None:
+                # Rebuild the shards for K+1 in the final row order (skipped when no
+                # next level can follow); per-shard lengths are verified against
+                # the survivor counts exactly. Row i of the new shards ≡ row i of
+                # prev_frequent_flat on every GPU, by construction.
+                if n_freq >= k + 1 and k < effective_max_length and _surv is not None:
+                    sparse_state.replace(
+                        materialize_survivors(
+                            sparse_state.shards, _sparse_groups_gpu, _surv, current_counts_raw, level_label=f"K={k}"
+                        )
+                    )
+                    log_new_shards(sparse_state.shards, n_freq)
+                free_groups(_sparse_groups_gpu)
+                _sparse_groups_gpu = None
 
             prev_frequent_flat = current_flat
             prev_counts_flat = current_counts_raw if n_freq > 0 else np.empty(0, dtype=np.int64)
             k += 1
     finally:
-        # sparse_state is local — GC handles cleanup, no manual delattr needed
+        # Release the resident CSR shards and any group arrays of an aborted level.
+        try:
+            free_groups(_sparse_groups_gpu)
+            sparse_state.release()
+        except Exception:
+            pass
         # Emergency uploader shutdown (happy path does ordered drain below)
         try:
             uploader.close(wait=False)

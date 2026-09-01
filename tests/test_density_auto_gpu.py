@@ -41,13 +41,13 @@ def dataset():
     return df, data
 
 
-def _mine(df, sparse_from_k):
+def _mine(df, sparse_from_k, n_gpus=2):
     res = apriori(
         df,
         min_support=SPEC.min_support,
         item_col="items",
         use_gpu=True,
-        n_gpus=2,
+        n_gpus=n_gpus,
         sparse_from_k=sparse_from_k,
     )
     return {
@@ -84,3 +84,27 @@ def test_auto_transition_fires(dataset):
     transitions = [r for r in records if "DENSITY TRANSITION" in r]
     assert transitions, "auto mode never transitioned on sparse-shaped data"
     assert any("measured mean support" in r for r in transitions)
+
+
+def test_single_gpu_sparse_equals_dense(dataset):
+    """The single-GPU miner is the one-shard case of the same sparse levels."""
+    df, _ = dataset
+    dense = _mine(df, None, n_gpus=1)
+    assert len(dense) > 0
+    assert _mine(df, 3, n_gpus=1) == dense
+    assert _mine(df, "auto", n_gpus=1) == dense
+
+
+def test_forced_chunks_sparse(dataset, monkeypatch):
+    """A tiny candidate budget forces multi-chunk sparse levels — identical results."""
+    df, _ = dataset
+    unforced = _mine(df, 3)
+    monkeypatch.setenv("ET_MINER_MAX_CHUNK_CANDS", "700")
+    assert _mine(df, 3) == unforced
+
+
+def test_nccl_fallback_sparse(dataset, monkeypatch):
+    """ET_MINER_DISABLE_NCCL=1 routes the sparse partial counts through the staged reduce."""
+    df, _ = dataset
+    monkeypatch.setenv("ET_MINER_DISABLE_NCCL", "1")
+    assert _mine(df, 3) == _mine(df, None)

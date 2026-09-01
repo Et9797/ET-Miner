@@ -10,7 +10,8 @@ Guidance for Claude Code when working in this repository.
   (`et_miner.synthetic.PRESETS["smoke"]`):
 
   Tier 1 Polars == Tier 2 Rust (`sparse=True`) == single-GPU legacy ==
-  multi-GPU legacy == shared multi-GPU == efficient-apriori
+  multi-GPU legacy == shared multi-GPU == single-GPU sparse CSR
+  (`sparse_from_k=3`) == multi-GPU sparse CSR == efficient-apriori
 
   It is enforced by `tests/test_tier_equivalence.py` (exact itemsets AND
   absolute counts) and runs FIRST in `bench/run_smoke.sh` and

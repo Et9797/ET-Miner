@@ -69,7 +69,6 @@ _KERNEL_FILES: dict[str, str] = {
     "count_shared_tiled_fused": "shared_tiled.cu",
     "count_k3plus_sampled": "k3plus_sampled.cu",
     "count_k3plus_indirect": "k3plus_indirect.cu",
-    "csr_intersect_count": "csr_intersect.cu",
     "csr_count_range": "csr_warp.cu",
     "csr_count_gather": "csr_warp.cu",
     "csr_write_gather": "csr_warp.cu",

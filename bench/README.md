@@ -41,7 +41,8 @@ markdown report, and the environment capture. Datasets under
 
 `run_smoke.sh` and `run_full.sh` FIRST run `tests/test_tier_equivalence.py`:
 Tier 1 Polars == Tier 2 Rust == single-GPU legacy == multi-GPU legacy ==
-shared multi-GPU == **efficient-apriori**, exact itemsets and counts, on the
+shared multi-GPU == single-GPU sparse CSR (`sparse_from_k=3`) == multi-GPU
+sparse CSR == **efficient-apriori**, exact itemsets and counts, on the
 `smoke` synthetic preset. Any divergence aborts the run — no benchmark
 number is worth recording from a miner that disagrees with the oracle.
 

@@ -1001,36 +1001,3 @@ def _build_k3plus_groups_numpy(freq_flat, *, with_src_rows: bool = False):
         groups=None,  # not needed for dense counting
         suffix_src_rows=suffix_src_rows,
     )
-
-
-def count_csr_intersections(tidset_offsets_gpu, tidset_indices_gpu, pair_a_gpu, pair_b_gpu, n_pairs):
-    """Count intersection sizes for candidate pairs using CSR tid-sets.
-
-    V3: Two-pointer merge on sorted tid-set arrays in CSR format.
-    One CUDA block per candidate pair, thread 0 does sequential merge.
-    Parallelism from millions of blocks (one per pair).
-
-    Args:
-        tidset_offsets_gpu: CuPy int64 array (n_itemsets + 1) — CSR offsets.
-        tidset_indices_gpu: CuPy int32 array — concatenated sorted tid-sets.
-        pair_a_gpu: CuPy int64 array (n_pairs) — first itemset index per pair.
-        pair_b_gpu: CuPy int64 array (n_pairs) — second itemset index per pair.
-        n_pairs: int — number of candidate pairs.
-
-    Returns:
-        CuPy int64 array (n_pairs) — intersection count per pair.
-    """
-    import cupy as cp
-
-    result_counts = cp.zeros(n_pairs, dtype=cp.int64)
-    kernel = get_cuda_kernel("csr_intersect_count")
-    grid = _grid_dims(n_pairs)
-
-    # Thread count: (1,) because only thread 0 does work in the sequential
-    # two-pointer merge. Warp-level parallel merge deferred to V3.1.
-    kernel(
-        grid, (1,), (tidset_indices_gpu, tidset_offsets_gpu, pair_a_gpu, pair_b_gpu, np.int64(n_pairs), result_counts)
-    )
-    cp.cuda.Stream.null.synchronize()
-
-    return result_counts

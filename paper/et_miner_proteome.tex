@@ -80,7 +80,7 @@
 
 \author{E.\ Ahmic}
 
-\date{March 2026}
+\date{March 2026 (revised September 2026)}
 
 \begin{document}
 
@@ -88,7 +88,7 @@
 \maketitle
 \vspace{-1em}
 \begin{abstract}
-The AlphaFold database contains over 200 million predicted protein structures, but systematically discovering which protein features co-occur across this universe is computationally prohibitive: a standard boolean representation requires over 200\,GB, exceeding GPU memory capacity. ET-miner compresses the transaction data into a sparse representation and loads bitvectors onto the GPU, where they remain resident across all $K$-levels; only lightweight metadata (prefix groups and result indices) crosses the PCIe bus at each iteration. With a base vocabulary of 1,002 features, this enables exhaustive Apriori computation across 76.9 million proteins in 7.3\,minutes (mining only) on a single NVIDIA H100, revealing 26.8 million co-occurrence patterns reaching $K{=}22$. A permutation-based null model supports biological significance ($Z{>}3{,}700$ for $K{=}4$--$6$ at 0.001\% support; see Section~\ref{sec:null-model} for scope).
+The AlphaFold database contains over 200 million predicted protein structures, but systematically discovering which protein features co-occur across this universe is computationally prohibitive: a standard boolean representation requires over 200\,GB, exceeding GPU memory capacity. ET-miner compresses the transaction data into a sparse representation and loads bitvectors onto the GPU, where they remain resident across all $K$-levels; only lightweight metadata (prefix groups and result indices) crosses the PCIe bus at each iteration. With a base vocabulary of 1,002 features, this enables exhaustive Apriori computation across 76.9 million proteins in 7.3\,minutes (excluding feature extraction) on a single NVIDIA H100, revealing 26.8 million co-occurrence patterns reaching $K{=}22$. A permutation null model at 0.001\% support (100 permutations preserving per-protein feature counts) never produces an itemset beyond $K{=}6$, whereas the biological data contain 88,745 itemsets with $K{\geq}7$ (empirical $p{\approx}0.01$; see Section~\ref{sec:null-model} for scope). Every deterministic result in this paper (dataset statistics, itemset counts, $K$-distributions and the $K{=}22$ itemset) was reproduced exactly in an independent re-execution from freshly downloaded data in September 2026; the null-model statistics are those of that re-execution.
 \end{abstract}
 \vspace{1em}
 ]
@@ -117,7 +117,7 @@ Figure~\ref{fig:concept} illustrates this formulation: each protein is a transac
     \label{fig:concept}
 \end{figure*}
 
-ET-miner solves this through three innovations: (1)~a compressed sparse row (CSR) representation constructed directly from the transaction list, reducing 206\,GB to ${\sim}5.1$\,GB; (2)~on-GPU conversion to bitvectors where support counting reduces to bitwise AND and population count, operations GPUs execute natively; and (3)~a GPU-accelerated mining loop where bitvectors remain GPU-resident across $K$-levels, with only lightweight metadata (prefix groups and result indices) crossing the PCIe bus, greatly reducing the transfer overhead that dominates prior GPU FIM systems. Applied to 76.9~million multi-feature proteins, ET-miner discovers the complete feature co-occurrence landscape in 7.3\,minutes of mining on a single NVIDIA H100, enabling systematic exploration of higher-order protein functional modularity across the protein universe.
+ET-miner solves this through three innovations: (1)~a compressed sparse row (CSR) representation constructed directly from the transaction list, reducing 206\,GB to ${\sim}5.1$\,GB in coordinate form; (2)~on-GPU conversion to bitvectors where support counting reduces to bitwise AND and population count, operations GPUs execute natively; and (3)~a GPU-accelerated mining loop where bitvectors remain GPU-resident across $K$-levels, with only lightweight metadata (prefix groups and result indices) crossing the PCIe bus, greatly reducing the transfer overhead that dominates prior GPU FIM systems. Applied to 76.9~million multi-feature proteins, ET-miner discovers the complete feature co-occurrence landscape in 7.3\,minutes of mining on a single NVIDIA H100, enabling systematic exploration of higher-order protein functional modularity across the protein universe.
 
 %==============================================================================
 \section{Methods}
@@ -126,12 +126,12 @@ ET-miner solves this through three innovations: (1)~a compressed sparse row (CSR
 
 \subsection{Dataset and Feature Vocabulary}
 
-The AlphaFold Protein Structure Database~\cite{varadi2024} provides predicted structures for 214 million proteins across UniProt. We processed 205,620,298 proteins from UniProt TrEMBL and obtained protein annotations (Pfam domain assignments, Gene Ontology (GO) terms, and predicted local distance difference test (pLDDT) confidence scores) from the UniProt~\cite{uniprot2023} cross-reference pipeline (release 2025\_01, accessed February 2026). Protein annotations comprise Pfam~\cite{mistry2021} domain assignments, Gene Ontology~\cite{go2023} terms, and pLDDT confidence scores. The feature vocabulary comprises the 500 most frequent Pfam domains and the 500 most frequent GO terms (drawn from 24{,}291 Pfam and 25{,}993 GO families observed across the corpus), together with 6 pLDDT confidence bins, for 1{,}006 defined items; the minimum support threshold of 8 proteins is applied during \emph{mining}, not during vocabulary construction. Feature extraction processed 150\,GB of compressed annotation data in 63\,minutes; this preprocessing is separate from the 7.3\,minute mining runtime reported below. Exact itemset counts and $K$-distributions may vary with different UniProt releases due to ongoing annotation updates.
+The AlphaFold Protein Structure Database~\cite{varadi2024} provides predicted structures for 214 million proteins across UniProt. We processed 205,620,298 proteins from UniProt TrEMBL and obtained protein annotations (Pfam domain assignments, Gene Ontology (GO) terms, and predicted local distance difference test (pLDDT) confidence scores) from the UniProt~\cite{uniprot2023} cross-reference pipeline (TrEMBL release 2026\_01, accessed February 2026; the release is identified by its record count of 202,556,314 TrEMBL entries, which among releases 2025\_01 to 2026\_02 matches only 2026\_01). Protein annotations comprise Pfam~\cite{mistry2021} domain assignments, Gene Ontology~\cite{go2023} terms, and pLDDT confidence scores. The feature vocabulary comprises the 500 most frequent Pfam domains and the 500 most frequent GO terms (drawn from 24{,}291 Pfam and 25{,}993 GO families observed across the corpus), together with 6 pLDDT confidence bins (three on the mean pLDDT and three on the fraction of high-confidence residues, of which only the mean-pLDDT bins 50--90 and ${>}90$ are populated under the pLDDT${\geq}50$ filter), for 1{,}006 defined items; the minimum support threshold of 8 proteins is applied during \emph{mining}, not during vocabulary construction. Feature extraction processed ${\sim}150$\,GiB of compressed annotation data in 63\,minutes on the original host; this preprocessing is separate from the 7.3\,minute mining runtime reported below. Exact itemset counts and $K$-distributions may vary with different UniProt releases due to ongoing annotation updates.
 
 Each protein is represented as a transaction: a set of integer item identifiers corresponding to its annotated features. The feature vocabulary is shown in Table~\ref{tab:features}.
 
 \begin{table}[h]
-\caption{Feature vocabulary composition: 1,006 items are defined (6 pLDDT confidence bins, 500 Pfam domains, 500 GO terms) and 1,002 pass the support threshold of 8 proteins (all 1,000 Pfam/GO items plus 2 pLDDT bins).}
+\caption{Feature vocabulary composition: 1,006 items are defined (6 pLDDT confidence bins, 500 Pfam domains, 500 GO terms) and 1,002 pass the support threshold of 8 proteins (all 1,000 Pfam/GO items plus 2 pLDDT bins; the other 4 pLDDT bins are empty).}
 \label{tab:features}
 \centering
 \resizebox{\columnwidth}{!}{%
@@ -168,7 +168,7 @@ Rather than constructing the full dense matrix, we build a compressed sparse row
 
 \subsection{GPU-Resident Bitvector Representation}
 
-For each protein feature, we store a compact binary list indicating which proteins possess that feature. Testing whether two features co-occur then reduces to a fast bitwise AND operation. With 205.6M proteins and 1,002 features, the total bitvector matrix occupies ${\sim}26$\,GB of GPU memory, built directly on-GPU from the CSR column indices via a single host-to-device transfer (${\sim}3$\,GB).
+For each protein feature, we store a compact binary list indicating which proteins possess that feature. Testing whether two features co-occur then reduces to a fast bitwise AND operation. With 205.6M proteins and 1,002 features, the full bitvector matrix would occupy ${\sim}26$\,GB of GPU memory; the 76.9M-protein mining subset used in every run occupies 9.6\,GB, built directly on-GPU from the CSR column indices via a single host-to-device transfer (${\sim}2.5$\,GB).
 
 Support counting for any candidate itemset $\{A, B, C\}$ then reduces to:
 \begin{align*}
@@ -193,7 +193,7 @@ Traditional approaches generate candidates on the CPU, transfer them to the GPU 
 Because bitvectors remain GPU-resident, the per-level PCIe traffic is limited to prefix group metadata and result indices---orders of magnitude less than conventional approaches that transfer full candidate sets and support arrays each iteration~\cite{zhang2011,chon2018,djenouri2019}. Per-level transfer details
 are provided in Appendix~\ref{app:gpu-details}.
 
-\noindent In summary, the algorithm loads bitvectors onto the GPU once, where they remain resident across all $K$-levels. Each iteration transfers only lightweight prefix group metadata and result indices across the PCIe bus, while the bulk computation stays on-GPU. Full pseudocode is provided in Appendix~\ref{app:pseudocode}. For multi-GPU configurations, ET-miner can replicate bitvectors on each device and distribute candidates by index range, though all experiments in this paper use a single GPU. For datasets exceeding GPU memory, the SON algorithm~\cite{savasere1995} partitions data into chunks mined independently.
+\noindent In summary, the algorithm loads bitvectors onto the GPU once, where they remain resident across all $K$-levels. Each iteration transfers only lightweight prefix group metadata and result indices across the PCIe bus, while the bulk computation stays on-GPU. Full pseudocode is provided in Appendix~\ref{app:pseudocode}. For multi-GPU configurations, ET-miner can replicate bitvectors on each device and distribute candidates by index range, though all original experiments in this paper use a single GPU. For datasets exceeding GPU memory, the SON algorithm~\cite{savasere1995} partitions the data into chunks that are mined independently at a lowered local threshold, followed by a global counting pass that makes the result exact.
 
 \subsection{Complexity Analysis}
 
@@ -210,37 +210,33 @@ in Appendix~\ref{app:complexity}.
 
 \subsection{Mining Campaign}
 
-All experiments were performed on a single NVIDIA H100 80\,GB SXM5 with 128\,GB host RAM, running Python~3.10, CuPy~13.0, NumPy~1.26, CUDA~12.4, and Ubuntu~22.04. We conducted six mining runs at progressively lower support thresholds, spanning four orders of magnitude (Table~\ref{tab:campaign}).
+The original experiments (February 2026) were performed on a single NVIDIA H100 80\,GB SXM5 with 128\,GB host RAM, running Python~3.10, CuPy~13.0, NumPy~1.26, CUDA~12.4, and Ubuntu~22.04. Every experiment was re-executed independently in September 2026 on a different machine (2$\times$ NVIDIA GeForce RTX 3090 24\,GB, AMD EPYC 7402P, 69.6\,GiB usable host RAM, CuPy~14.1, CUDA driver~13.2, Ubuntu~22.04) from freshly downloaded AlphaFold metadata and UniProt TrEMBL 2026\_01; every deterministic quantity reported below reproduced exactly; the re-execution timings are given alongside the original H100 timings, and the null-model statistics, which depend on the random stream, are those of the re-execution (Section~\ref{sec:null-model}). We conducted six mining runs at progressively lower support thresholds, spanning four orders of magnitude (Table~\ref{tab:campaign}).
 
 \begin{table*}[t]
-\caption{Mining campaign results across six support thresholds on a single NVIDIA H100 80\,GB. Support percentages for Ultra and Opus are nominal (rounded); actual thresholds correspond to minimum protein counts of 16 and 8 respectively.}
+\caption{Mining campaign results across six support thresholds; all counts are exhaustive (Direct CSR$\to$GPU). Support percentages for Ultra and Opus are nominal (rounded); actual thresholds correspond to minimum protein counts of 16 and 8 respectively. Times are wall-clock per run: the original measurements on a single NVIDIA H100 80\,GB (February 2026; Base to Power were originally mined with the streaming path, so direct-path H100 timings exist only for Blitz to Opus and, from the preprint's controlled comparison, for Power) and the independent re-execution on a single RTX 3090 (September 2026; CSR build, bitvector build, mining and result collection). The streaming SON path, re-run at the Base, Super and Power thresholds, returned identical itemsets (Section~\ref{sec:results}).}
 \label{tab:campaign}
 \centering
 \small
-\begin{tabular}{lrrrrrll}
+\begin{tabular}{lrrrrrr}
 \toprule
-Run & Support & Min.\ proteins & Itemsets & Max $K$ & Time & Method & Key transition \\
+Run & Support & Min.\ proteins & Itemsets & Max $K$ & Time (H100) & Time (RTX 3090) \\
 \midrule
-Base & 0.1\% & 76,891 & 5,305 & 9 & 1.9\,min & Streaming SON & \\
-Super & 0.01\% & 7,689 & 51,124 & 13 & 4.3\,min & Streaming SON & \\
-Power & 0.001\% & 768 & 22,846 & 13 & 18.1\,min & Streaming SON & \\
-\midrule
-Blitz & 0.0001\% & 77 & 2,841,280 & 19 & 2.0\,min & Direct CSR$\to$GPU & $9\times$ faster, $124\times$ more itemsets\textsuperscript{$\dagger$} \\
-Ultra & 0.00002\% & 16 & 14,558,875 & 20 & 4.7\,min & Direct CSR$\to$GPU & \\
-Opus & 0.00001\% & 8 & 26,849,505 & 22 & 7.3\,min & Direct CSR$\to$GPU & \\
+Base & 0.1\% & 76,891 & 5,305 & 9 & --- & 15.6\,s \\
+Super & 0.01\% & 7,690 & 113,405 & 14 & --- & 43.9\,s \\
+Power & 0.001\% & 769 & 475,865 & 14 & 50.7\,s & 83.1\,s \\
+Blitz & 0.0001\% & 77 & 2,841,280 & 19 & 2.0\,min & 4.6\,min \\
+Ultra & 0.00002\% & 16 & 14,558,875 & 20 & 4.7\,min & 11.5\,min \\
+Opus & 0.00001\% & 8 & 26,849,505 & 22 & 7.3\,min & 19.1\,min \\
 \bottomrule
 \end{tabular}
-
-\smallskip
-\noindent\textsuperscript{$\dagger$}\footnotesize Compares Power (0.001\%) to Blitz (0.0001\%), varying both method and threshold. Controlled same-support comparison: $21\times$ (\S\ref{sec:results}).
 \end{table*}
 
-The transition from Streaming SON to Direct CSR$\to$GPU between Power and Blitz represents the key engineering breakthrough. Despite lowering the support threshold by $10\times$, the Blitz run completes $9\times$ faster and finds $124\times$ more itemsets (Figure~\ref{fig:campaign}). A controlled comparison at identical support (0.001\%) isolates the method effect: Direct GPU discovers 475,865 itemsets in 50.7\,s versus SON's 22,846 in 1,085.6\,s---a $21\times$ speedup. SON misses 95.2\% of patterns through two compounding mechanisms. First, an itemset whose supporting proteins are distributed across chunks may fail the local support threshold in every chunk individually, even when its global count exceeds the threshold. Second, this effect cascades through Apriori's level-wise structure: if a $(K{-}1)$-subset is pruned from a chunk's locally frequent set, \emph{all} $K$-itemsets containing it are never generated as candidates in that chunk, regardless of their actual local support. This cascade intensifies with $K$, explaining why SON recovers most $K{=}2$ patterns but progressively fewer at higher levels.
+The three highest thresholds were originally mined with a streaming SON path~\cite{savasere1995} (chunks of 40 million transactions, local threshold $0.9\times$ the global one, followed by a global counting pass) and the three lowest with the Direct CSR$\to$GPU path, which holds the whole 76.9M-protein bitvector matrix on one device. The re-execution ran every threshold with the direct path and additionally re-ran the streaming path at the Base, Super and Power thresholds: it returned exactly the same itemsets in all three cases (5,305; 113,405; 475,865), as the SON construction guarantees (an itemset frequent in the whole database is locally frequent in at least one chunk, and the global pass verifies every candidate). The cost of streaming is time rather than completeness: in the controlled comparison at the Power threshold the direct path needed 91.7\,s against 5,673.7\,s for SON, a $62\times$ difference on the RTX 3090 (the campaign run of Table~\ref{tab:campaign} is a separate execution of the same direct path, 83.1\,s; the original H100 measurement of the direct run was 50.7\,s). The direct path is therefore what makes the low-threshold runs practical: lowering the threshold from 769 to 77 proteins multiplies the number of frequent itemsets by $6.0\times$ (475,865 to 2,841,280) and raises the maximum depth from 14 to 19 (Figure~\ref{fig:campaign}). The preprint version of this paper reported streaming-path counts of 51,124 and 22,846 itemsets for Super and Power together with a 95.2\% miss rate; those values came from an unreleased configuration of the streaming code, could not be reproduced with the released implementation, and are superseded by the exhaustive counts in Table~\ref{tab:campaign}.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/mining_campaign.pdf}
-    \caption{Mining campaign across six support thresholds. Bars show itemsets discovered (log scale); line shows wall-clock time. The SON$\to$Direct GPU transition at 0.001\%$\to$0.0001\% yields $9\times$ speedup despite $10\times$ lower support; a controlled comparison at identical support shows $21\times$ (Section~\ref{sec:results}).}
+    \caption{Mining campaign across six support thresholds (exhaustive counts). Bars show frequent itemsets (log scale); lines show wall-clock time per run on the original H100 (February 2026; Power to Opus) and on one RTX 3090 in the September 2026 re-execution (all six).}
     \label{fig:campaign}
 \end{figure}
 
@@ -324,15 +320,15 @@ Category & ID & Description \\
 & GO:0016607 & Nuclear speckle \\
 \midrule
 \multicolumn{3}{l}{\textit{Structural property (1)}} \\
-& plddt\_mean & Medium confidence (70--90) \\
+& plddt\_mean & Medium confidence (mean pLDDT 50--90) \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-This 22-feature signature is \emph{consistent with} a neuronal antiviral RNA-helicase profile---a DEAD/DEAH-box helicase with dual RNA/DNA unwinding annotations, innate-immune annotations, and simultaneous annotation across multiple cellular compartments including axons, dendrites, nuclear speckles, and mitochondria. DEAD-box helicases such as RIG-I and MDA5 are established viral RNA sensors in innate immunity~\cite{rehwinkel2020}, so this configuration is biologically plausible; we emphasise, however, that it is a co-occurrence of annotations, not a demonstrated mechanism (Section~\ref{sec:discussion}). The 22 features contain \emph{no} GO parent--child pairs, so the depth is not an artifact of the GO true-path rule; the single definitional link is GO:0005524 (ATP binding), which is auto-derivable from PF00270 via InterPro2GO, leaving 21 independently annotated features. The eight matching proteins were identified during the original mining run; because the full transaction matrix is not deposited (owing to its size), they are regenerable only from the source UniProt release via the released feature-extraction pipeline (\texttt{analyze\_k22\_proteins.py}), not from the deposited artifacts.
+This 22-feature signature is \emph{consistent with} a neuronal antiviral RNA-helicase profile---a DEAD/DEAH-box helicase with dual RNA/DNA unwinding annotations, innate-immune annotations, and simultaneous annotation across multiple cellular compartments including axons, dendrites, nuclear speckles, and mitochondria. DEAD-box helicases such as RIG-I and MDA5 are established viral RNA sensors in innate immunity~\cite{rehwinkel2020}, so this configuration is biologically plausible; we emphasise, however, that it is a co-occurrence of annotations, not a demonstrated mechanism (Section~\ref{sec:discussion}). The 22 features contain \emph{no} GO parent--child pairs, so the depth is not an artifact of the GO true-path rule; the single definitional link is GO:0005524 (ATP binding), which is auto-derivable from PF00270 via InterPro2GO, leaving 21 independently annotated features. The eight matching proteins were re-identified in the September 2026 re-execution (\texttt{analyze\_k22\_proteins.py}); their accessions are deposited with the reproduction artifacts (see Data and Code Availability), and the full transaction matrix is regenerable from the source UniProt release via the released feature-extraction pipeline.
 
-This ceiling is not an artifact of insufficient computational depth. Each of the 8 proteins possesses \emph{exactly} 22 annotated features in our vocabulary, making $K{=}23$ impossible regardless of the support threshold. The ceiling is therefore structural rather than a threshold artifact: no support threshold can produce a $K{=}23$ itemset when no protein carries more than 22 vocabulary features.
+This ceiling is not an artifact of insufficient computational depth. Each of the 8 proteins possesses \emph{exactly} 22 annotated features in our vocabulary, so this particular itemset cannot be extended. The ceiling itself is empirical rather than structural: the vocabulary places up to 46 features on a single protein, but only 32 of the 76.9 million mined proteins carry 22 or more features and only 19 carry 23 or more. A $K{=}23$ itemset would require at least $\text{min\_count}$ of those 19 proteins to share the same 23 features. None do at the Opus threshold, and lowering the threshold to 4 proteins (48,007,493 itemsets; 75.6\,min on 2$\times$RTX 3090) still terminates at $K{=}22$, with 342 itemsets at $K{=}20$, 27 at $K{=}21$ and the same single itemset at $K{=}22$.
 
 \subsection{Biological Discoveries at Intermediate $K$-Levels}
 
@@ -359,38 +355,35 @@ this functional signature.
 \subsection{Statistical Validation: Null Model}
 \label{sec:null-model}
 
-To test whether the observed $K$-distribution reflects genuine biological co-occurrence or arises from marginal feature frequencies alone, we performed a permutation-based null model analysis. For each permutation, all transactions were exploded into (protein, feature) pairs, a Fisher--Yates shuffle was applied to the feature column---preserving per-protein feature counts---and duplicate features within each protein were removed before re-mining at the 0.001\% support threshold ($\text{min\_count}{=}769$). Five permutations were performed (seed~42, total runtime 662\,s on the same H100).
+To test whether the observed $K$-distribution reflects genuine biological co-occurrence or arises from marginal feature frequencies alone, we performed a permutation-based null model analysis. For each permutation, all transactions were exploded into (protein, feature) pairs, a Fisher--Yates shuffle was applied to the feature column---preserving per-protein feature counts---and duplicate features within each protein were removed (so per-protein counts are preserved up to those removals) before re-mining at the 0.001\% support threshold ($\text{min\_count}{=}769$). The preprint reported five permutations (seed~42; 662\,s on the H100); their individual draws were not recorded and could not be regenerated. The re-execution ran the released procedure with the same seed for 100 permutations (its own five-permutation run forms the first five) in 2,007\,s wall-clock on 2$\times$RTX 3090 with the row-split multi-GPU path (18.6\,s per permutation).
 
-Table~\ref{tab:null-model} compares the biological and null $K$-distributions. The null model peaks at $K{=}3$ (46.2\% of null itemsets) and generates at most 23 itemsets at $K{=}6$; no permutation produced any pattern at $K{\geq}7$. In contrast, the biological data contains 88,745 itemsets at $K{\geq}7$ and extends to $K{=}14$.
+Table~\ref{tab:null-model} compares the biological and null $K$-distributions. The null model peaks at $K{=}3$ (46.2\% of null itemsets) and generates between 19 and 25 itemsets at $K{=}6$ (mean 21.7); no permutation produced any pattern at $K{\geq}7$. In contrast, the biological data contains 88,745 itemsets at $K{\geq}7$ and extends to $K{=}14$.
 
 \begin{table}[t]
-\caption{Biological vs.\ null model $K$-distributions at 0.001\% support (5 permutations). All $K{\geq}4$ patterns are strongly enriched. The $Z$ column reports standardized effect sizes with $\sigma$ estimated from only 5 permutations (equivalently, $t$-statistics with 4 degrees of freedom); the very large magnitudes indicate strong enrichment but are not calibrated large-sample $Z$-scores. $K{\geq}7$ patterns are absent from all 5 null runs ($p < 0.45$, the exact one-sided binomial 95\% upper bound $1-0.05^{1/5}$ for 0 of 5).}
+\caption{Biological vs.\ null model $K$-distributions at 0.001\% support (100 permutations, seed 42). $Z=(\text{Bio}-\mu)/\sigma$ with $\mu$ and $\sigma$ estimated from the 100 permutations; because $\sigma$ is tiny relative to the biological excess, the magnitudes indicate strong enrichment rather than calibrated tail probabilities. $p$ is the one-sided empirical permutation $p$-value for enrichment with the $+1$ correction~\cite{phipson2010}, whose resolution with 100 permutations is $1/101{\approx}0.0099$. $K{\geq}7$ patterns are absent from all 100 null runs; the exact one-sided binomial 95\% upper bound on the per-permutation probability of any such pattern is $1-0.05^{1/100}=0.0295$.}
 \label{tab:null-model}
 \centering
 \resizebox{\columnwidth}{!}{%
 \small
 \begin{tabular}{rrrrrrl}
 \toprule
-$K$ & Bio & Null $\mu$ & Null $\sigma$ & $Z$\textsuperscript{$\ast$} & $p$ & \\
+$K$ & Bio & Null $\mu$ & Null $\sigma$ & $Z$ & $p$ & \\
 \midrule
 1 & 1,002 & 1,002 & 0.0 & 0.0 & 1.0 & preserved \\
-2 & 22,019 & 63,702 & 42.2 & $-987$ & 1.0 & depleted \\
-3 & 73,205 & 79,134 & 41.5 & $-143$ & 1.0 & depleted \\
-4 & 108,059 & 25,468 & 21.8 & $+3{,}791$ & ${\approx}\,0$ & enriched \\
-5 & 104,239 & 1,992 & 13.8 & $+7{,}402$ & ${\approx}\,0$ & enriched \\
-6 & 78,596 & 22 & 1.1 & $+71{,}728$ & ${\approx}\,0$ & enriched \\
-7--14 & 88,745 & 0 & 0.0 & --- & $<0.45$ & enriched \\
+2 & 22,019 & 63,703 & 33.6 & $-1{,}239$ & 1.0 & depleted \\
+3 & 73,205 & 79,144 & 46.5 & $-128$ & 1.0 & depleted \\
+4 & 108,059 & 25,442 & 30.3 & $+2{,}728$ & 0.0099 & enriched \\
+5 & 104,239 & 1,993 & 9.6 & $+10{,}632$ & 0.0099 & enriched \\
+6 & 78,596 & 21.7 & 1.1 & $+68{,}730$ & 0.0099 & enriched \\
+7--14 & 88,745 & 0 & 0.0 & --- & 0.0099 & enriched \\
 \bottomrule
 \end{tabular}%
 }
-
-\smallskip
-\noindent\textsuperscript{$\ast$}\footnotesize Estimated from 5 permutations ($t$-statistic, 4 df); large magnitude indicates strong enrichment, not a calibrated large-sample $Z$.
 \end{table}
 
-Three findings emerge. First, $K{=}2$ and $K{=}3$ patterns are \emph{depleted} in biological data relative to the null ($Z{=}{-}987$ and ${-}143$, respectively): random shuffling of common features produces more frequent pairs and triples than biology, because evolution assembles features into specific functional modules rather than combining them promiscuously. Second, for $K{\geq}4$, biological co-occurrence massively exceeds the null expectation; the corresponding standardized effect sizes are enormous ($+3{,}791$ at $K{=}4$), though we caution that with only 5 permutations these are $t$-statistics (4 df) rather than calibrated large-sample $Z$-scores. In 0 of 5 permutations did the null model produce itemsets beyond $K{=}6$, yielding $p < 0.45$ (the exact one-sided binomial 95\% upper bound $1-0.05^{1/5}$ for 0 of 5). Third, the null model's maximum depth of $K{=}6$ (with a mean of 22 itemsets, std~1.1, across 5 permutations) demonstrates that random co-occurrence cannot produce deep feature combinations at this threshold.
+Three findings emerge. First, $K{=}2$ and $K{=}3$ patterns are \emph{depleted} in biological data relative to the null ($Z{=}{-}1{,}239$ and ${-}128$, respectively): random shuffling of common features produces more frequent pairs and triples than biology, because evolution assembles features into specific functional modules rather than combining them promiscuously. Second, for $K{\geq}4$, biological co-occurrence massively exceeds the null expectation (standardized effect sizes of $+2{,}728$ at $K{=}4$, $+10{,}632$ at $K{=}5$ and $+68{,}730$ at $K{=}6$); with 100 permutations the empirical $p$-value of every enriched level is at its resolution limit, $p{=}1/101{\approx}0.0099$~\cite{phipson2010}. Third, in 0 of 100 permutations did the null model produce itemsets beyond $K{=}6$; the exact one-sided binomial 95\% upper bound on the per-permutation probability of any $K{\geq}7$ itemset is $1-0.05^{1/100}{=}0.0295$. Random co-occurrence therefore cannot produce deep feature combinations at this threshold. The five-permutation analysis of the preprint gave the same qualitative picture ($K_{\max}{=}6$ in every permutation) but only an empirical $p$ of $1/6$ and a 95\% binomial upper bound of 0.45 on the per-permutation probability; the standardized effect sizes it reported ($+3{,}791$, $+7{,}402$, $+71{,}728$) rested on $\sigma$ estimated from five unrecorded draws (five fresh draws give $+3{,}048$, $+9{,}917$, $+175{,}697$) and are superseded by the values above.
 
-The $K{=}1$ row confirms that all 1,002 features remain frequent after shuffling, verifying that marginal frequencies are preserved. This null model directly validates significance at the 0.001\% support level ($\text{min\_count}{=}769$); the biological reference here is the exhaustive Direct CSR$\to$GPU mining at this threshold (475,865 itemsets, reaching $K{=}14$), not the SON approximation listed as ``Power'' in Table~\ref{tab:campaign}. The Opus threshold results ($\text{min\_count}{=}8$, $K_\text{max}{=}22$, Table~\ref{tab:kdist}) were obtained at a more permissive threshold where a separate null model was not run; a rigorous statistical claim at that threshold would require its own permutation analysis. A full validation with 100+ permutations would be needed to establish $p < 0.01$ bounds at either threshold, but computational constraints (each permutation requires a full mining run at ${\sim}$130\,s) limited us to 5 trials.
+The $K{=}1$ row confirms that all 1,002 features remain frequent after shuffling, verifying that every item stays frequent under the shuffle. This null model directly validates significance at the 0.001\% support level ($\text{min\_count}{=}769$); the biological reference is the exhaustive Direct CSR$\to$GPU mining at this threshold (475,865 itemsets, reaching $K{=}14$), i.e.\ the Power row of Table~\ref{tab:campaign}. The Opus threshold results ($\text{min\_count}{=}8$, $K_\text{max}{=}22$, Table~\ref{tab:kdist}) were obtained at a more permissive threshold where a separate null model was not run; a rigorous statistical claim at that threshold would require its own permutation analysis.
 
 %==============================================================================
 \section{Discussion}
@@ -399,9 +392,9 @@ The $K{=}1$ row confirms that all 1,002 features remain frequent after shuffling
 
 \subsection{Computational Significance}
 
-ET-miner demonstrates that exact Apriori computation is feasible at the 100-million-transaction scale on a single high-end datacenter GPU. The full-set $206\text{\,GB}$ dense matrix, the $5.1\text{\,GB}$ CSR of the mined subset, and the $26\text{\,GB}$ GPU bitvector matrix illustrate a compression path applicable to any sparse, high-dimensional transaction dataset (the same-subset dense-to-CSR reduction is ${\sim}15\times$). The GPU-resident bitvector architecture is critical: bitvectors stay on-GPU across all 22 iterations, with only lightweight metadata (prefix groups and result indices) crossing the PCIe bus, versus full candidate and support array transfers in conventional approaches.
+ET-miner demonstrates that exact Apriori computation is feasible at the 100-million-transaction scale on a single high-end datacenter GPU. The full-set $206\text{\,GB}$ dense matrix, the $5.1\text{\,GB}$ coordinate-format sparse matrix of the mined subset, and its $9.6\text{\,GB}$ GPU bitvector matrix ($26\text{\,GB}$ for the full set) illustrate a compression path applicable to any sparse, high-dimensional transaction dataset (the same-subset dense-to-CSR reduction is ${\sim}15\times$). The GPU-resident bitvector architecture is critical: bitvectors stay on-GPU across all 22 iterations, with only lightweight metadata (prefix groups and result indices) crossing the PCIe bus, versus full candidate and support array transfers in conventional approaches.
 
-The transition from SON to Direct CSR$\to$GPU underscores the cost of the SON approximation. A controlled comparison at identical support threshold (0.001\%) reveals a $21\times$ speedup (50.7\,s vs.\ 1,085.6\,s) and shows that SON misses 95.2\% of frequent itemsets (22,846 vs.\ 475,865). The loss compounds through two mechanisms: (1)~patterns whose supporting proteins span multiple chunks fail the local threshold in every chunk despite exceeding the global threshold, and (2)~each missed $(K{-}1)$-subset eliminates \emph{all} $K$-supersets from candidate generation in that chunk, propagating exponentially through Apriori's level-wise structure. This cascade explains why the miss rate worsens dramatically at higher $K$.
+The comparison between the streaming SON path and the Direct CSR$\to$GPU path (Section~\ref{sec:results}) shows that the price of streaming is time, not completeness: at identical support (0.001\%) the released SON implementation returns exactly the exhaustive itemset table, but $62\times$ more slowly (5,673.7\,s vs.\ 91.7\,s on the RTX 3090), because its global counting pass must re-count every locally frequent candidate against every chunk. The preprint's claim that SON missed 95.2\% of frequent itemsets originated from an unreleased configuration and is withdrawn (Table~\ref{tab:campaign}); a two-pass SON with a proportional or lowered local threshold cannot miss a globally frequent itemset~\cite{savasere1995}.
 
 \subsection{Comparison with Prior GPU FIM Systems}
 
@@ -437,13 +430,13 @@ ET-miner's design eliminates these bottlenecks through three key choices:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
 
 \item \textbf{Sparse encoding, dense computation.}
-The transaction database is stored in compressed sparse format (CSR), transferred to the GPU once (${\sim}3$\,GB of CSR column indices versus ${\sim}10$\,GB for the equivalent bit-packed dense bitmap of the 76.9M mining subset, a saving that grows with sparsity; see Table~\ref{tab:memory-comparison}), and expanded into a column-oriented bitvector matrix directly on the GPU. Prior systems transfer the full dense matrix at every mining iteration.
+The transaction database is stored in compressed sparse format (CSR), transferred to the GPU once (${\sim}2.5$\,GB of CSR column indices versus ${\sim}10$\,GB for the equivalent bit-packed dense bitmap of the 76.9M mining subset, a saving that grows with sparsity; see Table~\ref{tab:memory-comparison}), and expanded into a column-oriented bitvector matrix directly on the GPU. Prior systems transfer the full dense matrix at every mining iteration.
 
 \item \textbf{GPU-accelerated mining loop.}
 Once the bitvector matrix is built on-GPU, the entire Apriori algorithm (candidate generation, support counting, filtering, and sorting) executes without returning data to the CPU. The only per-iteration communication is a single integer indicating how many patterns survived (${\sim}12$\,bytes). In contrast, GMiner's cost model~\cite{chon2018} identifies repeated CPU--GPU data streaming as the dominant and irreducible performance bottleneck.
 
 \item \textbf{Automatic multi-GPU scaling.}
-For candidate spaces exceeding a single device, ET-miner can distribute work across multiple GPUs with memory-aware chunk sizing that adapts to the installed hardware. All experiments in this paper used a single H100; the 76.9M multi-feature proteins were mined without manual tuning.
+For candidate spaces exceeding a single device, ET-miner can distribute work across multiple GPUs with memory-aware chunk sizing that adapts to the installed hardware. All original experiments in this paper used a single H100, and the 76.9M multi-feature proteins were mined without manual tuning; the September 2026 re-execution used one RTX 3090 for the campaign of Table~\ref{tab:campaign} and the row-split two-GPU path for the per-level itemset export and the null model.
 
 \end{enumerate}
 
@@ -459,7 +452,7 @@ None of these approaches perform exhaustive itemset mining beyond $K{=}2$. ET-mi
 
 The $K{=}22$ neuronal antiviral sentinel combines four distinct functional roles: (1)~RNA/DNA unwinding, (2)~innate immune sensing, (3)~gene regulation, and (4)~neuronal function. The multi-compartment localization (simultaneous presence in axons, dendrites, nuclear speckles, and mitochondria) suggests these proteins may function as pre-positioned immune sensors, enabling rapid local response to viral invasion across the neuron's spatial extent. However, this interpretation should be treated as a hypothesis rather than an established mechanism: the co-occurrence of these 22 annotations does not by itself demonstrate functional coupling. Moreover, annotation completeness varies substantially across organisms: well-studied model organisms (human, mouse, \emph{E.~coli}) have far richer GO annotations than poorly characterized taxa, which could inflate apparent $K$ values for proteins from these organisms. The $K{=}22$ ceiling reflects the depth of current UniProt annotations rather than a fundamental limit of biological complexity; future annotation campaigns may reveal deeper co-occurrence patterns.
 
-The unimodal peak at $K{=}9$ (3.53 million itemsets, 13.14\% of all patterns) occurs where combinatorial growth and support decay intersect. The permutation-based null model (Section~\ref{sec:null-model}) confirms that this peak reflects genuine biological modularity rather than a statistical artifact: random shuffling cannot produce any patterns at $K{\geq}7$, and even at $K{=}4$ the biological count exceeds the null expectation by many orders of magnitude (a standardized effect size of $+3{,}791$ estimated from 5 permutations). This is consistent with the modular architecture of protein functional domains~\cite{chothia2003}, where evolution reuses and combines a finite set of building blocks into increasingly specific functional configurations.
+The unimodal peak at $K{=}9$ (3.53 million itemsets, 13.14\% of all patterns) occurs where combinatorial growth and support decay intersect. The permutation-based null model (Section~\ref{sec:null-model}) confirms that this peak reflects genuine biological modularity rather than a statistical artifact: random shuffling cannot produce any patterns at $K{\geq}7$, and even at $K{=}4$ the biological count exceeds the null expectation by many orders of magnitude (a standardized effect size of $+2{,}728$ estimated from 100 permutations). This is consistent with the modular architecture of protein functional domains~\cite{chothia2003}, where evolution reuses and combines a finite set of building blocks into increasingly specific functional configurations.
 
 At intermediate $K$-levels, ET-miner recovers known biology with increasing specificity. The $K{=}12$ bacterial cell wall synthase module (Section~\ref{sec:results}) validates the approach: beta-lactam antibiotics target these exact domain combinations, yet ET-miner recovered this co-occurrence pattern from annotation data alone, without manual target selection. The five highlighted patterns ($K{=}11$ to $K{=}19$) were selected to illustrate the diversity of function across the $K$-distribution, not as an exhaustive catalog.
 
@@ -475,7 +468,7 @@ Several methodological limitations should be noted.
 
 \textbf{2.}~The Gene Ontology's true-path rule guarantees that any protein annotated with a specific GO term is also annotated with all parent terms, creating structured co-occurrence that is definitional rather than biological. This inflates itemset counts and $K$ values in ways that do not reflect independent functional coupling. We note, however, that the deepest ($K{=}22$) itemset contains 0 parent--child pairs, so its depth is not driven by this effect (Section~\ref{sec:results}).
 
-\textbf{3.}~GO annotations are updated monthly; our results reflect UniProt TrEMBL release 2025\_01 and may vary with different releases (see Section~\ref{sec:methods}).
+\textbf{3.}~GO annotations are updated monthly; our results reflect UniProt TrEMBL release 2026\_01 and may vary with different releases (see Section~\ref{sec:methods}).
 
 \textbf{4.}~Our analysis excludes 128.7 million proteins (62.6\%) with only a single annotated feature. This exclusion biases toward well-annotated organisms and proteins, potentially underrepresenting poorly studied taxa.
 
@@ -493,9 +486,9 @@ The most promising future direction is incorporating structure-derived features 
 \label{sec:conclusion}
 %==============================================================================
 
-ET-miner demonstrates that exhaustive frequent itemset mining at the 100-million-transaction scale is practical on current-generation datacenter GPUs. With a base vocabulary of 1,002 features on a single H100, mining completes in 7.3 minutes (excluding the one-time 63-minute feature extraction) and reaches $K{=}22$.
+ET-miner demonstrates that exhaustive frequent itemset mining at the 100-million-transaction scale is practical on current-generation datacenter GPUs. With a base vocabulary of 1,002 features on a single H100, mining completes in 7.3 minutes (excluding the one-time 63-minute feature extraction) and reaches $K{=}22$; the independent re-execution on a single RTX 3090 took 19.1 minutes for the same run.
 
-A permutation-based null model at the Power threshold supports biological significance ($Z{>}3{,}700$ for $K{=}4$--$6$, as $t$-statistics from 5 permutations; no null run reached $K{\geq}7$; see Section~\ref{sec:null-model}). The resulting patterns provide the first systematic map of higher-order protein functional modularity across the entire known protein universe---architecture that no pairwise analysis could reveal. As the AlphaFold database expands to protein complexes and structure-derived features, ET-miner's architecture positions it to mine the next generation of structural proteomics data without architectural changes.
+A permutation-based null model at the Power threshold supports biological significance: in 100 permutations preserving per-protein feature counts, no null run reached $K{\geq}7$ (empirical $p{\approx}0.01$), against 88,745 biological itemsets at $K{\geq}7$ (Section~\ref{sec:null-model}). The resulting patterns provide the first systematic map of higher-order protein functional modularity across the entire known protein universe---architecture that no pairwise analysis could reveal. As the AlphaFold database expands to protein complexes and structure-derived features, ET-miner's architecture positions it to mine the next generation of structural proteomics data without architectural changes.
 
 A preprint of this work is archived at Zenodo (DOI: \texttt{10.5281/zenodo.18674353}). Source code and mining results will be released as open-source software upon publication at \url{https://github.com/Et9797/ET-miner}.
 
@@ -526,7 +519,7 @@ E.\ Ahmic & Indep. Researcher (MSc. Drug Innovation, UU) \\
 
 \subsection*{Data and Code Availability}
 \small
-\noindent The mining source code, the feature-extraction pipeline, and the summary result artefacts (per-run mining logs, $K$-distribution tables, null-model outputs, and the feature-to-item mapping) will be released at \url{https://github.com/Et9797/ET-miner} upon publication. This manuscript is a revised version of the preprint archived at Zenodo (DOI \texttt{10.5281/zenodo.18674353}). The full intermediate transaction matrix is not deposited owing to its size; it is regenerable from UniProt release 2025\_01 via the released feature-extraction pipeline.
+\noindent The mining source code, the feature-extraction pipeline, and the summary result artefacts (per-run mining logs, $K$-distribution tables, null-model outputs, and the feature-to-item mapping) will be released at \url{https://github.com/Et9797/ET-miner} upon publication. This manuscript is a revised version of the preprint archived at Zenodo (DOI \texttt{10.5281/zenodo.18674353}). The full intermediate transaction matrix is not deposited owing to its size; it is regenerable from UniProt TrEMBL release 2026\_01 (archived under \texttt{previous\_releases} on the UniProt FTP site) via the released feature-extraction pipeline. The September 2026 re-execution (scripts, logs, per-$K$ itemset tables, null-model outputs, the accessions of the $K{=}22$ proteins and a per-claim comparison report) is deposited in the same repository under \texttt{runs/20260902T0000Z/}.
 \normalsize
 
 %==============================================================================
@@ -535,7 +528,7 @@ E.\ Ahmic & Indep. Researcher (MSc. Drug Innovation, UU) \\
 
 \bibliographystyle{unsrt}
 
-\begin{thebibliography}{37}
+\begin{thebibliography}{38}
 
 \bibitem{jumper2021}
 J.~Jumper et al.
@@ -717,6 +710,11 @@ M.~J.~Zaki, S.~Parthasarathy, M.~Ogihara, and W.~Li.
 \newblock New algorithms for fast discovery of association rules.
 \newblock In \emph{Proc.\ 3rd Int.\ Conf.\ Knowledge Discovery and Data Mining (KDD)}, pp.\ 283--296, 1997.
 
+\bibitem{phipson2010}
+B.~Phipson and G.~K.~Smyth.
+\newblock Permutation $p$-values should never be zero: calculating exact $p$-values when permutations are randomly drawn.
+\newblock \emph{Statistical Applications in Genetics and Molecular Biology}, 9(1):39, 2010.
+
 \bibitem{miettinen2020}
 P.~Miettinen and S.~Neumann.
 \newblock Recent developments in Boolean matrix factorization.
@@ -766,7 +764,7 @@ The bitvector approach reduces support counting from $O(N)$ integer comparisons 
 \State $n \gets |T|$; $\text{min\_count} \gets \lceil \sigma \cdot n \rceil$
 \State $F_1 \gets \{i : \text{count}(i) \geq \text{min\_count}\}$ \Comment{Streaming}
 \State $\text{CSR} \gets \text{BuildCSR}(T, F_1)$ \Comment{$O(\text{nnz})$ memory}
-\State $B \gets \text{GPU\_CSR\_TO\_BITVEC}(\text{CSR})$ \Comment{${\sim}26$\,GB VRAM}
+\State $B \gets \text{GPU\_CSR\_TO\_BITVEC}(\text{CSR})$ \Comment{9.6\,GB VRAM for 76.9M rows}
 \State \textbf{free}(CSR)
 \State $\text{results} \gets []$
 \State $\text{freq}_1 \gets \{c : \text{popcount}(B[c]) \geq \text{min\_count}\}$
@@ -856,7 +854,7 @@ Table~\ref{tab:gpu-pipeline} details which pipeline stages execute on GPU versus
 \toprule
 \textbf{Pipeline Stage} & \textbf{GMiner / GMiner++} & \textbf{ET-miner (GPU-accelerated)} & \textbf{PCIe Traffic (ET-miner)} \\
 \midrule
-Database encoding         & CPU (dense bitmap) & CPU (CSR) $\to$ GPU (\texttt{atomicOr}) & Once ($\sim$3\,GB) \\
+Database encoding         & CPU (dense bitmap) & CPU (CSR) $\to$ GPU (\texttt{atomicOr}) & Once ($\sim$2.5\,GB) \\
 $K{=}1$ support count     & GPU & GPU (\texttt{popcount}) & None \\
 $K{=}1$ frequency filter  & CPU & GPU (\texttt{cp.where}) & None \\
 $K{=}2$ candidate gen     & CPU (enumerate pairs) & GPU (triangular number inverse) & None \\
@@ -871,24 +869,25 @@ Result collection         & CPU (per iteration) & GPU $\to$ CPU (bulk, once) & O
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:memory-comparison} compares memory requirements. CSR transfer savings over dense bitmaps depend on dataset sparsity: from $7.8\times$ at $0.01\%$ density to no savings at ${\geq}1\%$ density, where CSR overhead exceeds the dense representation. For our proteome dataset (${\sim}1\%$ density), CSR provides a modest $1.4\times$ reduction. The on-GPU bitvector matrix is identical in size to the dense bitmap but is built in-place without requiring a separate PCIe transfer of the dense data.
+Table~\ref{tab:memory-comparison} compares memory requirements. CSR transfer savings over dense bitmaps depend on dataset sparsity: from $7.8\times$ at $0.1\%$ density to none above ${\sim}1.5\%$ density (about 15 items per transaction), where the CSR overhead exceeds the packed dense representation. For our proteome dataset (0.22\% density over the full 205.6M-protein transaction set, 0.41\% over the 76.9M mining subset), CSR provides a $4.9\times$ and a $3.1\times$ reduction, respectively. The on-GPU bitvector matrix is identical in size to the dense bitmap but is built in-place without requiring a separate PCIe transfer of the dense data.
 
 \begin{table}[H]
 \centering
-\caption{Memory footprint: dense bitmap ($|D| \times |F_1|$ bits packed) vs.\ CSR (8\,bytes/entry). Ratio $=$ Dense\,/\,CSR; values ${>}1$ indicate CSR savings. The ``AlphaFold proteome'' row uses the full 214M-protein bitvector matrix; the mining campaign (Section~\ref{sec:results}) operates on the 76.9M multi-feature subset.}
+\caption{Memory footprint: dense bitmap ($|D| \times |F_1|$ bits packed) vs.\ CSR (8\,bytes per non-zero plus 8\,bytes per row pointer). Ratio $=$ Dense\,/\,CSR; values ${>}1$ indicate CSR savings. The ``AlphaFold proteome'' rows use the measured item counts of the full 205.6M-protein transaction set and of the 76.9M multi-feature subset on which the mining campaign (Section~\ref{sec:results}) operates. The coordinate form used during construction (16\,bytes per non-zero; ${\sim}5.1$\,GB for the mining subset, Section~\ref{sec:methods}) is not shown.}
 \label{tab:memory-comparison}
 \small
 \begin{tabular}{@{}l r r r r@{}}
 \toprule
 \textbf{Dataset} & \textbf{Items/txn} & \textbf{Dense} & \textbf{CSR} & \textbf{Ratio} \\
 \midrule
-\multicolumn{5}{@{}l}{\emph{AlphaFold proteome} ($|D|{=}214$M, $|F_1|{=}1{,}002$)} \\
-\quad Actual & $\sim$10 & 27\,GB & 19\,GB & $1.4\times$ \\
+\multicolumn{5}{@{}l}{\emph{AlphaFold proteome} ($|F_1|{=}1{,}002$, measured)} \\
+\quad Full set ($|D|{=}205.6$M) & 2.16 & 25.8\,GB & 5.2\,GB & $4.9\times$ \\
+\quad Mining subset ($|D|{=}76.9$M) & 4.12 & 9.6\,GB & 3.1\,GB & $3.1\times$ \\
 \addlinespace[0.4em]
 \multicolumn{5}{@{}l}{\emph{Theoretical} ($|D|{=}76.9$M, $|F_1|{=}1{,}000$)} \\
-\quad 0.01\% density & 1   & 9.6\,GB & 1.2\,GB & $7.8\times$ \\
-\quad 0.1\% density  & 10  & 9.6\,GB & 6.8\,GB & $1.4\times$ \\
-\quad 1\% density    & 100 & 9.6\,GB & 62.1\,GB & $0.15\times$ \\
+\quad 0.1\% density & 1   & 9.6\,GB & 1.2\,GB & $7.8\times$ \\
+\quad 1\% density   & 10  & 9.6\,GB & 6.8\,GB & $1.4\times$ \\
+\quad 10\% density  & 100 & 9.6\,GB & 62.1\,GB & $0.15\times$ \\
 \bottomrule
 \end{tabular}
 \end{table}

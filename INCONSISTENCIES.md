@@ -160,3 +160,25 @@ surfaced by an extraction subagent; "verified" means re-checked directly.
   matches the old "969" (`phase3/2026_01/exp/son_base.json`). The rule generator (and the
   cross-domain definition) used in February 2026 are not in the repository (`pipeline_214m.py`
   has no rules step today), so only the max-lift value is reproducible.
+
+## I-013 — the committed paper figures encode superseded values (verified 2026-09-02, after the campaign)
+
+- `paper/figures/mining_campaign.pdf` (commit 03430d8): the embedded text and bar geometry show the
+  preprint's Table 2 with the streaming-SON counts for Base/Super/Power (the Power bar is lower than the
+  Super bar, i.e. 22,846 < 51,124) and the "Streaming SON" / "Direct CSR→GPU" split, which the fresh
+  exhaustive campaign (RESULTS P-014) and the exact SON re-runs (P-013, P-015, P-016) supersede.
+- `paper/figures/k_distribution.pdf`: the peak annotation reads "Peak: 3.53M (13.15%)"; the exact share
+  is 3,529,257 / 26,849,505 = 13.1446 % → 13.14 %, as printed in the tex table.
+- No generating script for either figure exists in the repository. Both were regenerated from the fresh
+  campaign JSON by `paper/figures/make_figures.py` (RESULTS F-001); the originals remain in git history.
+
+## I-014 — two internal inconsistencies of the tex surfaced by the revision review (verified 2026-09-02)
+
+- Memory table (tex Appendix D, "Theoretical" rows): the rows are computed for 1 / 10 / 100 items per
+  transaction over 1,000 items (their GB values follow CSR = 8 B × (nnz + |D|)), which is 0.1 / 1 / 10 %
+  density, but they were labelled 0.01 / 0.1 / 1 %, and the accompanying sentence placed the break-even at
+  "≥ 1 %" instead of ≈ 1.5 % (RESULTS X-020). Labels and sentence corrected in the revised tex.
+- "~26 GB GPU bitvector matrix" (tex §2.5, Algorithm 1 comment, §4.1): the 205.6M-row matrix was never
+  built; every run mines the 76.9M-row subset whose matrix is 9.63 GB (RESULTS X-021), which is also why
+  the re-execution fits on 24 GB cards. The revised tex states both sizes and labels the 26 GB as the
+  full-set figure. The "~3 GB" host-to-device transfer is 2.53 GB (int64 indices) and is now written ~2.5 GB.

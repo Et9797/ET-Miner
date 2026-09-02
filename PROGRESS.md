@@ -287,3 +287,45 @@ needed.
   and can be regenerated with `runs/20260902T0000Z/phase2/scripts/`.
 - [x] `runs/20260902T0000Z/README.md` explains the directory layout; CLAUDE.md
   carries a campaign-status note for future sessions.
+
+## Paper and blog revision (2026-09-02, after the campaign; resumed from .claude/handoffs/HANDOFF-2026-09-02-1505.md)
+
+Scope: apply the revision map (hallucinated tex values → fresh values) to `paper/et_miner_proteome.tex`,
+update `paper/blog_post.md`, regenerate the two result figures, record derived values, commit and push.
+No new mining. Decisions taken (Et may overrule): H100 timings kept as the February 2026 measurements
+and shown next to the RTX 3090 re-execution timings (two time columns in Table 2); the 100-permutation
+null model promoted to the paper's main null-model result (Table 5), the 5-permutation values quoted
+only as superseded.
+
+- [x] `paper/blog_post.md` updated: exhaustive counts for all six runs (Super/Power now 113,405 / 475,865),
+      exact SON, K=22 ceiling as an empirical result (max 46 features on one protein; min_count 4 run),
+      100-permutation null model (p ≈ 0.01, 95 % bound 3 %), 3090 timings, honest reproducibility note
+      (release 2026_01, streaming numbers historical, ceiling argument corrected); 1,201,421 → 1,201,422 words.
+- [x] `paper/et_miner_proteome.tex` revised by the asserting replacement script
+      (scratchpad `revise_tex.py`; every anchor matched exactly once): abstract, dataset paragraph
+      (2026_01, 150 GiB, pLDDT bin note), Table 1 caption, SON sentence in Methods, setup paragraph
+      (+ re-execution machine), Table 2 (exhaustive rows, H100 + RTX 3090 time columns, no
+      Method/Key-transition columns, dagger footnote removed), SON paragraph and Figure 3 caption,
+      Table 4 pLDDT bin (50–90), K=22 accession sentence, K=22 ceiling paragraph (empirical),
+      null-model section + Table 5 (100 permutations), Discussion SON paragraph, multi-GPU sentence,
+      +2,728 effect size, Limitations release, Conclusion (3090 time, null headline), Data availability
+      (2026_01 + reproduction artifacts), Appendix memory table (measured rows 2.16 / 4.12 items,
+      4.9× / 3.1×) and its density sentence, new bibitem phipson2010, date line.
+- [x] `paper/figures/make_figures.py` written; `mining_campaign.pdf` and `k_distribution.pdf`
+      regenerated from `phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json` (I-013, F-001).
+- [x] RESULTS.md rows P-021..P-024, X-017..X-019, F-001; INCONSISTENCIES.md I-013.
+- [x] pdflatex compile check of the revised tex (TeX Live installed via apt on this box; Debian's
+      TeX Live 2021 lacks `binhex.tex`, which newpxmath \input{}s but only uses in commented code — a
+      one-line stub in the scratch build dir was used; 13 pages, 3 pre-existing overfull boxes, no
+      undefined references or citations; the original tex builds to 13 pages with 4 overfull boxes)
+- [x] fresh-context adversarial review of the revised tex + blog (subagent, read-only): ~150 values
+      verified; 14 defects reported and fixed in a second pass (scratchpad `revise_tex_pass2.py`):
+      the fresh permutations are not the preprint's draws (text + abstract + blog corrected, RESULTS
+      P-025); memory-table density labels were 10× off and the break-even sentence wrong (I-014,
+      X-020); "26 GB on GPU" → 9.6 GB resident / 26 GB full-set (X-021); "~3 GB" H2D → ~2.5 GB;
+      five-permutation p framing (1/6, bound 0.45); Table 2 caption (Power also SON originally; timing
+      scope excludes the Parquet load); the two fresh direct-path Power timings (83.1 s campaign vs
+      91.7 s comparison) named as separate runs; CSR vs coordinate-form wording; release identification
+      scope (2025_01..2026_02); K=1 row wording; bibliography label width; blog: K=12 support hedged,
+      extraction account completed (two filtering passes), fourth non-reproduced item added.
+- [x] commit + push (branch alphafold-experimental-results-reproduction; commit "paper: revise tex and blog with the fresh base214m values; regenerate result figures")

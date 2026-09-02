@@ -87,3 +87,6 @@ runs/20260902T0000Z/phase2/streamtest/work/
 
 # Rust build output of the af-extract extractor (rebuild with cargo)
 applications/alphafold/af-extract/target/
+
+# Local session handoffs (not committed)
+.claude/handoffs/

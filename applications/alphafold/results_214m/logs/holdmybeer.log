@@ -1,0 +1,40 @@
+============================================================
+  HOLD MY BEER MODE
+  support = 4 proteins / 76.9M = 0.000005%
+  Target: K=23+
+============================================================
+
+>>> Loading /root/alphafold-data/full_214m/transactions_214m.parquet
+>>> Mining at support=0.000000052 (~4 proteins)...
+
+>>> 18,935,899 itemsets in 573.1s
+>>> Saved: 63,377,870 bytes
+
+>>> K-distribution:
+  K=1: 1,002
+  K=2: 66,703
+  K=3: 403,157
+  K=4: 1,030,353
+  K=5: 1,664,538
+  K=6: 2,134,446
+  K=7: 2,434,007
+  K=8: 2,567,214
+  K=9: 2,493,943
+  K=10: 2,185,067
+  K=11: 1,689,219
+  K=12: 1,131,603
+  K=13: 646,988
+  K=14: 311,183
+  K=15: 123,916
+  K=16: 40,051
+  K=17: 10,227
+  K=18: 1,983
+  K=19: 274
+  K=20: 24
+  K=21: 1
+
+>>> MAX K = 21
+
+>>> Loading item mapping for decode...
+
+>>> HOLD MY BEER MODE COMPLETE. 18,935,899 itemsets, max K=21, 573.1s

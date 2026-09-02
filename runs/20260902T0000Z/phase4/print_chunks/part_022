@@ -1,0 +1,192 @@
+| T-170 | et_miner_proteome.tex:249 | 9 K peak (second mention) | kdist_opus_peak_k | 9 | confirmed | exact |
+| T-171 | et_miner_proteome.tex:254 | 0.00001 % support | run_opus_support_pct | 1e-05 | confirmed | exact |
+| T-172 | et_miner_proteome.tex:254 | 26.8M total itemsets | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.8 at 3 significant digits |
+| T-173 | et_miner_proteome.tex:254 | 9 K (peak) | kdist_opus_peak_k | 9 | confirmed | exact |
+| T-174 | et_miner_proteome.tex:254 | 3.53M itemsets at peak | kdist_opus_peak_count | 3,529,257 | confirmed | fresh rounds to 3.53 at 3 significant digits |
+| T-175 | et_miner_proteome.tex:254 | 1 itemset at maximum depth | kdist_opus_k22_count | 1 | confirmed | exact |
+| T-176 | et_miner_proteome.tex:254 | 8 proteins sharing the max-depth itemset | k22_support | 8 | confirmed | exact |
+| T-177 | et_miner_proteome.tex:259 | 0.00001 % support | run_opus_support_pct | 1e-05 | confirmed | exact |
+| T-178 | et_miner_proteome.tex:259 | 26.8M total itemsets | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.8 at 3 significant digits |
+| T-179 | et_miner_proteome.tex:268 | 1,002 itemsets at K=1 | kdist_opus_k1_count | 1,002 | confirmed | exact |
+| T-180 | et_miner_proteome.tex:268 | 0.00 % at K=1 | kdist_opus_k1_pct | 0.0037 | confirmed | fresh rounds to 0.00 at 1 significant digits |
+| T-181 | et_miner_proteome.tex:268 | 1,996,772 itemsets at K=12 | kdist_opus_k12_count | 1,996,772 | confirmed | exact |
+| T-182 | et_miner_proteome.tex:268 | 7.44 % at K=12 | kdist_opus_k12_pct | 7.4369 | confirmed | fresh rounds to 7.44 at 2 decimals |
+| T-183 | et_miner_proteome.tex:269 | 73,786 itemsets at K=2 | kdist_opus_k2_count | 73,786 | confirmed | exact |
+| T-184 | et_miner_proteome.tex:269 | 0.27 % at K=2 | kdist_opus_k2_pct | 0.2748 | confirmed | fresh rounds to 0.27 at 2 decimals |
+| T-185 | et_miner_proteome.tex:269 | 1,259,045 itemsets at K=13 | kdist_opus_k13_count | 1,259,045 | confirmed | exact |
+| T-186 | et_miner_proteome.tex:269 | 4.69 % at K=13 | kdist_opus_k13_pct | 4.6893 | confirmed | fresh rounds to 4.69 at 2 decimals |
+| T-187 | et_miner_proteome.tex:270 | 452,777 itemsets at K=3 | kdist_opus_k3_count | 452,777 | confirmed | exact |
+| T-188 | et_miner_proteome.tex:270 | 1.69 % at K=3 | kdist_opus_k3_pct | 1.6864 | confirmed | fresh rounds to 1.69 at 2 decimals |
+| T-189 | et_miner_proteome.tex:270 | 679,471 itemsets at K=14 | kdist_opus_k14_count | 679,471 | confirmed | exact |
+| T-190 | et_miner_proteome.tex:270 | 2.53 % at K=14 | kdist_opus_k14_pct | 2.5307 | confirmed | fresh rounds to 2.53 at 2 decimals |
+| T-191 | et_miner_proteome.tex:271 | 1,184,461 itemsets at K=4 | kdist_opus_k4_count | 1,184,461 | confirmed | exact |
+| T-192 | et_miner_proteome.tex:271 | 4.41 % at K=4 | kdist_opus_k4_pct | 4.4115 | confirmed | fresh rounds to 4.41 at 2 decimals |
+| T-193 | et_miner_proteome.tex:271 | 310,527 itemsets at K=15 | kdist_opus_k15_count | 310,527 | confirmed | exact |
+| T-194 | et_miner_proteome.tex:271 | 1.16 % at K=15 | kdist_opus_k15_pct | 1.1565 | confirmed | fresh rounds to 1.16 at 2 decimals |
+| T-195 | et_miner_proteome.tex:272 | 1,974,126 itemsets at K=5 | kdist_opus_k5_count | 1,974,126 | confirmed | exact |
+| T-196 | et_miner_proteome.tex:272 | 7.35 % at K=5 | kdist_opus_k5_pct | 7.3526 | confirmed | fresh rounds to 7.35 at 2 decimals |
+| T-197 | et_miner_proteome.tex:272 | 118,659 itemsets at K=16 | kdist_opus_k16_count | 118,659 | confirmed | exact |
+| T-198 | et_miner_proteome.tex:272 | 0.44 % at K=16 | kdist_opus_k16_pct | 0.4419 | confirmed | fresh rounds to 0.44 at 2 decimals |
+| T-199 | et_miner_proteome.tex:273 | 2,626,332 itemsets at K=6 | kdist_opus_k6_count | 2,626,332 | confirmed | exact |
+| T-200 | et_miner_proteome.tex:273 | 9.78 % at K=6 | kdist_opus_k6_pct | 9.7817 | confirmed | fresh rounds to 9.78 at 2 decimals |
+| T-201 | et_miner_proteome.tex:273 | 37,261 itemsets at K=17 | kdist_opus_k17_count | 37,261 | confirmed | exact |
+| T-202 | et_miner_proteome.tex:273 | 0.14 % at K=17 | kdist_opus_k17_pct | 0.1388 | confirmed | fresh rounds to 0.14 at 2 decimals |
+| T-203 | et_miner_proteome.tex:274 | 3,118,459 itemsets at K=7 | kdist_opus_k7_count | 3,118,459 | confirmed | exact |
+| T-204 | et_miner_proteome.tex:274 | 11.61 % at K=7 | kdist_opus_k7_pct | 11.6146 | confirmed | fresh rounds to 11.61 at 2 decimals |
+| T-205 | et_miner_proteome.tex:274 | 9,375 itemsets at K=18 | kdist_opus_k18_count | 9,375 | confirmed | exact |
+| T-206 | et_miner_proteome.tex:274 | 0.03 % at K=18 | kdist_opus_k18_pct | 0.0349 | confirmed | fresh rounds to 0.03 at 2 decimals |
+| T-207 | et_miner_proteome.tex:275 | 3,442,954 itemsets at K=8 | kdist_opus_k8_count | 3,442,954 | confirmed | exact |
+| T-208 | et_miner_proteome.tex:275 | 12.82 % at K=8 | kdist_opus_k8_pct | 12.8232 | confirmed | fresh rounds to 12.82 at 2 decimals |
+| T-209 | et_miner_proteome.tex:275 | 1,818 itemsets at K=19 | kdist_opus_k19_count | 1,818 | confirmed | exact |
+| T-210 | et_miner_proteome.tex:275 | 0.01 % at K=19 | kdist_opus_k19_pct | 0.0068 | confirmed | fresh rounds to 0.01 at 2 decimals |
+| T-211 | et_miner_proteome.tex:276 | 3,529,257 itemsets at K=9 (peak, bold) | kdist_opus_k9_count | 3,529,257 | confirmed | exact |
+| T-212 | et_miner_proteome.tex:276 | 13.14 % at K=9 (bold) | kdist_opus_k9_pct | 13.1446 | confirmed | fresh rounds to 13.14 at 2 decimals |
+| T-213 | et_miner_proteome.tex:276 | 255 itemsets at K=20 | kdist_opus_k20_count | 255 | confirmed | exact |
+| T-214 | et_miner_proteome.tex:276 | <0.01 % at K=20 | kdist_opus_k20_pct | 0.0009 | confirmed | fresh satisfies the stated bound 0.01 |
+| T-215 | et_miner_proteome.tex:277 | 3,293,612 itemsets at K=10 | kdist_opus_k10_count | 3,293,612 | confirmed | exact |
+| T-216 | et_miner_proteome.tex:277 | 12.27 % at K=10 | kdist_opus_k10_pct | 12.2669 | confirmed | fresh rounds to 12.27 at 2 decimals |
+| T-217 | et_miner_proteome.tex:277 | 23 itemsets at K=21 | kdist_opus_k21_count | 23 | confirmed | exact |
+| T-218 | et_miner_proteome.tex:277 | <0.01 % at K=21 | kdist_opus_k21_pct | 0.0001 | confirmed | fresh satisfies the stated bound 0.01 |
+| T-219 | et_miner_proteome.tex:278 | 2,739,532 itemsets at K=11 | kdist_opus_k11_count | 2,739,532 | confirmed | exact |
+| T-220 | et_miner_proteome.tex:278 | 10.20 % at K=11 | kdist_opus_k11_pct | 10.2033 | confirmed | fresh rounds to 10.2 at 2 decimals |
+| T-221 | et_miner_proteome.tex:278 | 1 itemsets at K=22 | kdist_opus_k22_count | 1 | confirmed | exact |
+| T-222 | et_miner_proteome.tex:278 | <0.01 % at K=22 | kdist_opus_k22_pct | 0 | confirmed | fresh satisfies the stated bound 0.01 |
+| T-223 | et_miner_proteome.tex:286 | 1 K=22 itemset (count) | kdist_opus_k22_count | 1 | confirmed | exact |
+| T-224 | et_miner_proteome.tex:286 | 22 K (ceiling) | run_opus_kmax | 22 | confirmed | exact |
+| T-225 | et_miner_proteome.tex:286 | 8 proteins sharing the K=22 itemset | k22_support | 8 | confirmed | exact |
+| T-226 | et_miner_proteome.tex:286 | 22 co-occurring features in the itemset | k22_n_features | 22 | confirmed | exact |
+| T-227 | et_miner_proteome.tex:289 | 22 K | run_opus_kmax | 22 | confirmed | exact |
+| T-228 | et_miner_proteome.tex:289 | 22 co-occurring features | k22_n_features | 22 | confirmed | exact |
+| T-229 | et_miner_proteome.tex:289 | 8 proteins | k22_support | 8 | confirmed | exact |
+| T-230 | et_miner_proteome.tex:297 | 2 Pfam domains in K=22 itemset | k22_n_pfam | 2 | confirmed | exact |
+| T-231 | et_miner_proteome.tex:298 | PF00270 Pfam member of K=22 itemset | k22_feature_1 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-232 | et_miner_proteome.tex:299 | PF00271 Pfam member of K=22 itemset | k22_feature_2 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-233 | et_miner_proteome.tex:301 | 8 Molecular Function GO terms in K=22 itemset | k22_n_go_mf | 8 | confirmed | exact |
+| T-234 | et_miner_proteome.tex:302 | GO:0005524 MF member (ATP binding) | k22_feature_3 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-235 | et_miner_proteome.tex:303 | GO:0016787 MF member (Hydrolase activity) | k22_feature_4 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-236 | et_miner_proteome.tex:304 | GO:0000287 MF member (Magnesium ion binding) | k22_feature_5 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-237 | et_miner_proteome.tex:305 | GO:0003697 MF member (ssDNA binding) | k22_feature_6 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-238 | et_miner_proteome.tex:306 | GO:0003724 MF member (RNA helicase activity) | k22_feature_7 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-239 | et_miner_proteome.tex:307 | GO:0003725 MF member (dsRNA binding) | k22_feature_8 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-240 | et_miner_proteome.tex:308 | GO:0003678 MF member (DNA helicase activity) | k22_feature_9 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-241 | et_miner_proteome.tex:309 | GO:0000978 MF member (RNA Pol II regulatory binding) | k22_feature_10 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-242 | et_miner_proteome.tex:311 | 4 Biological Process GO terms in K=22 itemset | k22_n_go_bp | 4 | confirmed | exact |
+| T-243 | et_miner_proteome.tex:312 | GO:0030154 BP member (Cell differentiation) | k22_feature_11 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-244 | et_miner_proteome.tex:313 | GO:0045087 BP member (Innate immune response) | k22_feature_12 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-245 | et_miner_proteome.tex:314 | GO:0051607 BP member (Defense response to virus) | k22_feature_13 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-246 | et_miner_proteome.tex:315 | GO:0034605 BP member (Cellular response to heat) | k22_feature_14 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-247 | et_miner_proteome.tex:317 | 7 Cellular Component GO terms in K=22 itemset | k22_n_go_cc | 7 | confirmed | exact |
+| T-248 | et_miner_proteome.tex:318 | GO:0005737 CC member (Cytoplasm) | k22_feature_15 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-249 | et_miner_proteome.tex:319 | GO:0005829 CC member (Cytosol) | k22_feature_16 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-250 | et_miner_proteome.tex:320 | GO:0005634 CC member (Nucleus) | k22_feature_17 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-251 | et_miner_proteome.tex:321 | GO:0005739 CC member (Mitochondrion) | k22_feature_18 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-252 | et_miner_proteome.tex:322 | GO:0030424 CC member (Axon) | k22_feature_19 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-253 | et_miner_proteome.tex:323 | GO:0030425 CC member (Dendrite) | k22_feature_20 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-254 | et_miner_proteome.tex:324 | GO:0016607 CC member (Nuclear speckle) | k22_feature_21 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present |
+| T-255 | et_miner_proteome.tex:326 | 1 Structural property item in K=22 itemset | k22_n_plddt | 1 | confirmed | exact |
+| T-256 | et_miner_proteome.tex:327 | plddt_mean = Medium confidence structural item member (pLDDT bin) | k22_feature_22 | [plddt_mean_med, PF00271, PF00270, GO:0005524, GO:0005737, G | confirmed | 1/1 listed ids present; pLDDT item matched by prefix (paper 'plddt_mean' = item 'plddt_mean_med') |
+| T-257 | et_miner_proteome.tex:327 | 70–90 pLDDT bin edges (Medium confidence) | vocab_plddt_bin_medium_edges | 50–90 | hallucinated | claim numbers [70.0, 90.0] not all in fresh 50–90 |
+| T-258 | et_miner_proteome.tex:333 | 22 features in signature | k22_n_features | 22 | confirmed | exact |
+| T-259 | et_miner_proteome.tex:333 | 0 (none) GO parent–child pairs among the 22 features | k22_go_parent_child_pairs | 0 | confirmed | exact |
+| T-260 | et_miner_proteome.tex:333 | 1 definitional link (GO:0005524 derivable from PF00270 via InterPro2GO | k22_definitional_links |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-261 | et_miner_proteome.tex:333 | 21 independently annotated features | k22_independent_features |  | inconclusive | the released script's GO-hierarchy criterion finds 0 redundant GO terms (independent K = 22); the paper's 21 s |
+| T-262 | et_miner_proteome.tex:333 | 8 matching proteins (identified during original mining run) | k22_support | 8 | confirmed | exact |
+| T-263 | et_miner_proteome.tex:335 | 8 proteins (each with exactly 22 vocabulary features) | k22_support | 8 | confirmed | exact |
+| T-264 | et_miner_proteome.tex:335 | 22 annotated vocabulary features per K=22 protein (exactly) | k22_proteins_features_each | 22 | confirmed | exact |
+| T-265 | et_miner_proteome.tex:335 | 23 K (impossible regardless of threshold) | k22_impossible_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-266 | et_miner_proteome.tex:335 | 22 maximum vocabulary features carried by any protein | dataset_max_features_per_protein | 46 | hallucinated | exact-match rule: fresh value differs; fresh maximum number of vocabulary items on one protein is 46 (also the |
+| T-267 | et_miner_proteome.tex:335 | 23 K (second mention) | k22_impossible_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-268 | et_miner_proteome.tex:339 | 5 intermediate patterns highlighted | pattern_n_highlighted | 5 | inconclusive | count of the paper's own list of highlighted patterns; not a reproducible quantity (each listed pattern is jud |
+| T-269 | et_miner_proteome.tex:341 | 19 K (RNA Spliceosome Processing Hub) | pattern_k19_k | 19 | confirmed | exact |
+| T-270 | et_miner_proteome.tex:341 | 187 supporting proteins (K=19 pattern) | pattern_k19_support | 187 | confirmed | exact |
+| T-271 | et_miner_proteome.tex:343 | 17 K (Receptor Tyrosine Kinase Signaling Hub) | pattern_k17_k | 17 | confirmed | exact |
+| T-272 | et_miner_proteome.tex:344 | ~611 supporting proteins (K=17 pattern) | pattern_k17_support | 611 | confirmed | exact |
+| T-273 | et_miner_proteome.tex:344 | PF07714 Pfam member of K=17 pattern (Protein tyrosine kinase) | pattern_k17_member_1 | PF07714 | confirmed | claim numbers [7714.0] ⊆ fresh PF07714 |
+| T-274 | et_miner_proteome.tex:344 | PF00017 Pfam member of K=17 pattern (SH2) | pattern_k17_member_2 | PF00017 | confirmed | claim numbers [17.0] ⊆ fresh PF00017 |
+| T-275 | et_miner_proteome.tex:345 | PF00018 Pfam member of K=17 pattern (SH3) | pattern_k17_member_3 | PF00018 | confirmed | claim numbers [18.0] ⊆ fresh PF00018 |
+| T-276 | et_miner_proteome.tex:348 | 17 features in RTK combination | pattern_k17_k | 17 | confirmed | exact |
+| T-277 | et_miner_proteome.tex:353 | 13 K (Helicase-Recombinase DNA Repair Module) | pattern_k13_k | 13 | confirmed | exact |
+| T-278 | et_miner_proteome.tex:353 | ~11,000 supporting proteins (K=13 pattern) | pattern_k13_support | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 102 | confirmed | claimed value exists among 146 fresh values (fresh truncates to 11,000 at 2 significant digits) |
+| T-279 | et_miner_proteome.tex:353 | order-of-magnitude estimate precision of supporting-protein counts for | pattern_support_precision |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-280 | et_miner_proteome.tex:355 | 12 K (Bacterial Cell Wall Synthase) | pattern_k12_k | 12 | confirmed | exact |
+| T-281 | et_miner_proteome.tex:355 | ~10,500 supporting proteins (K=12 pattern) | pattern_k12_support | [16185, 10642, 10619, 10494, 10249, 10214, 994, 860, 783, 41 | confirmed | claimed value exists among 27 fresh values (fresh rounds to 10,500 at 3 significant digits) |
+| T-282 | et_miner_proteome.tex:355 | PF00905 Pfam member of K=12 pattern (transpeptidase) | pattern_k12_member_1 | PF00905 | confirmed | claim numbers [905.0] ⊆ fresh PF00905 |
+| T-283 | et_miner_proteome.tex:355 | PF00912 Pfam member of K=12 pattern (transglycosylase) | pattern_k12_member_2 | PF00912 | confirmed | claim numbers [912.0] ⊆ fresh PF00912 |
+| T-284 | et_miner_proteome.tex:357 | 11 K (AAA+ ATPase Proteasome Complex) | pattern_k11_k | 11 | confirmed | exact |
+| T-285 | et_miner_proteome.tex:357 | ~16,000 supporting proteins (K=11 pattern) | pattern_k11_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (fresh truncates to 16,000 at 2 significant digits) |
+| T-286 | et_miner_proteome.tex:362 | 0.001 % support (null-model re-mining threshold) | null_support_pct | 0.001 | confirmed | exact |
+| T-287 | et_miner_proteome.tex:362 | 769 min_count (null-model threshold) | null_min_count | 769 | confirmed | exact |
+| T-288 | et_miner_proteome.tex:362 | 5 permutations | null_permutations | 5 | confirmed | exact |
+| T-289 | et_miner_proteome.tex:362 | 42 random seed | null_seed | 42 | confirmed | exact |
+| T-290 | et_miner_proteome.tex:362 | 662 s total runtime (5 permutations) | null_total_time_s | 107.56 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.16 (claimed 662) |
+| T-291 | et_miner_proteome.tex:362 | 1 × H100 (same) GPU used for null model | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| T-292 | et_miner_proteome.tex:364 | 3 K (null-model peak) | null_peak_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-293 | et_miner_proteome.tex:364 | 46.2 % of null itemsets at K=3 | null_peak_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-294 | et_miner_proteome.tex:364 | 23 max null itemsets at K=6 (over permutations) | null_k6_max |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| T-295 | et_miner_proteome.tex:364 | 0 null patterns at K>=7 (any permutation) | null_kge7_mean | 0 | confirmed | exact |
+| T-296 | et_miner_proteome.tex:364 | 88,745 biological itemsets at K>=7 (0.001%) | null_kge7_bio | 88,745 | confirmed | exact |
+| T-297 | et_miner_proteome.tex:364 | 14 K max (biological, 0.001%) | run_power_direct_kmax | 14 | confirmed | exact |
+| T-298 | et_miner_proteome.tex:367 | 0.001 % support | null_support_pct | 0.001 | confirmed | exact |
+| T-299 | et_miner_proteome.tex:367 | 5 permutations | null_permutations | 5 | confirmed | exact |
+| T-300 | et_miner_proteome.tex:367 | >=4 K (all strongly enriched) | null_enriched_from_k | 4 | confirmed | exact |
+| T-301 | et_miner_proteome.tex:367 | 5 permutations used to estimate sigma | null_permutations | 5 | confirmed | exact |
+| T-302 | et_miner_proteome.tex:367 | 4 degrees of freedom (t-statistics) | null_t_df | 4 | confirmed | exact |
+| T-303 | et_miner_proteome.tex:367 | >=7 K absent from all null runs | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| T-304 | et_miner_proteome.tex:367 | 5 null runs (none with K>=7) | null_permutations | 5 | confirmed | exact |
+| T-305 | et_miner_proteome.tex:367 | <0.45 p (K>=7, one-sided binomial bound) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| T-306 | et_miner_proteome.tex:367 | 95 % (one-sided binomial upper bound level) | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-307 | et_miner_proteome.tex:367 | 1-0.05^(1/5) formula for p bound | null_p_bound_formula |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-308 | et_miner_proteome.tex:367 | 0 of 5 null runs producing K>=7 | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| T-309 | et_miner_proteome.tex:376 | 1,002 Bio itemsets, K=1 | null_k1_bio | 1,002 | confirmed | exact |
+| T-310 | et_miner_proteome.tex:376 | 1,002 Null mu, K=1 | null_k1_mean | 1,002 | confirmed | exact |
+| T-311 | et_miner_proteome.tex:376 | 0.0 Null sigma, K=1 | null_k1_std | 0 | confirmed | exact |
+| T-312 | et_miner_proteome.tex:376 | 0.0 Z, K=1 | null_k1_z | 0 | confirmed | exact |
+| T-313 | et_miner_proteome.tex:376 | 1.0 p, K=1 (preserved) | null_k1_p | 1 | confirmed | exact |
+| T-314 | et_miner_proteome.tex:377 | 22,019 Bio itemsets, K=2 | null_k2_bio | 22,019 | confirmed | exact |
+| T-315 | et_miner_proteome.tex:377 | 63,702 Null mu, K=2 | null_k2_mean | 63,704.8 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-316 | et_miner_proteome.tex:377 | 42.2 Null sigma, K=2 | null_k2_std | 30.7 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-317 | et_miner_proteome.tex:377 | -987 Z, K=2 | null_k2_z | -1,359.13 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-318 | et_miner_proteome.tex:377 | 1.0 p, K=2 (depleted) | null_k2_p | 1 | confirmed | exact |
+| T-319 | et_miner_proteome.tex:378 | 73,205 Bio itemsets, K=3 | null_k3_bio | 73,205 | confirmed | exact |
+| T-320 | et_miner_proteome.tex:378 | 79,134 Null mu, K=3 | null_k3_mean | 79,117.4 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-321 | et_miner_proteome.tex:378 | 41.5 Null sigma, K=3 | null_k3_std | 49.7 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-322 | et_miner_proteome.tex:378 | -143 Z, K=3 | null_k3_z | -118.93 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-323 | et_miner_proteome.tex:378 | 1.0 p, K=3 (depleted) | null_k3_p | 1 | confirmed | exact |
+| T-324 | et_miner_proteome.tex:379 | 108,059 Bio itemsets, K=4 | null_k4_bio | 108,059 | confirmed | exact |
+| T-325 | et_miner_proteome.tex:379 | 25,468 Null mu, K=4 | null_k4_mean | 25,412.2 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-326 | et_miner_proteome.tex:379 | 21.8 Null sigma, K=4 | null_k4_std | 27.1 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-327 | et_miner_proteome.tex:379 | +3,791 Z, K=4 | null_k4_z | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-328 | et_miner_proteome.tex:379 | ~0 p, K=4 (enriched) | null_k4_p | 0 | confirmed | exact |
+| T-329 | et_miner_proteome.tex:380 | 104,239 Bio itemsets, K=5 | null_k5_bio | 104,239 | confirmed | exact |
+| T-330 | et_miner_proteome.tex:380 | 1,992 Null mu, K=5 | null_k5_mean | 1,991.4 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-331 | et_miner_proteome.tex:380 | 13.8 Null sigma, K=5 | null_k5_std | 10.3 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-332 | et_miner_proteome.tex:380 | +7,402 Z, K=5 | null_k5_z | 9,917.14 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-333 | et_miner_proteome.tex:380 | ~0 p, K=5 (enriched) | null_k5_p | 0 | confirmed | exact |
+| T-334 | et_miner_proteome.tex:381 | 78,596 Bio itemsets, K=6 | null_k6_bio | 78,596 | confirmed | exact |
+| T-335 | et_miner_proteome.tex:381 | 22 Null mu, K=6 | null_k6_mean | 21.8 | confirmed | fresh rounds to 22 at 2 significant digits |
+| T-336 | et_miner_proteome.tex:381 | 1.1 Null sigma, K=6 | null_k6_std | 0.4 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-337 | et_miner_proteome.tex:381 | +71,728 Z, K=6 | null_k6_z | 175,697 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-338 | et_miner_proteome.tex:381 | ~0 p, K=6 (enriched) | null_k6_p | 0 | confirmed | exact |
+| T-339 | et_miner_proteome.tex:382 | 88,745 Bio itemsets, K=7-14 | null_kge7_bio | 88,745 | confirmed | exact |
+| T-340 | et_miner_proteome.tex:382 | 0 Null mu, K=7-14 | null_kge7_mean | 0 | confirmed | exact |
+| T-341 | et_miner_proteome.tex:382 | 0.0 Null sigma, K=7-14 | null_kge7_std |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| T-342 | et_miner_proteome.tex:382 | --- (undefined) Z, K=7-14 | null_kge7_z |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-343 | et_miner_proteome.tex:382 | <0.45 p, K=7-14 (enriched) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| T-344 | et_miner_proteome.tex:388 | 5 permutations (Z estimate) | null_permutations | 5 | confirmed | exact |
+| T-345 | et_miner_proteome.tex:388 | 4 degrees of freedom | null_t_df | 4 | confirmed | exact |
+| T-346 | et_miner_proteome.tex:391 | -987 Z at K=2 (depleted) | null_k2_z | -1,359.13 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-347 | et_miner_proteome.tex:391 | -143 Z at K=3 (depleted) | null_k3_z | -118.93 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-348 | et_miner_proteome.tex:391 | >=4 K (biological exceeds null) | null_enriched_from_k | 4 | confirmed | exact |
+| T-349 | et_miner_proteome.tex:391 | +3,791 standardized effect size at K=4 | null_k4_z | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-350 | et_miner_proteome.tex:391 | 5 permutations (caveat) | null_permutations | 5 | confirmed | exact |
+| T-351 | et_miner_proteome.tex:391 | 4 degrees of freedom | null_t_df | 4 | confirmed | exact |
+| T-352 | et_miner_proteome.tex:391 | 0 of 5 permutations with itemsets beyond K=6 | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| T-353 | et_miner_proteome.tex:391 | <0.45 p | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| T-354 | et_miner_proteome.tex:391 | 95 % upper bound level | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-355 | et_miner_proteome.tex:391 | 1-0.05^(1/5) p-bound formula | null_p_bound_formula |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-356 | et_miner_proteome.tex:391 | 6 K (null model maximum depth) | null_kmax | 6 | confirmed | exact |
+| T-357 | et_miner_proteome.tex:391 | 22 mean null itemsets at K=6 | null_k6_mean | 21.8 | confirmed | fresh rounds to 22 at 2 significant digits |
+| T-358 | et_miner_proteome.tex:391 | 1.1 std of null itemsets at K=6 | null_k6_std | 0.4 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-359 | et_miner_proteome.tex:391 | 5 permutations | null_permutations | 5 | confirmed | exact |
+| T-360 | et_miner_proteome.tex:393 | 1,002 features remaining frequent after shuffling | null_k1_mean | 1,002 | confirmed | exact |
+| T-361 | et_miner_proteome.tex:393 | 0.001 % support level validated | null_support_pct | 0.001 | confirmed | exact |

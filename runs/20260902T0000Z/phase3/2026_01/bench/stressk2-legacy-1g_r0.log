@@ -1,0 +1,8 @@
+2026-09-02 12:01:06.131 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 2,000,000 transactions, min_count=30
+2026-09-02 12:01:06.559 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 35000 frequent items
+2026-09-02 12:01:07.133 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 47,473,315 non-zeros
+2026-09-02 12:01:09.413 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 35000 cols, 2,000,000 txns, min_support=0.00001500 (min_count=30), max_length=3
+2026-09-02 12:01:09.527 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=35,000 → frequent=35,000 (0.1s) | cumulative=35,000 | RAM=2.4GB VRAM=16.3GB
+/root/projects/ET-Miner/bench/child_run.py:139: UserWarning: 100% of items are frequent (min_count=30). Mining may produce combinatorially explosive results. Consider raising min_support.
+  res = apriori(
+2026-09-02 12:04:06.683 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=612,482,500 → frequent=1,660,332 (177.1s) | cumulative=1,695,332 | RAM=2.4GB VRAM=16.3GB

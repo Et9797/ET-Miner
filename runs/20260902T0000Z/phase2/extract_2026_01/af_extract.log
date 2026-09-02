@@ -1,0 +1,19 @@
+[2026-09-02T05:14:08.182Z INFO  af_extract] === Build Transactions from Metadata (pLDDT + annotations) ===
+[2026-09-02T05:14:08.182Z INFO  af_extract::annotations] Loading annotations from DAT: /root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.csvacc.dat.gz
+[2026-09-02T05:19:03.184Z INFO  af_extract::annotations] Loaded 90506840 annotations (24291 Pfam, 25993 GO, 0 InterPro, 0 EC, 0 taxonomy)
+[2026-09-02T05:19:03.184Z INFO  af_extract] Reading pLDDT metadata from: /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/plddt_metadata_pfamgo.csv
+[2026-09-02T05:19:03.184Z INFO  af_extract]   Accession column: 'uniprotAccession' (index 0)
+[2026-09-02T05:19:03.184Z INFO  af_extract]   pLDDT column: 'globalMetricValue' (index 1)
+[2026-09-02T05:19:22.206Z INFO  af_extract] Read 90506840 rows: 90506840 passed pLDDT filter (>= 50), 0 skipped
+[2026-09-02T05:19:22.206Z INFO  af_extract] Counting feature frequencies across 90506840 proteins...
+[2026-09-02T05:21:08.430Z INFO  af_extract] Frequencies: 24291 Pfam, 25993 GO, 0 InterPro, 0 EC, 0 taxonomy from 90506840 proteins
+[2026-09-02T05:21:08.432Z INFO  af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO + 0 InterPro + 0 EC + 0 taxonomy = 1006 total items
+[2026-09-02T05:21:08.437Z INFO  af_extract::transaction] Saved item mapping: 1006 items to /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/item_mapping_214m_base.parquet
+[2026-09-02T05:23:23.899Z INFO  af_extract::transaction] Written 90506840 transactions to /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base.parquet
+[2026-09-02T05:23:23.899Z INFO  af_extract] === Results ===
+[2026-09-02T05:23:23.899Z INFO  af_extract] Transactions: 90506840
+[2026-09-02T05:23:23.899Z INFO  af_extract] Total items:  1006
+[2026-09-02T05:23:23.899Z INFO  af_extract] Output:       /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base.parquet
+[2026-09-02T05:23:23.899Z INFO  af_extract] Item mapping: /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/item_mapping_214m_base.parquet
+[2026-09-02T05:23:23.899Z INFO  af_extract] Time:         555.7s (162865 proteins/sec)
+af-extract wall_seconds=622

@@ -1,0 +1,453 @@
+{
+  "analysis": "deepest_itemset_proteins_and_go_hierarchy",
+  "timestamp": "2026-09-02T06:22:22.316056+00:00",
+  "itemset_source": "/root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet",
+  "k": 22,
+  "features": [
+    {
+      "category": "Struct",
+      "id": "plddt_mean_med",
+      "description": "plddt_mean_med"
+    },
+    {
+      "category": "Pfam",
+      "id": "PF00271",
+      "description": "PF00271"
+    },
+    {
+      "category": "Pfam",
+      "id": "PF00270",
+      "description": "PF00270"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0005524",
+      "description": "GO:0005524"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0005737",
+      "description": "GO:0005737"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0005829",
+      "description": "GO:0005829"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0005634",
+      "description": "GO:0005634"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0016787",
+      "description": "GO:0016787"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0000287",
+      "description": "GO:0000287"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0005739",
+      "description": "GO:0005739"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0000978",
+      "description": "GO:0000978"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0030154",
+      "description": "GO:0030154"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0003697",
+      "description": "GO:0003697"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0003724",
+      "description": "GO:0003724"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0045087",
+      "description": "GO:0045087"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0030424",
+      "description": "GO:0030424"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0030425",
+      "description": "GO:0030425"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0051607",
+      "description": "GO:0051607"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0003725",
+      "description": "GO:0003725"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0034605",
+      "description": "GO:0034605"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0016607",
+      "description": "GO:0016607"
+    },
+    {
+      "category": "GO",
+      "id": "GO:0003678",
+      "description": "GO:0003678"
+    }
+  ],
+  "proteins": [
+    {
+      "protein_id": "H2QNM0",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    },
+    {
+      "protein_id": "F6Q4S1",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    },
+    {
+      "protein_id": "G3SKQ4",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    },
+    {
+      "protein_id": "A0A1D5PHB6",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    },
+    {
+      "protein_id": "F6U0V1",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    },
+    {
+      "protein_id": "A0A5F8HEV5",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    },
+    {
+      "protein_id": "M3VK01",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    },
+    {
+      "protein_id": "F7EPL6",
+      "n_features": 22,
+      "feature_ids": [
+        1,
+        13,
+        23,
+        507,
+        509,
+        510,
+        513,
+        519,
+        529,
+        533,
+        569,
+        632,
+        651,
+        677,
+        766,
+        784,
+        795,
+        850,
+        887,
+        917,
+        965,
+        966
+      ]
+    }
+  ],
+  "n_proteins": 8,
+  "go_hierarchy": {
+    "n_go_terms": 19,
+    "n_non_go_features": 3,
+    "n_parent_child_pairs": 0,
+    "parent_child_pairs": [],
+    "redundant_terms": [],
+    "n_redundant": 0,
+    "n_independent_go": 19,
+    "k_independent": 22,
+    "go_term_details": {
+      "GO:0005524": {
+        "name": "ATP binding",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0005737": {
+        "name": "cytoplasm",
+        "namespace": "cellular_component",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0005829": {
+        "name": "cytosol",
+        "namespace": "cellular_component",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0005634": {
+        "name": "nucleus",
+        "namespace": "cellular_component",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0016787": {
+        "name": "hydrolase activity",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0000287": {
+        "name": "magnesium ion binding",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0005739": {
+        "name": "mitochondrion",
+        "namespace": "cellular_component",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0000978": {
+        "name": "RNA polymerase II cis-regulatory region sequence-specific DNA binding",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0030154": {
+        "name": "cell differentiation",
+        "namespace": "biological_process",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0003697": {
+        "name": "single-stranded DNA binding",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0003724": {
+        "name": "RNA helicase activity",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0045087": {
+        "name": "innate immune response",
+        "namespace": "biological_process",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0030424": {
+        "name": "axon",
+        "namespace": "cellular_component",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0030425": {
+        "name": "dendrite",
+        "namespace": "cellular_component",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0051607": {
+        "name": "defense response to virus",
+        "namespace": "biological_process",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0003725": {
+        "name": "double-stranded RNA binding",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0034605": {
+        "name": "cellular response to heat",
+        "namespace": "biological_process",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0016607": {
+        "name": "nuclear speck",
+        "namespace": "cellular_component",
+        "n_ancestors_in_k22": 0
+      },
+      "GO:0003678": {
+        "name": "DNA helicase activity",
+        "namespace": "molecular_function",
+        "n_ancestors_in_k22": 0
+      }
+    }
+  },
+  "total_time_seconds": 21.52
+}

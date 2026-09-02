@@ -1,0 +1,6 @@
+start 2026-09-02T04:58:12Z in=/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.pfamgo.dat.gz csv=/root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/plddt_metadata_pfamgo.csv
+accessions loaded=90506840
+records_total=158700122 records_kept=90506840
+awk/pigz rc=0
+-rw-r--r-- 1 root root 6447078382 Sep  2 05:14 /root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.csvacc.dat.gz
+end 2026-09-02T05:14:08Z

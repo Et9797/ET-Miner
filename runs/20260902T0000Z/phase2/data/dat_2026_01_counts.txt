@@ -1,0 +1,3 @@
+start 2026-09-02T05:26:07Z in=/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.reduced.dat.gz
+records=202556314 primary_accessions=202556314 pfam_unique=25475 go_unique=26536 pfam_lines=232694948 go_lines=436931915
+end 2026-09-02T05:38:41Z

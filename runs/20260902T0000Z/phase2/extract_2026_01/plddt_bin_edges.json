@@ -1,0 +1,38 @@
+{
+  "plddt_mean_low": {
+    "item_id": 0,
+    "n_proteins": 0,
+    "min_plddt": null,
+    "max_plddt": null
+  },
+  "plddt_mean_med": {
+    "item_id": 1,
+    "n_proteins": 55232428,
+    "min_plddt": 50.0,
+    "max_plddt": 90.0
+  },
+  "plddt_mean_high": {
+    "item_id": 2,
+    "n_proteins": 35274412,
+    "min_plddt": 90.01,
+    "max_plddt": 98.81
+  },
+  "plddt_frac_high_low": {
+    "item_id": 3,
+    "n_proteins": 0,
+    "min_plddt": null,
+    "max_plddt": null
+  },
+  "plddt_frac_high_med": {
+    "item_id": 4,
+    "n_proteins": 0,
+    "min_plddt": null,
+    "max_plddt": null
+  },
+  "plddt_frac_high_high": {
+    "item_id": 5,
+    "n_proteins": 0,
+    "min_plddt": null,
+    "max_plddt": null
+  }
+}

@@ -1,0 +1,84 @@
+| run_opus_campaign_time_min | 19.06 | min | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_opus_campaign_time_s | 1,143.89 | s | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_opus_itemsets | 26,849,505 | itemsets | runs/20260902T0000Z/phase3/2026_01/opus/parquet | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_kmax | 22 | K | runs/20260902T0000Z/phase3/2026_01/opus/parquet | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_max_length | 50 | K | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_min_count | 8 | proteins | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_min_count_nominal | 7 | proteins | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_n_transactions | 76,890,945 | transactions | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_support | [1e-07, 1.04043e-07] | fraction | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_support_pct | 1e-05 | % | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_time_min | 44 | min | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_opus_time_s | 2,637.07 | s | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json | run_mining.py --support 1e-07 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush | 2026-09-02T06:09:05Z |
+| run_power_direct_itemsets | 475,865 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_direct_itemsets_std | 0 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_power_direct_kmax | 14 | K | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_direct_min_count | 769 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_direct_support_pct | 0.001 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_power_direct_time_min | 1.39 | min | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_power_direct_time_s | 91.7 | s | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_direct_vs_son_itemset_ratio | 1 | × | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_itemsets | 475,865 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_kmax | 14 | K | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_min_count | 769 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_n_transactions | 76,890,945 | transactions | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_son_chunk_size | 40,000,000 | transactions | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_son_itemset_diff | 0 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_son_itemset_match | 1 | bool | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_son_itemsets | 475,865 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_son_kmax | 14 | K | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_son_local_factor | 0.9 | factor | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_son_time_s | 5,673.71 | s | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_support_pct | 0.001 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_time_min | 94.56 | min | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_power_time_s | 5,673.71 | s | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| run_super_direct_itemsets | 113,405 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_super_direct_itemsets_std | 0 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_super_direct_kmax | 14 | K | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_super_direct_min_count | 7,690 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_super_direct_support_pct | 0.01 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_super_direct_time_min | 0.73 | min | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_super_direct_time_s | 43.91 | s | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_super_itemsets | 113,405 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_kmax | 14 | K | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_min_count | 7,690 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_n_transactions | 76,890,945 | transactions | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_son_itemsets | 113,405 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_son_kmax | 14 | K | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_son_min_count | 7,690 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_son_time_s | 1,425.97 | s | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_support_pct | 0.01 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_time_min | 23.77 | min | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_super_time_s | 1,425.97 | s | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json | son_run.py --min-support 0.0001 (chunk 40000000, factor 0.9) | 2026-09-02T09:53:08Z |
+| run_ultra_itemsets | 14,558,875 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_ultra_itemsets_std | 0 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_ultra_kmax | 20 | K | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_ultra_min_count | 16 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_ultra_support_pct | 2e-05 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_ultra_time_min | 11.52 | min | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| run_ultra_time_s | 691 | s | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| son_miss_rate_pct | 0 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| son_speedup | 61.87 | × | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json | experiment_direct_vs_son.py --min-support 1e-05 --runs 1 (chunk 40000000, factor 0.9) | 2026-09-02T08:38:31Z |
+| sw_cuda | driver CUDA 13.2 (driver 595.71.05); nvcc release 12.1 | version | nvidia-smi / nvcc | nvidia-smi; nvcc --version | 2026-09-02T11:19:11Z |
+| sw_cupy | 14.1.1 | version | .venv | python -c 'import cupy' | 2026-09-02T11:19:11Z |
+| sw_numpy | 2.2.6 | version | .venv | python -c 'import numpy' | 2026-09-02T11:19:11Z |
+| sw_os | Ubuntu 22.04.3 LTS | os | /etc/os-release | cat /etc/os-release | 2026-09-02T11:19:11Z |
+| sw_polars | 1.43.2 | version | .venv | python -c 'import polars' | 2026-09-02T11:19:11Z |
+| sw_python | 3.10.13 | version | .venv/bin/python | python --version | 2026-09-02T11:19:11Z |
+| vocab_composition | 500:500:2 | Pfam:GO:pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:45Z |
+| vocab_go_defined | 500 | items | runs/20260902T0000Z/phase2/extract_2026_01/stats.json | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:46Z |
+| vocab_go_frequent | 500 | items | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:45Z |
+| vocab_items_defined | 1,006 | items | runs/20260902T0000Z/phase2/extract_2026_01/stats.json | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:46Z |
+| vocab_items_frequent | 1,002 | items | runs/20260902T0000Z/phase2/extract_2026_01/stats.json | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:46Z |
+| vocab_items_present_multi | 1,002 | items | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:45Z |
+| vocab_pfam_defined | 500 | items | runs/20260902T0000Z/phase2/extract_2026_01/stats.json | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:46Z |
+| vocab_pfam_frequent | 500 | items | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:45Z |
+| vocab_plddt_bin_medium_edges | 50–90 | pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json | phase2/scripts/plddt_bin_edges.py | 2026-09-02T06:11:17Z |
+| vocab_plddt_bin_plddt_frac_high_high_edges | empty (0 proteins) | pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json | phase2/scripts/plddt_bin_edges.py | 2026-09-02T06:11:17Z |
+| vocab_plddt_bin_plddt_frac_high_low_edges | empty (0 proteins) | pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json | phase2/scripts/plddt_bin_edges.py | 2026-09-02T06:11:17Z |
+| vocab_plddt_bin_plddt_frac_high_med_edges | empty (0 proteins) | pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json | phase2/scripts/plddt_bin_edges.py | 2026-09-02T06:11:17Z |
+| vocab_plddt_bin_plddt_mean_high_edges | 90.01–98.81 | pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json | phase2/scripts/plddt_bin_edges.py (min/max mean pLDDT among proteins carrying the item) | 2026-09-02T06:11:17Z |
+| vocab_plddt_bin_plddt_mean_low_edges | empty (0 proteins) | pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json | phase2/scripts/plddt_bin_edges.py | 2026-09-02T06:11:17Z |
+| vocab_plddt_bin_plddt_mean_med_edges | 50–90 | pLDDT | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json | phase2/scripts/plddt_bin_edges.py (min/max mean pLDDT among proteins carrying the item) | 2026-09-02T06:11:17Z |
+| vocab_plddt_defined | 6 | items | runs/20260902T0000Z/phase2/extract_2026_01/stats.json | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:46Z |
+| vocab_plddt_frequent | 2 | items | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet | phase2/scripts/run_af_extract.sh + extract_stats.py | 2026-09-02T05:24:45Z |

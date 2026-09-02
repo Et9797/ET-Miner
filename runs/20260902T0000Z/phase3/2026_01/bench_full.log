@@ -1,0 +1,58 @@
+→ stressk2-filter-compact#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_FILTER_IMPL': 'compact'}
+   ok wall=91.385s peak={'0': 6931, '1': 6931}
+→ stressk2-filter-cupy#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_FILTER_IMPL': 'cupy'}
+   ok wall=91.86s peak={'0': 7009, '1': 6931}
+→ stressk2-filter-cpu#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_FILTER_IMPL': 'cpu'}
+   ok wall=93.826s peak={'0': 8452, '1': 7328}
+→ deepk-nonccl#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_DISABLE_NCCL': '1'}
+   ok wall=1.233s peak={'0': 311, '1': 311}
+→ deepk-density-auto#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy'}
+   ok wall=2.095s peak={'0': 585, '1': 587}
+→ deepk-density-auto-1g#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=0.926s peak={'0': 31, '1': 3}
+→ twophase-smoke#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy'}
+   ok wall=2.234s peak={'0': 417, '1': 419}
+→ skew-rows#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_ROW_BALANCE': 'rows'}
+   ok wall=2.264s peak={'0': 427, '1': 427}
+→ skew-nnz#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_ROW_BALANCE': 'nnz'}
+   ok wall=2.318s peak={'0': 425, '1': 429}
+→ skew-rows#r1 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_ROW_BALANCE': 'rows'}
+   ok wall=2.274s peak={'0': 427, '1': 427}
+→ skew-nnz#r1 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'ET_MINER_ROW_BALANCE': 'nnz'}
+   ok wall=2.332s peak={'0': 425, '1': 429}
+→ stressk2-legacy-1g#r0 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'CUDA_VISIBLE_DEVICES': '0'}
+   timeout wall=Nones peak=None
+→ stressk2-legacy-2g#r0 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'legacy'}
+   ok wall=2001.852s peak={'0': 16587, '1': 16587}
+→ stressk2-shared-1g#r0 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'shared', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=269.194s peak={'0': 17339, '1': 3}
+→ deepk-legacy-1g#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=0.838s peak={'0': 71, '1': 3}
+→ deepk-shared-1g#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'shared', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=0.835s peak={'0': 335, '1': 3}
+→ stressk2-shared-2g#r0 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=128.377s peak={'0': 16587, '1': 16587}
+→ deepk-legacy-2g#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'legacy'}
+   ok wall=2.128s peak={'0': 425, '1': 427}
+→ deepk-shared-2g#r0 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=2.124s peak={'0': 427, '1': 427}
+→ stressk2-shared-1g#r1 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'shared', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=269.707s peak={'0': 17339, '1': 3}
+→ deepk-shared-1g#r1 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'shared', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=0.826s peak={'0': 335, '1': 3}
+→ stressk2-shared-2g#r1 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=128.378s peak={'0': 16587, '1': 16587}
+→ deepk-shared-2g#r1 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=2.091s peak={'0': 425, '1': 427}
+→ stressk2-shared-1g#r2 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'shared', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=269.993s peak={'0': 17339, '1': 3}
+→ deepk-shared-1g#r2 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'shared', 'CUDA_VISIBLE_DEVICES': '0'}
+   ok wall=0.81s peak={'0': 335, '1': 3}
+→ stressk2-shared-2g#r2 (timeout 3600s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=128.429s peak={'0': 16587, '1': 16587}
+→ deepk-shared-2g#r2 (timeout 1800s) env={'ET_MINER_KERNEL_VARIANT': 'shared'}
+   ok wall=2.087s peak={'0': 425, '1': 427}
+
+equivalence groups consistent ✓
+bench runner rc=0 2026-09-02T13:55:52Z
+wrote /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/bench/report.md

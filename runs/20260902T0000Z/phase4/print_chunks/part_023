@@ -1,0 +1,162 @@
+| T-362 | et_miner_proteome.tex:393 | 769 min_count at 0.001% | null_min_count | 769 | confirmed | exact |
+| T-363 | et_miner_proteome.tex:393 | 475,865 itemsets (exhaustive Direct CSR->GPU at 0.001%, biological ref | run_power_direct_itemsets | 475,865 | confirmed | exact |
+| T-364 | et_miner_proteome.tex:393 | 14 K max (Direct at 0.001%) | run_power_direct_kmax | 14 | confirmed | exact |
+| T-365 | et_miner_proteome.tex:393 | 8 min_count (Opus threshold) | run_opus_min_count | 8 | confirmed | exact |
+| T-366 | et_miner_proteome.tex:393 | 22 K_max (Opus) | run_opus_kmax | 22 | confirmed | exact |
+| T-367 | et_miner_proteome.tex:393 | 100+ permutations needed for p<0.01 (hypothetical) | null_perms_for_p001 |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-368 | et_miner_proteome.tex:393 | <0.01 p bound (hypothetical target) | null_p_target |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-369 | et_miner_proteome.tex:393 | ~130 s per permutation (full mining run) | null_per_perm_time_s | 18.84 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.14 (claimed 130) |
+| T-370 | et_miner_proteome.tex:393 | 5 trials (permutations) | null_permutations | 5 | confirmed | exact |
+| T-371 | et_miner_proteome.tex:402 | 100-million transaction scale (feasibility claim) | misc_transaction_scale_claim |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-372 | et_miner_proteome.tex:402 | 1 GPU (single high-end datacenter GPU) | hw_gpu_count | 2 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.00 (claimed 1) |
+| T-373 | et_miner_proteome.tex:402 | 206 GB (full-set dense matrix) | dense_gb | 206 | confirmed | exact |
+| T-374 | et_miner_proteome.tex:402 | 5.1 GB (CSR of mined subset) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| T-375 | et_miner_proteome.tex:402 | 26 GB (GPU bitvector matrix) | bitvec_gb | 25.8 | confirmed | fresh rounds to 26 at 2 significant digits |
+| T-376 | et_miner_proteome.tex:402 | ~15× same-subset dense-to-CSR reduction | csr_vs_dense_subset_ratio | 15.2 | confirmed | fresh rounds to 15 at 2 significant digits |
+| T-377 | et_miner_proteome.tex:402 | 22 iterations (K-levels) with bitvectors on-GPU | run_opus_kmax | 22 | confirmed | exact |
+| T-378 | et_miner_proteome.tex:404 | 0.001 % support (controlled comparison) | run_power_support_pct | 0.001 | confirmed | exact |
+| T-379 | et_miner_proteome.tex:404 | 21× speedup (Direct vs SON) | son_speedup | 61.87 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.95 (claimed 21) |
+| T-380 | et_miner_proteome.tex:404 | 50.7 s (Direct CSR->GPU at 0.001%) | run_power_direct_time_s | 91.7 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 1.81 (claimed 50.7) |
+| T-381 | et_miner_proteome.tex:404 | 1,085.6 s (SON at 0.001%) | run_power_son_time_s | 5,673.71 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 5.23 (claimed 1085.6) |
+| T-382 | et_miner_proteome.tex:404 | 95.2 % frequent itemsets missed by SON | son_miss_rate_pct | 0 | hallucinated | exact-match rule: fresh value differs |
+| T-383 | et_miner_proteome.tex:404 | 22,846 itemsets (SON) | run_power_son_itemsets | 475,865 | hallucinated | exact-match rule: fresh value differs |
+| T-384 | et_miner_proteome.tex:404 | 475,865 itemsets (Direct) | run_power_direct_itemsets | 475,865 | confirmed | exact |
+| T-385 | et_miner_proteome.tex:408 | 100× speedup (GPApriori, prior work) | ext_gpapriori_speedup |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-386 | et_miner_proteome.tex:408 | 100M transactions (BIGMiner, prior work) | ext_bigminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-387 | et_miner_proteome.tex:408 | 30 MapReduce nodes (BIGMiner) | ext_bigminer_nodes |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-388 | et_miner_proteome.tex:408 | a few million transactions (prior systems max) | ext_prior_gpu_fim_max_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-389 | et_miner_proteome.tex:408 | 3 orders of magnitude | ext_prior_gpu_fim_scale_gap_orders |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-390 | et_miner_proteome.tex:411 | 5.1× more transactions than largest prior single-machine GPU system | run_opus_vs_gminer_transaction_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-391 | et_miner_proteome.tex:411 | 15M synthetic transactions (GMiner) | ext_gminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-392 | et_miner_proteome.tex:411 | 1.7M real transactions (GMiner) | ext_gminer_transactions_real |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-393 | et_miner_proteome.tex:411 | 22 K (deepest GPU FIM result reported) | run_opus_kmax | 22 | confirmed | exact |
+| T-394 | et_miner_proteome.tex:420 | 100K transactions (Borgelt) | ext_borgelt_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-395 | et_miner_proteome.tex:420 | 500 items (Borgelt) | ext_borgelt_items |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-396 | et_miner_proteome.tex:420 | ~10 max K (Borgelt) | ext_borgelt_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-397 | et_miner_proteome.tex:420 | 1× CPU hardware (Borgelt) | ext_borgelt_hardware |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-398 | et_miner_proteome.tex:420 | 1–100 s (Borgelt time) | ext_borgelt_time_s |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-399 | et_miner_proteome.tex:421 | 100K transactions (Fang) | ext_fang_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-400 | et_miner_proteome.tex:421 | 1K items (Fang) | ext_fang_items |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-401 | et_miner_proteome.tex:421 | ~5 max K (Fang) | ext_fang_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-402 | et_miner_proteome.tex:421 | 1× GTX 280 hardware (Fang) | ext_fang_hardware |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-403 | et_miner_proteome.tex:421 | 1–10 s (Fang time) | ext_fang_time_s |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-404 | et_miner_proteome.tex:422 | 15M transactions (GMiner) | ext_gminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-405 | et_miner_proteome.tex:422 | 20K items (GMiner) | ext_gminer_items |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-406 | et_miner_proteome.tex:422 | ~30 max K (GMiner) | ext_gminer_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-407 | et_miner_proteome.tex:422 | 4× GTX 1080 hardware (GMiner) | ext_gminer_hardware |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-408 | et_miner_proteome.tex:422 | 20–150 s (GMiner time) | ext_gminer_time_s |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-409 | et_miner_proteome.tex:423 | 100M transactions (BIGMiner) | ext_bigminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-410 | et_miner_proteome.tex:423 | 100K items (BIGMiner) | ext_bigminer_items |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-411 | et_miner_proteome.tex:423 | --- (not reported) max K (BIGMiner) | ext_bigminer_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-412 | et_miner_proteome.tex:423 | 30× servers hardware (BIGMiner) | ext_bigminer_nodes |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-413 | et_miner_proteome.tex:423 | 1–20K s (BIGMiner time) | ext_bigminer_time_s |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-414 | et_miner_proteome.tex:425 | 76.9M transactions (ET-miner) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| T-415 | et_miner_proteome.tex:425 | 1,002 items (ET-miner) | vocab_items_frequent | 1,002 | confirmed | exact |
+| T-416 | et_miner_proteome.tex:425 | 22 max K (ET-miner) | run_opus_kmax | 22 | confirmed | exact |
+| T-417 | et_miner_proteome.tex:425 | 1× H100 hardware (ET-miner) | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| T-418 | et_miner_proteome.tex:425 | 7.3 min (ET-miner time) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| T-419 | et_miner_proteome.tex:440 | ~3 GB (CSR column indices transferred to GPU) | csr_h2d_transfer_gb | 2.53 | confirmed | fresh rounds to 3 at 1 significant digits |
+| T-420 | et_miner_proteome.tex:440 | ~10 GB (bit-packed dense bitmap of 76.9M subset) | bitvec_subset_gb | 9.6 | confirmed | fresh rounds to 10 at 1 significant digits |
+| T-421 | et_miner_proteome.tex:440 | 76.9M proteins (mining subset) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| T-422 | et_miner_proteome.tex:440 | once CSR transfer to GPU (count) | pipe_h2d_transfer_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-423 | et_miner_proteome.tex:443 | ~12 bytes per iteration (single integer of surviving-pattern count) | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| T-424 | et_miner_proteome.tex:446 | 1 × H100 GPU (all experiments) | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| T-425 | et_miner_proteome.tex:446 | 76.9M multi-feature proteins mined | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| T-426 | et_miner_proteome.tex:454 | 2 K (Wang et al. domain co-occurrence networks, pairwise) | ext_prior_domain_cooccurrence_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-427 | et_miner_proteome.tex:454 | 2 (pairs) K (Terrapon et al.) | ext_prior_domain_cooccurrence_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-428 | et_miner_proteome.tex:454 | ~32K structures (Meysman et al., PDB) | ext_meysman_structures |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-429 | et_miner_proteome.tex:456 | 2 K (limit of prior exhaustive itemset mining) | ext_prior_domain_cooccurrence_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-430 | et_miner_proteome.tex:456 | 22 co-occurring features (max pattern span) | run_opus_kmax | 22 | confirmed | exact |
+| T-431 | et_miner_proteome.tex:460 | 22 K (neuronal antiviral sentinel) | run_opus_kmax | 22 | confirmed | exact |
+| T-432 | et_miner_proteome.tex:460 | 4 distinct functional roles (interpretive grouping) | k22_functional_roles |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-433 | et_miner_proteome.tex:460 | 22 annotations (co-occurrence, not mechanism) | k22_n_features | 22 | confirmed | exact |
+| T-434 | et_miner_proteome.tex:460 | 22 K ceiling (reflects annotation depth) | run_opus_kmax | 22 | confirmed | exact |
+| T-435 | et_miner_proteome.tex:462 | 9 K (unimodal peak) | kdist_opus_peak_k | 9 | confirmed | exact |
+| T-436 | et_miner_proteome.tex:462 | 3.53 million itemsets at K=9 | kdist_opus_peak_count | 3,529,257 | confirmed | fresh rounds to 3.53 at 3 significant digits |
+| T-437 | et_miner_proteome.tex:462 | 13.14 % of all patterns at K=9 | kdist_opus_peak_pct | 13.1446 | confirmed | fresh rounds to 13.14 at 2 decimals |
+| T-438 | et_miner_proteome.tex:462 | >=7 K (random shuffling produces none) | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| T-439 | et_miner_proteome.tex:462 | 4 K (biological exceeds null by many orders of magnitude) | null_enriched_from_k | 4 | confirmed | exact |
+| T-440 | et_miner_proteome.tex:462 | many orders of magnitude bio/null excess at K=4 (qualitative) | null_k4_enrichment_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-441 | et_miner_proteome.tex:462 | +3,791 standardized effect size at K=4 | null_k4_z | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-442 | et_miner_proteome.tex:462 | 5 permutations | null_permutations | 5 | confirmed | exact |
+| T-443 | et_miner_proteome.tex:464 | 12 K (bacterial cell wall synthase module) | pattern_k12_k | 12 | confirmed | exact |
+| T-444 | et_miner_proteome.tex:464 | 5 highlighted patterns | pattern_n_highlighted | 5 | inconclusive | count of the paper's own list of highlighted patterns; not a reproducible quantity (each listed pattern is jud |
+| T-445 | et_miner_proteome.tex:464 | 11 K (lowest highlighted pattern) | pattern_k11_k | 11 | confirmed | exact |
+| T-446 | et_miner_proteome.tex:464 | 19 K (highest highlighted pattern) | pattern_k19_k | 19 | confirmed | exact |
+| T-447 | et_miner_proteome.tex:466 | >=4 K (higher-order patterns not explained by annotation structure) | null_enriched_from_k | 4 | confirmed | exact |
+| T-448 | et_miner_proteome.tex:474 | millions patterns tested (FDR-correction context) | run_opus_itemsets | 26,849,505 | inconclusive | claim not numerically comparable (no number in claim) |
+| T-449 | et_miner_proteome.tex:476 | 22 K (deepest itemset) | run_opus_kmax | 22 | confirmed | exact |
+| T-450 | et_miner_proteome.tex:476 | 0 GO parent-child pairs in K=22 itemset | k22_go_parent_child_pairs | 0 | confirmed | exact |
+| T-451 | et_miner_proteome.tex:478 | monthly GO annotation update frequency | ext_go_update_frequency |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-452 | et_miner_proteome.tex:478 | 2025_01 UniProt TrEMBL release | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| T-453 | et_miner_proteome.tex:480 | 128.7 million proteins excluded (single annotated feature) | dataset_single_feature | 128,729,353 | confirmed | fresh rounds to 128.7 at 4 significant digits |
+| T-454 | et_miner_proteome.tex:480 | 62.6 % of proteins excluded | dataset_single_feature_pct | 62.6054 | confirmed | fresh rounds to 62.6 at 1 decimals |
+| T-455 | et_miner_proteome.tex:480 | 1 annotated feature (exclusion criterion) | alg_transaction_min_features |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-456 | et_miner_proteome.tex:486 | 1.7 million high-confidence homodimer predictions (AlphaFold DB) | ext_afdb_homodimers_highconf |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-457 | et_miner_proteome.tex:486 | 18 million lower-confidence homodimers (bulk download) | ext_afdb_homodimers_lowconf |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-458 | et_miner_proteome.tex:486 | 2026 year of quoted EMBL-EBI statement | ext_embl_ebi_statement_year |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-459 | et_miner_proteome.tex:496 | 100-million transaction scale | misc_transaction_scale_claim |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-460 | et_miner_proteome.tex:496 | 1,002 features (base vocabulary) | vocab_items_frequent | 1,002 | confirmed | exact |
+| T-461 | et_miner_proteome.tex:496 | 1 × H100 GPU | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| T-462 | et_miner_proteome.tex:496 | 7.3 minutes (mining) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| T-463 | et_miner_proteome.tex:496 | 63 minutes (one-time feature extraction) | extract_time_min | 9.3 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 63) |
+| T-464 | et_miner_proteome.tex:496 | 22 K reached | run_opus_kmax | 22 | confirmed | exact |
+| T-465 | et_miner_proteome.tex:498 | Power threshold (0.001%) null-model support threshold | null_support_pct | 0.001 | confirmed | exact |
+| T-466 | et_miner_proteome.tex:498 | >3,700 Z (t-statistics) | null_z_min_k4to6 | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| T-467 | et_miner_proteome.tex:498 | 4–6 K range | null_z_headline_k_range | 5–6 | inconclusive | random-stream-dependent permutation statistic; fresh 5–6 vs claim 4–6; fresh finite Z exceeds 3,700 only for K |
+| T-468 | et_miner_proteome.tex:498 | 5 permutations | null_permutations | 5 | confirmed | exact |
+| T-469 | et_miner_proteome.tex:498 | >=7 K (no null run reached) | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| T-470 | et_miner_proteome.tex:500 | 10.5281/zenodo.18674353 Zenodo DOI (preprint) | ext_zenodo_doi |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-471 | et_miner_proteome.tex:529 | 10.5281/zenodo.18674353 Zenodo DOI (preprint) | ext_zenodo_doi |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-472 | et_miner_proteome.tex:529 | 2025_01 UniProt release (regeneration source) | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| T-473 | et_miner_proteome.tex:743 | 64 proteins per CPU/GPU operation | alg_bits_per_word |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-474 | et_miner_proteome.tex:743 | 64× constant-factor speedup | alg_bitvec_speedup_factor |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-475 | et_miner_proteome.tex:746–751 | 64 word width in complexity terms (ceil(N/64)) | alg_bits_per_word |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-476 | et_miner_proteome.tex:753 | 64× constant factor improvement (O(N) to O(ceil(N/64))) | alg_bitvec_speedup_factor |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-477 | et_miner_proteome.tex:766 | min_count = ceil(sigma * n) minimum count rule | alg_min_count_rule |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-478 | et_miner_proteome.tex:769 | ~26 GB VRAM (bitvector matrix B) | bitvec_gb | 25.8 | confirmed | fresh rounds to 26 at 2 significant digits |
+| T-479 | et_miner_proteome.tex:775 | 3 starting k for prefix-group loop | alg_prefix_loop_start_k |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-480 | et_miner_proteome.tex:776 | freq_{k-1} >= k loop-continuation condition | alg_loop_continue_condition |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-481 | et_miner_proteome.tex:782 | 1 (single) bulk result transfer at end | pipe_pcie_result_collection |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-482 | et_miner_proteome.tex:797 | 64-bit popcount word width (__popcll) | arch_support_counting_intrinsic |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-483 | et_miner_proteome.tex:797 | 1 clock cycle per __popcll | hw_popcll_cycles |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-484 | et_miner_proteome.tex:797 | 64 proteins processed per operation | alg_bits_per_word |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-485 | et_miner_proteome.tex:797 | 32 proteins per operation (prior systems) | ext_prior_gpu_fim_popcount_width_bits |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-486 | et_miner_proteome.tex:797 | 32-bit popcount width (__popc, prior systems) | ext_prior_gpu_fim_popcount_width_bits |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-487 | et_miner_proteome.tex:801 | 1 candidate pair per GPU thread (K=2) | alg_k2_pairs_per_thread |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-488 | et_miner_proteome.tex:801 | 0 (AND result) early-termination condition (K>=3) | alg_early_termination_condition |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-489 | et_miner_proteome.tex:808 | ~12 bytes transferred at K=1 | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| T-490 | et_miner_proteome.tex:809 | ~12 bytes transferred at K=2 | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| T-491 | et_miner_proteome.tex:810 | ~12 bytes transferred per level at K>=3 | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| T-492 | et_miner_proteome.tex:813 | 22 K-levels (total) | run_opus_kmax | 22 | confirmed | exact |
+| T-493 | et_miner_proteome.tex:813 | ~264 bytes total CPU-GPU transfer across all K-levels | alg_pcie_bytes_total |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-494 | et_miner_proteome.tex:813 | gigabytes per-campaign transfer in conventional GPU FIM | ext_conventional_gpu_fim_pcie_bytes |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-495 | et_miner_proteome.tex:834 | 32-bit __popc width (GMiner) | ext_gminer_support_counting_intrinsic |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-496 | et_miner_proteome.tex:834 | 32-bit __popc width (GMiner++) | ext_gminerpp_support_counting_intrinsic |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-497 | et_miner_proteome.tex:834 | 64-bit __popcll width (ET-miner) | arch_support_counting_intrinsic |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-498 | et_miner_proteome.tex:839 | ~12 bytes PCIe per K-level (ET-miner) | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| T-499 | et_miner_proteome.tex:843 | 1.7M transactions, max tested dataset (GMiner, real) | ext_gminer_transactions_real |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| T-500 | et_miner_proteome.tex:843 | 76.9M transactions, max tested dataset (ET-miner, proteome) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| T-501 | et_miner_proteome.tex:852 | ~4 bytes per K-level (CPU loop control) | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| T-502 | et_miner_proteome.tex:859 | ~3 GB, once PCIe traffic, database encoding | csr_h2d_transfer_gb | 2.53 | confirmed | fresh rounds to 3 at 1 significant digits |
+| T-503 | et_miner_proteome.tex:860 | None (0) PCIe traffic, K=1 support count | pipe_pcie_k1_support_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-504 | et_miner_proteome.tex:861 | None (0) PCIe traffic, K=1 frequency filter | pipe_pcie_k1_frequency_filter |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-505 | et_miner_proteome.tex:862 | None (0) PCIe traffic, K=2 candidate gen | pipe_pcie_k2_candidate_gen |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-506 | et_miner_proteome.tex:863 | None (0) PCIe traffic, K=2 support count | pipe_pcie_k2_support_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-507 | et_miner_proteome.tex:864 | None (0) PCIe traffic, K=2 min-support filter | pipe_pcie_k2_min_support_filter |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-508 | et_miner_proteome.tex:865 | None (0) PCIe traffic, K>=3 candidate gen | pipe_pcie_k3plus_candidate_gen |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-509 | et_miner_proteome.tex:866 | None (0) PCIe traffic, K>=3 support count | pipe_pcie_k3plus_support_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-510 | et_miner_proteome.tex:867 | None (0) PCIe traffic, K>=3 filter + sort | pipe_pcie_k3plus_filter_sort |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-511 | et_miner_proteome.tex:868 | ~4 bytes PCIe traffic, loop control | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| T-512 | et_miner_proteome.tex:869 | Once at end PCIe traffic, result collection (bulk) | pipe_pcie_result_collection |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-513 | et_miner_proteome.tex:874 | 7.8× CSR transfer saving at 0.01% density | mem_ratio_0p01pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-514 | et_miner_proteome.tex:874 | 0.01 % density (max CSR saving case) | mem_density_0p01pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-515 | et_miner_proteome.tex:874 | >=1 % density (no CSR savings) | mem_breakeven_density_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-516 | et_miner_proteome.tex:874 | ~1 % density (proteome dataset) | mem_proteome_density_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-517 | et_miner_proteome.tex:874 | 1.4× CSR reduction (proteome dataset) | mem_ratio_214m |  | inconclusive | no fresh artifact for the underlying quantity |
+| T-518 | et_miner_proteome.tex:878 | 8 bytes per CSR entry | mem_csr_bytes_per_entry |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| T-519 | et_miner_proteome.tex:878 | 214M proteins (full bitvector matrix in AlphaFold proteome row) | dataset_metadata_rows | 214,683,829 | confirmed | fresh truncates to 214 at 3 significant digits |
+| T-520 | et_miner_proteome.tex:878 | 76.9M multi-feature subset (mining campaign) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| T-521 | et_miner_proteome.tex:885 | 214M transactions (AlphaFold proteome row header) | dataset_metadata_rows | 214,683,829 | confirmed | fresh truncates to 214 at 3 significant digits |
+| T-522 | et_miner_proteome.tex:885 | 1,002 frequent items (AlphaFold proteome row header) | vocab_items_frequent | 1,002 | confirmed | exact |
+| T-523 | et_miner_proteome.tex:886 | ~10 items per transaction (Actual) | mem_items_per_txn_214m | 2.16 | hallucinated | exact-match rule: fresh value differs; fresh mean items per transaction: 2.165 over all 205.6M pLDDT-passing p |

@@ -1,0 +1,79 @@
+{
+  "experiment": "direct_gpu_vs_son_triplicate",
+  "timestamp": "2026-09-02T01:02:25.594680+00:00",
+  "parameters": {
+    "min_support": 0.0001,
+    "support_pct": "0.0100%",
+    "n_transactions": 190377,
+    "min_count": 20,
+    "n_runs": 1,
+    "chunk_size": 100000,
+    "local_support_factor": 0.9
+  },
+  "direct_gpu_runs": [
+    {
+      "run": 1,
+      "itemsets": 128534,
+      "time_seconds": 2.37,
+      "max_k": 14,
+      "k_distribution": {
+        "1": 1002,
+        "2": 7375,
+        "3": 17329,
+        "4": 23446,
+        "5": 24050,
+        "6": 20706,
+        "7": 15518,
+        "8": 10086,
+        "9": 5527,
+        "10": 2444,
+        "11": 824,
+        "12": 196,
+        "13": 29,
+        "14": 2
+      }
+    }
+  ],
+  "son_runs": [
+    {
+      "run": 1,
+      "itemsets": 128534,
+      "time_seconds": 583.82,
+      "max_k": 14,
+      "k_distribution": {
+        "1": 1002,
+        "2": 7375,
+        "3": 17329,
+        "4": 23446,
+        "5": 24050,
+        "6": 20706,
+        "7": 15518,
+        "8": 10086,
+        "9": 5527,
+        "10": 2444,
+        "11": 824,
+        "12": 196,
+        "13": 29,
+        "14": 2
+      }
+    }
+  ],
+  "aggregate": {
+    "direct_gpu": {
+      "mean_itemsets": 128534.0,
+      "std_itemsets": NaN,
+      "cv_itemsets_pct": NaN,
+      "mean_time_seconds": 2.37,
+      "std_time_seconds": NaN
+    },
+    "son": {
+      "mean_itemsets": 128534.0,
+      "std_itemsets": NaN,
+      "cv_itemsets_pct": NaN,
+      "mean_time_seconds": 583.82,
+      "std_time_seconds": NaN
+    },
+    "speedup": 246.34,
+    "miss_rate_pct": 0.0
+  }
+}

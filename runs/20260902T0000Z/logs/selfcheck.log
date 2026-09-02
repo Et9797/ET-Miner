@@ -1,0 +1,13 @@
+devices: 2 | driver 13.2 | cupy 14.1.1
+  [0] NVIDIA GeForce RTX 3090 sm_86 25.0/25.3 GB free
+  [1] NVIDIA GeForce RTX 3090 sm_86 25.0/25.3 GB free
+  P2P from 0: - 0
+  P2P from 1: 0 -
+/dev/shm: 21.47 GB
+NCCL: available, init OK
+NCCL reduce-to-root binding: yes
+rust ext: MISSING (numpy fallbacks active)
+compiling 19 kernels on 2 device(s)...
+  all kernels compiled
+critical-wrapper smoke launches: OK
+selfcheck: READY

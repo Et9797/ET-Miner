@@ -1,0 +1,337 @@
+qkey,category,unit,description,claimed_value_tex,tex_lines,reproducibility
+misc_manuscript_date,external-fact,date,Manuscript date in the front matter (March 2026).,March 2026,83,external
+dataset_metadata_rows,external-fact,proteins,"Size of the AlphaFold-DB/UniProt protein universe as stated by the paper ('over 200 million', '214 million', '214M', 'hundreds of millions'); reproduction target = row count of the metadata table (214,683,829 expected). Variants are rounding/rhetoric only, not conflicting.",>200 million / hundreds of millions / 214 million / 214M,91;101;103;129;878;885,rerun
+dense_gb,deterministic,GB,"One-byte-per-boolean dense matrix of the full processed set (205.6M x 1,002 B ~ 206 GB; '>200' is a rounded variant).",>200 / ~206 / 206,91;105;120;167;402,derived
+vocab_items_frequent,deterministic,items,"Items passing the mining support threshold (1,002 = 500 Pfam + 500 GO + 2 pLDDT bins); also |F1|, the K=1 count and the bitvector column count.","1,002",91;105;115;134;146;171;425;496;885,rerun
+dataset_multi_feature,deterministic,proteins,"Proteins with more than one vocabulary feature = the transaction set actually mined (76,890,945; '76.9M'/'76.9 million' are rounded variants).","76.9 million / 76.9M / 76,890,945",91;115;120;152;167;425;440;446;843;878;888,rerun
+run_opus_time_min,hardware-dependent,min,Wall-clock mining time of the Opus run in minutes (headline 'mining only' time).,7.3,91;120;129;230;425;496,hardware
+hw_gpu_model,hardware-dependent,GPU model,GPU used for all experiments: NVIDIA H100 80 GB SXM5. Rows phrased '(single/1 x) H100' are keyed here; bare 'single GPU' statements are hw_gpu_count.,1 × NVIDIA H100 / NVIDIA H100 SXM5 / 1 × H100 (same) / 1× H100 / 1 × H100,91;120;213;216;362;425;446;496,setup
+run_opus_itemsets,deterministic,itemsets,Frequent itemsets found by the Opus run. '26.8 million'/'26.8M'/'millions' are rounded variants.,"26.8 million / 26,849,505 / 26.8M / millions",91;230;254;259;474,rerun
+run_opus_kmax,deterministic,K,"Maximum itemset length reached by the Opus run. Also cited as the number of K-levels/iterations (l.402, l.813), the K of the single deepest itemset, and 'deeper than any prior GPU FIM result'.",22,91;230;286;289;393;402;411;425;456;460;476;496;813,rerun
+null_z_min_k4to6,deterministic,"Z (t-statistic, 4 df)","Headline: min(null_k4_z, null_k5_z, null_k6_z) > 3,700 (table values +3,791 / +7,402 / +71,728).",">3,700",91;498,derived
+null_z_headline_k_range,deterministic,K range,"K range over which the headline Z>3,700 holds (4-6).",4–6,91;498,derived
+null_support_pct,method-parameter,%,"Support threshold used for the permutation null model (0.001%, the 'Power' threshold).",0.001 / Power threshold (0.001%),91;362;367;393;498,setup
+ext_prior_domain_cooccurrence_kmax,external-fact,K,"Prior domain co-occurrence studies (Wang 2011, Terrapon/Coin 2009) are pairwise, K=2.",2 (pairwise) / 2 / 2 (pairs),101;454;456,external
+misc_example_triple_k,external-fact,features,"Illustrative 3-feature combination in the Introduction: {PF00270, GO:0003724, GO:0045087}.",3,103,external
+misc_example_triple_support,external-fact,proteins,"Hypothetical 'thousands' of proteins for the illustrative triple; checkable against the mined support of {PF00270, GO:0003724, GO:0045087} (all three are members of the K=22 itemset).",thousands,103,rerun
+ext_prior_gpu_fim_speedup_range,external-fact,x,Speedups reported by prior GPU FIM systems over CPU algorithms such as Eclat (50-350x).,50–350×,105,external
+ext_prior_gpu_fim_max_transactions,external-fact,transactions,Largest datasets prior GPU FIM implementations were evaluated on ('a few million').,a few million,105;408,external
+ext_prior_gpu_fim_scale_gap_orders,external-fact,orders of magnitude,Claimed gap between prior GPU FIM datasets and this dataset: log10(dataset_multi_feature / ext_prior_gpu_fim_max_transactions) ('three').,3,105;408,derived
+dataset_plddt_pass,deterministic,proteins,"Proteins processed from UniProt TrEMBL that entered the pipeline (205,620,298; '205.6 million'/'205.6M' are rounded variants).","205.6 million / 205,620,298 / 205.6M",105;129;152;167;171,rerun
+alg_dense_bytes_per_bool,method-parameter,bytes,Bytes per boolean entry assumed for the dense representation (1).,1,105;167,setup
+ext_highend_gpu_vram_gb,external-fact,GB,Claimed capacity of the highest-end GPUs (80 GB).,80,105,external
+misc_concept_figure_k,deterministic,K,"Schematic K=4 pattern in fig:concept (illustration, not a result).",4,114,external
+misc_concept_figure_support,deterministic,proteins,"Schematic pattern shared by 3 proteins in fig:concept (illustration, not a result).",3,114,external
+csr_bytes_gb,deterministic,GB,Coordinate-format size of the mining-subset matrix = csr_nnz x alg_coo_bytes_per_entry (16 B) (~5.1 GB).,~5.1 / 5.1,120;167;402,derived
+dataset_uniprot_release,software,release id,UniProt (TrEMBL) release from which annotations were taken.,2025_01,129;478;529,setup
+dataset_access_date,software,date,Date the UniProt cross-reference data were accessed.,February 2026,129,setup
+vocab_pfam_defined,method-parameter,items,Number of most-frequent Pfam domains admitted to the vocabulary.,500,129;134;142,setup
+vocab_go_defined,method-parameter,items,Number of most-frequent GO terms admitted to the vocabulary.,500,129;134;143,setup
+dataset_pfam_families_observed,deterministic,families,Distinct Pfam families observed across the corpus before truncation to the 500 most frequent.,"24,291",129,rerun
+dataset_go_families_observed,deterministic,families,Distinct GO terms observed across the corpus before truncation to the 500 most frequent.,"25,993",129,rerun
+vocab_plddt_defined,method-parameter,items,Number of pLDDT confidence bins defined.,6,129;134;144,setup
+vocab_items_defined,deterministic,items,"Defined vocabulary size = vocab_pfam_defined + vocab_go_defined + vocab_plddt_defined (1,006).","1,006",129;134;146,derived
+run_opus_min_count,method-parameter,proteins,Minimum protein count of the Opus run (the actual threshold; support % is nominal).,8,129;134;216;230;393,setup
+dataset_annotation_gb,deterministic,GB,Size of the compressed annotation input consumed by feature extraction.,150,129,setup
+extract_time_min,hardware-dependent,min,Wall-clock time of the one-time feature-extraction/preprocessing step.,63,129;496,hardware
+vocab_pfam_go_frequent,deterministic,items,"vocab_pfam_frequent + vocab_go_frequent (1,000).","1,000",134,derived
+vocab_plddt_frequent,deterministic,items,pLDDT bins that pass the support threshold.,2,134;144,rerun
+vocab_pfam_frequent,deterministic,items,Pfam vocabulary items that pass the support threshold.,500,142,rerun
+vocab_go_frequent,deterministic,items,GO vocabulary items that pass the support threshold.,500,143,rerun
+dataset_multi_feature_pct,deterministic,%,100 x dataset_multi_feature / dataset_plddt_pass (37.4).,37.4,152,derived
+alg_transaction_min_features,method-parameter,features,Transaction inclusion filter: proteins must carry more than one vocabulary feature ('>1' kept / '1' excluded are the same rule).,>1 / 1,152;480,setup
+sw_execution_paths,software,paths,Number of execution paths implemented (3: CPU; GPU direct CSR; GPU-accelerated resident).,3,156,setup
+sw_execution_path_used,software,path,"Execution path used for all reported results (path 3, GPU-accelerated).",path (3) GPU-accelerated,156,setup
+csr_nnz,deterministic,entries,"Non-zero (protein, feature) entries of the sparse matrix of the 76.9M mining subset (316 million).",316 million,167,rerun
+alg_coo_bytes_per_entry,method-parameter,bytes,"Bytes per non-zero entry in the coordinate format used for the 5.1 GB figure (two 64-bit integers = 16 B). Cf. mem_csr_bytes_per_entry = 8 for the CSR memory model (different representation, not a conflict).",2 × 64-bit integers (16 B),167,setup
+csr_vs_dense_subset_ratio,deterministic,x,dense_subset_gb / csr_bytes_gb (~15x).,~15×,167;402,derived
+dense_subset_gb,deterministic,GB,One-byte-per-boolean dense matrix of the 76.9M mining subset (~77 GB).,~77,167,derived
+csr_vs_dense_full_ratio,deterministic,x,dense_gb / csr_bytes_gb (~40x).,~40×,167,derived
+bitvec_gb,deterministic,GB,"GPU-resident bit-packed bitvector matrix of the full processed set (205.6M x 1,002 bits / 8 ~ 26 GB). Cf. mem_dense_214m_gb (27 GB, computed for 214M proteins) - different N, not a conflict.",~26 / 26,167;171;402;769,derived
+csr_h2d_transfer_gb,deterministic,GB,Size of the single host-to-device transfer of CSR column indices from which bitvectors are built on-GPU (~3 GB); the tab:gpu-pipeline 'Database encoding: Once (~3 GB)' cell is keyed here.,"~3 / ~3 GB, once",171;440;859,derived
+pipe_h2d_transfer_count,deterministic,transfers,Bitvectors/CSR are loaded to the GPU once (1 host-to-device transfer; 'once').,1 / once,171;196;440,setup
+alg_pcie_reduction_vs_conventional,deterministic,qualitative,Per-level PCIe traffic relative to conventional GPU FIM that ships candidate sets and support arrays each iteration ('orders of magnitude less').,orders of magnitude less,193,derived
+hw_gpu_count,hardware-dependent,GPUs,Number of GPUs used for all reported experiments (1).,1,196;213;402,setup
+alg_bits_per_word,deterministic,proteins per word,"Proteins processed per bitvector word / operation (64; the ceil(N/64) complexity terms of Appendix A, whose claim row spans tex lines 746-751).",64,200;743;746-751;797,setup
+alg_bitvec_speedup_factor,deterministic,x,Constant-factor speedup of word-level AND+popcount over element-wise comparison = alg_bits_per_word (64x).,64×,201;743;753,derived
+hw_gpu_vram_gb,hardware-dependent,GB,GPU memory of the H100 used (80).,80,213;216,setup
+hw_host_ram_gb,hardware-dependent,GB,Host RAM of the experiment machine (128).,128,213,setup
+sw_python,software,version,Python version.,3.10,213,setup
+sw_cupy,software,version,CuPy version.,13.0,213,setup
+sw_numpy,software,version,NumPy version.,1.26,213,setup
+sw_cuda,software,version,CUDA version.,12.4,213,setup
+sw_os,software,version,Operating system (Ubuntu) version.,22.04,213,setup
+campaign_n_runs,method-parameter,runs,Number of mining runs / support thresholds in the campaign (6).,6,213;216;243,setup
+campaign_support_span_orders,method-parameter,orders of magnitude,log10(run_base_support_pct / run_opus_support_pct) (4).,4,213,derived
+run_ultra_min_count,method-parameter,proteins,Minimum protein count of the Ultra run (the actual threshold; support % is nominal).,16,216;229,setup
+run_base_support_pct,method-parameter,%,Support threshold of the Base run (the parameter set for the run).,0.1,224,setup
+run_base_min_count,method-parameter,proteins,Minimum protein count of the Base run = ceil(support x dataset_multi_feature).,"76,891",224,derived
+run_base_itemsets,deterministic,itemsets,Frequent itemsets found by the Base run.,"5,305",224,rerun
+run_base_kmax,deterministic,K,Maximum itemset length reached by the Base run.,9,224,rerun
+run_base_time_min,hardware-dependent,min,Wall-clock mining time of the Base run in minutes.,1.9,224,hardware
+run_base_method,method-parameter,method,Execution method of the Base run (Streaming SON or Direct CSR->GPU).,Streaming SON,224,setup
+run_super_support_pct,method-parameter,%,Support threshold of the Super run (the parameter set for the run).,0.01,225,setup
+run_super_min_count,method-parameter,proteins,Minimum protein count of the Super run = ceil(support x dataset_multi_feature).,"7,689",225,derived
+run_super_itemsets,deterministic,itemsets,Frequent itemsets found by the Super run.,"51,124",225,rerun
+run_super_kmax,deterministic,K,Maximum itemset length reached by the Super run.,13,225,rerun
+run_super_time_min,hardware-dependent,min,Wall-clock mining time of the Super run in minutes.,4.3,225,hardware
+run_super_method,method-parameter,method,Execution method of the Super run (Streaming SON or Direct CSR->GPU).,Streaming SON,225,setup
+run_power_support_pct,method-parameter,%,Support threshold of the Power run (the parameter set for the run).,0.001,226;235;238;243;404,setup
+run_power_min_count,method-parameter,proteins,"Minimum protein count of the Power run = ceil(support x dataset_multi_feature). NOTE: 768 here vs min_count=769 for the same 0.001% threshold in the null-model section (null_min_count); ceil(1e-5 x 76,890,945) = 769.",768,226,derived
+run_power_itemsets,deterministic,itemsets,"Frequent itemsets found by the Power run (Streaming SON, i.e. lossy; the exhaustive count at this threshold is run_power_direct_itemsets).","22,846",226,rerun
+run_power_kmax,deterministic,K,Maximum itemset length reached by the Power run (SON; the exhaustive Direct run at this threshold reaches run_power_direct_kmax = 14).,13,226,rerun
+run_power_time_min,hardware-dependent,min,"Wall-clock mining time of the Power run in minutes. Same run as run_power_son_time_s (1,085.6 s).",18.1,226,hardware
+run_power_method,method-parameter,method,Execution method of the Power run (Streaming SON or Direct CSR->GPU).,Streaming SON,226,setup
+run_blitz_support_pct,method-parameter,%,Support threshold of the Blitz run (the parameter set for the run).,0.0001,228;235;243,setup
+run_blitz_min_count,method-parameter,proteins,Minimum protein count of the Blitz run = ceil(support x dataset_multi_feature).,77,228,derived
+run_blitz_itemsets,deterministic,itemsets,Frequent itemsets found by the Blitz run.,"2,841,280",228,rerun
+run_blitz_kmax,deterministic,K,Maximum itemset length reached by the Blitz run.,19,228,rerun
+run_blitz_time_min,hardware-dependent,min,Wall-clock mining time of the Blitz run in minutes.,2.0,228,hardware
+run_blitz_method,method-parameter,method,Execution method of the Blitz run (Streaming SON or Direct CSR->GPU).,Direct CSR→GPU,228,setup
+run_blitz_vs_power_speedup,hardware-dependent,x,run_power_time_min / run_blitz_time_min (9x; varies method AND threshold).,9×,228;238;243,hardware
+run_blitz_vs_power_itemset_ratio,deterministic,x,run_blitz_itemsets / run_power_itemsets (124x).,124×,228;238,derived
+run_ultra_support_pct,method-parameter,%,Support threshold of the Ultra run (nominal/rounded: 100 x min_count / dataset_multi_feature; the min_count is the actual parameter).,0.00002,229,derived
+run_ultra_itemsets,deterministic,itemsets,Frequent itemsets found by the Ultra run.,"14,558,875",229,rerun
+run_ultra_kmax,deterministic,K,Maximum itemset length reached by the Ultra run.,20,229,rerun
+run_ultra_time_min,hardware-dependent,min,Wall-clock mining time of the Ultra run in minutes.,4.7,229,hardware
+run_ultra_method,method-parameter,method,Execution method of the Ultra run (Streaming SON or Direct CSR->GPU).,Direct CSR→GPU,229,setup
+run_opus_support_pct,method-parameter,%,Support threshold of the Opus run (nominal/rounded: 100 x min_count / dataset_multi_feature; the min_count is the actual parameter).,0.00001,230;254;259,derived
+run_opus_method,method-parameter,method,Execution method of the Opus run (Streaming SON or Direct CSR->GPU).,Direct CSR→GPU,230,setup
+son_speedup,hardware-dependent,x,Controlled same-support speedup = run_power_son_time_s / run_power_direct_time_s (21x).,21×,235;238;243;404,hardware
+run_blitz_vs_power_support_ratio,method-parameter,x,run_power_support_pct / run_blitz_support_pct (10x).,10×,238;243,derived
+run_power_direct_itemsets,deterministic,itemsets,"Exhaustive Direct CSR->GPU run at 0.001% support (min_count 769): frequent itemsets (475,865; equals the sum of the tab:null-model Bio column).","475,865",238;393;404,rerun
+run_power_direct_time_s,hardware-dependent,s,Wall-clock time of the exhaustive Direct CSR->GPU run at 0.001% (50.7 s).,50.7,238;404,hardware
+run_power_son_itemsets,deterministic,itemsets,"Streaming-SON itemsets at 0.001% as quoted in the Direct-vs-SON comparison (22,846). ALIAS of run_power_itemsets (same run; tab:campaign Power row) - fill both from one SON re-run.","22,846",238;404,rerun
+run_power_son_time_s,hardware-dependent,s,"Streaming-SON wall-clock at 0.001% in seconds (1,085.6 s). ALIAS of run_power_time_min x 60 (18.1 min).","1,085.6",238;404,hardware
+son_miss_rate_pct,deterministic,%,100 x (1 - run_power_son_itemsets / run_power_direct_itemsets) (95.2).,95.2,238;404,derived
+son_k2_recovery,deterministic,fraction (qualitative),Share of the exhaustive K=2 itemsets at 0.001% that SON recovers (paper: 'most').,most,238,derived
+kdist_opus_peak_k,deterministic,K,argmax over K of the Opus K-distribution (9).,9,249;254;462,derived
+kdist_opus_peak_count,deterministic,itemsets,"Itemset count at the peak K (3,529,257; '3.53M'/'3.53 million' are rounded variants). Coincides with kdist_opus_k9_count while the peak is at K=9.","3,529,257 / 3.53M / 3.53 million",249;254;462,derived
+kdist_opus_peak_pct,deterministic,%,Share of all Opus itemsets at the peak K (13.14). Coincides with kdist_opus_k9_pct while the peak is at K=9.,13.14,249;462,derived
+null_kmax,deterministic,K,Deepest K produced by any null permutation (6). Statements 'no null run reached K>=7 / cannot produce patterns beyond K=6' are keyed here (claim value expressed as the complementary bound '>=7').,6 / >=7,249;367;391;462;498,rerun
+kdist_opus_k22_count,deterministic,itemsets,Frequent itemsets of length K=22 in the Opus run (tab:kdist). The single deepest itemset ('a single itemset at maximum depth').,1,254;278;286,rerun
+k22_support,deterministic,proteins,Support (number of proteins) of the single K=22 itemset (exactly 8).,8,254;286;289;333;335,rerun
+kdist_opus_k1_count,deterministic,itemsets,Frequent itemsets of length K=1 in the Opus run (tab:kdist). Equals vocab_items_frequent.,"1,002",268,rerun
+kdist_opus_k1_pct,deterministic,%,100 x kdist_opus_k1_count / run_opus_itemsets.,0.00,268,derived
+kdist_opus_k12_count,deterministic,itemsets,Frequent itemsets of length K=12 in the Opus run (tab:kdist).,"1,996,772",268,rerun
+kdist_opus_k12_pct,deterministic,%,100 x kdist_opus_k12_count / run_opus_itemsets.,7.44,268,derived
+kdist_opus_k2_count,deterministic,itemsets,Frequent itemsets of length K=2 in the Opus run (tab:kdist).,"73,786",269,rerun
+kdist_opus_k2_pct,deterministic,%,100 x kdist_opus_k2_count / run_opus_itemsets.,0.27,269,derived
+kdist_opus_k13_count,deterministic,itemsets,Frequent itemsets of length K=13 in the Opus run (tab:kdist).,"1,259,045",269,rerun
+kdist_opus_k13_pct,deterministic,%,100 x kdist_opus_k13_count / run_opus_itemsets.,4.69,269,derived
+kdist_opus_k3_count,deterministic,itemsets,Frequent itemsets of length K=3 in the Opus run (tab:kdist).,"452,777",270,rerun
+kdist_opus_k3_pct,deterministic,%,100 x kdist_opus_k3_count / run_opus_itemsets.,1.69,270,derived
+kdist_opus_k14_count,deterministic,itemsets,Frequent itemsets of length K=14 in the Opus run (tab:kdist).,"679,471",270,rerun
+kdist_opus_k14_pct,deterministic,%,100 x kdist_opus_k14_count / run_opus_itemsets.,2.53,270,derived
+kdist_opus_k4_count,deterministic,itemsets,Frequent itemsets of length K=4 in the Opus run (tab:kdist).,"1,184,461",271,rerun
+kdist_opus_k4_pct,deterministic,%,100 x kdist_opus_k4_count / run_opus_itemsets.,4.41,271,derived
+kdist_opus_k15_count,deterministic,itemsets,Frequent itemsets of length K=15 in the Opus run (tab:kdist).,"310,527",271,rerun
+kdist_opus_k15_pct,deterministic,%,100 x kdist_opus_k15_count / run_opus_itemsets.,1.16,271,derived
+kdist_opus_k5_count,deterministic,itemsets,Frequent itemsets of length K=5 in the Opus run (tab:kdist).,"1,974,126",272,rerun
+kdist_opus_k5_pct,deterministic,%,100 x kdist_opus_k5_count / run_opus_itemsets.,7.35,272,derived
+kdist_opus_k16_count,deterministic,itemsets,Frequent itemsets of length K=16 in the Opus run (tab:kdist).,"118,659",272,rerun
+kdist_opus_k16_pct,deterministic,%,100 x kdist_opus_k16_count / run_opus_itemsets.,0.44,272,derived
+kdist_opus_k6_count,deterministic,itemsets,Frequent itemsets of length K=6 in the Opus run (tab:kdist).,"2,626,332",273,rerun
+kdist_opus_k6_pct,deterministic,%,100 x kdist_opus_k6_count / run_opus_itemsets.,9.78,273,derived
+kdist_opus_k17_count,deterministic,itemsets,Frequent itemsets of length K=17 in the Opus run (tab:kdist).,"37,261",273,rerun
+kdist_opus_k17_pct,deterministic,%,100 x kdist_opus_k17_count / run_opus_itemsets.,0.14,273,derived
+kdist_opus_k7_count,deterministic,itemsets,Frequent itemsets of length K=7 in the Opus run (tab:kdist).,"3,118,459",274,rerun
+kdist_opus_k7_pct,deterministic,%,100 x kdist_opus_k7_count / run_opus_itemsets.,11.61,274,derived
+kdist_opus_k18_count,deterministic,itemsets,Frequent itemsets of length K=18 in the Opus run (tab:kdist).,"9,375",274,rerun
+kdist_opus_k18_pct,deterministic,%,100 x kdist_opus_k18_count / run_opus_itemsets.,0.03,274,derived
+kdist_opus_k8_count,deterministic,itemsets,Frequent itemsets of length K=8 in the Opus run (tab:kdist).,"3,442,954",275,rerun
+kdist_opus_k8_pct,deterministic,%,100 x kdist_opus_k8_count / run_opus_itemsets.,12.82,275,derived
+kdist_opus_k19_count,deterministic,itemsets,Frequent itemsets of length K=19 in the Opus run (tab:kdist).,"1,818",275,rerun
+kdist_opus_k19_pct,deterministic,%,100 x kdist_opus_k19_count / run_opus_itemsets.,0.01,275,derived
+kdist_opus_k9_count,deterministic,itemsets,Frequent itemsets of length K=9 in the Opus run (tab:kdist).,"3,529,257",276,rerun
+kdist_opus_k9_pct,deterministic,%,100 x kdist_opus_k9_count / run_opus_itemsets.,13.14,276,derived
+kdist_opus_k20_count,deterministic,itemsets,Frequent itemsets of length K=20 in the Opus run (tab:kdist).,255,276,rerun
+kdist_opus_k20_pct,deterministic,%,100 x kdist_opus_k20_count / run_opus_itemsets.,<0.01,276,derived
+kdist_opus_k10_count,deterministic,itemsets,Frequent itemsets of length K=10 in the Opus run (tab:kdist).,"3,293,612",277,rerun
+kdist_opus_k10_pct,deterministic,%,100 x kdist_opus_k10_count / run_opus_itemsets.,12.27,277,derived
+kdist_opus_k21_count,deterministic,itemsets,Frequent itemsets of length K=21 in the Opus run (tab:kdist).,23,277,rerun
+kdist_opus_k21_pct,deterministic,%,100 x kdist_opus_k21_count / run_opus_itemsets.,<0.01,277,derived
+kdist_opus_k11_count,deterministic,itemsets,Frequent itemsets of length K=11 in the Opus run (tab:kdist).,"2,739,532",278,rerun
+kdist_opus_k11_pct,deterministic,%,100 x kdist_opus_k11_count / run_opus_itemsets.,10.20,278,derived
+kdist_opus_k22_pct,deterministic,%,100 x kdist_opus_k22_count / run_opus_itemsets.,<0.01,278,derived
+k22_n_features,deterministic,features,Number of features in the K=22 itemset (22; identical to run_opus_kmax by definition).,22,286;289;333;460,rerun
+k22_n_pfam,deterministic,features,Pfam members of the K=22 itemset (2).,2,297,derived
+k22_feature_1,deterministic,feature id,Member 1 of 22 of the K=22 itemset in tab:k22 order (PF00270).,PF00270,298,rerun
+k22_feature_2,deterministic,feature id,Member 2 of 22 of the K=22 itemset in tab:k22 order (PF00271).,PF00271,299,rerun
+k22_n_go_mf,deterministic,features,GO Molecular Function members of the K=22 itemset (8).,8,301,derived
+k22_feature_3,deterministic,feature id,Member 3 of 22 of the K=22 itemset in tab:k22 order (GO:0005524).,GO:0005524,302,rerun
+k22_feature_4,deterministic,feature id,Member 4 of 22 of the K=22 itemset in tab:k22 order (GO:0016787).,GO:0016787,303,rerun
+k22_feature_5,deterministic,feature id,Member 5 of 22 of the K=22 itemset in tab:k22 order (GO:0000287).,GO:0000287,304,rerun
+k22_feature_6,deterministic,feature id,Member 6 of 22 of the K=22 itemset in tab:k22 order (GO:0003697).,GO:0003697,305,rerun
+k22_feature_7,deterministic,feature id,Member 7 of 22 of the K=22 itemset in tab:k22 order (GO:0003724).,GO:0003724,306,rerun
+k22_feature_8,deterministic,feature id,Member 8 of 22 of the K=22 itemset in tab:k22 order (GO:0003725).,GO:0003725,307,rerun
+k22_feature_9,deterministic,feature id,Member 9 of 22 of the K=22 itemset in tab:k22 order (GO:0003678).,GO:0003678,308,rerun
+k22_feature_10,deterministic,feature id,Member 10 of 22 of the K=22 itemset in tab:k22 order (GO:0000978).,GO:0000978,309,rerun
+k22_n_go_bp,deterministic,features,GO Biological Process members of the K=22 itemset (4).,4,311,derived
+k22_feature_11,deterministic,feature id,Member 11 of 22 of the K=22 itemset in tab:k22 order (GO:0030154).,GO:0030154,312,rerun
+k22_feature_12,deterministic,feature id,Member 12 of 22 of the K=22 itemset in tab:k22 order (GO:0045087).,GO:0045087,313,rerun
+k22_feature_13,deterministic,feature id,Member 13 of 22 of the K=22 itemset in tab:k22 order (GO:0051607).,GO:0051607,314,rerun
+k22_feature_14,deterministic,feature id,Member 14 of 22 of the K=22 itemset in tab:k22 order (GO:0034605).,GO:0034605,315,rerun
+k22_n_go_cc,deterministic,features,GO Cellular Component members of the K=22 itemset (7).,7,317,derived
+k22_feature_15,deterministic,feature id,Member 15 of 22 of the K=22 itemset in tab:k22 order (GO:0005737).,GO:0005737,318,rerun
+k22_feature_16,deterministic,feature id,Member 16 of 22 of the K=22 itemset in tab:k22 order (GO:0005829).,GO:0005829,319,rerun
+k22_feature_17,deterministic,feature id,Member 17 of 22 of the K=22 itemset in tab:k22 order (GO:0005634).,GO:0005634,320,rerun
+k22_feature_18,deterministic,feature id,Member 18 of 22 of the K=22 itemset in tab:k22 order (GO:0005739).,GO:0005739,321,rerun
+k22_feature_19,deterministic,feature id,Member 19 of 22 of the K=22 itemset in tab:k22 order (GO:0030424).,GO:0030424,322,rerun
+k22_feature_20,deterministic,feature id,Member 20 of 22 of the K=22 itemset in tab:k22 order (GO:0030425).,GO:0030425,323,rerun
+k22_feature_21,deterministic,feature id,Member 21 of 22 of the K=22 itemset in tab:k22 order (GO:0016607).,GO:0016607,324,rerun
+k22_n_plddt,deterministic,features,pLDDT-bin members of the K=22 itemset (1).,1,326,derived
+k22_feature_22,deterministic,feature id,Member 22 of 22 of the K=22 itemset in tab:k22 order (plddt_mean=Medium confidence (70-90)).,plddt_mean = Medium confidence,327,rerun
+vocab_plddt_bin_medium_edges,method-parameter,pLDDT,Edges of the 'Medium confidence' pLDDT bin (70-90); the only bin edges stated anywhere in the paper.,70–90,327,setup
+k22_go_parent_child_pairs,deterministic,pairs,GO parent-child (true-path) pairs among the 22 features (0; needs the GO ontology).,0 (none) / 0,333;476,derived
+k22_definitional_links,deterministic,links,Members auto-derivable from another member via InterPro2GO (1: GO:0005524 from PF00270; needs the InterPro2GO mapping).,1,333,derived
+k22_independent_features,deterministic,features,k22_n_features - k22_definitional_links (21).,21,333,derived
+k22_proteins_features_each,deterministic,features,Vocabulary features carried by each of the 8 supporting proteins (exactly 22 each).,22,335,rerun
+k22_impossible_k,deterministic,K,K=23 claimed impossible at any threshold because dataset_max_features_per_protein = 22 (value = that maximum + 1).,23,335,derived
+dataset_max_features_per_protein,deterministic,features,"Maximum number of vocabulary features carried by any protein (= max transaction length; claimed 22, the basis of the 'K=23 impossible' argument).",22,335,rerun
+pattern_n_highlighted,method-parameter,patterns,Number of intermediate-K patterns highlighted in the Results (5).,5,339;464,setup
+pattern_k19_k,deterministic,K,Length of the 'RNA Spliceosome Processing Hub' pattern (19); also the top of the highlighted K=11..19 range. No member list is given.,19,341;464,rerun
+pattern_k19_support,deterministic,proteins,Supporting proteins of the K=19 pattern (187; the only highlighted count given without a tilde).,187,341,rerun
+pattern_k17_k,deterministic,K,Length of the 'Receptor Tyrosine Kinase Signaling Hub' pattern (17; also '17-feature combination').,17,343;348,rerun
+pattern_k17_support,deterministic,proteins,Supporting proteins of the K=17 pattern (~611; order-of-magnitude estimate per footnote l.353).,~611,344,rerun
+pattern_k17_member_1,deterministic,feature id,Named member of the K=17 pattern: PF07714 (protein tyrosine kinase).,PF07714,344,rerun
+pattern_k17_member_2,deterministic,feature id,Named member of the K=17 pattern: PF00017 (SH2).,PF00017,344,rerun
+pattern_k17_member_3,deterministic,feature id,Named member of the K=17 pattern: PF00018 (SH3).,PF00018,345,rerun
+pattern_k13_k,deterministic,K,Length of the 'Helicase-Recombinase DNA Repair Module' pattern (13). No member ids given.,13,353,rerun
+pattern_k13_support,deterministic,proteins,"Supporting proteins of the K=13 pattern (~11,000; order-of-magnitude estimate).","~11,000",353,rerun
+pattern_support_precision,deterministic,qualitative,Stated precision of the highlighted-pattern supports ('order-of-magnitude estimates read from the decoded-pattern summaries').,order-of-magnitude estimate,353,setup
+pattern_k12_k,deterministic,K,Length of the 'Bacterial Cell Wall Synthase' pattern (12).,12,355;464,rerun
+pattern_k12_support,deterministic,proteins,"Supporting proteins of the K=12 pattern (~10,500; order-of-magnitude estimate).","~10,500",355,rerun
+pattern_k12_member_1,deterministic,feature id,Named member of the K=12 pattern: PF00905 (transpeptidase).,PF00905,355,rerun
+pattern_k12_member_2,deterministic,feature id,Named member of the K=12 pattern: PF00912 (transglycosylase).,PF00912,355,rerun
+pattern_k11_k,deterministic,K,Length of the 'AAA+ ATPase Proteasome Complex' pattern (11); also the bottom of the highlighted K=11..19 range. No member ids given.,11,357;464,rerun
+pattern_k11_support,deterministic,proteins,"Supporting proteins of the K=11 pattern (~16,000; order-of-magnitude estimate).","~16,000",357,rerun
+null_min_count,method-parameter,proteins,min_count at the null-model threshold = ceil(0.00001 x dataset_multi_feature) = 769. NOTE: the tab:campaign Power row gives 768 for the same 0.001% threshold (run_power_min_count).,769,362;393,derived
+null_permutations,method-parameter,permutations,Number of Fisher-Yates feature-column permutations (5).,5,362;367;388;391;393;462;498,setup
+null_seed,method-parameter,seed,Random seed of the permutations (42).,42,362,setup
+null_total_time_s,hardware-dependent,s,Total runtime of the 5 null-model permutations (662 s).,662,362,hardware
+null_peak_k,deterministic,K,argmax of the pooled null K-distribution (3).,3,364,derived
+null_peak_pct,deterministic,%,"Share of null itemsets at the null peak K (46.2; 79,134 / 171,320 pooled null mean total).",46.2,364,derived
+null_k6_max,deterministic,itemsets,"Maximum over permutations of null itemsets at K=6 ('at most 23'; mean 22, std 1.1).",23,364,rerun
+null_kge7_mean,deterministic,itemsets,Mean null-model itemsets at K>=7 (0; no permutation produced any).,0,364;382,rerun
+null_kge7_bio,deterministic,itemsets,"Biological itemsets at K>=7 (sum over K=7..14) from the exhaustive Direct run at 0.001% (88,745).","88,745",364;382,rerun
+run_power_direct_kmax,deterministic,K,Maximum K of the exhaustive Direct CSR->GPU run at 0.001% (14).,14,364;393,rerun
+null_enriched_from_k,deterministic,K,Smallest K from which biological counts exceed the null mean and stay enriched (4; stated as 'K>=4' or 'K=4').,>=4 / 4,367;391;462;466,derived
+null_t_df,method-parameter,df,Degrees of freedom of the t-statistics = null_permutations - 1 (4).,4,367;388;391,derived
+null_p_bound_kge7,deterministic,p,One-sided binomial 95% upper bound for 0 of 5 permutations reaching K>=7: 1-0.05^(1/5) = 0.4507 ('<0.45'); also the p cell of the tab:null-model K=7-14 row (no separate null_kge7_p key).,<0.45,367;382;391,derived
+null_p_bound_confidence_pct,method-parameter,%,Confidence level of the one-sided binomial upper bound (95).,95,367;391,setup
+null_p_bound_formula,method-parameter,formula,Formula of the p bound for 0 of 5 permutations: 1-0.05^(1/5).,1-0.05^(1/5),367;391,setup
+null_perms_reaching_kge7,deterministic,permutations,Number of permutations that produced any itemset at K>=7 ('0 of 5').,0 of 5,367;391,rerun
+null_k1_bio,deterministic,itemsets,Biological (unshuffled) itemsets at K=1 from the exhaustive Direct run at 0.001% (tab:null-model Bio column).,"1,002",376,rerun
+null_k1_mean,deterministic,itemsets,Mean null-model itemsets at K=1 over the 5 permutations. Equals vocab_items_frequent: marginal frequencies are preserved by the shuffle.,"1,002",376;393,rerun
+null_k1_std,deterministic,itemsets,Standard deviation of null-model itemsets at K=1 over the 5 permutations.,0.0,376,rerun
+null_k1_z,deterministic,"Z (t-statistic, 4 df)",(null_k1_bio - null_k1_mean) / null_k1_std; the paper calls it Z but notes it is a t-statistic with 4 df.,0.0,376,derived
+null_k1_p,deterministic,p,"p-value reported for K=1 (1.0, depleted/preserved).",1.0,376,derived
+null_k2_bio,deterministic,itemsets,Biological (unshuffled) itemsets at K=2 from the exhaustive Direct run at 0.001% (tab:null-model Bio column).,"22,019",377,rerun
+null_k2_mean,deterministic,itemsets,Mean null-model itemsets at K=2 over the 5 permutations.,"63,702",377,rerun
+null_k2_std,deterministic,itemsets,Standard deviation of null-model itemsets at K=2 over the 5 permutations.,42.2,377,rerun
+null_k2_z,deterministic,"Z (t-statistic, 4 df)",(null_k2_bio - null_k2_mean) / null_k2_std; the paper calls it Z but notes it is a t-statistic with 4 df.,-987,377;391,derived
+null_k2_p,deterministic,p,"p-value reported for K=2 (1.0, depleted/preserved).",1.0,377,derived
+null_k3_bio,deterministic,itemsets,Biological (unshuffled) itemsets at K=3 from the exhaustive Direct run at 0.001% (tab:null-model Bio column).,"73,205",378,rerun
+null_k3_mean,deterministic,itemsets,Mean null-model itemsets at K=3 over the 5 permutations.,"79,134",378,rerun
+null_k3_std,deterministic,itemsets,Standard deviation of null-model itemsets at K=3 over the 5 permutations.,41.5,378,rerun
+null_k3_z,deterministic,"Z (t-statistic, 4 df)",(null_k3_bio - null_k3_mean) / null_k3_std; the paper calls it Z but notes it is a t-statistic with 4 df.,-143,378;391,derived
+null_k3_p,deterministic,p,"p-value reported for K=3 (1.0, depleted/preserved).",1.0,378,derived
+null_k4_bio,deterministic,itemsets,Biological (unshuffled) itemsets at K=4 from the exhaustive Direct run at 0.001% (tab:null-model Bio column).,"108,059",379,rerun
+null_k4_mean,deterministic,itemsets,Mean null-model itemsets at K=4 over the 5 permutations.,"25,468",379,rerun
+null_k4_std,deterministic,itemsets,Standard deviation of null-model itemsets at K=4 over the 5 permutations.,21.8,379,rerun
+null_k4_z,deterministic,"Z (t-statistic, 4 df)",(null_k4_bio - null_k4_mean) / null_k4_std; the paper calls it Z but notes it is a t-statistic with 4 df.,"+3,791",379;391;462,derived
+null_k4_p,deterministic,p,"p-value reported for K=4 (~0, enriched).",~0,379,derived
+null_k5_bio,deterministic,itemsets,Biological (unshuffled) itemsets at K=5 from the exhaustive Direct run at 0.001% (tab:null-model Bio column).,"104,239",380,rerun
+null_k5_mean,deterministic,itemsets,Mean null-model itemsets at K=5 over the 5 permutations.,"1,992",380,rerun
+null_k5_std,deterministic,itemsets,Standard deviation of null-model itemsets at K=5 over the 5 permutations.,13.8,380,rerun
+null_k5_z,deterministic,"Z (t-statistic, 4 df)",(null_k5_bio - null_k5_mean) / null_k5_std; the paper calls it Z but notes it is a t-statistic with 4 df.,"+7,402",380,derived
+null_k5_p,deterministic,p,"p-value reported for K=5 (~0, enriched).",~0,380,derived
+null_k6_bio,deterministic,itemsets,Biological (unshuffled) itemsets at K=6 from the exhaustive Direct run at 0.001% (tab:null-model Bio column).,"78,596",381,rerun
+null_k6_mean,deterministic,itemsets,Mean null-model itemsets at K=6 over the 5 permutations.,22,381;391,rerun
+null_k6_std,deterministic,itemsets,Standard deviation of null-model itemsets at K=6 over the 5 permutations.,1.1,381;391,rerun
+null_k6_z,deterministic,"Z (t-statistic, 4 df)",(null_k6_bio - null_k6_mean) / null_k6_std; the paper calls it Z but notes it is a t-statistic with 4 df.,"+71,728",381,derived
+null_k6_p,deterministic,p,"p-value reported for K=6 (~0, enriched).",~0,381,derived
+null_kge7_std,deterministic,itemsets,Standard deviation of null-model itemsets at K>=7 (0.0).,0.0,382,rerun
+null_kge7_z,deterministic,Z,Z at K>=7: undefined ('---') because null std is 0.,--- (undefined),382,derived
+null_perms_for_p001,method-parameter,permutations,Permutations the paper says would be needed to establish p<0.01 bounds ('100+'; hypothetical).,100+,393,derived
+null_p_target,method-parameter,p,Hypothetical target p bound of a full validation (<0.01).,<0.01,393,setup
+null_per_perm_time_s,hardware-dependent,s,Runtime of one permutation = one full mining run at 0.001% (~130 s; 662/5 = 132.4).,~130,393,hardware
+misc_transaction_scale_claim,deterministic,transactions,'100-million-transaction scale' rhetoric of Discussion/Conclusion; the mined set is dataset_multi_feature = 76.9M (order-of-magnitude statement).,100-million,402;496,derived
+ext_gpapriori_speedup,external-fact,x,GPApriori (Zhang 2011) speedup on FIMI benchmarks (up to 100x).,100×,408,external
+ext_bigminer_transactions,external-fact,transactions,BIGMiner (Chon 2018b) largest scale (100M transactions).,100M,408;423,external
+ext_bigminer_nodes,external-fact,nodes,BIGMiner cluster size (30 MapReduce nodes / '30x servers').,30 / 30× servers,408;423,external
+run_opus_vs_gminer_transaction_ratio,deterministic,x,dataset_multi_feature / ext_gminer_transactions (5.1x).,5.1×,411,derived
+ext_gminer_transactions,external-fact,transactions,GMiner (Chon 2018) largest synthetic dataset (15M transactions).,15M,411;422,external
+ext_gminer_transactions_real,external-fact,transactions,GMiner largest real dataset (1.7M transactions).,1.7M,411;843,external
+ext_borgelt_transactions,external-fact,transactions,Borgelt (2003) dataset size (100K).,100K,420,external
+ext_borgelt_items,external-fact,items,Borgelt item count (500).,500,420,external
+ext_borgelt_kmax,external-fact,K,Borgelt maximum K (~10).,~10,420,external
+ext_borgelt_hardware,external-fact,hardware,Borgelt hardware (1x CPU).,1× CPU,420,external
+ext_borgelt_time_s,external-fact,s,Borgelt runtime range (1-100 s).,1–100,420,external
+ext_fang_transactions,external-fact,transactions,Fang (2009) dataset size (100K).,100K,421,external
+ext_fang_items,external-fact,items,Fang item count (1K).,1K,421,external
+ext_fang_kmax,external-fact,K,Fang maximum K (~5).,~5,421,external
+ext_fang_hardware,external-fact,hardware,Fang hardware (1x GTX 280).,1× GTX 280,421,external
+ext_fang_time_s,external-fact,s,Fang runtime range (1-10 s).,1–10,421,external
+ext_gminer_items,external-fact,items,GMiner item count (20K).,20K,422,external
+ext_gminer_kmax,external-fact,K,GMiner maximum K (~30).,~30,422,external
+ext_gminer_hardware,external-fact,hardware,GMiner hardware (4x GTX 1080).,4× GTX 1080,422,external
+ext_gminer_time_s,external-fact,s,GMiner runtime range (20-150 s).,20–150,422,external
+ext_bigminer_items,external-fact,items,BIGMiner item count (100K).,100K,423,external
+ext_bigminer_kmax,external-fact,K,"BIGMiner maximum K (not reported, '---').",--- (not reported),423,external
+ext_bigminer_time_s,external-fact,s,BIGMiner runtime range (1-20K s).,1–20K,423,external
+bitvec_subset_gb,deterministic,GB,"Bit-packed dense bitmap of the 76.9M mining subset (~10 GB); cf. mem_dense_76p9m_gb (9.6 GB with |F1|=1,000).",~10,440,derived
+alg_pcie_bytes_per_level,deterministic,bytes,"Host<->device traffic per K-level in the GPU-accelerated loop. CONFLICT: '~12 bytes' (l.443, 808-810, 839) vs '~4 bytes' (l.852 caption, l.868 loop-control cell).",~12 / ~4,443;808;809;810;839;852;868,hardware
+ext_meysman_structures,external-fact,structures,Structures covered by Meysman et al. (PDB 3D-proximity study; ~32K).,~32K,454,external
+k22_functional_roles,deterministic,roles,"Interpretive grouping of the K=22 itemset into 4 functional roles (RNA/DNA unwinding, innate immune sensing, gene regulation, neuronal function); not re-executable.",4,460,external
+null_k4_enrichment_ratio,deterministic,x,"null_k4_bio / null_k4_mean, described as 'many orders of magnitude' (arithmetically 108,059 / 25,468 = 4.2).",many orders of magnitude,462,derived
+ext_go_update_frequency,external-fact,frequency,GO annotation update frequency (monthly).,monthly,478,external
+dataset_single_feature,deterministic,proteins,Proteins excluded from mining because they carry exactly one vocabulary feature (128.7 million).,128.7 million,480,rerun
+dataset_single_feature_pct,deterministic,%,100 x dataset_single_feature / dataset_plddt_pass (62.6).,62.6,480,derived
+ext_afdb_homodimers_highconf,external-fact,predictions,High-confidence homodimer predictions added to AlphaFold DB (1.7 million).,1.7 million,486,external
+ext_afdb_homodimers_lowconf,external-fact,predictions,Lower-confidence homodimers available via bulk download (18 million).,18 million,486,external
+ext_embl_ebi_statement_year,external-fact,year,Year of the quoted EMBL-EBI statement (2026).,2026,486,external
+ext_zenodo_doi,external-fact,DOI,Zenodo DOI of the archived preprint (10.5281/zenodo.18674353).,10.5281/zenodo.18674353,500;529,external
+alg_min_count_rule,method-parameter,formula,Minimum-count rule of the pseudocode: min_count = ceil(sigma * n).,min_count = ceil(sigma * n),766,setup
+alg_prefix_loop_start_k,method-parameter,K,First K handled by the prefix-group loop (3).,3,775,setup
+alg_loop_continue_condition,method-parameter,condition,Loop continuation condition of the pseudocode: |freq_{k-1}| >= k.,freq_{k-1} >= k,776,setup
+pipe_pcie_result_collection,deterministic,PCIe traffic,Result collection: one bulk GPU->CPU transfer at the end ('Once at end' / pseudocode 'Single transfer').,1 (single) / Once at end,782;869,setup
+arch_support_counting_intrinsic,software,intrinsic,Support-counting intrinsic used by ET-miner: __popcll (64-bit) (tab:gpu-arch ET-miner cell and Appendix C).,64-bit,797;834,setup
+hw_popcll_cycles,hardware-dependent,cycles,Claimed single-cycle latency of the __popcll intrinsic (NVIDIA ISA fact; not measured here).,1,797,external
+ext_prior_gpu_fim_popcount_width_bits,external-fact,bits,"Prior systems (chon2018, chon2024) use the 32-bit __popc, i.e. 32 proteins per operation.",32 / 32-bit,797,external
+alg_k2_pairs_per_thread,software,pairs per thread,"Candidate pairs evaluated per GPU thread at K=2 (1, triangular-number inverse mapping).",1,801,setup
+alg_early_termination_condition,method-parameter,condition,K>=3 early termination when an intermediate AND result is zero.,0 (AND result),801,setup
+alg_pcie_bytes_total,deterministic,bytes,Total host<->device traffic over all K-levels = run_opus_kmax x alg_pcie_bytes_per_level (22 x 12 = ~264 bytes).,~264,813,derived
+ext_conventional_gpu_fim_pcie_bytes,external-fact,bytes,Per-campaign CPU-GPU transfer volume of conventional GPU FIM implementations ('gigabytes').,gigabytes,813,external
+ext_gminer_support_counting_intrinsic,external-fact,intrinsic,"GMiner support-counting intrinsic (__popc, 32-bit).",32-bit,834,external
+ext_gminerpp_support_counting_intrinsic,external-fact,intrinsic,"GMiner++ (2024) support-counting intrinsic (__popc, 32-bit).",32-bit,834,external
+pipe_pcie_k1_support_count,deterministic,PCIe traffic,PCIe traffic of the K=1 support count stage in tab:gpu-pipeline (None).,None (0),860,setup
+pipe_pcie_k1_frequency_filter,deterministic,PCIe traffic,PCIe traffic of the K=1 frequency filter stage in tab:gpu-pipeline (None).,None (0),861,setup
+pipe_pcie_k2_candidate_gen,deterministic,PCIe traffic,PCIe traffic of the K=2 candidate generation stage in tab:gpu-pipeline (None).,None (0),862,setup
+pipe_pcie_k2_support_count,deterministic,PCIe traffic,PCIe traffic of the K=2 support count stage in tab:gpu-pipeline (None).,None (0),863,setup
+pipe_pcie_k2_min_support_filter,deterministic,PCIe traffic,PCIe traffic of the K=2 min-support filter stage in tab:gpu-pipeline (None).,None (0),864,setup
+pipe_pcie_k3plus_candidate_gen,deterministic,PCIe traffic,PCIe traffic of the K>=3 candidate generation stage in tab:gpu-pipeline (None).,None (0),865,setup
+pipe_pcie_k3plus_support_count,deterministic,PCIe traffic,PCIe traffic of the K>=3 support count stage in tab:gpu-pipeline (None).,None (0),866,setup
+pipe_pcie_k3plus_filter_sort,deterministic,PCIe traffic,PCIe traffic of the K>=3 filter + sort stage in tab:gpu-pipeline (None).,None (0),867,setup
+mem_ratio_0p01pct,deterministic,x,mem_dense_76p9m_gb / mem_csr_0p01pct_gb at 0.01% density.,7.8×,874;889,derived
+mem_density_0p01pct,method-parameter,%,Density of the theoretical tab:memory-comparison row (0.01%).,0.01,874;889,setup
+mem_breakeven_density_pct,deterministic,%,Density at/above which CSR gives no saving over the bit-packed dense bitmap ('>=1%').,>=1,874,derived
+mem_proteome_density_pct,deterministic,%,Density of the proteome dataset = items per transaction / |F1| (~1%).,~1,874,derived
+mem_ratio_214m,deterministic,x,mem_dense_214m_gb / mem_csr_214m_gb (1.4x; 'modest 1.4x reduction' in Appendix D).,1.4×,874;886,derived
+mem_csr_bytes_per_entry,method-parameter,bytes,Bytes per CSR entry assumed by tab:memory-comparison (8).,8,878,setup
+mem_items_per_txn_214m,deterministic,items per transaction,"Items per transaction assumed for the 'AlphaFold proteome, Actual' row (~10). Cf. csr_nnz / dataset_multi_feature = 316M / 76.9M = 4.1 for the mined subset.",~10,886,rerun
+mem_dense_214m_gb,deterministic,GB,"Dense bit-packed bitmap for 214M x 1,002 bits / 8 (27 GB). Cf. bitvec_gb (~26 GB for 205.6M).",27,886,derived
+mem_csr_214m_gb,deterministic,GB,CSR for the 214M 'Actual' row: 8 B x (214M x ~10 entries) + 8 B x 214M row pointers ~ 19 GB.,19,886,derived
+mem_theoretical_items,method-parameter,items,"|F1| used for the theoretical rows of tab:memory-comparison (1,000; the actual vocabulary is 1,002).","1,000",888,setup
+mem_items_per_txn_0p01pct,deterministic,items per transaction,"Items per transaction at 0.01% density = density x 1,000.",1,889,derived
+mem_dense_76p9m_gb,deterministic,GB,"Dense bit-packed bitmap for the theoretical rows: 76.9M x 1,000 bits / 8 (9.6 GB; identical for all three densities).",9.6,889;890;891,derived
+mem_csr_0p01pct_gb,deterministic,GB,CSR size at 0.01% density = 8 B x nnz + 8 B x 76.9M row pointers.,1.2,889,derived
+mem_density_0p1pct,method-parameter,%,Density of the theoretical tab:memory-comparison row (0.1%).,0.1,890,setup
+mem_items_per_txn_0p1pct,deterministic,items per transaction,"Items per transaction at 0.1% density = density x 1,000.",10,890,derived
+mem_csr_0p1pct_gb,deterministic,GB,CSR size at 0.1% density = 8 B x nnz + 8 B x 76.9M row pointers.,6.8,890,derived
+mem_ratio_0p1pct,deterministic,x,mem_dense_76p9m_gb / mem_csr_0p1pct_gb at 0.1% density.,1.4×,890,derived
+mem_density_1pct,method-parameter,%,Density of the theoretical tab:memory-comparison row (1%).,1,891,setup
+mem_items_per_txn_1pct,deterministic,items per transaction,"Items per transaction at 1% density = density x 1,000.",100,891,derived
+mem_csr_1pct_gb,deterministic,GB,CSR size at 1% density = 8 B x nnz + 8 B x 76.9M row pointers.,62.1,891,derived
+mem_ratio_1pct,deterministic,x,mem_dense_76p9m_gb / mem_csr_1pct_gb at 1% density.,0.15×,891,derived

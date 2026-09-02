@@ -1,0 +1,10 @@
+chain2 start 2026-09-02T04:35:57Z release=2026_01
+filter finished 2026-09-02T04:46:37Z
+start 2026-09-02T04:33:52Z in=/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.reduced.dat.gz
+records_total=202556314 records_kept=158700122
+awk/pigz rc=0
+-rw-r--r-- 1 root root  1678722670 Sep  2 04:46 /root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/dat_pfamgo_accessions_2026_01.txt
+-rw-r--r-- 1 root root 10580479054 Sep  2 04:46 /root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.pfamgo.dat.gz
+accessions listed: 158700122
+end 2026-09-02T04:46:37Z
+attempt2 killed 2026-09-02T04:57:23Z at RSS ~63 GB (pre-emptive)

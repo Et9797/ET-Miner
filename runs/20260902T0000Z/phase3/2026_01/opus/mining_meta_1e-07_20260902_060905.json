@@ -1,0 +1,12 @@
+{
+  "input_file": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base_multi.parquet",
+  "n_transactions": 76890945,
+  "n_unique_items": 1002,
+  "min_support": 1e-07,
+  "max_length": 50,
+  "n_gpus": 2,
+  "use_gpu": true,
+  "parquet_dir": "/root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet",
+  "timestamp": "2026-09-02T06:09:05.743888+00:00",
+  "duration_seconds": 2637.07
+}

@@ -1,0 +1,96 @@
+2026-09-02 06:57:01.670 | INFO     | utils:load_transactions:35 - Loading /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base_multi.parquet...
+2026-09-02 06:57:03.097 | INFO     | utils:load_transactions:42 -   Loaded 76,890,945 proteins in 1.4s
+2026-09-02 06:57:03.137 | INFO     | utils:load_transactions:47 -   Multi-feature filter: 76,890,945 → 76,890,945 (removed 0 single-feature proteins)
+2026-09-02 06:57:03.138 | INFO     | __main__:main:354 - 
+============================================================
+2026-09-02 06:57:03.138 | INFO     | __main__:main:355 - Null Model Permutation Test
+2026-09-02 06:57:03.138 | INFO     | __main__:main:356 - ============================================================
+2026-09-02 06:57:03.138 | INFO     | __main__:main:357 -   min_count:      769
+2026-09-02 06:57:03.138 | INFO     | __main__:main:358 -   min_support:    0.0000100012 (0.0010%)
+2026-09-02 06:57:03.138 | INFO     | __main__:main:359 -   n_transactions: 76,890,945
+2026-09-02 06:57:03.138 | INFO     | __main__:main:360 -   permutations:   5
+2026-09-02 06:57:03.138 | INFO     | __main__:main:361 -   n_gpus:         1
+2026-09-02 06:57:03.138 | INFO     | __main__:main:362 -   seed:           42
+2026-09-02 06:57:03.138 | INFO     | __main__:main:369 - 
+Mining REAL distribution (min_count=769, single-GPU for exactness)...
+2026-09-02 06:57:03.139 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=769
+2026-09-02 06:57:03.678 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 1002 frequent items
+2026-09-02 06:57:05.351 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 316,421,093 non-zeros
+2026-09-02 06:57:17.831 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1002 cols, 76,890,945 txns, min_support=0.00001000 (min_count=769), max_length=1002
+2026-09-02 06:57:17.876 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=1,002 → frequent=1,002 (0.0s) | cumulative=1,002 | RAM=11.1GB VRAM=17.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_null_model.py:371: UserWarning: 100% of items are frequent (min_count=769). Mining may produce combinatorially explosive results. Consider raising min_support.
+  real_result = apriori(df, min_support=min_support, use_gpu=True, max_length=None,
+2026-09-02 06:57:18.744 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=501,501 → frequent=22,019 (0.9s) | cumulative=23,021 | RAM=11.1GB VRAM=17.9GB
+2026-09-02 06:57:21.603 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=1,855,572 → frequent=73,205 (2.9s) | cumulative=96,226 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 06:57:21.611 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 1 dead bitvecs at K=3 (9 MB logical)
+2026-09-02 06:57:27.297 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=1,506,134 → frequent=108,059 (5.7s) | cumulative=204,285 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 06:57:27.310 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 8 dead bitvecs at K=4 (73 MB logical)
+2026-09-02 06:57:36.437 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=583,529 → frequent=104,239 (9.1s) | cumulative=308,524 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:57:36.454 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 26 dead bitvecs at K=5 (238 MB logical)
+2026-09-02 06:57:45.903 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=186,587 → frequent=78,596 (9.4s) | cumulative=387,120 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:57:45.921 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 59 dead bitvecs at K=6 (541 MB logical)
+2026-09-02 06:57:53.336 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=77,638 → frequent=48,699 (7.4s) | cumulative=435,819 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:57:53.351 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 114 dead bitvecs at K=7 (1045 MB logical)
+2026-09-02 06:57:57.934 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=32,966 → frequent=25,011 (4.6s) | cumulative=460,830 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:57:57.946 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 147 dead bitvecs at K=8 (1347 MB logical)
+2026-09-02 06:58:00.401 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=12,519 → frequent=10,508 (2.4s) | cumulative=471,338 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:58:00.405 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 167 dead bitvecs at K=9 (1531 MB logical)
+2026-09-02 06:58:01.329 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=3,914 → frequent=3,488 (0.9s) | cumulative=474,826 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:58:01.331 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 158 dead bitvecs at K=10 (1448 MB logical)
+2026-09-02 06:58:01.662 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=927 → frequent=869 (0.3s) | cumulative=475,695 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:58:01.663 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 146 dead bitvecs at K=11 (1338 MB logical)
+2026-09-02 06:58:01.784 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=12: candidates=155 → frequent=152 (0.1s) | cumulative=475,847 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:58:01.784 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 78 dead bitvecs at K=12 (715 MB logical)
+2026-09-02 06:58:01.901 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=13: candidates=17 → frequent=17 (0.1s) | cumulative=475,864 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:58:01.901 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 54 dead bitvecs at K=13 (495 MB logical)
+2026-09-02 06:58:02.005 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=14: candidates=1 → frequent=1 (0.1s) | cumulative=475,865 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 06:58:02.005 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 30 dead bitvecs at K=14 (275 MB logical)
+2026-09-02 06:58:02.005 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=14 reached max_length=1002. Total: 475,865 itemsets in 44.2s
+2026-09-02 06:58:04.976 | INFO     | __main__:main:376 -   Real mining: 475,865 itemsets in 61.8s
+2026-09-02 06:58:04.976 | INFO     | __main__:main:379 - 
+  Real K-distribution:
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 1:      1,002 ( 0.21%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 2:     22,019 ( 4.63%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 3:     73,205 (15.38%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 4:    108,059 (22.71%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 5:    104,239 (21.91%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 6:     78,596 (16.52%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 7:     48,699 (10.23%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 8:     25,011 ( 5.26%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K= 9:     10,508 ( 2.21%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K=10:      3,488 ( 0.73%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K=11:        869 ( 0.18%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K=12:        152 ( 0.03%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K=13:         17 ( 0.00%)
+2026-09-02 06:58:04.976 | INFO     | __main__:main:382 -     K=14:          1 ( 0.00%)
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_null_model.py:64: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+  items = df.explode("items")["items"].to_numpy().astype(np.int64)
+2026-09-02 06:58:09.186 | INFO     | __main__:_prepare_gpu_resident_data:70 -   GPU-resident prep: 76,890,945 proteins, 316,421,093 items, 1006 unique features, 2.5 GB items + 0.6 GB indptr
+2026-09-02 06:58:09.543 | INFO     | __main__:main:554 -   GPU-resident mode: 2.5 GB items in VRAM
+2026-09-02 06:58:09.544 | INFO     | __main__:main:559 - 
+────────────────────────────────────────────────────────────
+2026-09-02 06:58:09.544 | INFO     | __main__:main:560 - Null model run 1/5 (seed=7138484576005690180)
+2026-09-02 06:58:09.544 | INFO     | __main__:main:561 - ────────────────────────────────────────────────────────────
+2026-09-02 06:58:09.778 | INFO     | __main__:main:575 -   Shuffle+bitvec: 0.23s
+2026-09-02 06:58:09.778 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1006 cols, 76,890,945 txns, min_support=0.00001000 (min_count=769), max_length=1006
+Traceback (most recent call last):
+  File "/root/projects/ET-Miner/applications/alphafold/experiments/experiment_null_model.py", line 745, in <module>
+    main()
+  File "/root/projects/ET-Miner/applications/alphafold/experiments/experiment_null_model.py", line 578, in main
+    null_result = apriori(
+  File "/root/projects/ET-Miner/src/et_miner/core/apriori.py", line 358, in apriori
+    return _apriori_from_bitvecs(
+  File "/root/projects/ET-Miner/src/et_miner/gpu/mining.py", line 539, in _apriori_from_bitvecs
+    popcounts = popcount_kernel(bitvecs_gpu.view(cp.uint64))
+  File "cupy/_core/_kernel.pyx", line 908, in cupy._core._kernel.ElementwiseKernel.__call__
+  File "cupy/_core/_kernel.pyx", line 695, in cupy._core._kernel._get_out_args_with_params
+  File "cupy/_core/core.pyx", line 3250, in cupy._core.core._ndarray_init
+  File "cupy/_core/core.pyx", line 300, in cupy._core.core._ndarray_base._init_fast
+  File "cupy/cuda/memory.pyx", line 904, in cupy.cuda.memory.alloc
+  File "cupy/cuda/memory.pyx", line 1614, in cupy.cuda.memory.MemoryPool.malloc
+  File "cupy/cuda/memory.pyx", line 1635, in cupy.cuda.memory.MemoryPool.malloc
+  File "cupy/cuda/memory.pyx", line 1350, in cupy.cuda.memory.SingleDeviceMemoryPool.malloc
+  File "cupy/cuda/memory.pyx", line 1376, in cupy.cuda.memory.SingleDeviceMemoryPool._malloc
+  File "cupy/cuda/memory.pyx", line 1560, in cupy.cuda.memory.SingleDeviceMemoryPool._try_malloc
+cupy.cuda.memory.OutOfMemoryError: Out of memory allocating 9,669,044,736 bytes (allocated so far: 15,346,910,720 bytes).
+manual null rc=1 2026-09-02T06:58:11Z

@@ -1,0 +1,145 @@
+| k22_n_go_cc | 7 | features | runs/20260902T0000Z/phase3/2026_01/exp/go.obo | decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent | 2026-09-02T06:22:00Z |
+| k22_n_go_mf | 8 | features | runs/20260902T0000Z/phase3/2026_01/exp/go.obo | decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent | 2026-09-02T06:22:00Z |
+| k22_n_itemsets_at_kmax | 1 | itemsets | runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet | decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent | 2026-09-02T06:09:05Z |
+| k22_n_pfam | 2 | features | runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet | decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent | 2026-09-02T06:09:05Z |
+| k22_n_plddt | 1 | features | runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet | decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent | 2026-09-02T06:09:05Z |
+| k22_n_proteins | 8 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/analysis_deepest_itemset_20260902_062222.json | analyze_k22_proteins.py --itemset-source frequent_k<KMAX>.parquet | 2026-09-02T06:22:22Z |
+| k22_plddt_feature | [plddt_mean_med] | id | runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet | decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent | 2026-09-02T06:09:05Z |
+| k22_proteins_features_each | 22 | features | runs/20260902T0000Z/phase3/2026_01/exp/analysis_deepest_itemset_20260902_062222.json | analyze_k22_proteins.py --itemset-source frequent_k<KMAX>.parquet | 2026-09-02T06:22:22Z |
+| k22_script_identified_proteins | 8 | proteins | runs/20260902T0000Z/phase3/2026_01/exp/analysis_deepest_itemset_20260902_062222.json | analyze_k22_proteins.py --itemset-source frequent_k<KMAX>.parquet | 2026-09-02T06:22:22Z |
+| k22_support | 8 | proteins | runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet | decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent | 2026-09-02T06:09:05Z |
+| kdist_base_direct_k1_count | 667 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k1_pct | 12.573 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k2_count | 1,504 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k2_pct | 28.3506 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k3_count | 1,378 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k3_pct | 25.9755 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k4_count | 884 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k4_pct | 16.6635 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k5_count | 514 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k5_pct | 9.689 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k6_count | 247 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k6_pct | 4.656 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k7_count | 89 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k7_pct | 1.6777 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k8_count | 20 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k8_pct | 0.377 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k9_count | 2 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_k9_pct | 0.0377 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_peak_count | 1,504 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_peak_k | 2 | K | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_direct_peak_pct | 28.3506 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_base_son_k1_count | 667 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k1_pct | 12.573 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k2_count | 1,504 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k2_pct | 28.3506 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k3_count | 1,378 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k3_pct | 25.9755 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k4_count | 884 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k4_pct | 16.6635 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k5_count | 514 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k5_pct | 9.689 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k6_count | 247 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k6_pct | 4.656 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k7_count | 89 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k7_pct | 1.6777 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k8_count | 20 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k8_pct | 0.377 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k9_count | 2 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_k9_pct | 0.0377 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_peak_count | 1,504 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_peak_k | 2 | K | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_base_son_peak_pct | 28.3506 | % | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json | son_run.py --min-support 0.001 (chunk 40000000, factor 0.9) | 2026-09-02T09:29:18Z |
+| kdist_blitz_k10_count | 179,604 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k10_pct | 6.3212 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k11_count | 117,783 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k11_pct | 4.1454 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k12_count | 67,558 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k12_pct | 2.3777 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k13_count | 32,831 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k13_pct | 1.1555 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k14_count | 13,105 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k14_pct | 0.4612 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k15_count | 4,155 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k15_pct | 0.1462 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k16_count | 1,003 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k16_pct | 0.0353 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k17_count | 173 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k17_pct | 0.0061 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k18_count | 19 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k18_pct | 0.0007 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k19_count | 1 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k19_pct | 0 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k1_count | 1,002 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k1_pct | 0.0353 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k2_count | 39,125 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k2_pct | 1.377 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k3_count | 184,900 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k3_pct | 6.5076 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k4_count | 361,696 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k4_pct | 12.73 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k5_count | 445,661 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k5_pct | 15.6852 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k6_count | 439,605 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k6_pct | 15.4721 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k7_count | 387,030 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k7_pct | 13.6217 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k8_count | 318,349 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k8_pct | 11.2044 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k9_count | 247,680 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_k9_pct | 8.7172 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_peak_count | 445,661 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_peak_k | 5 | K | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_blitz_peak_pct | 15.6852 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_minc4_k10_count | 6,362,841 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k10_pct | 13.2538 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k11_count | 5,373,365 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k11_pct | 11.1928 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k12_count | 3,943,668 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k12_pct | 8.2147 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k13_count | 2,484,117 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k13_pct | 5.1744 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k14_count | 1,327,096 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k14_pct | 2.7644 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k15_count | 593,694 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k15_pct | 1.2367 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k16_count | 219,052 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k16_pct | 0.4563 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k17_count | 65,356 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k17_pct | 0.1361 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k18_count | 15,343 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k18_pct | 0.032 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k19_count | 2,722 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k19_pct | 0.0057 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k1_count | 1,002 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k1_pct | 0.0021 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k20_count | 342 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k20_pct | 0.0007 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k21_count | 27 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k21_pct | 0.0001 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k22_count | 1 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k22_pct | 0 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k2_count | 94,427 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k2_pct | 0.1967 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k3_count | 603,403 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k3_pct | 1.2569 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k4_count | 1,649,283 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k4_pct | 3.4355 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k5_count | 2,916,124 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k5_pct | 6.0743 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k6_count | 4,169,081 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k6_pct | 8.6842 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k7_count | 5,318,506 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k7_pct | 11.0785 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k8_count | 6,223,873 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k8_pct | 12.9644 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k9_count | 6,644,170 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_k9_pct | 13.8399 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_peak_count | 6,644,170 | itemsets | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_peak_k | 9 | K | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_minc4_peak_pct | 13.8399 | % | runs/20260902T0000Z/phase3/2026_01/minc4/parquet | run_mining.py --support 4.5519013974922534e-08 --max-length 50 --use-gpu --n-gpus 2 --parq | 2026-09-02T11:08:56Z |
+| kdist_opus_campaign_k10_count | 3,293,612 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_opus_campaign_k10_pct | 12.2669 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_opus_campaign_k11_count | 2,739,532 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_opus_campaign_k11_pct | 10.2033 | % | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |
+| kdist_opus_campaign_k12_count | 1,996,772 | itemsets | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json | experiment_full_campaign.py --runs 1 | 2026-09-02T09:16:11Z |

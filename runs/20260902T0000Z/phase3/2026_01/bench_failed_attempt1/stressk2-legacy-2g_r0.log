@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/root/projects/ET-Miner/bench/child_run.py", line 198, in <module>
+    sys.exit(main())
+  File "/root/projects/ET-Miner/bench/child_run.py", line 102, in main
+    sidecar = json.loads((REPO / "datasets" / "synth" / f"{cfg['preset']}.json").read_text())
+  File "/opt/conda/lib/python3.10/pathlib.py", line 1134, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+  File "/opt/conda/lib/python3.10/pathlib.py", line 1119, in open
+    return self._accessor.open(self, mode, buffering, encoding, errors,
+FileNotFoundError: [Errno 2] No such file or directory: '/root/projects/ET-Miner/datasets/synth/stress_k2.json'

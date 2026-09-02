@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-09-02T09:29:17Z",
+  "data": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base_multi.parquet",
+  "n_transactions": 76890945,
+  "min_support": 0.001,
+  "min_count": 76891,
+  "chunk_size": 40000000,
+  "local_support_factor": 0.9,
+  "max_length": null,
+  "itemsets": 5305,
+  "max_k": 9,
+  "k_distribution": {
+    "1": 667,
+    "2": 1504,
+    "3": 1378,
+    "4": 884,
+    "5": 514,
+    "6": 247,
+    "7": 89,
+    "8": 20,
+    "9": 2
+  },
+  "time_seconds": 779.6,
+  "rules_min_confidence": 0.5,
+  "n_rules": 29540,
+  "rules_time_seconds": 0.19,
+  "rules_max": {
+    "lift": 968.9956430284118,
+    "confidence": 1.0,
+    "support": 0.10116663282002841
+  },
+  "n_rules_lift_ge5": 17499,
+  "n_rules_lift_ge100": 9283,
+  "n_rules_cross_domain": 27072,
+  "cross_domain_definition": "lhs \u222a rhs spans more than one feature_category"
+}

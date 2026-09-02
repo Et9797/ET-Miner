@@ -1,0 +1,5 @@
+bench done; gpu test suite start 2026-09-02T13:56:07Z
+gpu test suite rc=0 2026-09-02T13:57:28Z
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+136 passed, 3 skipped, 327 deselected, 120 warnings in 79.43s (0:01:19)

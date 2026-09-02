@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-09-02T01:09:14Z",
+  "data": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/transactions_214m_base_multi.parquet",
+  "n_transactions": 190377,
+  "min_support": 0.001,
+  "min_count": 191,
+  "chunk_size": 100000,
+  "local_support_factor": 0.9,
+  "max_length": null,
+  "itemsets": 9426,
+  "max_k": 12,
+  "k_distribution": {
+    "1": 638,
+    "2": 1658,
+    "3": 1823,
+    "4": 1479,
+    "5": 1200,
+    "6": 1027,
+    "7": 806,
+    "8": 496,
+    "9": 220,
+    "10": 66,
+    "11": 12,
+    "12": 1
+  },
+  "time_seconds": 67.23,
+  "rules_min_confidence": 0.5,
+  "n_rules": 92511,
+  "rules_time_seconds": 1.04,
+  "rules_max": {
+    "lift": 966.3807106598985,
+    "confidence": 1.0,
+    "support": 0.1199409592545318
+  }
+}

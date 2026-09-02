@@ -1,0 +1,6 @@
+streams=16 est_bytes=4190404460
+rows=63,109,797 elapsed=15s
+rows=135,116,126 elapsed=30s
+rows=202,138,299 elapsed=45s
+rows=214,683,829 elapsed=60s
+done rows=214,683,829 elapsed=60s

@@ -1,0 +1,9 @@
+2026-09-02 01:02:35.394 | INFO     | __main__:compute_closed_maximal:198 - Discovered K levels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] (Kmax=14)
+2026-09-02 01:02:35.455 | DEBUG    | __main__:compute_level:136 - K=1: superset lookup built (1,002 K-subsets covered) in 0.1s
+2026-09-02 01:02:35.460 | INFO     | __main__:compute_level:169 - K=1: 1,002 total | 722 closed | 0 maximal
+2026-09-02 01:02:35.665 | DEBUG    | __main__:compute_level:136 - K=2: superset lookup built (7,250 K-subsets covered) in 0.2s
+2026-09-02 01:02:35.672 | INFO     | __main__:compute_level:169 - K=2: 7,375 total | 3,083 closed | 125 maximal
+2026-09-02 01:02:36.213 | DEBUG    | __main__:compute_level:136 - K=3: superset lookup built (16,879 K-subsets covered) in 0.5s
+2026-09-02 01:02:36.221 | INFO     | __main__:compute_level:169 - K=3: 17,329 total | 4,124 closed | 450 maximal
+2026-09-02 01:02:37.273 | DEBUG    | __main__:compute_level:136 - K=4: superset lookup built (23,057 K-subsets covered) in 1.1s
+2026-09-02 01:02:37.288 | INFO     | __main__:compute_level:169 - K=4: 23,446 total | 2,978 closed | 389 maximal

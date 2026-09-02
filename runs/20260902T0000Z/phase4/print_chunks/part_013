@@ -1,0 +1,172 @@
+| L2-523 | watcher.log:2055 | 67021898 proteins passed pLDDT filter after 70M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-524 | watcher.log:2056 | 76600156 proteins passed pLDDT filter after 80M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-525 | watcher.log:2057 | 86178558 proteins passed pLDDT filter after 90M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-526 | watcher.log:2058 | 95756671 proteins passed pLDDT filter after 100M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-527 | watcher.log:2059 | 105334770 proteins passed pLDDT filter after 110M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-528 | watcher.log:2060 | 114912567 proteins passed pLDDT filter after 120M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-529 | watcher.log:2061 | 124492183 proteins passed pLDDT filter after 130M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-530 | watcher.log:2062 | 134070226 proteins passed pLDDT filter after 140M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-531 | watcher.log:2063 | 143648378 proteins passed pLDDT filter after 150M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-532 | watcher.log:2064 | 153228159 proteins passed pLDDT filter after 160M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-533 | watcher.log:2065 | 162806075 proteins passed pLDDT filter after 170M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-534 | watcher.log:2066 | 172385565 proteins passed pLDDT filter after 180M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-535 | watcher.log:2067 | 181963510 proteins passed pLDDT filter after 190M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-536 | watcher.log:2068 | 191542750 proteins passed pLDDT filter after 200M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-537 | watcher.log:2069 | 201120299 proteins passed pLDDT filter after 210M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-538 | watcher.log:2070 | 214683829 rows read (plddt_metadata.csv, data rows) | dataset_metadata_rows | 214,683,829 | confirmed | exact |
+| L2-539 | watcher.log:2070 | 205620298 proteins passed pLDDT filter | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-540 | watcher.log:2070 | 50 min pLDDT threshold (>=) | extract_min_plddt | 50 | confirmed | exact |
+| L2-541 | watcher.log:2070 | 9063531 proteins skipped (pLDDT < 50) | extract_plddt_skipped | 9,063,531 | confirmed | exact |
+| L2-542 | watcher.log:2071 | 205620298 proteins (frequency counting) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-543 | watcher.log:2072 | 24291 unique Pfam among pLDDT-passing proteins | dataset_pfam_families_observed | 24,291 | confirmed | exact |
+| L2-544 | watcher.log:2072 | 25993 unique GO among pLDDT-passing proteins | dataset_go_families_observed | 25,993 | confirmed | exact |
+| L2-545 | watcher.log:2073 | 6 pLDDT bins (items) | vocab_plddt_defined | 6 | confirmed | exact |
+| L2-546 | watcher.log:2073 | 500 top Pfam kept (--top-pfam) | vocab_pfam_defined | 500 | confirmed | exact |
+| L2-547 | watcher.log:2073 | 500 top GO kept (--top-go) | vocab_go_defined | 500 | confirmed | exact |
+| L2-548 | watcher.log:2073 | 1006 total items (vocabulary) | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-549 | watcher.log:2074 | 1006 items in item mapping | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-550 | watcher.log:2075–2279 | 1M → 205M transactions written (205 periodic lines, step [1] M, 2026-0 | extract_progress_transactions_written |  | inconclusive | periodic progress line; the final count is compared under dataset_plddt_pass |
+| L2-551 | watcher.log:2280 | 205620298 transactions written (parquet rows) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-552 | watcher.log:2281 | 2026-02-09T04:43:35.999Z timestamp (af-extract Results banner = end of | meta_log_extract_end_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-553 | watcher.log:2282 | 205620298 transactions (af-extract summary) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-554 | watcher.log:2283 | 1006 total items (af-extract summary) | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-555 | watcher.log:2286 | 3777.0 s (af-extract build-from-metadata self-timed) | extract_time_s | 555.7 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 3777) |
+| L2-556 | watcher.log:2286 | 54440 proteins/sec (af-extract throughput) | extract_proteins_per_s | 162,865 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.99 (claimed 54440) |
+| L2-557 | watcher.log:2288 | 65m31.040s real time (bash `time` of Step 1) | extract_wall_real_s | 622 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 9.57 (claimed 65) |
+| L2-558 | watcher.log:2289 | 62m38.750s user time (bash `time` of Step 1) | extract_wall_user_s |  | inconclusive | user CPU time of the old run; not measured here |
+| L2-559 | watcher.log:2290 | 2m52.144s sys time (bash `time` of Step 1) | extract_wall_sys_s |  | inconclusive | system CPU time of the old run; not measured here |
+| L2-560 | watcher.log:2295 | 205,620,298 transactions (Step 2 data stats) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-561 | watcher.log:2296 | 1006 total items (Step 2 data stats) | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-562 | watcher.log:2298 | 2.2 items per transaction (mean) | extract_items_mean | 2.1649 | confirmed | fresh rounds to 2.2 at 1 decimals |
+| L2-563 | watcher.log:2299 | 46 items per transaction (max) | extract_items_max | 46 | confirmed | exact |
+| L2-564 | watcher.log:2300 | 76,890,945 transactions with >1 item ('37.4%') | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-565 | watcher.log:2303 | 76,890,945 transactions mined (Step 3) | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-566 | watcher.log:2306 | 113.9 s (Step 3 mining) | run_base_son_time_s | 779.6 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.84 (claimed 113.9) |
+| L2-567 | watcher.log:2307 | 5,305 itemsets (total, Step 3) | run_base_itemsets | 5,305 | confirmed | exact |
+| L2-568 | watcher.log:2308 | 667 itemsets K=1 | kdist_base_son_k1_count | 667 | confirmed | exact |
+| L2-569 | watcher.log:2309 | 1,504 itemsets K=2 | kdist_base_son_k2_count | 1,504 | confirmed | exact |
+| L2-570 | watcher.log:2310 | 1,378 itemsets K=3 | kdist_base_son_k3_count | 1,378 | confirmed | exact |
+| L2-571 | watcher.log:2311 | 884 itemsets K=4 | kdist_base_son_k4_count | 884 | confirmed | exact |
+| L2-572 | watcher.log:2312 | 514 itemsets K=5 | kdist_base_son_k5_count | 514 | confirmed | exact |
+| L2-573 | watcher.log:2313 | 247 itemsets K=6 | kdist_base_son_k6_count | 247 | confirmed | exact |
+| L2-574 | watcher.log:2314 | 89 itemsets K=7 | kdist_base_son_k7_count | 89 | confirmed | exact |
+| L2-575 | watcher.log:2315 | 20 itemsets K=8 | kdist_base_son_k8_count | 20 | confirmed | exact |
+| L2-576 | watcher.log:2316 | 2 itemsets K=9 | kdist_base_son_k9_count | 2 | confirmed | exact |
+| L2-577 | watcher.log:2320 | 53,447 association rules generated | extract_rules_count | 29,540 | hallucinated | exact-match rule: fresh value differs |
+| L2-578 | watcher.log:2320 | 0.2 s (rule generation) | extract_rules_time_s | 0.19 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.95 (claimed 0.2); value |
+| L2-579 | watcher.log:2323 | 0.998 confidence | extract_rules_toplift_1_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-580 | watcher.log:2323 | 969 lift (x) | extract_rules_max_lift | 968.996 | confirmed | fresh rounds to 969 at 3 significant digits |
+| L2-581 | watcher.log:2324 | 0.999 confidence | extract_rules_toplift_2_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-582 | watcher.log:2324 | 969 lift (x) | extract_rules_toplift_2_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-583 | watcher.log:2325 | 1.000 confidence | extract_rules_toplift_3_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-584 | watcher.log:2325 | 921 lift (x) | extract_rules_toplift_3_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-585 | watcher.log:2326 | 0.945 confidence | extract_rules_toplift_4_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-586 | watcher.log:2326 | 921 lift (x) | extract_rules_toplift_4_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-587 | watcher.log:2327 | 0.963 confidence | extract_rules_toplift_5_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-588 | watcher.log:2327 | 845 lift (x) | extract_rules_toplift_5_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-589 | watcher.log:2328 | 0.938 confidence | extract_rules_toplift_6_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-590 | watcher.log:2328 | 845 lift (x) | extract_rules_toplift_6_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-591 | watcher.log:2329 | 0.940 confidence | extract_rules_toplift_7_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-592 | watcher.log:2329 | 835 lift (x) | extract_rules_toplift_7_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-593 | watcher.log:2330 | 0.949 confidence | extract_rules_toplift_8_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-594 | watcher.log:2330 | 835 lift (x) | extract_rules_toplift_8_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-595 | watcher.log:2331 | 0.951 confidence | extract_rules_toplift_9_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-596 | watcher.log:2331 | 834 lift (x) | extract_rules_toplift_9_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-597 | watcher.log:2332 | 0.949 confidence | extract_rules_toplift_10_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-598 | watcher.log:2332 | 834 lift (x) | extract_rules_toplift_10_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-599 | watcher.log:2333 | 0.856 confidence | extract_rules_toplift_11_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-600 | watcher.log:2333 | 827 lift (x) | extract_rules_toplift_11_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-601 | watcher.log:2334 | 0.992 confidence | extract_rules_toplift_12_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-602 | watcher.log:2334 | 827 lift (x) | extract_rules_toplift_12_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-603 | watcher.log:2335 | 0.902 confidence | extract_rules_toplift_13_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-604 | watcher.log:2335 | 816 lift (x) | extract_rules_toplift_13_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-605 | watcher.log:2336 | 0.986 confidence | extract_rules_toplift_14_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-606 | watcher.log:2336 | 816 lift (x) | extract_rules_toplift_14_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-607 | watcher.log:2337 | 0.945 confidence | extract_rules_toplift_15_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-608 | watcher.log:2337 | 809 lift (x) | extract_rules_toplift_15_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-609 | watcher.log:2338 | 0.983 confidence | extract_rules_toplift_16_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-610 | watcher.log:2338 | 809 lift (x) | extract_rules_toplift_16_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-611 | watcher.log:2339 | 0.940 confidence | extract_rules_toplift_17_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-612 | watcher.log:2339 | 809 lift (x) | extract_rules_toplift_17_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-613 | watcher.log:2340 | 0.983 confidence | extract_rules_toplift_18_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-614 | watcher.log:2340 | 809 lift (x) | extract_rules_toplift_18_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-615 | watcher.log:2341 | 0.945 confidence | extract_rules_toplift_19_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-616 | watcher.log:2341 | 809 lift (x) | extract_rules_toplift_19_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-617 | watcher.log:2342 | 0.978 confidence | extract_rules_toplift_20_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-618 | watcher.log:2342 | 809 lift (x) | extract_rules_toplift_20_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-619 | watcher.log:2343 | 0.960 confidence | extract_rules_toplift_21_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-620 | watcher.log:2343 | 802 lift (x) | extract_rules_toplift_21_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-621 | watcher.log:2344 | 0.857 confidence | extract_rules_toplift_22_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-622 | watcher.log:2344 | 802 lift (x) | extract_rules_toplift_22_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-623 | watcher.log:2345 | 0.856 confidence | extract_rules_toplift_23_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-624 | watcher.log:2345 | 801 lift (x) | extract_rules_toplift_23_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-625 | watcher.log:2346 | 0.960 confidence | extract_rules_toplift_24_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-626 | watcher.log:2346 | 801 lift (x) | extract_rules_toplift_24_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-627 | watcher.log:2347 | 0.967 confidence | extract_rules_toplift_25_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-628 | watcher.log:2347 | 792 lift (x) | extract_rules_toplift_25_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-629 | watcher.log:2348 | 0.967 confidence | extract_rules_toplift_26_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-630 | watcher.log:2348 | 792 lift (x) | extract_rules_toplift_26_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-631 | watcher.log:2349 | 0.967 confidence | extract_rules_toplift_27_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-632 | watcher.log:2349 | 792 lift (x) | extract_rules_toplift_27_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-633 | watcher.log:2350 | 0.990 confidence | extract_rules_toplift_28_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-634 | watcher.log:2350 | 792 lift (x) | extract_rules_toplift_28_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-635 | watcher.log:2351 | 0.990 confidence | extract_rules_toplift_29_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-636 | watcher.log:2351 | 792 lift (x) | extract_rules_toplift_29_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-637 | watcher.log:2352 | 0.990 confidence | extract_rules_toplift_30_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-638 | watcher.log:2352 | 792 lift (x) | extract_rules_toplift_30_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-639 | watcher.log:2355 | 1.000 confidence | extract_rules_toplift_3_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-640 | watcher.log:2355 | 921 lift (x) | extract_rules_toplift_3_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-641 | watcher.log:2356 | 1.000 confidence | extract_rules_topconf_2_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-642 | watcher.log:2356 | 776 lift (x) | extract_rules_topconf_2_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-643 | watcher.log:2357 | 1.000 confidence | extract_rules_topconf_3_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-644 | watcher.log:2357 | 776 lift (x) | extract_rules_topconf_3_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-645 | watcher.log:2358 | 1.000 confidence | extract_rules_topconf_4_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-646 | watcher.log:2358 | 735 lift (x) | extract_rules_topconf_4_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-647 | watcher.log:2359 | 1.000 confidence | extract_rules_topconf_5_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-648 | watcher.log:2359 | 735 lift (x) | extract_rules_topconf_5_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-649 | watcher.log:2360 | 1.000 confidence | extract_rules_topconf_6_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-650 | watcher.log:2360 | 734 lift (x) | extract_rules_topconf_6_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-651 | watcher.log:2361 | 1.000 confidence | extract_rules_topconf_7_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-652 | watcher.log:2361 | 734 lift (x) | extract_rules_topconf_7_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-653 | watcher.log:2362 | 1.000 confidence | extract_rules_topconf_8_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-654 | watcher.log:2362 | 734 lift (x) | extract_rules_topconf_8_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-655 | watcher.log:2363 | 1.000 confidence | extract_rules_topconf_9_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-656 | watcher.log:2363 | 734 lift (x) | extract_rules_topconf_9_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-657 | watcher.log:2364 | 1.000 confidence | extract_rules_topconf_10_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-658 | watcher.log:2364 | 681 lift (x) | extract_rules_topconf_10_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-659 | watcher.log:2365 | 1.000 confidence | extract_rules_topconf_11_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-660 | watcher.log:2365 | 681 lift (x) | extract_rules_topconf_11_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-661 | watcher.log:2366 | 1.000 confidence | extract_rules_topconf_12_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-662 | watcher.log:2366 | 681 lift (x) | extract_rules_topconf_12_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-663 | watcher.log:2367 | 1.000 confidence | extract_rules_topconf_13_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-664 | watcher.log:2367 | 681 lift (x) | extract_rules_topconf_13_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-665 | watcher.log:2368 | 1.000 confidence | extract_rules_topconf_14_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-666 | watcher.log:2368 | 681 lift (x) | extract_rules_topconf_14_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-667 | watcher.log:2369 | 1.000 confidence | extract_rules_topconf_15_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-668 | watcher.log:2369 | 681 lift (x) | extract_rules_topconf_15_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-669 | watcher.log:2370 | 1.000 confidence | extract_rules_topconf_16_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-670 | watcher.log:2370 | 681 lift (x) | extract_rules_topconf_16_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-671 | watcher.log:2371 | 1.000 confidence | extract_rules_topconf_17_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-672 | watcher.log:2371 | 663 lift (x) | extract_rules_topconf_17_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-673 | watcher.log:2372 | 1.000 confidence | extract_rules_topconf_18_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-674 | watcher.log:2372 | 663 lift (x) | extract_rules_topconf_18_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-675 | watcher.log:2373 | 1.000 confidence | extract_rules_topconf_19_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-676 | watcher.log:2373 | 663 lift (x) | extract_rules_topconf_19_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-677 | watcher.log:2374 | 1.000 confidence | extract_rules_topconf_20_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-678 | watcher.log:2374 | 663 lift (x) | extract_rules_topconf_20_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-679 | watcher.log:2377 | 53,447 association rules (summary) | extract_rules_count | 29,540 | hallucinated | exact-match rule: fresh value differs |
+| L2-680 | watcher.log:2378 | 12,776 rules with confidence >= 99% | extract_rules_conf_ge99 |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-681 | watcher.log:2379 | 31,775 rules with confidence >= 90% | extract_rules_conf_ge90 |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-682 | watcher.log:2380 | 51,126 rules with lift >= 5.0 | extract_rules_lift_ge5 | 17,499 | hallucinated | exact-match rule: fresh value differs |
+| L2-683 | watcher.log:2381 | 40,428 rules with lift >= 100 | extract_rules_lift_ge100 | 9,283 | hallucinated | exact-match rule: fresh value differs |
+| L2-684 | watcher.log:2382 | 45,286 cross-domain rules (Pfam<=>GO) | extract_rules_cross_domain | 27,072 | hallucinated | exact-match rule: fresh value differs |
+| L2-685 | watcher.log:2385 | Mon Feb  9 04:48:08 UTC 2026 timestamp (pipeline end banner) | meta_log_pipeline_end_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-686 | yolo.log:2 | 3 min_count (proteins) | run_minc3_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| L2-687 | yolo.log:3 | 23 target K | run_minc3_target_k |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| L2-688 | yolo.log:5 | 1.458999928110210e-08 min_support (fraction) | run_minc3_support |  | inconclusive | nominal fraction with the 205,620,298 denominator; the applied threshold is compared under run_minc3_min_count |
+| L2-689 | yolo.log:6 | 205620298 transactions (denominator used in verify) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-690 | yolo.log:6 | 3 min_count (verified ceil) | run_minc3_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+
+### 4.reviews_part1
+
+| ID | source | claimed | qkey | fresh | verdict | note |

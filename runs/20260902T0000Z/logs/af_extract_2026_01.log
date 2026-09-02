@@ -1,0 +1,5 @@
+start 2026-09-02T01:28:44Z release=2026_01
+-rw-r--r-- 1 root root  3495993272 Sep  2 00:40 /root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/plddt_metadata_storageapi.csv
+-rw-r--r-- 1 root root 27116638807 Sep  2 01:28 /root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.reduced.dat.gz
+/root/projects/ET-Miner/runs/20260902T0000Z/phase2/scripts/run_af_extract.sh: line 29: 17646 Killed                  RUST_LOG=info "$AFX" build-from-metadata --annotations "$D/uniprot_trembl_$REL.reduced.dat.gz" --plddt-csv "$D/plddt_metadata_storageapi.csv" --top-pfam 500 --top-go 500 --output "$O/transactions_214m_base.parquet" --item-mapping "$O/item_mapping_214m_base.parquet" 2>&1
+     17647 Done                    | grep -vE 'Parsed [0-9]+K DAT records|Written [0-9]+M transactions|Read [0-9]+M rows' > "$O/af_extract.log"

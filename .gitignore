@@ -65,3 +65,25 @@ bench/results/*_run.log
 datasets/synth/
 
 paper/refs
+
+# --- base214m reproduction campaign (runs/, committed 2026-09-02) ----------
+# Fresh-run artifacts under runs/ are committed so the campaign history stays
+# with the repo. Only files above GitHub's 100 MB per-file limit are excluded;
+# every one of them is re-derivable from public sources with the scripts in
+# runs/20260902T0000Z/phase2/scripts, and their sizes and sha256 are recorded
+# in runs/20260902T0000Z/EXCLUDED_LARGE_FILES.md.
+!runs/**/*.parquet
+runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.reduced.dat.gz
+runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.pfamgo.dat.gz
+runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.csvacc.dat.gz
+runs/20260902T0000Z/phase2/data/plddt_metadata_storageapi.csv
+runs/20260902T0000Z/phase2/data/dat_pfamgo_accessions_2026_01.txt
+runs/20260902T0000Z/phase2/extract_2026_01/plddt_metadata_pfamgo.csv
+runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base.parquet
+runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base_multi.parquet
+runs/20260902T0000Z/phase2/bwtest/proteome-tax_id-9606-12_v4.tar
+runs/20260902T0000Z/phase2/streamtest/docs.tar.gz
+runs/20260902T0000Z/phase2/streamtest/work/
+
+# Rust build output of the af-extract extractor (rebuild with cargo)
+applications/alphafold/af-extract/target/

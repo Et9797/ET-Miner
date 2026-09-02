@@ -1,0 +1,105 @@
+# RESULTS.md — fresh reproduced values (base214m campaign)
+
+Every value here was produced on this machine during this campaign. Each row
+cites the artifact path or exact command that produced it and a UTC
+timestamp. Nothing here is copied from the paper, the reviews, or old logs.
+
+Hardware for all values: vast.ai container, 2 × NVIDIA GeForce RTX 3090
+(24 GB, sm_86), driver 595.71.05, CUDA 13.2 runtime / nvcc 12.1, AMD EPYC
+7402P 24c, ~69.6 GiB cgroup RAM, 200 GB overlay disk. See PROGRESS.md.
+
+## Environment / infrastructure measurements
+
+| ID | value | unit | what | artifact / command | UTC |
+|---|---|---|---|---|---|
+| E-001 | 2 | GPUs | NVIDIA GeForce RTX 3090, 24576 MiB each, cc 8.6 | `nvidia-smi --query-gpu=index,name,memory.total,driver_version,compute_cap --format=csv` | 2026-09-01T23:58Z |
+| E-002 | 200 | GB | free disk on container root (overlay), 939 MB used | `df -h /` | 2026-09-01T23:58Z |
+| E-003 | 191,245,709 | inodes | free inodes on container root | `df -i /` | 2026-09-01T23:58Z |
+| E-004 | 74,782,343,168 | bytes | container cgroup memory limit (~69.6 GiB) | `cat /sys/fs/cgroup/memory.max` | 2026-09-01T23:58Z |
+| E-005 | 730,406,912 | bytes | size of proteome-tax_id-9606-12_v4.tar (GCS object) | `runs/20260902T0000Z/phase2/bwtest/proteome-tax_id-9606-12_v4.tar` | 2026-09-02T00:07Z |
+| E-006 | 4.7 | s | wall-clock to download E-005 incl. gcloud startup (156.6 MB/s, 1253 Mbit/s) | `runs/20260902T0000Z/logs/bandwidth_test.log` | 2026-09-02T00:07Z |
+| E-007 | 317.4 | MiB/s | gcloud-reported average transfer throughput for E-005 | `runs/20260902T0000Z/logs/bandwidth_test.log` | 2026-09-02T00:07Z |
+| E-008 | 10,000 | files | metadata shards `metadata/gcd_metadata-NNNNN-of-10000.json` in the v4 bucket | `gcloud storage ls -l gs://public-datasets-deepmind-alphafold-v4/metadata/` | 2026-09-02T00:06Z |
+| E-009 | 21,550 | records | protein records in metadata shard 00000 (22,812,213 B decompressed; 6,929,893 B as stored) | `runs/20260902T0000Z/phase2/metadata_sample/gcd_metadata-00000-of-10000.json` | 2026-09-02T00:07Z |
+| E-010 | 27 | fields | metadata record keys: allVersions, entryId, fractionPlddt{VeryLow,Low,Confident,VeryHigh}, gene, geneSynonyms, globalMetricValue, isReferenceProteome, isReviewed, latestVersion, modelCreatedDate, organism*, protein*Names, sequenceChecksum, sequenceVersionDate, taxId, uniprotAccession, uniprotDescription, uniprotEnd, uniprotId, uniprotSequence, uniprotStart | same file, `python3` key listing | 2026-09-02T00:07Z |
+| E-011 | 30,000 | entries | files in proteome-tax_id-9606-12_v4.tar = 10,000 proteins × 3 files | `tar -tf runs/20260902T0000Z/phase2/bwtest/proteome-tax_id-9606-12_v4.tar \| wc -l` | 2026-09-02T00:10Z |
+| E-012 | 43,654 / 26,106 / 998 | bytes | mean compressed size per protein of model_v4.cif.gz / predicted_aligned_error_v4.json.gz / confidence_v4.json.gz in that shard (436,536,709 / 261,058,166 / 9,982,547 B totals) | `tar -tvf ... \| awk` (same shard) | 2026-09-02T00:10Z |
+| E-013 | — | — | full `proteomes/` listing via `gcloud storage ls -l '*_v4.tar'` did NOT finish within 600 s (listing ~1M objects); total tar count/size not measured | command timed out (exit 143) | 2026-09-02T00:20Z |
+
+## Phase 2 — AlphaFold metadata (BigQuery `bigquery-public-data.deepmind_alphafold.metadata`)
+
+| ID | value | unit | what | artifact / command | UTC |
+|---|---|---|---|---|---|
+| M-001 | 214,683,829 | rows | COUNT(*) of the AlphaFold v4 metadata table | `runs/20260902T0000Z/phase2/bq/metadata_counts.csv` (bq query, SQL in PROGRESS.md) | 2026-09-02T00:25Z |
+| M-002 | 214,683,829 | accessions | COUNT(DISTINCT uniprotAccession) — equals M-001, one row per accession | same | 2026-09-02T00:25Z |
+| M-003 | 205,620,298 | rows | COUNTIF(globalMetricValue >= 50) — the af-extract `--min-plddt 50` filter applied in SQL | same | 2026-09-02T00:25Z |
+| M-004 | 0 | rows | COUNTIF(globalMetricValue IS NULL) | same | 2026-09-02T00:25Z |
+| M-005 | 20.03 / 98.81 | pLDDT | MIN / MAX globalMetricValue | same | 2026-09-02T00:25Z |
+
+## UniProt release facts (fetched fresh from ftp.uniprot.org release notes)
+
+| ID | value | unit | what | artifact / command | UTC |
+|---|---|---|---|---|---|
+| U-001 | 252,633,201 | entries | UniProtKB/TrEMBL in release 2025_01 (Swiss-Prot 572,970) | `curl https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2025_01/relnotes.txt` | 2026-09-02T00:41Z |
+| U-002 | 252,188,522 | entries | TrEMBL in 2025_02 | same URL pattern, release-2025_02 | 2026-09-02T00:41Z |
+| U-003 | 253,061,697 | entries | TrEMBL in 2025_03 | release-2025_03 | 2026-09-02T00:41Z |
+| U-004 | 199,006,240 | entries | TrEMBL in 2025_04 | release-2025_04 | 2026-09-02T00:41Z |
+| U-005 | 202,556,314 | entries | TrEMBL in 2026_01 (Swiss-Prot 574,627) — equals the old log's record count | release-2026_01 | 2026-09-02T00:41Z |
+| U-006 | 149,234,636 | entries | TrEMBL in 2026_02 (current release; dat.gz 118,072,276,938 B, Last-Modified 2026-06-10) | release-2026_02 / `curl -I current_release/.../uniprot_trembl.dat.gz` | 2026-09-02T00:41Z |
+| M-006 | 214,683,829 | rows | rows in the fresh 2-column CSV export (Storage Read API, 16 streams, 60 s); header `uniprotAccession,globalMetricValue`; sha256 e089f052…edbedb2b32 | `runs/20260902T0000Z/phase2/data/plddt_metadata_storageapi.csv` (+ `.sha256`), polars scan 2026-09-02T00:47Z | 2026-09-02T00:47Z |
+| M-007 | 205,620,298 / 9,063,531 | rows | globalMetricValue ≥ 50 / < 50 in the CSV (the af-extract `--min-plddt 50` split) | same file, polars scan | 2026-09-02T00:47Z |
+| M-008 | 80,002,801 | rows | globalMetricValue > 90 (the `plddt_mean_high` bin over all metadata rows) | same | 2026-09-02T00:47Z |
+| M-009 | 125,617,497 | rows | 50 ≤ globalMetricValue ≤ 90 (the `plddt_mean_med` bin over all rows); M-008 + M-009 = M-007 | same | 2026-09-02T00:47Z |
+| U-007 | 160,834,306,675 | bytes | size of `uniprot_trembl.dat.gz` inside knowledgebase2026_01.tar.gz (= 149.8 GiB / 160.8 GB); sprot member 692,563,345 B | tar header read by `phase2/scripts/stream_tar_member.py`, logged in `phase2/data/stream_trembl_2026_01.log` | 2026-09-02T00:44Z |
+| U-008 | 193,682,563,556 | bytes | size of `uniprot_trembl.dat.gz` inside knowledgebase2025_01.tar.gz (= 180.4 GiB / 193.7 GB); sprot member 678,926,097 B | `phase2/data/stream_trembl.log` | 2026-09-02T00:44Z |
+| E-014 | 19 / 2 | kernels / devices | every registered CUDA kernel compiled via NVRTC on both RTX 3090s and smoke-launched ("selfcheck: READY"); CuPy 14.1.1, driver CUDA 13.2; NCCL init OK with reduce-to-root binding; GPU P2P access 0↔1 NOT available; /dev/shm 21.47 GB | `runs/20260902T0000Z/logs/selfcheck.log` (`CUDA_PATH=/usr/local/cuda .venv/bin/python bench/selfcheck.py`) | 2026-09-02T00:51Z |
+| E-015 | 9 passed | tests | `tests/test_tier_equivalence.py` (CLAUDE.md correctness gate: Polars == Rust == single-GPU == multi-GPU == shared == sparse CSR == efficient-apriori on the smoke preset) passes on this box in 14.81 s | `runs/20260902T0000Z/logs/test_tier_equivalence.log` (`CUDA_PATH=/usr/local/cuda .venv/bin/python -m pytest tests/test_tier_equivalence.py -q -x`) | 2026-09-02T00:51Z |
+| U-009 | 160,834,306,675 | bytes | bytes of `uniprot_trembl.dat.gz` (2026_01) streamed through the extractor (equals the tar header size, U-007); archive bytes consumed 161,890,570,993 | `runs/20260902T0000Z/phase2/data/stream_trembl_2026_01.log` (`end ... found=True copied=160834306675`) | 2026-09-02T01:28Z |
+| U-010 | 27,116,638,807 | bytes | reduced 2026_01 TrEMBL DAT (ID/AC/DE/OC/DR Pfam,GO,InterPro/`//` lines only, pigz -1) | `runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.reduced.dat.gz` | 2026-09-02T01:28Z |
+| U-011 | 2,879 | s | wall-clock of the 2026_01 stream+reduce pipeline (00:40:35Z → 01:28:19Z, 16 parallel range fetchers, ~56 MB/s average) | `runs/20260902T0000Z/logs/stream_trembl_2026_01.log` | 2026-09-02T01:28Z |
+
+## Phase 2 — extraction (UniProt 2026_01 + AlphaFold metadata)
+
+| ID | value | unit | what | artifact / command | UTC |
+|---|---|---|---|---|---|
+| X-001 | 202,556,314 | records | TrEMBL 2026_01 DAT records parsed by af-extract (identical to the old pipeline log's count, itself = the 2026_01 release-notes entry count U-005) | `runs/20260902T0000Z/phase2/extract_2026_01/af_extract.log` ("Loaded 202556314 annotations (25475 Pfam, 26536 GO, 49629 InterPro, 5889 EC, 184 taxonomy)") | 2026-09-02T01:46Z |
+| X-002 | 25,475 / 26,536 | Pfam / GO | unique Pfam families / GO terms seen in the DAT (identical to the old log) | same line | 2026-09-02T01:46Z |
+| X-003 | 1,062 | s | DAT parse wall time on this box from the 27.1 GB reduced file (01:28:44 → 01:46:26); old log: 3,340 s from the full file | same log | 2026-09-02T01:46Z |
+| X-004 | 137 | exit code | first full extraction attempt OOM-killed while reading the CSV (cgroup limit 69.6 GiB; the paper's host had 128 GB) → lossless memory-reduced re-run, see PROGRESS.md | `runs/20260902T0000Z/logs/chain_2026_01.log` | 2026-09-02T01:46Z |
+| X-005 | 158,700,122 | records | TrEMBL 2026_01 records with ≥1 `DR Pfam`/`DR GO` line (of 202,556,314); filtered DAT 10,580,479,054 B; accession list 1,678,722,670 B | `runs/20260902T0000Z/logs/filter_dat_pfamgo.log` (`phase2/scripts/filter_dat_pfamgo.sh`, 04:33:52→04:46:37Z) | 2026-09-02T04:46Z |
+| X-006 | 90,506,840 | proteins | metadata rows with pLDDT ≥ 50 whose accession has a Pfam/GO-bearing TrEMBL 2026_01 record (the only proteins that can carry annotation items; all others are single-item transactions) | `runs/20260902T0000Z/phase2/extract_2026_01/plddt_metadata_pfamgo.csv` (polars inner join in `run_af_extract_lean.sh`) | 2026-09-02T04:47Z |
+| X-007 | 90506840 | records | Pfam/GO-bearing TrEMBL 2026_01 records whose accession is in the pLDDT ≥ 50 metadata (of 158,700,122); DAT for extraction attempt 3 = 6,447,078,382 B | `runs/20260902T0000Z/logs/filter_dat_by_accessions.log` (`phase2/scripts/filter_dat_by_accessions.sh`, 04:58:12→05:14:08Z) | 2026-09-02T05:14Z |
+| X-008 | 24,291 / 25,993 | Pfam / GO | unique Pfam families / GO terms among pLDDT-passing proteins (vocabulary ranking base); item encoding 6 + 500 + 500 = 1,006 | `runs/20260902T0000Z/phase2/extract_2026_01/af_extract.log` ("Frequencies: 24291 Pfam, 25993 GO ...") | 2026-09-02T05:21Z |
+| X-009 | 90,506,840 | transactions | transactions written by af-extract for the Pfam/GO-bearing subset; 555.7 s self-timed (162,865 proteins/s), 622 s wall incl. CSV join reuse | same log; `phase2/extract_2026_01/transactions_214m_base.parquet` (1.32 GB) | 2026-09-02T05:23Z |
+| X-010 | 205,620,298 | transactions | full transaction set = 90,506,840 run rows + 115,113,458 pLDDT-passing proteins without Pfam/GO records (single pLDDT-bin item each) | `phase2/extract_2026_01/stats.json` (`extract_stats.py --full-csv`) | 2026-09-02T05:24Z |
+| X-011 | 76,890,945 | proteins | multi-feature (≥2 items) transactions — the mined set; 37.39 % of 205,620,298 | `phase2/extract_2026_01/stats.json`; `transactions_214m_base_multi.parquet` (0.89 GB) | 2026-09-02T05:24Z |
+| X-012 | 128,729,353 | proteins | single-feature transactions (62.61 %) | `stats.json` | 2026-09-02T05:24Z |
+| X-013 | 2.165 / 4.115 / 46 | items | mean items per transaction over all 205.6M / over the multi set / maximum | `stats.json` | 2026-09-02T05:24Z |
+| X-014 | 316,421,093 / 445,150,446 | non-zeros | sum of items over the multi set (CSR nnz) / over all transactions | `stats.json` | 2026-09-02T05:24Z |
+| X-015 | 1,006 / 1,002 | items | defined (3 plddt_mean + 3 plddt_fraction + 500 Pfam + 500 GO) / with support ≥ 8 in the multi set (= items present at all: 1,002) | `stats.json`, `item_support_multi.parquet` | 2026-09-02T05:24Z |
+| X-016 | 202,556,314 / 25,475 / 26,536 | records / Pfam / GO | full TrEMBL 2026_01 reduced DAT: records (= primary accessions), distinct Pfam ids, distinct GO ids; 232,694,948 Pfam lines, 436,931,915 GO lines | `runs/20260902T0000Z/phase2/data/dat_2026_01_counts.txt` (`phase2/scripts/count_dat.sh`) | 2026-09-02T05:4xZ |
+
+## Phase 3 — mining on the 76,890,945-transaction set (2 × RTX 3090, row-split)
+
+| ID | value | unit | what | artifact / command | UTC |
+|---|---|---|---|---|---|
+| P-001 | GREEN (168,674 itemsets identical) | gate | row-split 2-GPU vs single-GPU exactness on a 1M-row subset at min_count 50 | `runs/20260902T0000Z/phase3/2026_01/validate_row_split.log` (`validate_row_split.py --subset-size 1000000 --min-count 50 --n-gpus 2`) | 2026-09-02T05:24Z |
+| P-002 | 26,849,505 | itemsets | Opus run (support 1e-7 → min_count 8), all levels, exhaustive | `phase3/2026_01/opus/parquet/frequent_k{1..22}.parquet` (`run_mining.py --support 0.0000001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush`) | 2026-09-02T06:09Z |
+| P-003 | 22 | K | maximum itemset length of the Opus run (1 itemset at K=22) | same | 2026-09-02T06:09Z |
+| P-004 | K1=1,002; K2=73,786; K3=452,777; K4=1,184,461; K5=1,974,126; K6=2,626,332; K7=3,118,459; K8=3,442,954; K9=3,529,257; K10=3,293,612; K11=2,739,532; K12=1,996,772; K13=1,259,045; K14=679,471; K15=310,527; K16=118,659; K17=37,261; K18=9,375; K19=1,818; K20=255; K21=23; K22=1 | itemsets per K | Opus K-distribution | same (row counts of the per-K parquet files) | 2026-09-02T06:09Z |
+| P-005 | 2,637.07 / 2,647 | s | Opus mining duration (library-timed / step wall incl. load) on 2 × RTX 3090 row-split; paper: 7.3 min on one H100 | `phase3/2026_01/opus/mining_meta_1e-07_*.json`, `logs/phase3_2026_01.log` | 2026-09-02T06:09Z |
+| P-006 | 8 | proteins | support count of the single K=22 itemset (support fraction × 76,890,945) | `phase3/2026_01/opus/parquet/frequent_k22.parquet` + `phase2/extract_2026_01/item_mapping_214m_base.parquet` | 2026-09-02T06:09Z |
+| P-007 | 2 Pfam (PF00270, PF00271) + 19 GO + plddt_mean_med | features | decoded members of the K=22 itemset (full list in phase4/fresh_values.json, key k22_features) | same | 2026-09-02T06:09Z |
+| P-008 | 21 / 21 | identifiers | Pfam + GO members of the fresh K=22 itemset identical to the paper's Table 4 set (PF00270, PF00271, GO:0005524, GO:0016787, GO:0000287, GO:0003697, GO:0003724, GO:0003725, GO:0003678, GO:0000978, GO:0030154, GO:0045087, GO:0051607, GO:0034605, GO:0005737, GO:0005829, GO:0005634, GO:0005739, GO:0030424, GO:0030425, GO:0016607); 22nd member = plddt_mean_med (paper writes "plddt_mean") | `phase4/fresh_values.json` key k22_features vs `phase4/claims_tex_keyed.csv` k22_feature_1..22 | 2026-09-02T06:12Z |
+| P-009 | 8 proteins × 22 features; 0 GO parent–child pairs | — | `analyze_k22_proteins.py --itemset-source frequent_k22.parquet`: supporting proteins of the fresh K=22 itemset, features per protein, GO true-path check | `phase3/2026_01/exp/analysis_deepest_itemset_*.json`, `accessions_deepest_itemset_*.tsv`, `phase3/2026_01/k22_analysis.log` | 2026-09-02T06:22Z |
+| P-010 | 475,865 / 14 / 91.7 | itemsets / K / s | exhaustive Direct GPU run at min_support 1e-5 (min_count 769) — `experiment_direct_vs_son.py --min-support 0.00001 --runs 1`; paper: 475,865 / 14 / 50.7 s (H100). (A first attempt logged 151.5 s before its SON leg was OOM-killed; that log was overwritten by the completed re-run, whose JSON is the artifact.) | `phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json`, `phase3/2026_01/direct_vs_son.log` | 2026-09-02T08:38Z |
+| P-011 | 2,841,280 / 19 / 605.8 | itemsets / K / s | Blitz run (support 1e-6 → min_count 77) with per-K flush; K=15..19 = 4,155 / 1,003 / 173 / 19 / 1; K=19 itemset support 187; K=17 itemset with PF07714+PF00017+PF00018 support 611 | `phase3/2026_01/blitz/parquet/frequent_k{1..19}.parquet`, `blitz/mining_meta_1e-06_*.json` | 2026-09-02T06:19Z |
+| P-012 | 475,865 real / 171,249.6 null mean / 2.8× / K_max(null) 6 | itemsets | permutation null model, min_count 769, 5 permutations, seed 42 (per-permutation seeds from `np.random.default_rng(42)`), 2-GPU row-split branch; 107.6 s wall; per-K μ/σ/Z/p in the JSON | `phase3/2026_01/exp/experiment_null_model_20260902_070216.json`, `phase3/2026_01/null_model_769_5.log` (`experiment_null_model.py --min-count 769 --runs 5 --seed 42 --n-gpus 2 --checkpoint`) | 2026-09-02T07:02Z |
+| P-013 | 475,865 / 14 / 5673.71 | itemsets / K / s | SON streaming at min_support 1e-5 (chunk 40,000,000, local factor 0.9, GPU) — paper Table 2 Power row: 22,846 / 13 / 1,085.6 s (H100); fresh speedup direct→SON 61.87× (paper 21×), SON miss rate 0.0 % (paper 95.2 %) | `phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json` (`experiment_direct_vs_son.py --min-support 0.00001 --runs 1`) | 2026-09-02T08:38Z |
+| P-014 | Base 5,305/K9/15.6 s; Super 113,405/K14/43.9 s; Power 475,865/K14/83.1 s; Blitz 2,841,280/K19/275.7 s; Ultra 14,558,875/K20/691.0 s; Opus 26,849,505/K22/1,143.9 s; total 2,253.6 s | itemsets/K/s | six-threshold campaign, exhaustive Direct GPU, single-GPU path (`experiment_full_campaign.py --runs 1`), min_counts 76,891/7,690/769/77/16/8 | `phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json`, `phase3/2026_01/full_campaign_r1.log` | 2026-09-02T09:16Z |
+| P-015 | 5,305 / 9 / 779.6 | itemsets / K / s | SON at min_support 1e-3 (min_count 76,891; chunk 40M, factor 0.9, GPU) — paper Base row: 5,305 / K≤9 / 113.9 s; rules at min_confidence 0.5 from these itemsets: 29,540 (17,499 with lift ≥ 5; 9,283 with lift ≥ 100) vs old pipeline log 53,447 | `phase3/2026_01/exp/son_base.json`, `son_base_itemsets.parquet` (`phase2/scripts/son_run.py --min-support 0.001 --rules-min-confidence 0.5`) | 2026-09-02T09:29Z |
+| P-016 | 113,405 / 14 / 1,426.0 | itemsets / K / s | SON at min_support 1e-4 (min_count 7,690; chunk 40M, factor 0.9) — equals the exhaustive Super count; paper Super row (SON): 51,124 / 13 / 257.6 s | `phase3/2026_01/exp/son_super.json`, `son_super_itemsets.parquet` | 2026-09-02T09:53Z |
+| P-017 | 48,007,493 / 22 / 4536.92 | itemsets / K / s | min_count 4 run (support (4−0.5)/n → ceil = 4), 2-GPU row-split with per-K flush; old holdmybeer_real.log claim: 48,007,493 / 22 / 1,228.5 s (H100); K-dist: K1=1,002; K2=94,427; K3=603,403; K4=1,649,283; K5=2,916,124; K6=4,169,081; K7=5,318,506; K8=6,223,873; K9=6,644,170; K10=6,362,841; K11=5,373,365; K12=3,943,668; K13=2,484,117; K14=1,327,096; K15=593,694; K16=219,052; K17=65,356; K18=15,343; K19=2,722; K20=342; K21=27; K22=1 | `phase3/2026_01/minc4/parquet/frequent_k{1..22}.parquet`, `minc4/mining_meta_*.json` | 2026-09-02T11:09Z |
+| P-018 | 475,865 real / 171,306.3 null mean / 2.8× / null K_max 6 | itemsets | permutation null model with 100 permutations (seed 42, min_count 769, 2-GPU row-split branch), 2,006.8 s wall; per-K μ/σ/Z/p in the JSON | `phase3/2026_01/exp_null100/experiment_null_model_20260902_115339.json`, `phase3/2026_01/null_model_769_100.log` | 2026-09-02T11:53Z |
+| P-019 | 26 ok / 1 timeout; signatures (8841, 266261275) (deep_k), (1695332, 218250884) (stress_k2 ml2), (3005770, 314350393) (stress_k2 ml3), (632, 1049580) (smoke two-phase), (10350, 346834073) (skewed_rows) | runs / (itemsets, sum_counts) | synthetic bench matrix `bench/runner.py --mode full` on this box (2×RTX 3090), presets regenerated with `python -m et_miner.synthetic --preset all`; timeout: ['stressk2-legacy-1g#r0']; all equivalence groups consistent; wall times per config in raw.jsonl | `phase3/2026_01/bench/raw.jsonl`, `bench/report.md`, `bench/env.txt` | 2026-09-02T13:55Z |
+| P-020 | 136 passed, 3 skipped, 327 deselected, 120 warnings in 79.43s (0:01:19) | pytest | GPU test suite (`pytest -q -m gpu`, 139 selected of 466 collected on this tree) after the bench matrix | `phase3/2026_01/gpu_test_suite.log` | 2026-09-02T13:57:31Z |

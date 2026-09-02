@@ -197,7 +197,7 @@ def _worker_run_permutations(args):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
     import cupy as cp
-    from et_miner.cuda_csr_bitvec import build_bitvecs_from_gpu_arrays
+    from et_miner.gpu.csr_bitvec import build_bitvecs_from_gpu_arrays
 
     df = load_transactions(data_path, min_items=2)
     indptr_np, items_np, n_cols, col_to_item, n_transactions = _prepare_gpu_resident_data(df)
@@ -457,8 +457,8 @@ def main():
         # Items shuffled on GPU, D2H'd, then bitvecs built row-split from raw arrays.
         # atomicOr in bitvec kernel handles dedup implicitly (idempotent bit-set).
         import cupy as cp
-        from et_miner.cuda_csr_bitvec import build_bitvecs_row_split_from_arrays
-        from et_miner.apriori import _apriori_row_split_multi_gpu
+        from et_miner.gpu.csr_bitvec import build_bitvecs_row_split_from_arrays
+        from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
 
         logger.info(f"\nRunning {len(remaining_seeds)} permutations using {args.n_gpus}-GPU "
               f"row-split (GPU-resident shuffle, all GPUs per perm)...")
@@ -539,12 +539,13 @@ def main():
         # ── SEQUENTIAL: GPU-resident single-GPU path ──
         try:
             import cupy as cp
-            from et_miner.cuda_csr_bitvec import build_bitvecs_from_gpu_arrays
+            from et_miner.gpu.csr_bitvec import build_bitvecs_from_gpu_arrays
             _has_cupy = True
         except ImportError:
             _has_cupy = False
 
         if _has_cupy:
+            cp.get_default_memory_pool().free_all_blocks()
             indptr_np, items_np, n_cols, col_to_item, n_tx = _prepare_gpu_resident_data(df)
             indptr_gpu = cp.asarray(indptr_np)
             items_orig_gpu = cp.asarray(items_np)

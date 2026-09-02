@@ -42,7 +42,7 @@ from pathlib import Path
 # Add project root to path for et_miner imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
-from et_miner.rules import _detect_k, _iter_row_groups, _explode_drop1, _list_to_scalar_cols
+from et_miner.core.rules import _detect_k, _iter_row_groups, _explode_drop1, _list_to_scalar_cols
 
 import polars as pl
 import pyarrow as pa

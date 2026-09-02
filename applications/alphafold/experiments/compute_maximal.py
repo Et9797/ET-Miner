@@ -49,7 +49,7 @@ import pyarrow.parquet as pq
 from loguru import logger
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
-from et_miner.rules import (  # noqa: E402
+from et_miner.core.rules import (  # noqa: E402
     _explode_drop1,
     _iter_row_groups,
     _list_to_scalar_cols,

@@ -1,0 +1,134 @@
+2026-09-02 20:07:33.484 | INFO     | utils:load_transactions:35 - Loading /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base_multi.parquet...
+2026-09-02 20:07:34.887 | INFO     | utils:load_transactions:42 -   Loaded 76,890,945 proteins in 1.4s
+2026-09-02 20:07:34.921 | INFO     | utils:load_transactions:47 -   Multi-feature filter: 76,890,945 → 76,890,945 (removed 0 single-feature proteins)
+2026-09-02 20:07:34.921 | INFO     | __main__:main:75 - 
+========================================================================
+2026-09-02 20:07:34.921 | INFO     | __main__:main:76 - Experiment: Direct GPU vs SON (Triplicate)
+2026-09-02 20:07:34.921 | INFO     | __main__:main:77 - ========================================================================
+2026-09-02 20:07:34.922 | INFO     | __main__:main:78 -   min_support:     1e-05 (0.001%)
+2026-09-02 20:07:34.922 | INFO     | __main__:main:79 -   min_count:       769
+2026-09-02 20:07:34.922 | INFO     | __main__:main:80 -   n_transactions:  76,890,945
+2026-09-02 20:07:34.922 | INFO     | __main__:main:81 -   runs per method: 1
+2026-09-02 20:07:34.922 | INFO     | __main__:main:82 -   SON chunk_size:  40,000,000
+2026-09-02 20:07:34.922 | INFO     | __main__:main:83 -   SON local_factor: 0.9
+2026-09-02 20:07:34.922 | INFO     | __main__:main:88 - 
+────────────────────────────────────────────────────────────
+2026-09-02 20:07:34.922 | INFO     | __main__:main:89 - Direct GPU run 1/1
+2026-09-02 20:07:34.922 | INFO     | __main__:main:90 - ────────────────────────────────────────────────────────────
+2026-09-02 20:07:34.923 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=769
+2026-09-02 20:07:35.437 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 1002 frequent items
+2026-09-02 20:07:37.003 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 316,421,093 non-zeros
+2026-09-02 20:07:50.251 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1002 cols, 76,890,945 txns, min_support=0.00001000 (min_count=769), max_length=1002
+2026-09-02 20:07:50.295 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=1,002 → frequent=1,002 (0.0s) | cumulative=1,002 | RAM=11.2GB VRAM=17.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_direct_vs_son.py:93: UserWarning: 100% of items are frequent (min_count=769). Mining may produce combinatorially explosive results. Consider raising min_support.
+  result = apriori(df, min_support=min_support, use_gpu=True, max_length=None,
+2026-09-02 20:07:51.141 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=501,501 → frequent=22,019 (0.8s) | cumulative=23,021 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 20:07:53.983 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=1,855,572 → frequent=73,205 (2.8s) | cumulative=96,226 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 20:07:53.990 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 1 dead bitvecs at K=3 (9 MB logical)
+2026-09-02 20:07:59.658 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=1,506,134 → frequent=108,059 (5.7s) | cumulative=204,285 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 20:07:59.671 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 8 dead bitvecs at K=4 (73 MB logical)
+2026-09-02 20:08:08.766 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=583,529 → frequent=104,239 (9.1s) | cumulative=308,524 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:08.783 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 26 dead bitvecs at K=5 (238 MB logical)
+2026-09-02 20:08:18.195 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=186,587 → frequent=78,596 (9.4s) | cumulative=387,120 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:18.212 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 59 dead bitvecs at K=6 (541 MB logical)
+2026-09-02 20:08:25.566 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=77,638 → frequent=48,699 (7.3s) | cumulative=435,819 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:25.581 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 114 dead bitvecs at K=7 (1045 MB logical)
+2026-09-02 20:08:30.125 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=32,966 → frequent=25,011 (4.5s) | cumulative=460,830 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:30.134 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 147 dead bitvecs at K=8 (1347 MB logical)
+2026-09-02 20:08:32.574 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=12,519 → frequent=10,508 (2.4s) | cumulative=471,338 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:32.578 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 167 dead bitvecs at K=9 (1531 MB logical)
+2026-09-02 20:08:33.508 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=3,914 → frequent=3,488 (0.9s) | cumulative=474,826 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:33.510 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 158 dead bitvecs at K=10 (1448 MB logical)
+2026-09-02 20:08:33.841 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=927 → frequent=869 (0.3s) | cumulative=475,695 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:33.842 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 146 dead bitvecs at K=11 (1338 MB logical)
+2026-09-02 20:08:33.963 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=12: candidates=155 → frequent=152 (0.1s) | cumulative=475,847 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:33.963 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 78 dead bitvecs at K=12 (715 MB logical)
+2026-09-02 20:08:34.079 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=13: candidates=17 → frequent=17 (0.1s) | cumulative=475,864 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:34.080 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 54 dead bitvecs at K=13 (495 MB logical)
+2026-09-02 20:08:34.183 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=14: candidates=1 → frequent=1 (0.1s) | cumulative=475,865 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 20:08:34.183 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 30 dead bitvecs at K=14 (275 MB logical)
+2026-09-02 20:08:34.183 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=14 reached max_length=1002. Total: 475,865 itemsets in 43.9s
+2026-09-02 20:08:37.176 | INFO     | __main__:main:108 -   475,865 itemsets, max K=14, 62.2s
+2026-09-02 20:08:37.176 | INFO     | __main__:main:113 - 
+────────────────────────────────────────────────────────────
+2026-09-02 20:08:37.176 | INFO     | __main__:main:114 - SON streaming run 1/1
+2026-09-02 20:08:37.176 | INFO     | __main__:main:115 - ────────────────────────────────────────────────────────────
+2026-09-02 20:08:37.176 | INFO     | et_miner.streaming.son:apriori_streaming:208 - SON streaming: 76890945 total transactions, 2 chunks of 40000000, local_support=0.000009 (90.0% of 0.000010)
+Pass 1: Local mining:   0%|          | 0/2 [00:00<?, ?chunk/s]2026-09-02 20:12:23.285 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 501501 itemsets, 40,000,000 transactions, 1002 items
+2026-09-02 20:13:27.726 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 8630999/40000000 transactions (21.6%) with < 3 items
+2026-09-02 20:14:20.932 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 241017 itemsets, 31,369,001 transactions, 1002 items
+2026-09-02 20:14:59.815 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 17909654/40000000 transactions (44.8%) with < 4 items
+2026-09-02 20:15:59.917 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 131219 itemsets, 22,090,346 transactions, 1002 items
+2026-09-02 20:16:25.856 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 26237010/40000000 transactions (65.6%) with < 5 items
+2026-09-02 20:16:30.517 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 116197 itemsets, 13,762,990 transactions, 1002 items
+2026-09-02 20:35:20.024 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 31728754/40000000 transactions (79.3%) with < 6 items
+2026-09-02 20:35:22.922 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 88229 itemsets, 8,271,246 transactions, 1002 items
+2026-09-02 20:45:55.583 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 35267474/40000000 transactions (88.2%) with < 7 items
+2026-09-02 20:45:57.375 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 55360 itemsets, 4,732,526 transactions, 1002 items
+2026-09-02 20:50:11.041 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 37211837/40000000 transactions (93.0%) with < 8 items
+2026-09-02 20:50:12.090 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 28766 itemsets, 2,788,163 transactions, 1002 items
+2026-09-02 20:51:29.691 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 39025053/40000000 transactions (97.6%) with < 9 items
+2026-09-02 20:51:30.171 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 12200 itemsets, 974,947 transactions, 1002 items
+2026-09-02 20:51:50.846 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 39660945/40000000 transactions (99.2%) with < 10 items
+2026-09-02 20:51:51.094 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 4065 itemsets, 339,055 transactions, 1002 items
+2026-09-02 20:51:59.260 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 39844941/40000000 transactions (99.6%) with < 11 items
+2026-09-02 20:51:59.457 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1003 itemsets, 155,059 transactions, 1002 items
+2026-09-02 20:52:05.569 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 39919869/40000000 transactions (99.8%) with < 12 items
+2026-09-02 20:52:05.743 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 170 itemsets, 80,131 transactions, 1002 items
+2026-09-02 20:52:11.734 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 39973414/40000000 transactions (99.9%) with < 13 items
+2026-09-02 20:52:11.893 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 18 itemsets, 26,586 transactions, 1002 items
+2026-09-02 20:52:17.859 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 39987388/40000000 transactions (100.0%) with < 14 items
+2026-09-02 20:52:18.011 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1 itemsets, 12,612 transactions, 1002 items
+Pass 1: Local mining:   0%|          | 0/2 [43:40<?, ?chunk/s, candidates=523751, items=1002]Pass 1: Local mining:  50%|█████     | 1/2 [43:40<43:40, 2620.94s/chunk, candidates=523751, items=1002]2026-09-02 20:57:15.546 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 501501 itemsets, 36,890,945 transactions, 1002 items
+2026-09-02 20:58:19.287 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 7957362/36890945 transactions (21.6%) with < 3 items
+2026-09-02 20:58:36.182 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 241399 itemsets, 28,933,583 transactions, 1002 items
+2026-09-02 20:59:14.835 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 16519657/36890945 transactions (44.8%) with < 4 items
+2026-09-02 20:59:20.996 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 131450 itemsets, 20,371,288 transactions, 1002 items
+2026-09-02 20:59:46.158 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 24199828/36890945 transactions (65.6%) with < 5 items
+2026-09-02 20:59:50.130 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 116964 itemsets, 12,691,117 transactions, 1002 items
+2026-09-02 21:18:55.004 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 29262497/36890945 transactions (79.3%) with < 6 items
+2026-09-02 21:18:57.639 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 89949 itemsets, 7,628,448 transactions, 1002 items
+2026-09-02 21:29:58.020 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 32525489/36890945 transactions (88.2%) with < 7 items
+2026-09-02 21:29:59.617 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 57923 itemsets, 4,365,456 transactions, 1002 items
+2026-09-02 21:34:34.907 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 34321440/36890945 transactions (93.0%) with < 8 items
+2026-09-02 21:34:35.915 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 31373 itemsets, 2,569,505 transactions, 1002 items
+2026-09-02 21:36:05.965 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 35992752/36890945 transactions (97.6%) with < 9 items
+2026-09-02 21:36:06.413 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 14064 itemsets, 898,193 transactions, 1002 items
+2026-09-02 21:36:31.034 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 36578311/36890945 transactions (99.2%) with < 10 items
+2026-09-02 21:36:31.287 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 5026 itemsets, 312,634 transactions, 1002 items
+2026-09-02 21:36:39.890 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 36748440/36890945 transactions (99.6%) with < 11 items
+2026-09-02 21:36:40.080 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1358 itemsets, 142,505 transactions, 1002 items
+2026-09-02 21:36:46.043 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 36817469/36890945 transactions (99.8%) with < 12 items
+2026-09-02 21:36:46.215 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 260 itemsets, 73,476 transactions, 1002 items
+2026-09-02 21:36:51.633 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 36866447/36890945 transactions (99.9%) with < 13 items
+2026-09-02 21:36:51.792 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 32 itemsets, 24,498 transactions, 1002 items
+2026-09-02 21:36:57.299 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 36879417/36890945 transactions (100.0%) with < 14 items
+2026-09-02 21:36:57.433 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 2 itemsets, 11,528 transactions, 1002 items
+Pass 1: Local mining:  50%|█████     | 1/2 [1:28:20<43:40, 2620.94s/chunk, candidates=551328, items=1002]Pass 1: Local mining: 100%|██████████| 2/2 [1:28:20<00:00, 2655.35s/chunk, candidates=551328, items=1002]Pass 1: Local mining: 100%|██████████| 2/2 [1:28:20<00:00, 2650.19s/chunk, candidates=551328, items=1002]
+2026-09-02 21:36:57.556 | INFO     | et_miner.streaming.son:apriori_streaming:331 - Pass 1 complete: 551328 candidate itemsets from 1002 items
+2026-09-02 21:36:57.688 | INFO     | et_miner.streaming.son:apriori_streaming:350 - Pass 2 optimization: 1002/1002 items needed for candidates (0.0% reduction)
+Pass 2: Global counting:   0%|          | 0/2 [00:00<?, ?chunk/s]2026-09-02 21:44:20.746 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 551328 itemsets, 40,000,000 transactions, 1002 items
+Pass 2: Global counting:  50%|█████     | 1/2 [08:52<08:52, 532.80s/chunk]2026-09-02 21:49:38.497 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 551328 itemsets, 36,890,945 transactions, 1002 items
+Pass 2: Global counting: 100%|██████████| 2/2 [14:05<00:00, 403.09s/chunk]Pass 2: Global counting: 100%|██████████| 2/2 [14:05<00:00, 422.54s/chunk]
+2026-09-02 21:51:04.393 | INFO     | et_miner.streaming.son:apriori_streaming:468 - Pass 2 complete: 475865/551328 candidates are globally frequent (support >= 0.000010)
+2026-09-02 21:51:08.241 | INFO     | __main__:main:139 -   475,865 itemsets, max K=14, 6151.1s
+/root/projects/ET-Miner/.venv/lib/python3.10/site-packages/numpy/_core/_methods.py:223: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/root/projects/ET-Miner/.venv/lib/python3.10/site-packages/numpy/_core/_methods.py:215: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+2026-09-02 21:51:08.243 | INFO     | __main__:main:162 - 
+========================================================================
+2026-09-02 21:51:08.243 | INFO     | __main__:main:163 - Summary (mean ± std across 1 runs)
+2026-09-02 21:51:08.244 | INFO     | __main__:main:164 - ========================================================================
+2026-09-02 21:51:08.244 | INFO     | __main__:main:165 -   Method                      Itemsets           Time (s)    Max K
+2026-09-02 21:51:08.244 | INFO     | __main__:main:166 -   -----------------------------------------------------------------
+2026-09-02 21:51:08.244 | INFO     | __main__:main:167 -   Direct GPU           475,865 ±   nan      62.2 ± nan     14
+2026-09-02 21:51:08.244 | INFO     | __main__:main:170 -   SON                  475,865 ±   nan    6151.1 ± nan     14
+2026-09-02 21:51:08.244 | INFO     | __main__:main:173 - 
+  Speedup (Direct vs SON): 98.8x
+2026-09-02 21:51:08.244 | INFO     | __main__:main:174 -   SON miss rate: 0.0%
+2026-09-02 21:51:08.244 | INFO     | __main__:main:175 -   Direct itemset CV: nan% (expect 0 for exact algorithm)
+2026-09-02 21:51:08.245 | INFO     | __main__:main:176 -   SON itemset CV:    nan%
+2026-09-02 21:51:08.245 | INFO     | __main__:main:181 -   → WARNING: Direct GPU shows variance (expected 0)
+2026-09-02 21:51:08.246 | INFO     | __main__:main:224 - 
+Results saved to /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/single_gpu/exp/experiment_direct_vs_son_20260902_215108.json

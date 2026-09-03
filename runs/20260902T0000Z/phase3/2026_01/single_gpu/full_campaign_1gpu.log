@@ -1,0 +1,288 @@
+2026-09-02 18:42:50.604 | INFO     | utils:load_transactions:35 - Loading /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base_multi.parquet...
+2026-09-02 18:42:51.983 | INFO     | utils:load_transactions:42 -   Loaded 76,890,945 proteins in 1.4s
+2026-09-02 18:42:52.017 | INFO     | utils:load_transactions:47 -   Multi-feature filter: 76,890,945 → 76,890,945 (removed 0 single-feature proteins)
+2026-09-02 18:42:52.017 | INFO     | __main__:main:104 - 
+========================================================================
+2026-09-02 18:42:52.017 | INFO     | __main__:main:105 - Full Mining Campaign (Triplicate)
+2026-09-02 18:42:52.017 | INFO     | __main__:main:106 - ========================================================================
+2026-09-02 18:42:52.017 | INFO     | __main__:main:107 -   n_transactions:  76,890,945
+2026-09-02 18:42:52.017 | INFO     | __main__:main:108 -   runs per threshold: 1
+2026-09-02 18:42:52.017 | INFO     | __main__:main:109 -   thresholds: 6
+2026-09-02 18:42:52.017 | INFO     | __main__:main:118 - 
+============================================================
+2026-09-02 18:42:52.017 | INFO     | __main__:main:119 - Threshold: Base (0.1000%, min_count=76,891, direct)
+2026-09-02 18:42:52.017 | INFO     | __main__:main:120 - ============================================================
+2026-09-02 18:42:52.017 | INFO     | __main__:main:124 -   Run 1/1...
+2026-09-02 18:42:52.019 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=76891
+2026-09-02 18:42:52.590 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 667 frequent items
+2026-09-02 18:42:54.152 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 296,653,059 non-zeros
+2026-09-02 18:43:20.858 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 667 cols, 76,890,945 txns, min_support=0.00100000 (min_count=76891), max_length=667
+2026-09-02 18:43:20.892 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=667 → frequent=667 (0.0s) | cumulative=667 | RAM=11.0GB VRAM=11.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_full_campaign.py:58: UserWarning: 100% of items are frequent (min_count=76891). Mining may produce combinatorially explosive results. Consider raising min_support.
+  result = apriori(
+2026-09-02 18:43:21.294 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=222,111 → frequent=1,504 (0.4s) | cumulative=2,171 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:21.295 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 118 dead bitvecs at K=2 (1082 MB logical)
+2026-09-02 18:43:21.696 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=109,306 → frequent=1,378 (0.4s) | cumulative=3,549 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:21.697 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 234 dead bitvecs at K=3 (2145 MB logical)
+2026-09-02 18:43:22.025 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=4,677 → frequent=884 (0.3s) | cumulative=4,433 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:22.025 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 125 dead bitvecs at K=4 (1146 MB logical)
+2026-09-02 18:43:22.270 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=688 → frequent=514 (0.2s) | cumulative=4,947 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:22.270 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 71 dead bitvecs at K=5 (651 MB logical)
+2026-09-02 18:43:22.455 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=262 → frequent=247 (0.2s) | cumulative=5,194 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:22.455 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 41 dead bitvecs at K=6 (376 MB logical)
+2026-09-02 18:43:22.621 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=89 → frequent=89 (0.2s) | cumulative=5,283 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:22.621 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 43 dead bitvecs at K=7 (394 MB logical)
+2026-09-02 18:43:22.802 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=20 → frequent=20 (0.2s) | cumulative=5,303 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:22.802 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 5 dead bitvecs at K=8 (46 MB logical)
+2026-09-02 18:43:22.946 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=2 → frequent=2 (0.1s) | cumulative=5,305 | RAM=11.0GB VRAM=11.9GB
+2026-09-02 18:43:22.946 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 13 dead bitvecs at K=9 (119 MB logical)
+2026-09-02 18:43:22.946 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=9 reached max_length=667. Total: 5,305 itemsets in 2.1s
+2026-09-02 18:43:23.078 | INFO     | __main__:main:127 - 5,305 itemsets, K=9, 31.1s
+2026-09-02 18:43:23.078 | INFO     | __main__:main:158 -   → Mean: 5,305 ± 0 itemsets (CV=0.00%), K=9, 31.1 ± 0.0s
+2026-09-02 18:43:23.078 | INFO     | __main__:main:118 - 
+============================================================
+2026-09-02 18:43:23.078 | INFO     | __main__:main:119 - Threshold: Super (0.0100%, min_count=7,690, direct)
+2026-09-02 18:43:23.078 | INFO     | __main__:main:120 - ============================================================
+2026-09-02 18:43:23.078 | INFO     | __main__:main:124 -   Run 1/1...
+2026-09-02 18:43:23.079 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=7690
+2026-09-02 18:43:23.576 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 1002 frequent items
+2026-09-02 18:43:25.147 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 316,421,093 non-zeros
+2026-09-02 18:44:00.068 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1002 cols, 76,890,945 txns, min_support=0.00010000 (min_count=7690), max_length=1002
+2026-09-02 18:44:00.275 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=1,002 → frequent=1,002 (0.2s) | cumulative=1,002 | RAM=11.1GB VRAM=17.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_full_campaign.py:58: UserWarning: 100% of items are frequent (min_count=7690). Mining may produce combinatorially explosive results. Consider raising min_support.
+  result = apriori(
+2026-09-02 18:44:01.109 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=501,501 → frequent=9,151 (0.8s) | cumulative=10,153 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:02.831 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=1,005,655 → frequent=19,663 (1.7s) | cumulative=29,816 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:02.833 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 9 dead bitvecs at K=3 (82 MB logical)
+2026-09-02 18:44:04.922 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=261,895 → frequent=22,638 (2.1s) | cumulative=52,454 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:04.925 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 87 dead bitvecs at K=4 (797 MB logical)
+2026-09-02 18:44:07.556 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=56,985 → frequent=20,439 (2.6s) | cumulative=72,893 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:07.560 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 127 dead bitvecs at K=5 (1164 MB logical)
+2026-09-02 18:44:09.964 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=22,866 → frequent=16,105 (2.4s) | cumulative=88,998 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:09.968 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 177 dead bitvecs at K=6 (1622 MB logical)
+2026-09-02 18:44:11.858 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=12,757 → frequent=11,419 (1.9s) | cumulative=100,417 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:11.861 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 176 dead bitvecs at K=7 (1613 MB logical)
+2026-09-02 18:44:13.147 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=7,401 → frequent=7,121 (1.3s) | cumulative=107,538 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:13.149 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 130 dead bitvecs at K=8 (1192 MB logical)
+2026-09-02 18:44:13.988 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=3,798 → frequent=3,718 (0.8s) | cumulative=111,256 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:13.989 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 105 dead bitvecs at K=9 (962 MB logical)
+2026-09-02 18:44:14.400 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=1,561 → frequent=1,543 (0.4s) | cumulative=112,799 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:14.401 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 103 dead bitvecs at K=10 (944 MB logical)
+2026-09-02 18:44:14.570 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=485 → frequent=483 (0.2s) | cumulative=113,282 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:14.571 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 22 dead bitvecs at K=11 (202 MB logical)
+2026-09-02 18:44:14.688 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=12: candidates=107 → frequent=107 (0.1s) | cumulative=113,389 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:14.688 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 15 dead bitvecs at K=12 (137 MB logical)
+2026-09-02 18:44:14.799 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=13: candidates=15 → frequent=15 (0.1s) | cumulative=113,404 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:14.799 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 25 dead bitvecs at K=13 (229 MB logical)
+2026-09-02 18:44:14.903 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=14: candidates=1 → frequent=1 (0.1s) | cumulative=113,405 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:14.903 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 12 dead bitvecs at K=14 (110 MB logical)
+2026-09-02 18:44:14.903 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=14 reached max_length=1002. Total: 113,405 itemsets in 14.8s
+2026-09-02 18:44:15.646 | INFO     | __main__:main:127 - 113,405 itemsets, K=14, 52.6s
+2026-09-02 18:44:15.647 | INFO     | __main__:main:158 -   → Mean: 113,405 ± 0 itemsets (CV=0.00%), K=14, 52.6 ± 0.0s
+2026-09-02 18:44:15.647 | INFO     | __main__:main:118 - 
+============================================================
+2026-09-02 18:44:15.647 | INFO     | __main__:main:119 - Threshold: Power (0.0010%, min_count=769, direct)
+2026-09-02 18:44:15.647 | INFO     | __main__:main:120 - ============================================================
+2026-09-02 18:44:15.647 | INFO     | __main__:main:124 -   Run 1/1...
+2026-09-02 18:44:15.647 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=769
+2026-09-02 18:44:16.218 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 1002 frequent items
+2026-09-02 18:44:17.923 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 316,421,093 non-zeros
+2026-09-02 18:44:43.411 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1002 cols, 76,890,945 txns, min_support=0.00001000 (min_count=769), max_length=1002
+2026-09-02 18:44:43.445 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=1,002 → frequent=1,002 (0.0s) | cumulative=1,002 | RAM=13.5GB VRAM=17.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_full_campaign.py:58: UserWarning: 100% of items are frequent (min_count=769). Mining may produce combinatorially explosive results. Consider raising min_support.
+  result = apriori(
+2026-09-02 18:44:44.292 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=501,501 → frequent=22,019 (0.8s) | cumulative=23,021 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:47.139 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=1,855,572 → frequent=73,205 (2.8s) | cumulative=96,226 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:47.147 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 1 dead bitvecs at K=3 (9 MB logical)
+2026-09-02 18:44:52.939 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=1,506,134 → frequent=108,059 (5.8s) | cumulative=204,285 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:44:52.952 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 8 dead bitvecs at K=4 (73 MB logical)
+2026-09-02 18:45:01.990 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=583,529 → frequent=104,239 (9.0s) | cumulative=308,524 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:02.007 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 26 dead bitvecs at K=5 (238 MB logical)
+2026-09-02 18:45:11.395 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=186,587 → frequent=78,596 (9.4s) | cumulative=387,120 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:11.412 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 59 dead bitvecs at K=6 (541 MB logical)
+2026-09-02 18:45:18.778 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=77,638 → frequent=48,699 (7.4s) | cumulative=435,819 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:18.792 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 114 dead bitvecs at K=7 (1045 MB logical)
+2026-09-02 18:45:23.468 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=32,966 → frequent=25,011 (4.7s) | cumulative=460,830 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:23.476 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 147 dead bitvecs at K=8 (1347 MB logical)
+2026-09-02 18:45:25.784 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=12,519 → frequent=10,508 (2.3s) | cumulative=471,338 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:25.788 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 167 dead bitvecs at K=9 (1531 MB logical)
+2026-09-02 18:45:26.712 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=3,914 → frequent=3,488 (0.9s) | cumulative=474,826 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:26.713 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 158 dead bitvecs at K=10 (1448 MB logical)
+2026-09-02 18:45:27.032 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=927 → frequent=869 (0.3s) | cumulative=475,695 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:27.033 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 146 dead bitvecs at K=11 (1338 MB logical)
+2026-09-02 18:45:27.154 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=12: candidates=155 → frequent=152 (0.1s) | cumulative=475,847 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:27.154 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 78 dead bitvecs at K=12 (715 MB logical)
+2026-09-02 18:45:27.271 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=13: candidates=17 → frequent=17 (0.1s) | cumulative=475,864 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:27.271 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 54 dead bitvecs at K=13 (495 MB logical)
+2026-09-02 18:45:27.375 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=14: candidates=1 → frequent=1 (0.1s) | cumulative=475,865 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:45:27.375 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 30 dead bitvecs at K=14 (275 MB logical)
+2026-09-02 18:45:27.375 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=14 reached max_length=1002. Total: 475,865 itemsets in 44.0s
+2026-09-02 18:45:30.299 | INFO     | __main__:main:127 - 475,865 itemsets, K=14, 74.7s
+2026-09-02 18:45:30.299 | INFO     | __main__:main:158 -   → Mean: 475,865 ± 0 itemsets (CV=0.00%), K=14, 74.7 ± 0.0s
+2026-09-02 18:45:30.299 | INFO     | __main__:main:118 - 
+============================================================
+2026-09-02 18:45:30.299 | INFO     | __main__:main:119 - Threshold: Blitz (0.0001%, min_count=77, direct)
+2026-09-02 18:45:30.300 | INFO     | __main__:main:120 - ============================================================
+2026-09-02 18:45:30.300 | INFO     | __main__:main:124 -   Run 1/1...
+2026-09-02 18:45:30.300 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=77
+2026-09-02 18:45:30.798 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 1002 frequent items
+2026-09-02 18:45:32.346 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 316,421,093 non-zeros
+2026-09-02 18:46:07.583 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1002 cols, 76,890,945 txns, min_support=0.00000100 (min_count=77), max_length=1002
+2026-09-02 18:46:07.618 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=1,002 → frequent=1,002 (0.0s) | cumulative=1,002 | RAM=13.6GB VRAM=17.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_full_campaign.py:58: UserWarning: 100% of items are frequent (min_count=77). Mining may produce combinatorially explosive results. Consider raising min_support.
+  result = apriori(
+2026-09-02 18:46:08.503 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=501,501 → frequent=39,125 (0.9s) | cumulative=40,127 | RAM=11.2GB VRAM=17.9GB
+2026-09-02 18:46:13.003 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=3,166,342 → frequent=184,900 (4.5s) | cumulative=225,027 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 18:46:25.544 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=4,777,345 → frequent=361,696 (12.5s) | cumulative=586,723 | RAM=11.4GB VRAM=17.9GB
+2026-09-02 18:46:25.586 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 3 dead bitvecs at K=4 (27 MB logical)
+2026-09-02 18:46:50.486 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=3,037,012 → frequent=445,661 (24.9s) | cumulative=1,032,384 | RAM=11.6GB VRAM=17.9GB
+2026-09-02 18:46:50.553 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 6 dead bitvecs at K=5 (55 MB logical)
+2026-09-02 18:47:25.013 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=1,263,744 → frequent=439,605 (34.4s) | cumulative=1,471,989 | RAM=11.8GB VRAM=17.9GB
+2026-09-02 18:47:25.094 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 21 dead bitvecs at K=6 (192 MB logical)
+2026-09-02 18:48:02.115 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=629,087 → frequent=387,030 (37.0s) | cumulative=1,859,019 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:48:02.200 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 56 dead bitvecs at K=7 (513 MB logical)
+2026-09-02 18:48:36.520 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=388,672 → frequent=318,349 (34.3s) | cumulative=2,177,368 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:48:36.608 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 112 dead bitvecs at K=8 (1027 MB logical)
+2026-09-02 18:49:05.313 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=265,470 → frequent=247,680 (28.7s) | cumulative=2,425,048 | RAM=12.0GB VRAM=17.9GB
+2026-09-02 18:49:05.389 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 122 dead bitvecs at K=9 (1118 MB logical)
+2026-09-02 18:49:27.575 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=183,438 → frequent=179,604 (22.2s) | cumulative=2,604,652 | RAM=12.0GB VRAM=17.9GB
+2026-09-02 18:49:27.657 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 119 dead bitvecs at K=10 (1091 MB logical)
+2026-09-02 18:49:43.544 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=118,447 → frequent=117,783 (15.9s) | cumulative=2,722,435 | RAM=12.0GB VRAM=17.9GB
+2026-09-02 18:49:43.603 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 135 dead bitvecs at K=11 (1237 MB logical)
+2026-09-02 18:49:54.058 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=12: candidates=67,638 → frequent=67,558 (10.4s) | cumulative=2,789,993 | RAM=12.0GB VRAM=17.9GB
+2026-09-02 18:49:54.102 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 147 dead bitvecs at K=12 (1347 MB logical)
+2026-09-02 18:49:59.948 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=13: candidates=32,836 → frequent=32,831 (5.8s) | cumulative=2,822,824 | RAM=12.0GB VRAM=17.9GB
+2026-09-02 18:49:59.972 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 80 dead bitvecs at K=13 (733 MB logical)
+2026-09-02 18:50:02.632 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=14: candidates=13,105 → frequent=13,105 (2.6s) | cumulative=2,835,929 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:50:02.644 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 76 dead bitvecs at K=14 (697 MB logical)
+2026-09-02 18:50:04.248 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=15: candidates=4,155 → frequent=4,155 (1.6s) | cumulative=2,840,084 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:50:04.250 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 44 dead bitvecs at K=15 (403 MB logical)
+2026-09-02 18:50:04.566 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=16: candidates=1,003 → frequent=1,003 (0.3s) | cumulative=2,841,087 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:50:04.567 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 39 dead bitvecs at K=16 (357 MB logical)
+2026-09-02 18:50:04.688 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=17: candidates=173 → frequent=173 (0.1s) | cumulative=2,841,260 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:50:04.790 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=18: candidates=19 → frequent=19 (0.1s) | cumulative=2,841,279 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:50:04.790 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 23 dead bitvecs at K=18 (211 MB logical)
+2026-09-02 18:50:04.907 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=19: candidates=1 → frequent=1 (0.1s) | cumulative=2,841,280 | RAM=11.9GB VRAM=17.9GB
+2026-09-02 18:50:04.907 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=19 reached max_length=1002. Total: 2,841,280 itemsets in 237.3s
+2026-09-02 18:50:23.206 | INFO     | __main__:main:127 - 2,841,280 itemsets, K=19, 292.9s
+2026-09-02 18:50:23.207 | INFO     | __main__:main:158 -   → Mean: 2,841,280 ± 0 itemsets (CV=0.00%), K=19, 292.9 ± 0.0s
+2026-09-02 18:50:23.207 | INFO     | __main__:main:118 - 
+============================================================
+2026-09-02 18:50:23.207 | INFO     | __main__:main:119 - Threshold: Ultra (0.0000%, min_count=16, direct)
+2026-09-02 18:50:23.207 | INFO     | __main__:main:120 - ============================================================
+2026-09-02 18:50:23.207 | INFO     | __main__:main:124 -   Run 1/1...
+2026-09-02 18:50:23.208 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=16
+2026-09-02 18:50:23.697 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 1002 frequent items
+2026-09-02 18:50:25.264 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 316,421,093 non-zeros
+2026-09-02 19:00:13.736 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1002 cols, 76,890,945 txns, min_support=0.00000020 (min_count=16), max_length=1002
+2026-09-02 19:00:13.771 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=1,002 → frequent=1,002 (0.0s) | cumulative=1,002 | RAM=11.3GB VRAM=17.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_full_campaign.py:58: UserWarning: 100% of items are frequent (min_count=16). Mining may produce combinatorially explosive results. Consider raising min_support.
+  result = apriori(
+2026-09-02 19:00:14.675 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=501,501 → frequent=60,088 (0.9s) | cumulative=61,090 | RAM=11.3GB VRAM=17.9GB
+2026-09-02 19:00:21.392 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=5,334,089 → frequent=356,691 (6.7s) | cumulative=417,781 | RAM=11.4GB VRAM=17.9GB
+2026-09-02 19:00:44.570 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=10,789,453 → frequent=894,903 (23.1s) | cumulative=1,312,684 | RAM=11.8GB VRAM=17.9GB
+2026-09-02 19:00:44.673 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 2 dead bitvecs at K=4 (18 MB logical)
+2026-09-02 19:01:42.607 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=9,100,811 → frequent=1,421,780 (57.9s) | cumulative=2,734,464 | RAM=12.4GB VRAM=17.9GB
+2026-09-02 19:03:29.385 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=5,011,200 → frequent=1,794,852 (106.5s) | cumulative=4,529,316 | RAM=13.2GB VRAM=17.9GB
+2026-09-02 19:03:29.683 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 7 dead bitvecs at K=6 (64 MB logical)
+2026-09-02 19:06:01.660 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=3,065,588 → frequent=2,006,312 (151.9s) | cumulative=6,535,628 | RAM=14.0GB VRAM=17.9GB
+2026-09-02 19:06:02.049 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 23 dead bitvecs at K=7 (211 MB logical)
+2026-09-02 19:09:00.381 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=2,379,595 → frequent=2,053,858 (178.2s) | cumulative=8,589,486 | RAM=14.8GB VRAM=17.9GB
+2026-09-02 19:09:00.822 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 65 dead bitvecs at K=8 (596 MB logical)
+2026-09-02 19:12:43.853 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=2,003,749 → frequent=1,912,672 (222.9s) | cumulative=10,502,158 | RAM=15.5GB VRAM=17.9GB
+2026-09-02 19:12:44.329 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 72 dead bitvecs at K=9 (660 MB logical)
+2026-09-02 19:15:37.429 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=1,610,499 → frequent=1,587,145 (172.9s) | cumulative=12,089,303 | RAM=15.7GB VRAM=17.9GB
+2026-09-02 19:15:37.844 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 120 dead bitvecs at K=10 (1100 MB logical)
+2026-09-02 19:18:02.619 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=1,154,547 → frequent=1,148,998 (144.6s) | cumulative=13,238,301 | RAM=15.8GB VRAM=17.9GB
+2026-09-02 19:18:02.946 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 114 dead bitvecs at K=11 (1045 MB logical)
+2026-09-02 19:19:50.395 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=12: candidates=713,608 → frequent=712,433 (107.3s) | cumulative=13,950,734 | RAM=15.6GB VRAM=17.9GB
+2026-09-02 19:19:50.861 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 102 dead bitvecs at K=12 (935 MB logical)
+2026-09-02 19:20:52.958 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=13: candidates=372,180 → frequent=371,981 (61.9s) | cumulative=14,322,715 | RAM=15.3GB VRAM=17.9GB
+2026-09-02 19:20:53.083 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 109 dead bitvecs at K=13 (999 MB logical)
+2026-09-02 19:21:23.203 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=14: candidates=160,697 → frequent=160,675 (30.0s) | cumulative=14,483,390 | RAM=15.1GB VRAM=17.9GB
+2026-09-02 19:21:23.264 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 73 dead bitvecs at K=14 (669 MB logical)
+2026-09-02 19:21:35.462 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=15: candidates=56,222 → frequent=56,221 (12.2s) | cumulative=14,539,611 | RAM=14.9GB VRAM=17.9GB
+2026-09-02 19:21:35.488 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 75 dead bitvecs at K=15 (687 MB logical)
+2026-09-02 19:21:39.561 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=16: candidates=15,501 → frequent=15,501 (4.0s) | cumulative=14,555,112 | RAM=14.8GB VRAM=17.9GB
+2026-09-02 19:21:39.597 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 50 dead bitvecs at K=16 (458 MB logical)
+2026-09-02 19:21:40.683 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=17: candidates=3,236 → frequent=3,236 (1.1s) | cumulative=14,558,348 | RAM=14.8GB VRAM=17.9GB
+2026-09-02 19:21:40.689 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 40 dead bitvecs at K=17 (367 MB logical)
+2026-09-02 19:21:40.905 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=18: candidates=480 → frequent=480 (0.2s) | cumulative=14,558,828 | RAM=14.8GB VRAM=17.9GB
+2026-09-02 19:21:40.906 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 40 dead bitvecs at K=18 (367 MB logical)
+2026-09-02 19:21:41.026 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=19: candidates=45 → frequent=45 (0.1s) | cumulative=14,558,873 | RAM=14.8GB VRAM=17.9GB
+2026-09-02 19:21:41.026 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 34 dead bitvecs at K=19 (312 MB logical)
+2026-09-02 19:21:41.155 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=20: candidates=2 → frequent=2 (0.1s) | cumulative=14,558,875 | RAM=14.8GB VRAM=17.9GB
+2026-09-02 19:21:41.156 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 39 dead bitvecs at K=20 (357 MB logical)
+2026-09-02 19:21:41.156 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=20 reached max_length=1002. Total: 14,558,875 itemsets in 1287.4s
+2026-09-02 19:23:39.704 | INFO     | __main__:main:127 - 14,558,875 itemsets, K=20, 1996.4s
+2026-09-02 19:23:39.704 | INFO     | __main__:main:158 -   → Mean: 14,558,875 ± 0 itemsets (CV=0.00%), K=20, 1996.4 ± 0.0s
+2026-09-02 19:23:39.704 | INFO     | __main__:main:118 - 
+============================================================
+2026-09-02 19:23:39.705 | INFO     | __main__:main:119 - Threshold: Opus (0.0000%, min_count=8, direct)
+2026-09-02 19:23:39.705 | INFO     | __main__:main:120 - ============================================================
+2026-09-02 19:23:39.705 | INFO     | __main__:main:124 -   Run 1/1...
+2026-09-02 19:23:39.705 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 76,890,945 transactions, min_count=8
+2026-09-02 19:23:40.330 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 1002 frequent items
+2026-09-02 19:23:42.349 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 316,421,093 non-zeros
+2026-09-02 19:24:54.125 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 1002 cols, 76,890,945 txns, min_support=0.00000010 (min_count=8), max_length=1002
+2026-09-02 19:24:54.160 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=1,002 → frequent=1,002 (0.0s) | cumulative=1,002 | RAM=13.8GB VRAM=17.9GB
+/root/projects/ET-Miner/applications/alphafold/experiments/experiment_full_campaign.py:58: UserWarning: 100% of items are frequent (min_count=8). Mining may produce combinatorially explosive results. Consider raising min_support.
+  result = apriori(
+2026-09-02 19:24:55.098 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=501,501 → frequent=73,786 (0.9s) | cumulative=74,788 | RAM=11.5GB VRAM=17.9GB
+2026-09-02 19:25:03.572 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=7,151,097 → frequent=452,777 (8.5s) | cumulative=527,565 | RAM=11.5GB VRAM=17.9GB
+2026-09-02 19:25:33.323 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=15,450,673 → frequent=1,184,461 (29.7s) | cumulative=1,712,026 | RAM=12.0GB VRAM=17.9GB
+2026-09-02 19:25:33.458 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 2 dead bitvecs at K=4 (18 MB logical)
+2026-09-02 19:26:49.057 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=13,800,022 → frequent=1,974,126 (75.6s) | cumulative=3,686,152 | RAM=12.9GB VRAM=17.9GB
+2026-09-02 19:29:13.491 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=8,045,174 → frequent=2,626,332 (144.1s) | cumulative=6,312,484 | RAM=14.1GB VRAM=17.9GB
+2026-09-02 19:29:13.915 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 4 dead bitvecs at K=6 (37 MB logical)
+2026-09-02 19:32:51.337 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=5,006,188 → frequent=3,118,459 (217.3s) | cumulative=9,430,943 | RAM=15.4GB VRAM=17.9GB
+2026-09-02 19:32:51.918 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 12 dead bitvecs at K=7 (110 MB logical)
+2026-09-02 19:37:28.549 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=4,033,307 → frequent=3,442,954 (276.5s) | cumulative=12,873,897 | RAM=16.9GB VRAM=17.9GB
+2026-09-02 19:37:29.303 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 46 dead bitvecs at K=8 (422 MB logical)
+2026-09-02 19:42:41.963 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=3,697,577 → frequent=3,529,257 (312.5s) | cumulative=16,403,154 | RAM=18.4GB VRAM=17.9GB
+2026-09-02 19:42:42.813 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 47 dead bitvecs at K=9 (431 MB logical)
+2026-09-02 19:48:07.500 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=3,341,726 → frequent=3,293,612 (324.4s) | cumulative=19,696,766 | RAM=19.4GB VRAM=17.9GB
+2026-09-02 19:48:08.357 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 123 dead bitvecs at K=10 (1127 MB logical)
+2026-09-02 19:53:12.147 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=2,755,768 → frequent=2,739,532 (303.5s) | cumulative=22,436,298 | RAM=19.8GB VRAM=17.9GB
+2026-09-02 19:53:12.905 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 96 dead bitvecs at K=11 (880 MB logical)
+2026-09-02 19:57:28.637 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=12: candidates=2,003,045 → frequent=1,996,772 (255.4s) | cumulative=24,433,070 | RAM=19.9GB VRAM=17.9GB
+2026-09-02 19:57:29.231 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 125 dead bitvecs at K=12 (1146 MB logical)
+2026-09-02 20:00:33.377 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=13: candidates=1,261,325 → frequent=1,259,045 (183.9s) | cumulative=25,692,115 | RAM=19.7GB VRAM=17.9GB
+2026-09-02 20:00:33.778 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 102 dead bitvecs at K=13 (935 MB logical)
+2026-09-02 20:02:24.461 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=14: candidates=680,128 → frequent=679,471 (110.5s) | cumulative=26,371,586 | RAM=19.3GB VRAM=17.9GB
+2026-09-02 20:02:24.693 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 95 dead bitvecs at K=14 (871 MB logical)
+2026-09-02 20:03:22.352 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=15: candidates=310,661 → frequent=310,527 (57.5s) | cumulative=26,682,113 | RAM=18.9GB VRAM=17.9GB
+2026-09-02 20:03:22.466 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 70 dead bitvecs at K=15 (642 MB logical)
+2026-09-02 20:03:47.207 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=16: candidates=118,676 → frequent=118,659 (24.7s) | cumulative=26,800,772 | RAM=18.6GB VRAM=17.9GB
+2026-09-02 20:03:47.255 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 74 dead bitvecs at K=16 (678 MB logical)
+2026-09-02 20:03:56.000 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=17: candidates=37,262 → frequent=37,261 (8.7s) | cumulative=26,838,033 | RAM=18.5GB VRAM=17.9GB
+2026-09-02 20:03:56.017 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 22 dead bitvecs at K=17 (202 MB logical)
+2026-09-02 20:03:58.459 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=18: candidates=9,375 → frequent=9,375 (2.4s) | cumulative=26,847,408 | RAM=18.5GB VRAM=17.9GB
+2026-09-02 20:03:58.463 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 39 dead bitvecs at K=18 (357 MB logical)
+2026-09-02 20:03:59.037 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=19: candidates=1,818 → frequent=1,818 (0.6s) | cumulative=26,849,226 | RAM=18.5GB VRAM=17.9GB
+2026-09-02 20:03:59.038 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 32 dead bitvecs at K=19 (293 MB logical)
+2026-09-02 20:03:59.190 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=20: candidates=255 → frequent=255 (0.2s) | cumulative=26,849,481 | RAM=18.5GB VRAM=17.9GB
+2026-09-02 20:03:59.191 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 43 dead bitvecs at K=20 (394 MB logical)
+2026-09-02 20:03:59.318 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=21: candidates=23 → frequent=23 (0.1s) | cumulative=26,849,504 | RAM=18.5GB VRAM=17.9GB
+2026-09-02 20:03:59.318 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 33 dead bitvecs at K=21 (302 MB logical)
+2026-09-02 20:03:59.436 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=22: candidates=1 → frequent=1 (0.1s) | cumulative=26,849,505 | RAM=18.5GB VRAM=17.9GB
+2026-09-02 20:03:59.436 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 15 dead bitvecs at K=22 (137 MB logical)
+2026-09-02 20:03:59.436 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=22 reached max_length=1002. Total: 26,849,505 itemsets in 2345.3s
+2026-09-02 20:07:31.053 | INFO     | __main__:main:127 - 26,849,505 itemsets, K=22, 2631.2s
+2026-09-02 20:07:31.054 | INFO     | __main__:main:158 -   → Mean: 26,849,505 ± 0 itemsets (CV=0.00%), K=22, 2631.2 ± 0.0s
+2026-09-02 20:07:31.054 | INFO     | __main__:main:166 - 
+================================================================================
+2026-09-02 20:07:31.054 | INFO     | __main__:main:167 - Campaign Summary
+2026-09-02 20:07:31.055 | INFO     | __main__:main:168 - ================================================================================
+2026-09-02 20:07:31.055 | INFO     | __main__:main:169 -   Run         Support   Min Prot        Itemsets   Max K       Time
+2026-09-02 20:07:31.055 | INFO     | __main__:main:171 -   -----------------------------------------------------------------
+2026-09-02 20:07:31.055 | INFO     | __main__:main:179 -   Base        0.1000%     76,891        5,305 ±   0     9        31.1s
+2026-09-02 20:07:31.055 | INFO     | __main__:main:179 -   Super       0.0100%      7,690      113,405 ±   0    14        52.6s
+2026-09-02 20:07:31.055 | INFO     | __main__:main:179 -   Power       0.0010%        769      475,865 ±   0    14        74.7s
+2026-09-02 20:07:31.055 | INFO     | __main__:main:179 -   Blitz       0.0001%         77    2,841,280 ±   0    19       292.9s
+2026-09-02 20:07:31.055 | INFO     | __main__:main:179 -   Ultra       0.0000%         16   14,558,875 ±   0    20      1996.4s
+2026-09-02 20:07:31.055 | INFO     | __main__:main:179 -   Opus        0.0000%          8   26,849,505 ±   0    22      2631.2s
+2026-09-02 20:07:31.056 | INFO     | __main__:main:183 - 
+  Total campaign time: 5079.0s (84.7 min)
+2026-09-02 20:07:31.057 | INFO     | __main__:main:205 - 
+Results saved to /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/single_gpu/exp/experiment_full_campaign_20260902_200731.json

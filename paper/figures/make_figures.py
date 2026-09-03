@@ -1,11 +1,12 @@
-"""Regenerate the two result figures of the paper from the reproduction artifacts.
+"""Regenerate the result and pipeline figures of the paper from the run artifacts.
 
 Produces ``mining_campaign.pdf`` (frequent itemsets per threshold, log scale,
-with wall-clock time per run on the original H100 and on the RTX 3090 of the
-September 2026 re-execution) and ``k_distribution.pdf`` (itemsets per K of
-the Opus run). Counts and RTX 3090 timings are read from the six-threshold
-campaign JSON; the H100 timings are the original February 2026 measurements
-quoted in the paper and are not available for the Base and Super thresholds.
+with wall-clock time per run on a single RTX 3090, pinned with CUDA_VISIBLE_DEVICES=0), ``k_distribution.pdf``
+(itemsets per K of the Opus run) and ``architecture.pdf`` (the data path from
+the UniProt flat file to the frequent itemsets, annotated with the measured
+sizes). Counts and timings are read from the six-threshold campaign JSON; the
+sizes in the architecture figure are the values recorded in RESULTS.md
+(rows U-007, M-001, X-010, X-011, X-014, X-018, X-023, P-002, P-003).
 
 Usage:
     python paper/figures/make_figures.py [--campaign JSON] [--out DIR]
@@ -30,7 +31,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CAMPAIGN = (
-    ROOT / "runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json"
+    ROOT / "runs/20260902T0000Z/phase3/2026_01/single_gpu/exp/experiment_full_campaign_20260902_200731.json"
 )
 RUN_ORDER = ["Base", "Super", "Power", "Blitz", "Ultra", "Opus"]
 SUPPORT_LABEL = {
@@ -41,11 +42,10 @@ SUPPORT_LABEL = {
     "Ultra": "0.00002%",
     "Opus": "0.00001%",
 }
-H100_SECONDS = {"Power": 50.7, "Blitz": 2.0 * 60, "Ultra": 4.7 * 60, "Opus": 7.3 * 60}
-
 BAR = "#3b82c4"
 LINE_3090 = "#d1495b"
-LINE_H100 = "#4d4d4d"
+BOX_FACE = "#eef3fa"
+BOX_EDGE = "#3b82c4"
 
 
 def load_campaign(path: Path) -> dict:
@@ -103,12 +103,9 @@ def mining_campaign(camp: dict, out: Path, png: bool = False) -> None:
         )
     ax2 = ax.twinx()
     mins_3090 = [camp[r]["seconds"] / 60 for r in RUN_ORDER]
-    ax2.plot(x, mins_3090, color=LINE_3090, marker="o", ms=4, lw=1.4, label="Time, RTX 3090 (Sept 2026)")
-    h_x = [i for i, r in enumerate(RUN_ORDER) if r in H100_SECONDS]
-    h_y = [H100_SECONDS[RUN_ORDER[i]] / 60 for i in h_x]
-    ax2.plot(x[h_x[0]:], h_y, color=LINE_H100, marker="s", ms=4, lw=1.2, ls="--", label="Time, H100 (Feb 2026)")
+    ax2.plot(x, mins_3090, color=LINE_3090, marker="o", ms=4, lw=1.4, label="Time per run, single RTX 3090")
     ax2.set_ylabel("Time per run (minutes)")
-    ax2.set_ylim(0, 30)
+    ax2.set_ylim(0, 65)
     handles, labels = ax.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     ax.legend(handles + h2, labels + l2, loc="upper left", frameon=False)
@@ -161,6 +158,44 @@ def k_distribution(camp: dict, out: Path, png: bool = False) -> None:
     plt.close(fig)
 
 
+def architecture(out: Path, png: bool = False) -> None:
+    """Pipeline diagram: six stages with the measured sizes, left to right."""
+    from matplotlib.patches import FancyBboxPatch
+
+    plt.rcParams.update({"font.size": 7})
+    stages = [
+        ("Inputs", "UniProt TrEMBL 2026_01\nflat file, 149.8 GiB gz\nAlphaFold DB metadata\n214.7M rows"),
+        ("Feature extraction\n(CPU)", "205.6M transactions\n76.9M multi-feature\nParquet, 0.89 GB"),
+        ("Sparse matrix\n(CPU)", "316M non-zeros\n5.1 GB coordinate form\n(dense: 206 GB, 40.7x)"),
+        ("GPU bitvectors\n(VRAM, resident)", "1,002 x 1,201,422 words\n9.6 GB\n1 x RTX 3090 (24 GB)"),
+        ("GPU-resident\nApriori", "K = 1 ... 22\nfused count + filter\nscalar readback per level"),
+        ("Frequent\nitemsets", "26.8M itemsets\nK <= 22\nmin_count 8"),
+    ]
+    arrows = ["", "", "H2D once:\n3.1 GB CSR arrays", "", ""]
+    fig, ax = plt.subplots(figsize=(6.8, 2.2))
+    ax.set_xlim(0, 6.8)
+    ax.set_ylim(0, 2.2)
+    ax.axis("off")
+    w, h, gap, y0 = 1.02, 1.4, 0.11, 0.45
+    for i, (title, body) in enumerate(stages):
+        x0 = 0.08 + i * (w + gap)
+        ax.add_patch(FancyBboxPatch((x0, y0), w, h, boxstyle="round,pad=0.02,rounding_size=0.06",
+                                    fc=BOX_FACE, ec=BOX_EDGE, lw=0.9))
+        ax.text(x0 + w / 2, y0 + h - 0.08, title, ha="center", va="top", fontsize=6.6, weight="bold")
+        ax.text(x0 + w / 2, y0 + 0.08, body, ha="center", va="bottom", fontsize=5.7, linespacing=1.3)
+        if i < len(stages) - 1:
+            ax.annotate("", (x0 + w + gap, y0 + h / 2), (x0 + w, y0 + h / 2),
+                        arrowprops=dict(arrowstyle="->", lw=0.9, color=BOX_EDGE))
+            if arrows[i]:
+                ax.text(x0 + w + gap / 2, y0 + h + 0.02, arrows[i], ha="center", va="bottom", fontsize=5.4)
+    ax.text(0.08, 0.16, "CPU side", fontsize=6.5, color="#555555")
+    ax.text(0.08 + 3 * (w + gap), 0.16, "GPU side (single device; bitvectors never leave VRAM)",
+            fontsize=6.5, color="#555555")
+    fig.tight_layout(pad=0.2)
+    save(fig, out, "architecture", png)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--campaign", type=Path, default=DEFAULT_CAMPAIGN)
@@ -171,9 +206,10 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     mining_campaign(camp, args.out, args.png)
     k_distribution(camp, args.out, args.png)
+    architecture(args.out, args.png)
     for r in RUN_ORDER:
         print(f"{r:6s} {camp[r]['itemsets']:>12,} K={camp[r]['max_k']:2d} {camp[r]['seconds']:8.1f} s")
-    print("wrote", args.out / "mining_campaign.pdf", "and", args.out / "k_distribution.pdf")
+    print("wrote mining_campaign.pdf, k_distribution.pdf and architecture.pdf in", args.out)
 
 
 if __name__ == "__main__":

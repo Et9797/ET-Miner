@@ -329,3 +329,61 @@ only as superseded.
       scope (2025_01..2026_02); K=1 row wording; bibliography label width; blog: K=12 support hedged,
       extraction account completed (two filtering passes), fourth non-reproduced item added.
 - [x] commit + push (branch alphafold-experimental-results-reproduction; commit "paper: revise tex and blog with the fresh base214m values; regenerate result figures")
+## V2 preprint revision (2026-09-02, requested by Et after the paper/blog revision)
+
+Goal: `paper/et_miner_proteome.tex` reports ONLY the fresh 2026-09-02 run on this 2×RTX 3090 box; zero
+H100/Hopper/SXM references in source and compiled PDF; every number traceable to RESULTS.md /
+COMPARISON_REPORT.md; inconclusive claims removed or flagged; minimal diffs, no restyling; branch `v2`
+(local only — Et: "upload nothing"); deliverables = revised tex, compiled PDF (latexmk), CHANGELOG_V1_V2.md.
+
+- [x] branch `v2` created from 08ce0e1; latexmk 4.76 installed via apt
+- [x] GPU configuration per artifact established (RESULTS rows; logs): Table 2 campaign and the
+      direct-vs-SON comparison = single RTX 3090 (`APRIORI BITVEC` path, n_gpus 1); Opus/Blitz/minc4
+      per-K exports, the null model (5 and 100) and validate_row_split = two-GPU row-split path
+- [x] figure audit: architecture.pdf embeds "GPU (H100 80 GB)", "150 GB", "26 GB", "5 GB", "264 B",
+      "41×", "4.4×" → must be regenerated; concept_figure.pdf embeds only "1,002 features" / "76.9M proteins"
+- [x] worklist from COMPARISON_REPORT_rows.json (tex rows: expected-hardware-deviation → fresh value;
+      inconclusive → remove or flag; confirmed → keep)
+- [x] tex edits (hardware/setup, timings, extraction, SON paragraph, null model, conclusion, appendix,
+      acknowledgment, metadata)
+- [x] figures regenerated (mining_campaign without the H100 series; architecture redrawn from fresh values)
+- [x] latexmk build + grep of source and pdftotext output for H100/Hopper/SXM/SM90
+- [x] number-by-number traceability table (script) → CHANGELOG_V1_V2.md
+- [x] fresh-context adversarial review of V2 vs RESULTS.md; fix findings (two rounds: tex/blog review
+      and a code inspection of the unmeasured PCIe claims; a third, targeted re-review after the pinned re-run)
+- [ ] commit on `v2` locally (no push)
+- [~] SINGLE-GPU RE-RUN (started 2026-09-02T18:43:09Z): code inspection showed the library auto-splits levels with
+      ≥500,000 candidates across all visible GPUs (src/et_miner/gpu/dispatch.py:128, CANDIDATE_COUNT_THRESHOLD_K3
+      = 500_000; no launch script pinned a device; full_campaign_r1.log shows the throughput step at that
+      threshold), so P-014 and P-010/P-013 were NOT single-GPU runs. Chain script
+      runs/20260902T0000Z/phase2/scripts/chain_single_gpu.sh (PID 574530) re-runs
+      experiment_full_campaign.py --runs 1 and then experiment_direct_vs_son.py --min-support 0.00001 --runs 1
+      with CUDA_VISIBLE_DEVICES=0, sampling both GPUs every 5 s. Outputs: phase3/2026_01/single_gpu/{exp/,
+      full_campaign_1gpu.log, direct_vs_son_1gpu.log, nvidia_smi_*.csv, campaign.done, chain.done}.
+      RESUME: if campaign.done exists but chain.done does not, re-run only the direct_vs_son line of the script.
+      V2 Table 2 / abstract / Table 6 timings and the SON comparison must be updated from these outputs.
+- [x] tex pass 4 applied (scratchpad `revise_tex_v2_pass4.py`): reviewer fixes (dataset sentence, empty-bin cause,
+      10.4 min wall, 24 GB instead of 80 GB, subset/full-set 26/9.6 GB, plddt_mean_med, SON identity wording,
+      erratum pointer, Section 2.4 → \ref) and the appendix rewrite for the executed single-GPU path (Algorithm 1,
+      C.2, C.3, Tables 7–8, Discussion 4.2; 3.1 GB H2D). RESULTS P-027, X-023..X-025. Build OK (13 pages).
+- [x] pinned campaign DONE 20:07Z (RESULTS P-028; GPU 1 idle in all 1,017 samples); tex pass 5 (campaign part)
+      applied: Table 2 / abstract / intro / Table 6 / conclusion / Methods now carry the single-GPU timings
+      (Opus 43.9 min); `paper/figures/make_figures.py` now reads the single_gpu campaign JSON. Waiting for the
+      pinned direct-vs-SON comparison (chain.done) to update the SON paragraph (P-029).
+- [x] pinned direct-vs-SON DONE 21:51Z (RESULTS P-029: direct 62.25 s, SON 6,151.06 s, 98.8×, exact; GPU 1 idle in all
+      1,244 samples). tex pass 6 applied (SON paragraph + Discussion: the SON time splits into 88 min chunk-local mining
+      and 14 min global re-count). CHANGELOG_V1_V2.md regenerated (traceability assert passes). Chain complete;
+      Monitor ended. Remaining: targeted re-review of the final tex, commit on `v2` (no push).
+- [x] final re-review (fresh context, ~255 values) → 10 defects, all fixed in tex pass 7 and the changelog
+      generator: early-exit description matched the unused legacy kernel (the runs used the shared-memory
+      kernel: tile-level exit); SON set identity asserted at Power where only counts/K-distributions were
+      compared (P-027 covers Base and Super); the two SON runs at Base/Super were not pinned (now stated);
+      intermediate-K supports re-derived from the Blitz tables (P-030: K=12 16,185 with 111 matching
+      itemsets; K=13 and K=11 give the level maxima 11,521 and 28,913); "memory-aware chunk sizing"
+      belongs to the row-split path; "~10 GB" → 9.6 GB; "three orders of magnitude" → one to two (Table 6
+      shows 5.1x over GMiner); changelog 2.5 GB/X-021 leftovers.
+- [x] V2 edit scripts and the changelog generator deposited under runs/20260902T0000Z/phase4/
+- [x] final verification: latexmk rc=0, 13 pages, 1 pre-existing overfull box, no undefined refs/cites;
+      zero H100/Hopper/SXM/SM90 hits in the tex and in pdftotext output; traceability assert passes
+      (every numeric token of the body mapped to a RESULTS row, a COMPARISON_REPORT key or a stated role)
+- [x] commit on `v2` locally (no push, per Et's "upload nothing")

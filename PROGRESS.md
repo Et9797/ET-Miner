@@ -414,6 +414,13 @@ OUP, ACM, IEEE and Nature block non-browser access), so the audit verified inste
       the text names the holder and adds the pattern maxima 10,978 / 18,257; headings corrected; scope
       wording ('entire known protein universe') -> 76.9M mined proteins. Rebuild clean; changelog assert passes.
 - [x] paper/et_miner_proteome.pdf replaced by the pass-10 build (12 pages).
-- [ ] commit; push `v2`; open the PR against `alphafold-experimental-results-reproduction` (do not merge).
+- [x] committed as 72c45f6 and pushed to `origin/v2`.
+- [ ] OPEN THE PR (blocked on this box): the `gh` token is a fine-grained PAT without pull-request write
+      permission (`createPullRequest` refused via GraphQL and REST, HTTP 403). The description is ready in
+      `runs/20260902T0000Z/phase4/PR_V2_BODY.md`. From a machine with an authorized token:
+      `gh pr create --repo Et9797/ET-Miner --base alphafold-experimental-results-reproduction --head v2 \
+         --title "V2 preprint: RTX 3090 rerun only, citation audit" --body-file runs/20260902T0000Z/phase4/PR_V2_BODY.md`
+      or open https://github.com/Et9797/ET-Miner/compare/alphafold-experimental-results-reproduction...v2?expand=1
+      and paste the file. Do not merge; leave open for review.
 RESUME: if the tex is edited again, run `make_changelog_v2.py .` (assert) and `build_paper.sh` before committing;
 the binhex.tex stub (`\def\nhex#1#2{}`) must be on TEXINPUTS for latexmk on this box.

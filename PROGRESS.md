@@ -424,3 +424,5 @@ OUP, ACM, IEEE and Nature block non-browser access), so the audit verified inste
       and paste the file. Do not merge; leave open for review.
 RESUME: if the tex is edited again, run `make_changelog_v2.py .` (assert) and `build_paper.sh` before committing;
 the binhex.tex stub (`\def\nhex#1#2{}`) must be on TEXINPUTS for latexmk on this box.
+- [x] README.md: AlphaFold section, results table and GPU feature bullets now carry the 2026-09-02 RTX 3090 values
+      (P-028, P-029, P-018, X-010/X-011/X-015/X-021/X-023/X-024) and point to the reproduction artifacts; H100/H200 claims removed.

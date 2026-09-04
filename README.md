@@ -11,7 +11,7 @@ ET-Miner implements the Apriori algorithm across three performance tiers, all be
 |------|-------|-------------|
 | **Tier 1** | Python + Polars | Vectorized boolean matrix operations. Zero dependencies beyond Polars. |
 | **Tier 2** | Rust via PyO3 | SIMD-vectorized CSR support counting (AVX2/AVX-512). 80--110x speedup. |
-| **Tier 3** | Multi-GPU CUDA | CSR bitvector encoding, fused popcount kernels, zero-transfer GPU-resident mining. |
+| **Tier 3** | Multi-GPU CUDA | CSR bitvector encoding, fused popcount kernels, GPU-resident mining (bitvectors uploaded once, metadata-only transfers per level). |
 
 The streaming engine (SON algorithm) enables bounded-memory processing of arbitrarily large datasets — limited by storage, not RAM.
 
@@ -200,28 +200,46 @@ flush/upload pipeline are environment variables, documented in
 - CUDA kernel sources maintained as real `.cu` files (`src/et_miner/gpu/kernels/_src/`), compiled on first use via CuPy
 - Direct CSR-to-GPU bitvector conversion (bypasses dense matrix construction)
 - Fused CUDA kernels: candidate generation + support counting + filtering in a single launch
-- GPU-resident mining: zero PCIe transfers between K-levels (~264 bytes total across 22 levels)
+- GPU-resident mining: the bitvector matrix is uploaded once (3.1 GB of CSR arrays for the 76.9M-protein AlphaFold subset) and stays on the device across all K-levels; per level only prefix-group arrays go up and 12-byte survivor records come down (0.32 GB in total for the 26.8M-itemset run). The optional `gpu_resident=True` variant keeps candidate generation and result collection on the device as well
 - Density-adaptive layout: `sparse_from_k="auto"` measures each level's mean support and switches from dense bitvectors to sparse CSR tidsets when tidsets become the smaller representation (mean support < n/32); an int pins the switch to a fixed K-level
-- Multi-GPU support with per-device work distribution (tested up to 8x H200)
+- Multi-GPU support by candidate split or row split. Any K>=3 level with 500,000 or more candidates is dispatched to all visible GPUs automatically, so pin `CUDA_VISIBLE_DEVICES` when you want a single-GPU measurement (the 2026-09 campaign used two RTX 3090s for the null model and the per-K exports)
 
 ## AlphaFold Application
 
-Applied to the AlphaFold Protein Structure Database, ET-Miner discovered **26.8 million co-occurrence patterns** across **~76M predicted protein structures**, reaching feature combinations of size K=22 in 7.3 minutes on a single H100 GPU.
+Applied to the AlphaFold Protein Structure Database, ET-Miner discovered **26.8 million co-occurrence patterns** across the **76.9 million proteins** that carry at least two annotated features, reaching feature combinations of size K=22 in 43.9 minutes on a single RTX 3090. Every value in this section comes from the full re-execution of 2026-09-02 described under [Reproduction](#reproduction).
 
-**Problem.** The AlphaFold Database contains predicted protein structures for over 200 million proteins. Which combinations of structural and functional features — Pfam domains, Gene Ontology terms, confidence scores — co-occur across the protein universe? A standard dense boolean matrix for this dataset requires 206 GB, exceeding even high-end GPU memory.
+**Problem.** The AlphaFold Database holds predicted structures for 214.7 million proteins. Which combinations of structural and functional features — Pfam domains, Gene Ontology terms, confidence scores — co-occur across the protein universe? A dense boolean matrix for the 205.6 million proteins that pass the confidence filter would need 206 GB, beyond any GPU's memory.
 
-**Solution.** ET-Miner constructs a CSR representation directly from transactions (~5 GB), converts to GPU-resident bitvectors (~26 GB), and performs all Apriori iterations on-GPU with zero PCIe transfers.
+**Solution.** ET-Miner builds a CSR representation directly from the transactions (5.1 GB in coordinate form for the mined subset), copies its arrays to the GPU once (3.1 GB), expands them on-device into a 9.6 GB bitvector matrix that stays resident across all K-levels, and moves only prefix-group arrays up and 12-byte survivor records down at each level.
 
-### Results
+### Results (re-execution of 2026-09-02, one RTX 3090)
 
 | Metric | Value |
 |--------|-------|
-| Proteins processed | 214M total, 76.9M with multiple annotations |
-| Feature vocabulary | 1,002 items (Pfam domains, GO terms, pLDDT bins) |
-| Itemsets discovered | 26.8 million |
-| Maximum K | 22 (mathematically proven ceiling) |
-| Mining time (deepest tier) | 7.3 minutes on single H100 |
-| Support range | 0.1% down to 0.00001% |
+| Proteins | 214,683,829 AlphaFold DB entries; 205,620,298 with mean pLDDT >= 50; 76,890,945 with at least two annotated features (the mined set) |
+| Annotations | UniProt TrEMBL release 2026_01 (Pfam and GO cross-references) |
+| Feature vocabulary | 1,006 defined items (500 Pfam domains, 500 GO terms, 6 pLDDT bins), 1,002 populated |
+| Itemsets discovered | 26,849,505 at a minimum support of 8 proteins (0.00001%) |
+| Maximum K | 22 (one itemset shared by 8 proteins; an empirical ceiling, not a proven one) |
+| Mining time (deepest threshold) | 43.9 min on one RTX 3090 (24 GB) |
+| Support range | 0.1% down to 0.00001% (six thresholds) |
+| Null model | 100 permutations preserving per-protein feature counts: no null run reaches K >= 7 |
+| Streaming (SON) vs direct | same itemsets (identity verified at 0.1% and 0.01%; same count and K-distribution at 0.001%), 99x slower at 0.001% (6,151 s vs 62 s) |
+
+Six-threshold campaign, all exhaustive on the direct CSR-to-GPU path with `CUDA_VISIBLE_DEVICES=0`:
+
+| Threshold | Min support | Min count | Itemsets | Max K | Time |
+|-----------|-------------|-----------|----------|-------|------|
+| Base | 0.1% | 76,891 | 5,305 | 9 | 31.1 s |
+| Super | 0.01% | 7,690 | 113,405 | 14 | 52.6 s |
+| Power | 0.001% | 769 | 475,865 | 14 | 74.7 s |
+| Blitz | 0.0001% | 77 | 2,841,280 | 19 | 4.9 min |
+| Ultra | 0.00002% | 16 | 14,558,875 | 20 | 33.3 min |
+| Opus | 0.00001% | 8 | 26,849,505 | 22 | 43.9 min |
+
+### Reproduction
+
+The original result data was lost, so the whole pipeline was re-executed on 2026-09-02 on a vast.ai box with two RTX 3090s: AlphaFold metadata download, feature extraction from UniProt TrEMBL 2026_01, the six-threshold campaign, the 100-permutation null model and the streaming comparison. Every script, log, per-K itemset table and experiment JSON is under `runs/20260902T0000Z/` (start at its `README.md`). `RESULTS.md` lists each fresh value with its artifact, and `COMPARISON_REPORT.md` checks the 3,521 claims of the original preprint, its reviews and its logs against the fresh values: 1,307 confirmed, 119 hallucinated, 555 expected hardware deviations, 1,540 inconclusive. The preprint revised to report only this run is `paper/et_miner_proteome.tex` (branch `v2`; `CHANGELOG_V1_V2.md` maps every value from V1 to V2, and `runs/20260902T0000Z/phase4/citation_audit/` records the citation audit). The superseded V1 preprint is archived at Zenodo, DOI [10.5281/zenodo.18674353](https://doi.org/10.5281/zenodo.18674353).
 
 ## Benchmarks
 

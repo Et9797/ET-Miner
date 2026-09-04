@@ -182,3 +182,46 @@ surfaced by an extraction subagent; "verified" means re-checked directly.
   built; every run mines the 76.9M-row subset whose matrix is 9.63 GB (RESULTS X-021), which is also why
   the re-execution fits on 24 GB cards. The revised tex states both sizes and labels the 26 GB as the
   full-set figure. The "~3 GB" host-to-device transfer is 2.53 GB (int64 indices) and is now written ~2.5 GB.
+
+## I-015 — literature citations of the preprint did not survive verification against their sources (verified 2026-09-04)
+
+Every `\cite` of the V2 tex was checked against the cited work's retrieved text (full text where open,
+abstract otherwise; `runs/20260902T0000Z/phase4/citation_audit/`). 58 claims: 35 verified, 16 not supported,
+6 unverifiable, 1 partly supported. The failures that changed the text:
+- Introduction: "over 200 million proteins" was cited to Jumper 2021 and Varadi 2022 (the latter reports
+  360,000 structures across 21 proteomes); the figure is stated by Varadi 2024 (now cited).
+- Introduction: "50--350x speedups over Eclat and FP-Growth" — no cited source gives such a range; Fang 2009
+  reports its GPU code 4--16x *slower* than CPU FP-growth, Zhang 2011 compares against Apriori only, and
+  Djenouri's 350x is against the authors' own sequential algorithm on a GPU cluster.
+- Discussion 4.2 / Table 6: BIGMiner's "largest prior scale, 100M transactions" contradicts its own abstract
+  ("up to 6.5 billion transactions"); Borgelt's and GMiner's table rows have no retrievable support; the
+  GMiner full text could not be obtained at all.
+- Appendix C.3: GPApriori keeps its bitsets GPU-resident ("Only the vertical lists of first generation will be
+  saved in graphics memory"), so the contrast with "implementations that transfer transaction bitmaps ... at
+  each iteration" was false for that citation.
+- Results 3.3/3.4: Rehwinkel & Gack call RIG-I/MDA5 SF2 (DECH-box) helicases, not DEAD-box; Dillingham &
+  Kowalczykowski describe RecB as an SF1 helicase and never link DEAD-box helicases to RecBCD; Sauvage et al.
+  state that beta-lactams bind the penicillin-binding (transpeptidase) domain, not both PBP domains.
+- Discussion 4.2: Mrzic et al. never say "NP-hard"; Wang et al. built networks for 417 organisms, not
+  "individual proteomes".
+- Future work: the homodimer expansion was cited to the AlphaFold 3 paper, which never mentions it; the
+  numbers and the quotation are from the EMBL-EBI announcement of 16 March 2026 (now cited, with the
+  bioRxiv preprint), whose 19 May 2026 update also supersedes "heterodimers ... will follow".
+- Bibliographic errors: Fang 2009 carried a ten-author list belonging to another work (the paper has five
+  authors); Djenouri 2019 carried the wrong title; Zaki 1997 pages 283--296 should be 283--286; Chon 2024
+  has two authors, not "et al."; Varadi 2024's subtitle was truncated.
+Actions are itemized in `CITATION_AUDIT.md`; the tex edits are `revise_tex_v2_pass8_citations.py` and
+`revise_tex_v2_pass9_citations.py`.
+
+## I-016 — the K=13 and K=11 supporting-protein maxima of the preprint belong to other itemsets (verified 2026-09-04)
+
+RESULTS P-030 reported the level maxima 11,521 (K=13) and 28,913 (K=11) for the 'Helicase-Recombinase DNA Repair
+Module' and 'AAA+ ATPase Proteasome Complex' patterns, which name no Pfam identifier. Decoding the Blitz tables
+(`runs/20260902T0000Z/phase4/decode_intermediate_k.py`, RESULTS P-031) shows that the K=11 maximum is held by a
+penicillin-binding-protein itemset (PF00905+PF00912 with cell-wall terms), not by an AAA+/Clp itemset (those reach
+18,257 over 491 itemsets), and that the K=13 maximum itemset carries DNA repair, recombination and replication but
+no SOS-response term (the 23 itemsets with the SOS term reach 10,978). The V2 tex keeps the level maxima as the
+reported counts (Decision 2) but now states which itemset holds them and gives the pattern-specific maxima; the
+headings were corrected (no recombinase domain; Clp protease rather than proteasome; the SH3-SH2-kinase
+architecture of the K=17 pattern is the non-receptor Src-family architecture, so 'Receptor Tyrosine Kinase' and the
+uncited erlotinib sentence were dropped).

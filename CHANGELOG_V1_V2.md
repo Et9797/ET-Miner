@@ -233,9 +233,11 @@ One row per V1 claim whose verdict in COMPARISON_REPORT.md was *hallucinated* or
 
 ## 4. Flagged for your decision (inconclusive claims kept in V2)
 
-These are not results of this paper and cannot be verified by re-execution. They are still in the V2 tex; say the word and I remove or reword any of them.
+These are not results of this paper and cannot be verified by re-execution. Rows in 4a were removed from the V2 tex by the citation audit (passes 8 and 9); rows in 4b and 4c are still in the tex.
 
-### 4a. Literature values about other systems (kept as attributed citations)
+### 4a. Literature values about other systems (removed by the citation audit; see §7)
+
+Every row below described another system or tool. Passes 8 and 9 deleted these values and the sentences that carried them; §7 records the verification outcome per citation.
 
 | V1 claim id | line | quantity | value | where |
 |---|---|---|---|---|
@@ -357,50 +359,49 @@ Checked against the source by a fresh-context code inspection (see §5); each ro
 
 Tokens were extracted programmatically from the document body (preamble and bibliography excluded, identifiers such as GO/Pfam accessions and the DOI included). 'Source' names the RESULTS.md row, the COMPARISON_REPORT.md §2 key, or the non-claim role of the token.
 
-250 distinct tokens, all mapped.
+254 distinct tokens, all mapped.
 
 | token | occurrences | source |
 |---|---|---|
-| 1 | 60 | K index; counts of one (1 GPU, 1 itemset at K=22 = P-003) |
+| 1 | 46 | K index; counts of one (1 GPU, 1 itemset at K=22 = P-003) |
 | 200 | 3 | M-001 ('over 200 million') |
-| 1,002 | 12 | X-015 |
-| 76.9 | 16 | X-011 |
-| 43.9 | 6 | P-028 (2,631.2 s) |
-| 3090 | 12 | E-001 |
+| 1,002 | 11 | X-015 |
+| 76.9 | 14 | X-011 |
+| 43.9 | 5 | P-028 (2,631.2 s) |
+| 3090 | 10 | E-001 |
 | 26.8 | 4 | P-002 |
-| 22 | 25 | P-003 (K max); K index; K=22 itemset P-006..P-009 |
+| 22 | 23 | P-003 (K max); K index; K=22 itemset P-006..P-009 |
 | 0.001 | 6 | P-028/P-018 (0.001 % support); Table 3 % (P-004) |
-| 100 | 21 | P-018 (100 permutations); X-020 (100 items/txn row); 'BIGMiner 100M/100K' literature (§4a) |
+| 100 | 14 | P-018 (100 permutations); X-020 (100 items/txn row) |
 | 6 | 11 | P-018 (null K max); X-015 (6 bins); P-028 (six runs); K index |
 | 88,745 | 4 | P-018 |
 | 7 | 11 | P-018 (K≥7); P-007 (7 CC terms); K index |
 | 0.01 | 7 | P-023 (p≈0.01); P-028 (0.01 % support); Table 3 % |
-| 2026 | 6 | U-005 (2026_01); U-009 (retrieved 2026-09-02); version date |
+| 2026 | 7 | U-005 (2026_01); U-009 (retrieved 2026-09-02); version date; afdb2026news (March and May 2026, §7) |
 | 0270 | 3 | P-008 (PF00270); X-022 |
 | 003724 | 2 | P-008; P-026 |
 | 045087 | 2 | P-008; P-026 |
-| 3 | 24 | K index; structural counts (three innovations); P-026 (3-feature) |
+| 3 | 21 | K index; structural counts (three innovations); P-026 (3-feature) |
 | 1,234 | 1 | P-026 |
-| 50 | 5 | M-003 (pLDDT≥50); M-009 (bin 50–90); '50–350×' literature (§4a) |
-| 350 | 1 | literature (§4a) |
 | 206 | 4 | X-018 (dense full set) |
 | 205.6 | 6 | X-010 |
 | 24 | 5 | E-001 (24 GB); Phase 0 audit (24 cores); X-008 (24,291) |
-| 4 | 13 | P-018 (enriched from K=4); X-015 (4 empty bins); K index; Figure 1 toy example |
-| 5.1 | 5 | COMPARISON csr_bytes_gb (5.06) |
-| 2 | 30 | E-001 (two GPUs); X-015 (2 bins); P-007 (2 Pfam); P-013 (2 chunks); K index |
+| 4 | 12 | P-018 (enriched from K=4); X-015 (4 empty bins); K index; Figure 1 toy example |
+| 5.1 | 4 | COMPARISON csr_bytes_gb (5.06) |
+| 2 | 23 | E-001 (two GPUs); X-015 (2 bins); P-007 (2 Pfam); P-013 (2 chunks); K index |
 | 214 | 1 | M-001 |
 | 205,620,298 | 2 | X-010 / M-003 |
 | 214,683,829 | 1 | M-001 |
+| 50 | 4 | M-003 (pLDDT≥50); M-009 (bin 50–90) |
 | 01 | 3 | U-005 (release 2026_01) |
 | 202,556,314 | 1 | X-001 / U-005 |
-| 500 | 9 | X-008 / X-015 |
+| 500 | 8 | X-008 / X-015 |
 | 291 | 1 | X-008 |
 | 25 | 2 | X-008 (25,993); P-022 (K=6 max 25) |
 | 993 | 1 | X-008 |
 | 90 | 3 | M-008/M-009 (bin edges) |
 | 006 | 1 | X-015 (1,006) |
-| 8 | 17 | P-002/P-028 (min_count 8); P-006 (8 proteins); P-007 (8 MF terms); X-024 (8-byte counts/counter); K index |
+| 8 | 14 | P-002/P-028 (min_count 8); P-006 (8 proteins); P-007 (8 MF terms); X-024 (8-byte counts/counter); K index |
 | 149.8 | 1 | U-007 |
 | 48 | 1 | U-011 (2,879 s) |
 | 29 | 1 | X-005 + X-007 (765 s + 956 s) |
@@ -413,13 +414,18 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 76,890,945 | 1 | X-011 |
 | 37.4 | 1 | X-011 |
 | 316 | 1 | X-014 |
-| 64 | 15 | code inspection: uint64 matrix, __popcll (§5) |
-| 15 | 6 | COMPARISON csr_vs_dense_subset_ratio (15.2); K index |
+| 64 | 14 | code inspection: uint64 matrix, __popcll (§5) |
+| 15 | 4 | COMPARISON csr_vs_dense_subset_ratio (15.2); K index |
 | 77 | 3 | COMPARISON dense_subset_gb (77); P-028 (min_count 77) |
 | 40 | 2 | COMPARISON csr_vs_dense_full_ratio (40.7); P-013 (40 M chunk) |
 | 26 | 3 | COMPARISON bitvec_gb (25.8) |
-| 9.6 | 11 | X-021; P-018 (K=5 σ) |
-| 3.1 | 6 | X-023 (3.15 GB); X-018 (3.1× subset ratio) |
+| 9.6 | 10 | X-021; P-018 (K=5 σ) |
+| 3.1 | 4 | X-023 (3.15 GB); X-018 (3.1× subset ratio) |
+| 17 | 4 | K index |
+| 12 | 7 | K index; X-024 (12-byte survivor records) |
+| 19 | 11 | P-028 (Blitz K max); X-017 (19 proteins ≥23); K index; afdb2026news update of 19 May 2026 (§7) |
+| 13 | 5 | COMPARISON sw_python; K index |
+| 11 | 5 | K index |
 | 8.6 | 1 | E-001 |
 | 595.71 | 1 | E-001 |
 | 05 | 1 | E-001 (driver 595.71.05) |
@@ -428,12 +434,11 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 7402 | 1 | Phase 0 audit (EPYC 7402P) |
 | 69.6 | 1 | E-004 |
 | 3.10 | 1 | COMPARISON sw_python (3.10.13) |
-| 13 | 4 | COMPARISON sw_python; K index |
 | 14.1 | 1 | COMPARISON sw_cupy |
 | 2.2 | 1 | COMPARISON sw_numpy (2.2.6) |
 | 22.04 | 1 | COMPARISON sw_os |
-| 0 | 6 | P-018 (null K≥7); P-009 (0 parent–child pairs) |
-| 5 | 8 | K index; five highlighted patterns (editorial) |
+| 0 | 5 | P-018 (null K≥7); P-009 (0 parent–child pairs) |
+| 5 | 7 | K index; five highlighted patterns (editorial) |
 | 16 | 4 | P-028 (Ultra min_count); K index |
 | 0.1 | 3 | P-028 (0.1 % support); X-020 (0.1 % density row) |
 | 76,891 | 1 | P-028 |
@@ -449,11 +454,10 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 74.7 | 2 | P-028 |
 | 0.0001 | 1 | P-028 |
 | 2,841,280 | 2 | P-028 / P-011 |
-| 19 | 8 | P-028 (Blitz K max); X-017 (19 proteins ≥23); K index |
 | 4.9 | 3 | P-028 (292.9 s); X-018 (4.9× full-set ratio) |
 | 0.00002 | 1 | P-028 (nominal) |
 | 14,558,875 | 1 | P-028 |
-| 20 | 6 | P-028 (Ultra K max); K index |
+| 20 | 3 | P-028 (Ultra K max); K index |
 | 33.3 | 1 | P-028 (1,996.4 s) |
 | 0.00001 | 3 | P-028 (nominal) |
 | 26,849,505 | 1 | P-002 / P-028 |
@@ -468,7 +472,6 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 13.14 | 3 | P-004 |
 | 3.53 | 2 | P-004 |
 | 0.00 | 1 | P-004 (K=1 share) |
-| 12 | 10 | K index; X-024 (12-byte survivor records) |
 | 1,996,772 | 1 | P-004 |
 | 7.44 | 1 | P-004 |
 | 73,786 | 1 | P-004 |
@@ -489,24 +492,22 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 0.44 | 1 | P-004 |
 | 2,626,332 | 1 | P-004 |
 | 9.78 | 1 | P-004 |
-| 17 | 3 | K index |
 | 37,261 | 1 | P-004 |
 | 0.14 | 1 | P-004 |
 | 3,118,459 | 1 | P-004 |
 | 11.61 | 1 | P-004 |
-| 18 | 2 | K index |
+| 18 | 2 | K index; afdb2026news: 18 million lower-confidence homodimers (§7) |
 | 9,375 | 1 | P-004 |
 | 0.03 | 1 | P-004 |
 | 3,442,954 | 1 | P-004 |
 | 12.82 | 1 | P-004 |
 | 1,818 | 1 | P-004 |
 | 255 | 1 | P-004 |
-| 10 | 7 | K index; X-021 (~10 GB bitmap = 9.6); X-020 (10 items/txn row) |
+| 10 | 5 | K index; X-021 (~10 GB bitmap = 9.6); X-020 (10 items/txn row) |
 | 3,293,612 | 1 | P-004 |
 | 12.27 | 1 | P-004 |
 | 21 | 3 | K index; X-022 (21 independent features) |
-| 23 | 4 | P-004 (K=21 count); X-017 (≥23 features) |
-| 11 | 4 | K index |
+| 23 | 5 | P-004 (K=21 count); X-017 (≥23 features); P-031 (23 K=13 itemsets with the SOS term) |
 | 2,739,532 | 1 | P-004 |
 | 10.20 | 1 | P-004 |
 | 4.2 | 2 | P-018 (108,059/25,442); LaTeX column width p{4.2cm} |
@@ -531,22 +532,31 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 11545 | 1 | X-022 (IPR011545) |
 | 01650 | 1 | X-022 (IPR001650) |
 | 46 | 1 | X-013 / X-017 |
-| 32 | 7 | X-017; '32-bit __popc' literature (§4a); X-024 (32-word window) |
+| 32 | 3 | X-017; X-024 (32-word window) |
 | 48,007,493 | 1 | P-017 |
 | 75.6 | 1 | P-017 |
 | 342 | 1 | P-017 |
 | 27 | 1 | P-017 |
-| 187 | 1 | P-011 |
-| 611 | 1 | P-011 |
+| 187 | 1 | P-030 (single K=19 itemset) |
+| 611 | 1 | P-030 (single matching K=17 itemset) |
 | 7714 | 1 | P-011 (PF07714) |
 | 0017 | 1 | P-011 (PF00017) |
 | 0018 | 1 | P-011 (PF00018) |
 | 11,521 | 1 | P-030 |
+| 10,978 | 1 | P-031 (K=13 itemsets with the SOS term) |
 | 16,185 | 1 | P-030 |
 | 111 | 1 | P-030 |
 | 0905 | 1 | COMPARISON pattern_k12_member_1 |
 | 0912 | 1 | COMPARISON pattern_k12_member_2 |
 | 28,913 | 1 | P-030 |
+| 491 | 1 | P-031 (K=11 AAA+Clp itemsets) |
+| 0004 | 1 | P-031 (PF00004) |
+| 7724 | 1 | P-031 (PF07724) |
+| 7871 | 1 | P-031 (PF17871) |
+| 0431 | 1 | P-031 (PF10431) |
+| 0574 | 1 | P-031 (PF00574) |
+| 2861 | 1 | P-031 (PF02861) |
+| 18,257 | 1 | P-031 (K=11 AAA+Clp itemsets) |
 | 42 | 2 | P-018 (seed) |
 | 2,007 | 1 | P-018 |
 | 18.6 | 1 | P-018 |
@@ -579,13 +589,11 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 68 | 2 | P-018 (+68,730) |
 | 730 | 2 | P-018 (+68,730) |
 | 88 | 1 | P-029 (pass 1, 88.3 min) |
-| 30 | 3 | literature: BIGMiner 30 nodes, GMiner ~30 (§4a) |
-| 1.7 | 3 | literature: GMiner 1.7M (§4a) |
-| 280 | 1 | literature: GTX 280 (§4a) |
-| 1080 | 1 | literature: GTX 1080 (§4a) |
-| 150 | 1 | literature: GMiner 20–150 s (§4a) |
 | 128.7 | 1 | X-012 |
 | 62.6 | 1 | X-012 |
+| 1.7 | 1 | afdb2026news: 1.7 million high-confidence homodimers (§7) |
+| 80,000 | 1 | afdb2026news: almost 80,000 high-confidence heterodimers, 19 May 2026 update (§7) |
+| 8.1 | 1 | afdb2026news: 8.1 million lower-confidence heterodimers (§7) |
 | 10.5281 | 2 | metadata (Zenodo DOI) |
 | 18674353 | 2 | metadata (Zenodo DOI) |
 | 997 | 1 | metadata (author e-mail) |
@@ -595,8 +603,6 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 1.5 | 2 | LaTeX layout (vspace); X-020 (~1.5 % break-even) |
 | 2,048 | 1 | X-024 / code inspection (32 words × 64 proteins) |
 | 0.32 | 1 | X-024 (12 B × 26,849,505) |
-| 2018 | 1 | citation year (table header) |
-| 2024 | 1 | citation year (table header) |
 | 7.8 | 2 | X-018/X-020 (theoretical row) |
 | 0.22 | 1 | X-018 |
 | 0.41 | 1 | X-018 |
@@ -611,4 +617,57 @@ Tokens were extracted programmatically from the document body (preamble and bibl
 | 1.4 | 1 | X-018/X-020 (theoretical row) |
 | 62.1 | 1 | X-018/X-020 |
 | 0.15 | 1 | X-018/X-020 |
+
+## 7. Citation audit (passes 8 and 9)
+
+Two checks per bibliography entry. (1) Metadata: every entry was matched against CrossRef and Semantic Scholar by title and first author (`crossref_check.py` -> `crossref_check.md`), with DBLP and proceedings PDFs for the conference papers CrossRef does not index. (2) Claim support: every sentence carrying a `\cite` was checked against the cited work's retrieved text by five verification agents working from full texts where open (Europe PMC, PLOS, BMC, vldb.org, ceur-ws.org, ijcai.org, arXiv, author copies) and from abstracts otherwise; their verdicts with verbatim quotes and grep anchors are in `agent_verdicts/*.json`. The retrieved texts stayed in the session scratchpad because most are copyrighted; the quotes below are verbatim. Actions: VERIFIED claims were kept; NOT SUPPORTED and UNVERIFIABLE claims were deleted or cut back to the words the source states; values stated by a different work already in the bibliography were re-attributed; the tool-comparison values (Introduction, Discussion 4.2 with Table 6, Appendix D Tables 7 and 8, Appendix C.1) were deleted regardless of verifiability, as the V2 brief required; entries left uncited were dropped from the bibliography, which was then reordered to first-citation order.
+
+| key | DOI / source | claims checked | verdicts | action in V2 |
+|---|---|---|---|---|
+| jumper2021 | 10.1038/s41586-021-03819-2 | 1 | VERIFIED: AlphaFold is the method behind the database | kept |
+| varadi2022 | 10.1093/nar/gkab1061 | 2 | NOT SUPPORTED: over 200 million proteins; NOT SUPPORTED: spanning virtually all known organisms | kept |
+| varadi2024 | 10.1093/nar/gkad1011 | 1 | VERIFIED: 214 million predicted structures across UniProt | kept |
+| uniprot2023 | 10.1093/nar/gkac1052 | 2 | NOT SUPPORTED as worded: annotations from the 'UniProt cross-reference pipeline'; VERIFIED: UniProt is released every eight weeks | kept |
+| mistry2021 | 10.1093/nar/gkaa913 | 1 | VERIFIED: Pfam domain assignments | kept |
+| go2023 | 10.1093/genetics/iyad031 | 2 | VERIFIED: Gene Ontology terms; VERIFIED: GO is released monthly | kept |
+| wang2011 | 10.1371/journal.pone.0017906 | 2 | VERIFIED: domain co-occurrence networks, pairwise, scale-free; NOT SUPPORTED: limited to individual proteomes | kept |
+| coin2009 | 10.1093/bioinformatics/btp560 | 1 | VERIFIED: statistical co-occurrence of domain pairs for new-domain det | kept |
+| meysman2015 | 10.1186/s13040-015-0038-4 | 1 | VERIFIED: spatially cohesive amino-acid patterns from the PDB; ~32K st | kept |
+| mrzic2018 | 10.1186/s13040-018-0181-9 | 2 | VERIFIED: reviewed frequent subgraph mining for biomolecular data; NOT SUPPORTED: graph mining is NP-hard and scales poorly | kept |
+| barrio2024 | 10.1126/science.adq4946 | 1 | VERIFIED: TED catalogues domains across the AlphaFold Database | kept |
+| rehwinkel2020 | 10.1038/s41577-020-0288-3 | 2 | VERIFIED: RIG-I and MDA5 are established viral RNA sensors in innate i; NOT SUPPORTED: described as DEAD-box helicases | kept |
+| wahl2009 | 10.1016/j.cell.2009.02.009 | 1 | VERIFIED: DEAD/DEAH-box helicases are core pre-mRNA splicing machinery | kept |
+| boggon2004 | 10.1038/sj.onc.1208081 | 1 | VERIFIED (abstract): Src-family kinases: SH3, SH2 and kinase domains | kept |
+| dillingham2008 | 10.1128/MMBR.00020-08 | 2 | VERIFIED: RecBCD repairs double-strand breaks by recombination; SOS; NOT SUPPORTED: a DEAD-box helicase pattern is 'consistent with RecBCD-like  | removed (uncited after the edit) |
+| sauvage2008 | 10.1111/j.1574-6976.2008.00105.x | 2 | VERIFIED: PBPs carry transpeptidase and transglycosylase domains and a; NOT SUPPORTED: beta-lactam antibiotics bind 'these exact domains' / 'these  | kept |
+| agrawal1994 | none (VLDB 1994, pp. 487-499; DBLP + proceedings PDF) | 1 | VERIFIED: Apriori discovers all itemsets above a minimum support level | kept |
+| han2000 | 10.1145/342009.335372 | 1 | VERIFIED: FP-Growth / FP-tree | kept |
+| savasere1995 | none (VLDB 1995, pp. 432-444; DBLP + proceedings PDF) | 2 | VERIFIED: partition the database, mine each partition locally, global ; NOT SUPPORTED: mined at a 'lowered' local threshold; algorithm called 'SON' | kept |
+| miettinen2020 | 10.24963/ijcai.2020/685 | 1 | VERIFIED: Boolean matrices are central to pattern-discovery and Boolea | kept |
+| phipson2010 | 10.2202/1544-6115.1585 | 1 | VERIFIED: +1 correction; resolution 1/(m+1) | kept |
+| webb2007 | 10.1007/s10994-007-5006-x | 1 | VERIFIED (abstract): framework for statistically significant pattern discovery | kept |
+| webb2014 | 10.1145/2601433 | 1 | VERIFIED (abstract): framework for statistically significant pattern discovery | kept |
+| abramson2024 | 10.1038/s41586-024-07487-w | 1 | NOT SUPPORTED: the AlphaFold database expanded to include predicted complex | removed (uncited after the edit) |
+| afdb2026news | https://www.ebi.ac.uk/about/news/technology-and-innovation/first-complexes-alphafold-database/ (16 March 2026, updated 19 May 2026) | 3 | VERIFIED: 1.7 million high-confidence homodimers added; 18 million low; VERIFIED: 19 May 2026 update: almost 80,000 high-confidence heterodime; VERIFIED: quotation 'a first step towards a comprehensive description  | added |
+| han2026afdb | 10.64898/2026.03.27.714458 (bioRxiv, posted 29 March 2026) | 1 | VERIFIED: the AlphaFold Database expanded to proteome-scale quaternary | added |
+| chothia2003 | 10.1126/science.1085371 | 1 | UNVERIFIABLE: modular architecture of domains; evolution reuses and combin | kept |
+| rhee2008 | 10.1038/nrg2363 | 1 | UNVERIFIABLE: electronically propagated GO annotations may create artifici | kept |
+| luna2019 | 10.1002/widm.1329 | 1 | NOT SUPPORTED: GPU FIM systems achieved 50-350x speedups | removed (Introduction sentence deleted) |
+| zaki2000 | 10.1109/69.846291 | 1 | VERIFIED: Eclat | removed (Introduction sentence deleted) |
+| zaki1997 | none (KDD-97) | 1 | VERIFIED: Eclat | removed (Introduction sentence deleted) |
+| zhang2011 | 10.1109/CLUSTER.2011.61 | 4 | VERIFIED: up to 100x on FIMI benchmarks with static bitsets; VERIFIED: transfers candidate sets in and support arrays out at each l; NOT SUPPORTED: re-transfers transaction bitmaps at each iteration; NOT SUPPORTED: 50-350x over Eclat and FP-Growth | kept for one verified statement (Methods 2.5, pass 10: candidates generated on the CPU, copied to the GPU, support values copied back; item bitsets GPU-resident) |
+| chon2018 | 10.1016/j.ins.2018.01.046 | 1 | UNVERIFIABLE: streaming of bitmap chunks; 15M/20K/K~30/4x GTX 1080/20-150  | removed (all citing clauses deleted) |
+| chon2024 | 10.1016/j.eswa.2024.123928 | 2 | VERIFIED: pre-calculated bit arrays; CPU candidate generation; replica; UNVERIFIABLE: 32-bit __popc | removed (all citing clauses deleted) |
+| chon2018b | 10.1007/s10586-018-1812-0 | 1 | NOT SUPPORTED: largest prior scale: 100M transactions on 30 MapReduce nodes | removed (all citing clauses deleted) |
+| djenouri2019 | 10.1016/j.ins.2018.07.020 | 3 | VERIFIED (abstract): combined GPU and cluster computing; UNVERIFIABLE: transfers candidate sets and bitmaps each iteration; NOT SUPPORTED: 350x speedup over Eclat/FP-Growth | removed (all citing clauses deleted) |
+| acmsurvey2021 | 10.1145/3472289 | 1 | UNVERIFIABLE: Apriori-based approaches dominate GPU implementations; 50-35 | removed (all citing clauses deleted) |
+| fang2009 | 10.1145/1565694.1565702 | 2 | VERIFIED: foundational GPU-FIM work; PARTLY SUPPORTED: 100K transactions / 1K items / GTX 280 / max K ~5 / 1-10 s | removed (all citing clauses deleted) |
+| borgelt2003 | none (CEUR-WS Vol. 90) | 1 | NOT SUPPORTED: 100K transactions / 500 items / max K ~10 / 1-100 s | removed (all citing clauses deleted) |
+| naulaerts2015 | 10.1093/bib/bbt074 | 1 | VERIFIED: primer on frequent itemset mining for bioinformatics | kept (sentence re-homed to Discussion 4.2) |
+
+Bibliographic corrections: varadi2024: full title restored; coin2009: four authors listed instead of 'et al.'; noted but moot because the entry was removed: zaki1997 pages 283-286; luna2019 article e1329; chon2024 two authors and 'GMiner++:' title prefix; djenouri2019 actual title and authors; fang2009 five authors; acmsurvey2021 'Itemsets'.
+
+Bibliography entries removed: luna2019, zaki2000, zaki1997, chon2018, djenouri2019, acmsurvey2021, chon2024, dillingham2008, fang2009, abramson2024, chon2018b, borgelt2003. Entries added: afdb2026news, han2026afdb.
+
+Full report with verbatim quotes and file pointers: `runs/20260902T0000Z/phase4/citation_audit/CITATION_AUDIT.md`.
 

@@ -387,3 +387,33 @@ COMPARISON_REPORT.md; inconclusive claims removed or flagged; minimal diffs, no 
       zero H100/Hopper/SXM/SM90 hits in the tex and in pdftotext output; traceability assert passes
       (every numeric token of the body mapped to a RESULTS row, a COMPARISON_REPORT key or a stated role)
 - [x] commit on `v2` locally (no push, per Et's "upload nothing")
+
+## Citation audit and V2 PR (2026-09-04)
+
+Web access works on this box (CrossRef, Europe PMC, PLOS, BMC, vldb.org, ceur-ws.org, arXiv; ScienceDirect,
+OUP, ACM, IEEE and Nature block non-browser access), so the audit verified instead of blanket-deleting.
+- [x] pass 8 (`runs/20260902T0000Z/phase4/revise_tex_v2_pass8_citations.py`): deleted every tool-comparison
+      value with its carrier sentence or table (Introduction GPU-FIM sentence, Discussion 4.2 with Table 6,
+      Appendix D Tables 7-8, Appendix C.1 popcount comparison and the unsourced "single clock cycle");
+      Appendix D kept only the ET-miner memory table under a new title; added Methods 2.6 "Reporting
+      Convention for Highlighted Patterns" (Decision 2) and replaced the footnote; K=17 "~611" -> 611 (P-030).
+- [x] metadata check of all 38 entries against CrossRef / Semantic Scholar (`citation_audit/crossref_check.py`).
+- [x] five verification agents checked every citing sentence against the retrieved source text
+      (`citation_audit/agent_verdicts/*.json`, verbatim quotes + grep anchors; retrieved texts not committed).
+- [x] pass 9 (`revise_tex_v2_pass9_citations.py`): 22 anchored edits applying the verdicts (see
+      `citation_audit/CITATION_AUDIT.md`); `reorder_bibliography.py` dropped 13 uncited entries and put the
+      remaining 27 in first-citation order (verified from the .aux: [1] = jumper2021, none out of order);
+      `\bibliographystyle{unsrt}` removed (inert with a hand-written bibliography).
+- [x] rebuild: latexmk rc=0, 12 pages, 0 undefined refs/cites, 0 "??", 0 H100 hits, 0 tool names in the PDF
+      text; `make_changelog_v2.py` regenerated CHANGELOG_V1_V2.md (traceability assert passes; new §7).
+- [x] fresh-context adversarial review of the audited tex -> 12 findings, fixed in pass 10
+      (`revise_tex_v2_pass10_review.py`): uncited attributions deleted (prior-GPU-FIM transfer overhead,
+      'inherently sequential' FP-tree, RTK/erlotinib sentence, 'bacterial equivalent of the proteasome',
+      'beyond K=2'); one verified GPApriori statement restored with zhang2011 (28 entries now); the K=13 and
+      K=11 level maxima are held by other itemsets (decoded by `decode_intermediate_k.py`, RESULTS P-031), so
+      the text names the holder and adds the pattern maxima 10,978 / 18,257; headings corrected; scope
+      wording ('entire known protein universe') -> 76.9M mined proteins. Rebuild clean; changelog assert passes.
+- [x] paper/et_miner_proteome.pdf replaced by the pass-10 build (12 pages).
+- [ ] commit; push `v2`; open the PR against `alphafold-experimental-results-reproduction` (do not merge).
+RESUME: if the tex is edited again, run `make_changelog_v2.py .` (assert) and `build_paper.sh` before committing;
+the binhex.tex stub (`\def\nhex#1#2{}`) must be on TEXINPUTS for latexmk on this box.

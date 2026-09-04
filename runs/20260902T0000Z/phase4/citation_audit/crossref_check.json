@@ -1,0 +1,1124 @@
+[
+ {
+  "key": "jumper2021",
+  "authors": "J. Jumper et al",
+  "title": "Highly accurate protein structure prediction with AlphaFold",
+  "venue": "Nature, 596:583-589, 2021",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1038/s41586-021-03819-2",
+   "title": "Highly accurate protein structure prediction with AlphaFold",
+   "container": "Nature",
+   "volume": "596",
+   "issue": "7873",
+   "page": "583-589",
+   "year": 2021,
+   "type": "journal-article",
+   "authors": [
+    "Jumper",
+    "Evans",
+    "Pritzel",
+    "Green",
+    "Figurnov",
+    "Ronneberger",
+    "Tunyasuvunakool",
+    "Bates"
+   ],
+   "abstract": "Abstract\n                  \n                    Proteins are essential to life, and understanding their structure can facilitate a mechanistic understanding of their function. Through an enormous experimental effort\n                    1\u20134\n                    , the structures of around 100,000 unique proteins have been determined\n                    5\n                    , but this represents a small fraction of the billions of known protein sequences\n                    6,7\n                    . Structural coverage is bottlenecked by the months to years of painstaking effort required to determine a single protein structure. Accurate computational approaches are needed to address this gap and to enable large-scale structural bioinformatics. Predicting the three-dimensional structure that a protein will adopt based solely on its amino acid sequence\u2014the structure prediction component of the \u2018protein folding problem\u2019\n                    8\n                    \u2014has been an important open research problem for more than 50\u00a0years\n                    9\n                    . Despite recent progress\n                    10\u201314\n                    , existing methods fall far\u00a0short of atomic accuracy, especially when no homologous structure is available. Here we provide the first computational method that can regularly predict protein structures with atomic accuracy even in cases in which no similar structure is known. We validated an entirely redesigned version of our neural network-based "
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "varadi2022",
+  "authors": "M. Varadi et al",
+  "title": "AlphaFold Protein Structure Database: massively expanding the structural coverage of protein-sequence space with high-accuracy models",
+  "venue": "Nucleic Acids Research, 50(D1):D439-D444, 2022",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1093/nar/gkab1061",
+   "title": "AlphaFold Protein Structure Database: massively expanding the structural coverage of protein-sequence space with high-accuracy models",
+   "container": "Nucleic Acids Research",
+   "volume": "50",
+   "issue": "D1",
+   "page": "D439-D444",
+   "year": 2021,
+   "type": "journal-article",
+   "authors": [
+    "Varadi",
+    "Anyango",
+    "Deshpande",
+    "Nair",
+    "Natassia",
+    "Yordanova",
+    "Yuan",
+    "Stroe"
+   ],
+   "abstract": "Abstract\n                  The AlphaFold Protein Structure Database (AlphaFold DB, https://alphafold.ebi.ac.uk) is an openly accessible, extensive database of high-accuracy protein-structure predictions. Powered by AlphaFold v2.0 of DeepMind, it has enabled an unprecedented expansion of the structural coverage of the known protein-sequence space. AlphaFold DB provides programmatic access to and interactive visualization of predicted atomic coordinates, per-residue and pairwise model-confidence estimates and predicted aligned errors. The initial release of AlphaFold DB contains over 360,000 predicted structures across 21 model-organism proteomes, which will soon be expanded to cover most of the (over 100 million) representative sequences from the UniRef90 data set."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "year: bib ['2022'] vs CrossRef 2021"
+  ]
+ },
+ {
+  "key": "wang2011",
+  "authors": "Z. Wang, X.-C. Zhang, M. H. Le, D. Xu, G. Stacey, and J. Cheng",
+  "title": "A protein domain co-occurrence network approach for predicting protein function and inferring species phylogeny",
+  "venue": "PLoS ONE, 6(3):e17906, 2011",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1371/journal.pone.0017906",
+   "title": "A Protein Domain Co-Occurrence Network Approach for Predicting Protein Function and Inferring Species Phylogeny",
+   "container": "PLoS ONE",
+   "volume": "6",
+   "issue": "3",
+   "page": "e17906",
+   "year": 2011,
+   "type": "journal-article",
+   "authors": [
+    "Wang",
+    "Zhang",
+    "Le",
+    "Xu",
+    "Stacey",
+    "Cheng"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "coin2009",
+  "authors": "N. Terrapon et al",
+  "title": "Detection of new protein domains using co-occurrence: application to Plasmodium falciparum",
+  "venue": "Bioinformatics, 25(23):3077-3083, 2009",
+  "crossref": {
+   "score": 0.983,
+   "doi": "10.1093/bioinformatics/btp560",
+   "title": "Detection of new protein domains using co-occurrence: application to<i>Plasmodium falciparum</i>",
+   "container": "Bioinformatics",
+   "volume": "25",
+   "issue": "23",
+   "page": "3077-3083",
+   "year": 2009,
+   "type": "journal-article",
+   "authors": [
+    "Terrapon",
+    "Gascuel",
+    "Mar\u00e9chal",
+    "Br\u00e9eh\u00e9lin"
+   ],
+   "abstract": "AbstractMotivation: Hidden Markov models (HMMs) have proved to be a powerful tool for protein domain identification in newly sequenced organisms. However, numerous domains may be missed in highly divergent proteins. This is the case for Plasmodium falciparum proteins, the main causal agent of human malaria.Results: We propose a method to improve the sensitivity of HMM domain detection by exploiting the tendency of the domains to appear preferentially with a few other favorite domains in a protein. When sequence information alone is not sufficient to warrant the presence of a particular domain, our method enables its detection on the basis of the presence of other Pfam or InterPro domains. Moreover, a shuffling procedure allows us to estimate the false discovery rate associated with the results. Applied to P.falciparum, our method identifies 585 new Pfam domains (versus the 3683 already known domains in the Pfam database) with an estimated error rate &amp;lt;20%. These new domains provide 387 new Gene Ontology (GO) annotations to the P.falciparum proteome. Analogous and congruent results are obtained when applying the method to related Plasmodium species (P.vivax and P.yoelii).Availability: \u00a0Supplementary Material and a database of the new domains and GO predictions achieved on Plasmodium proteins are available at http://www.lirmm.fr/\u223cterrapon/codd/Contact: \u00a0brehelin@lirmm.frSupplementary information: \u00a0Supplementary data are available at Bioinformatics online."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "meysman2015",
+  "authors": "P. Meysman, C. Zhou, B. Cule, B. Goethals, and K. Laukens",
+  "title": "Mining the entire Protein DataBank for frequent spatially cohesive amino acid patterns",
+  "venue": "BioData Mining, 8:4, 2015",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1186/s13040-015-0038-4",
+   "title": "Mining the entire Protein DataBank for frequent spatially cohesive amino acid patterns",
+   "container": "BioData Mining",
+   "volume": "8",
+   "issue": "1",
+   "page": null,
+   "year": 2015,
+   "type": "journal-article",
+   "authors": [
+    "Meysman",
+    "Zhou",
+    "Cule",
+    "Goethals",
+    "Laukens"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "agrawal1994",
+  "authors": "R. Agrawal and R. Srikant",
+  "title": "Fast algorithms for mining association rules in large databases",
+  "venue": "In Proc.\\ 20th Int.\\ Conf.\\ Very Large Data Bases (VLDB), pp.\\ 487-499, 1994",
+  "crossref": {
+   "score": 0.955,
+   "doi": "10.1109/icsmc.2002.1175703",
+   "title": "A new fast algorithms for mining association rules in large databases",
+   "container": "IEEE International Conference on Systems, Man and Cybernetics",
+   "volume": "vol.7",
+   "issue": null,
+   "page": "6",
+   "year": null,
+   "type": "proceedings-article",
+   "authors": [
+    "Cheng-Fa Tsai",
+    "Yi-Chau Lin",
+    "Chi-Pin Chen"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "volume: CrossRef vol.7 not in bib venue",
+   "pages: CrossRef 6 vs bib venue",
+   "first author: bib 'Agrawal' not among CrossRef ['Cheng-Fa Tsai', 'Yi-Chau Lin', 'Chi-Pin Chen']"
+  ]
+ },
+ {
+  "key": "luna2019",
+  "authors": "J. M. Luna, P. Fournier-Viger, and S. Ventura",
+  "title": "Frequent itemset mining: A 25 years review",
+  "venue": "WIREs Data Mining and Knowledge Discovery, 9(6), 2019",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1002/widm.1329",
+   "title": "Frequent itemset mining: A 25 years review",
+   "container": "WIREs Data Mining and Knowledge Discovery",
+   "volume": "9",
+   "issue": "6",
+   "page": null,
+   "year": 2019,
+   "type": "journal-article",
+   "authors": [
+    "Luna",
+    "Fournier\u2010Viger",
+    "Ventura"
+   ],
+   "abstract": "AbstractFrequent itemset mining (FIM) is an essential task within data analysis since it is responsible for extracting frequently occurring events, patterns, or items in data. Insights from such pattern analysis offer important benefits in decision\u2010making processes. However, algorithmic solutions for mining such kind of patterns are not straightforward since the computational complexity exponentially increases with the number of items in data. This issue, together with the significant memory consumption that is present in the mining process, makes it necessary to propose extremely efficient solutions. Since the FIM problem was first described in the early 1990s, multiple solutions have been proposed by considering centralized systems as well as parallel (shared or nonshared memory) architectures. Solutions can also be divided into exhaustive search and nonexhaustive search models. Many of such approaches are extensions of other solutions and it is therefore necessary to analyze how this task has been considered during the last decades.This article is categorized under:\nAlgorithmic Development &gt; Association Rules\nTechnologies &gt; Association Rules\n"
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "han2000",
+  "authors": "J. Han, J. Pei, and Y. Yin",
+  "title": "Mining frequent patterns without candidate generation",
+  "venue": "In Proc.\\ ACM SIGMOD, pp.\\ 1-12, 2000",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1145/335191.335372",
+   "title": "Mining frequent patterns without candidate generation",
+   "container": "ACM SIGMOD Record",
+   "volume": "29",
+   "issue": "2",
+   "page": "1-12",
+   "year": 2000,
+   "type": "journal-article",
+   "authors": [
+    "Han",
+    "Pei",
+    "Yin"
+   ],
+   "abstract": "Mining frequent patterns in transaction databases, time-series databases, and many other kinds of databases has been studied popularly in data mining research. Most of the previous studies adopt an Apriori-like candidate set generation-and-test approach. However, candidate set generation is still costly, especially when there exist prolific patterns and/or long patterns.\n                  \n                    In this study, we propose a novel frequent pattern tree (FP-tree) structure, which is an extended prefix-tree structure for storing compressed, crucial information about frequent patterns, and develop an efficient FP-tree-based mining method, FP-growth, for mining\n                    the complete set of frequent patterns\n                    by pattern fragment growth. Efficiency of mining is achieved with three techniques: (1) a large database is compressed into a highly condensed, much smaller data structure, which avoids costly, repeated database scans, (2) our FP-tree-based mining adopts a pattern fragment growth method to avoid the costly generation of a large number of candidate sets, and (3) a partitioning-based, divide-and-conquer method is used to decompose the mining task into a set of smaller tasks for mining confined patterns in conditional databases, which dramatically reduces the search space. Our performance study shows that the FP-growth method is efficient and scalable for mining both long and short frequent patterns, and is about an order of magnitude fa"
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "volume: CrossRef 29 not in bib venue"
+  ]
+ },
+ {
+  "key": "zaki2000",
+  "authors": "M. J. Zaki",
+  "title": "Scalable algorithms for association mining",
+  "venue": "IEEE Trans.\\ Knowledge and Data Engineering, 12(3):372-390, 2000",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1109/69.846291",
+   "title": "Scalable algorithms for association mining",
+   "container": "IEEE Transactions on Knowledge and Data Engineering",
+   "volume": "12",
+   "issue": "3",
+   "page": "372-390",
+   "year": 2000,
+   "type": "journal-article",
+   "authors": [
+    "Zaki"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "zhang2011",
+  "authors": "F. Zhang, Y. Zhang, and J. Bakos",
+  "title": "GPApriori: GPU-accelerated frequent itemset mining",
+  "venue": "In Proc.\\ IEEE Int.\\ Conf.\\ Cluster Computing, pp.\\ 590-594, 2011",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1109/cluster.2011.61",
+   "title": "GPApriori: GPU-Accelerated Frequent Itemset Mining",
+   "container": "2011 IEEE International Conference on Cluster Computing",
+   "volume": null,
+   "issue": null,
+   "page": "590-594",
+   "year": 2011,
+   "type": "proceedings-article",
+   "authors": [
+    "Zhang",
+    "Zhang",
+    "Bakos"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "chon2018",
+  "authors": "K.-W. Chon, S.-H. Hwang, and M.-S. Kim",
+  "title": "GMiner: A fast GPU-based frequent itemset mining method for large-scale data",
+  "venue": "Information Sciences, 439-440:19-38, 2018",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1016/j.ins.2018.01.046",
+   "title": "GMiner: A fast GPU-based frequent itemset mining method for large-scale data",
+   "container": "Information Sciences",
+   "volume": "439-440",
+   "issue": null,
+   "page": "19-38",
+   "year": 2018,
+   "type": "journal-article",
+   "authors": [
+    "Chon",
+    "Hwang",
+    "Kim"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "djenouri2019",
+  "authors": "Y. Djenouri et al",
+  "title": "CGSS: Combined GPU-Cluster single scan for frequent itemset mining",
+  "venue": "Information Sciences, 496:363-377, 2019",
+  "crossref": {
+   "score": 0.709,
+   "doi": "10.1016/j.ins.2018.07.020",
+   "title": "Exploiting GPU and cluster parallelism in single scan frequent itemset mining",
+   "container": "Information Sciences",
+   "volume": "496",
+   "issue": null,
+   "page": "363-377",
+   "year": 2019,
+   "type": "journal-article",
+   "authors": [
+    "Djenouri",
+    "Djenouri",
+    "Belhadi",
+    "Cano"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "no confident CrossRef match (score 0.709)"
+  ]
+ },
+ {
+  "key": "acmsurvey2021",
+  "authors": "L. Bustio-Martinez, R. Cumplido, M. Letras, R. Hernandez-Leon, C. Feregrino-Uribe, and J. Hernandez-Palancar",
+  "title": "FPGA/GPU-based acceleration for frequent itemset mining: A comprehensive review",
+  "venue": "ACM Computing Surveys, 54(9):179:1-179:35, 2021",
+  "crossref": {
+   "score": 0.993,
+   "doi": "10.1145/3472289",
+   "title": "FPGA/GPU-based Acceleration for Frequent Itemsets Mining: A Comprehensive Review",
+   "container": "ACM Computing Surveys",
+   "volume": "54",
+   "issue": "9",
+   "page": "1-35",
+   "year": 2021,
+   "type": "journal-article",
+   "authors": [
+    "Bustio-Mart\u00ednez",
+    "Cumplido",
+    "Letras",
+    "Hern\u00e1ndez-Le\u00f3n",
+    "Feregrino-Uribe",
+    "Hern\u00e1ndez-Palancar"
+   ],
+   "abstract": "In data mining, Frequent Itemsets Mining is a technique used in several domains with notable results. However, the large volume of data in modern datasets increases the processing time of Frequent Itemset Mining algorithms, making them unsuitable for many real-world applications. Accordingly, proposing new methods for Frequent Itemset Mining to obtain frequent itemsets in a realistic amount of time is still an open problem. A successful alternative is to employ hardware acceleration using Graphics Processing Units (GPU) and Field Programmable Gates Arrays (FPGA). In this article, a comprehensive review of the state of the art of Frequent Itemsets Mining hardware acceleration is presented. Several approaches (FPGA and GPU based) were contrasted to show their weaknesses and strengths. This survey gathers the most relevant and the latest research efforts for improving the performance of Frequent Itemsets Mining regarding algorithms advances and modern development platforms. Furthermore, this survey organizes the current research on Frequent Itemsets Mining from the hardware perspective considering the source of the data, the development platform, and the baseline algorithm."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "first author: bib 'Bustio-Martinez' not among CrossRef ['Bustio-Mart\u00ednez', 'Cumplido', 'Letras']"
+  ]
+ },
+ {
+  "key": "varadi2024",
+  "authors": "M. Varadi et al",
+  "title": "AlphaFold Protein Structure Database in 2024",
+  "venue": "Nucleic Acids Research, 52(D1):D368-D375, 2024",
+  "crossref": {
+   "score": 0.624,
+   "doi": "10.1002/pmic.202200128",
+   "title": "The impact of AlphaFold Protein Structure Database on the fields of life sciences",
+   "container": "PROTEOMICS",
+   "volume": "23",
+   "issue": "17",
+   "page": null,
+   "year": 2022,
+   "type": "journal-article",
+   "authors": [
+    "Varadi",
+    "Velankar"
+   ],
+   "abstract": "Abstract\n                  Arguably, 2020 was the year of high\u2010accuracy protein structure predictions, with AlphaFold 2.0 achieving previously unseen accuracy in the Critical Assessment of Protein Structure Prediction (CASP). In 2021, DeepMind and EMBL\u2010EBI developed the AlphaFold Protein Structure Database to make an unprecedented number of reliable protein structure predictions easily accessible to the broad scientific community.\n                  We provide a brief overview and describe the latest developments in the AlphaFold database. We highlight how the fields of data services, bioinformatics, structural biology, and drug discovery are directly affected by the influx of protein structure data. We also show examples of cutting\u2010edge research that took advantage of the AlphaFold database. It is apparent that connections between various fields through protein structures are now possible, but the amount of data poses new challenges.\n                  Finally, we give an outlook regarding the future direction of the database, both in terms of data sets and new functionalities."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "no confident CrossRef match (score 0.624)"
+  ]
+ },
+ {
+  "key": "savasere1995",
+  "authors": "A. Savasere, E. Omiecinski, and S. Navathe",
+  "title": "An efficient algorithm for mining association rules in large databases",
+  "venue": "In Proc.\\ 21st VLDB Conf., pp.\\ 432-444, 1995",
+  "crossref": {
+   "score": 0.819,
+   "doi": "10.1109/icsmc.1999.823348",
+   "title": "An efficient algorithm for mining association rules for large itemsets in large centralized databases",
+   "container": "IEEE SMC'99 Conference Proceedings. 1999 IEEE International Conference on Systems, Man, and Cybernetics (Cat. No.99CH37028)",
+   "volume": "3",
+   "issue": null,
+   "page": "905-910",
+   "year": null,
+   "type": "proceedings-article",
+   "authors": [
+    "Wong",
+    "Wu",
+    "Feng"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "no confident CrossRef match (score 0.819)"
+  ]
+ },
+ {
+  "key": "chon2024",
+  "authors": "K.-W. Chon et al",
+  "title": "Boosting GPU-based frequent itemset mining by reducing redundant computations",
+  "venue": "Expert Systems with Applications, 250:123928, 2024",
+  "crossref": {
+   "score": 0.956,
+   "doi": "10.1016/j.eswa.2024.123928",
+   "title": "GMiner++: Boosting GPU-based frequent itemset mining by reducing redundant computations",
+   "container": "Expert Systems with Applications",
+   "volume": "250",
+   "issue": null,
+   "page": "123928",
+   "year": 2024,
+   "type": "journal-article",
+   "authors": [
+    "Chon",
+    "Kim"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "mrzic2018",
+  "authors": "A. Mrzic, P. Meysman, W. Bittremieux, P. Moris, B. Cule, B. Goethals, and K. Laukens",
+  "title": "Grasping frequent subgraph mining for bioinformatics applications",
+  "venue": "BioData Mining, 11:20, 2018",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1186/s13040-018-0181-9",
+   "title": "Grasping frequent subgraph mining for bioinformatics applications",
+   "container": "BioData Mining",
+   "volume": "11",
+   "issue": "1",
+   "page": null,
+   "year": 2018,
+   "type": "journal-article",
+   "authors": [
+    "Mrzic",
+    "Meysman",
+    "Bittremieux",
+    "Moris",
+    "Cule",
+    "Goethals",
+    "Laukens"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "barrio2024",
+  "authors": "A. M. Lau et al",
+  "title": "Exploring structural diversity across the protein universe with The Encyclopedia of Domains",
+  "venue": "Science, 386(6721):eadq4946, 2024",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1126/science.adq4946",
+   "title": "Exploring structural diversity across the protein universe with The Encyclopedia of Domains",
+   "container": "Science",
+   "volume": "386",
+   "issue": "6721",
+   "page": null,
+   "year": 2024,
+   "type": "journal-article",
+   "authors": [
+    "Lau",
+    "Bordin",
+    "Kandathil",
+    "Sillitoe",
+    "Waman",
+    "Wells",
+    "Orengo",
+    "Jones"
+   ],
+   "abstract": "The AlphaFold Protein Structure Database (AFDB) contains more than 214 million predicted protein structures composed of domains, which are independently folding units found in multiple structural and functional contexts. Identifying domains can enable many functional and evolutionary analyses but has remained challenging because of the sheer scale of the data. Using deep learning methods, we have detected and classified every domain in the AFDB, producing The Encyclopedia of Domains. We detected nearly 365 million domains, over 100 million more than can be found by sequence methods, covering more than 1 million taxa. Reassuringly, 77% of the nonredundant domains are similar to known superfamilies, greatly expanding representation of their domain space. We uncovered more than 10,000 new structural interactions between superfamilies and thousands of new folds across the fold space continuum."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "rehwinkel2020",
+  "authors": "J. Rehwinkel and M. U. Gack",
+  "title": "RIG-I-like receptors: their regulation and roles in RNA sensing",
+  "venue": "Nature Reviews Immunology, 20(9):537-551, 2020",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1038/s41577-020-0288-3",
+   "title": "RIG-I-like receptors: their regulation and roles in RNA sensing",
+   "container": "Nature Reviews Immunology",
+   "volume": "20",
+   "issue": "9",
+   "page": "537-551",
+   "year": 2020,
+   "type": "journal-article",
+   "authors": [
+    "Rehwinkel",
+    "Gack"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "score": 1.0,
+   "title": "RIG-I-like receptors: their regulation and roles in RNA sensing",
+   "year": 2020,
+   "venue": "Nature reviews. Immunology",
+   "ids": {
+    "PubMedCentral": "7094958",
+    "MAG": "3011498764",
+    "DOI": "10.1038/s41577-020-0288-3",
+    "CorpusId": 212691118,
+    "PubMed": "32203325"
+   },
+   "authors": [
+    "J. Rehwinkel",
+    "Michaela U. Gack"
+   ],
+   "oa_pdf": "https://www.nature.com/articles/s41577-020-0288-3.pdf",
+   "abstract": "Retinoic acid-inducible gene I (RIG-I)-like receptors (RLRs) are key sensors of virus infection, mediating the transcriptional induction of type I interferons and other genes that collectively establish an antiviral host response. Recent studies have revealed that both viral and host-derived RNAs can trigger RLR activation; this can lead to an effective antiviral response but also immunopathology if RLR activities are uncontrolled. In this Review, we discuss recent advances in our understanding of the types of RNA sensed by RLRs in the contexts of viral infection, malignancies and autoimmune diseases. We further describe how the activity of RLRs is controlled by host regulatory mechanisms, including RLR-interacting proteins, post-translational modifications and non-coding RNAs. Finally, we discuss key outstanding questions in the RLR field, including how our knowledge of RLR biology could be translated into new therapeutics. The RNA-sensing retinoic acid-inducible gene I (RIG-I)-like receptors (RLRs) are important inducers of type I interferons and other antiviral immune mediators. Here, Jan Rehwinkel and Michaela Gack explain how members of the RLR family are regulated and reflect on the importance of the RLRs in viral infection, autoimmunity and cancer."
+  },
+  "mismatch": []
+ },
+ {
+  "key": "chothia2003",
+  "authors": "C. Chothia, J. Gough, C. Vogel, and S. A. Teichmann",
+  "title": "Evolution of the protein repertoire",
+  "venue": "Science, 300(5626):1701-1703, 2003",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1126/science.1085371",
+   "title": "Evolution of the Protein Repertoire",
+   "container": "Science",
+   "volume": "300",
+   "issue": "5626",
+   "page": "1701-1703",
+   "year": 2003,
+   "type": "journal-article",
+   "authors": [
+    "Chothia",
+    "Gough",
+    "Vogel",
+    "Teichmann"
+   ],
+   "abstract": "Most proteins have been formed by gene duplication, recombination, and divergence. Proteins of known structure can be matched to about 50% of genome sequences, and these data provide a quantitative description and can suggest hypotheses about the origins of these processes."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "boggon2004",
+  "authors": "T. J. Boggon and M. J. Eck",
+  "title": "Structure and regulation of Src family kinases",
+  "venue": "Oncogene, 23(48):7918-7927, 2004",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1038/sj.onc.1208081",
+   "title": "Structure and regulation of Src family kinases",
+   "container": "Oncogene",
+   "volume": "23",
+   "issue": "48",
+   "page": "7918-7927",
+   "year": 2004,
+   "type": "journal-article",
+   "authors": [
+    "Boggon",
+    "Eck"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "sauvage2008",
+  "authors": "E. Sauvage, F. Kerff, M. Terrak, J. A. Ayala, and P. Charlier",
+  "title": "The penicillin-binding proteins: structure and role in peptidoglycan biosynthesis",
+  "venue": "FEMS Microbiology Reviews, 32(2):234-258, 2008",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1111/j.1574-6976.2008.00105.x",
+   "title": "The penicillin-binding proteins: structure and role in peptidoglycan biosynthesis",
+   "container": "FEMS Microbiology Reviews",
+   "volume": "32",
+   "issue": "2",
+   "page": "234-258",
+   "year": 2008,
+   "type": "journal-article",
+   "authors": [
+    "Sauvage",
+    "Kerff",
+    "Terrak",
+    "Ayala",
+    "Charlier"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "rhee2008",
+  "authors": "S. Y. Rhee, V. Wood, K. Dolinski, and S. Draghici",
+  "title": "Use and misuse of the gene ontology annotations",
+  "venue": "Nature Reviews Genetics, 9(7):509-515, 2008",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1038/nrg2363",
+   "title": "Use and misuse of the gene ontology annotations",
+   "container": "Nature Reviews Genetics",
+   "volume": "9",
+   "issue": "7",
+   "page": "509-515",
+   "year": 2008,
+   "type": "journal-article",
+   "authors": [
+    "Yon Rhee",
+    "Wood",
+    "Dolinski",
+    "Draghici"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "first author: bib 'Rhee' not among CrossRef ['Yon Rhee', 'Wood', 'Dolinski']"
+  ]
+ },
+ {
+  "key": "wahl2009",
+  "authors": "M. C. Wahl, C. L. Will, and R. Luhrmann",
+  "title": "The spliceosome: design principles of a dynamic RNP machine",
+  "venue": "Cell, 136(4):701-718, 2009",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1016/j.cell.2009.02.009",
+   "title": "The Spliceosome: Design Principles of a Dynamic RNP Machine",
+   "container": "Cell",
+   "volume": "136",
+   "issue": "4",
+   "page": "701-718",
+   "year": 2009,
+   "type": "journal-article",
+   "authors": [
+    "Wahl",
+    "Will",
+    "L\u00fchrmann"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "dillingham2008",
+  "authors": "M. S. Dillingham and S. C. Kowalczykowski",
+  "title": "RecBCD enzyme and the repair of double-stranded DNA breaks",
+  "venue": "Microbiology and Molecular Biology Reviews, 72(4):642-671, 2008",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1128/mmbr.00020-08",
+   "title": "RecBCD Enzyme and the Repair of Double-Stranded DNA Breaks",
+   "container": "Microbiology and Molecular Biology Reviews",
+   "volume": "72",
+   "issue": "4",
+   "page": "642-671",
+   "year": 2008,
+   "type": "journal-article",
+   "authors": [
+    "Dillingham",
+    "Kowalczykowski"
+   ],
+   "abstract": "\n                    SUMMARY\n                    \n                      The RecBCD enzyme of\n                      Escherichia coli\n                      is a helicase-nuclease that initiates the repair of double-stranded DNA breaks by homologous recombination. It also degrades linear double-stranded DNA, protecting the bacteria from phages and extraneous chromosomal DNA. The RecBCD enzyme is, however, regulated by a\n                      cis\n                      -acting DNA sequence known as Chi (crossover hotspot instigator) that activates its recombination-promoting functions. Interaction with Chi causes an attenuation of the RecBCD enzyme's vigorous nuclease activity, switches the polarity of the attenuated nuclease activity to the 5\u2032 strand, changes the operation of its motor subunits, and instructs the enzyme to begin loading the RecA protein onto the resultant Chi-containing single-stranded DNA. This enzyme is a prototypical example of a molecular machine: the protein architecture incorporates several autonomous functional domains that interact with each other to produce a complex, sequence-regulated, DNA-processing machine. In this review, we discuss the biochemical mechanism of the RecBCD enzyme with particular emphasis on new developments relating to the enzyme's structure and DNA translocation mechanism.\n                    \n                  "
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "uniprot2023",
+  "authors": "The UniProt Consortium",
+  "title": "UniProt: the Universal Protein Knowledgebase in 2023",
+  "venue": "Nucleic Acids Research, 51(D1):D523-D531, 2023",
+  "crossref": {
+   "score": 0.915,
+   "doi": "10.1093/nar/gky092",
+   "title": "UniProt: the universal protein knowledgebase",
+   "container": "Nucleic Acids Research",
+   "volume": "46",
+   "issue": "5",
+   "page": "2699-2699",
+   "year": 2018,
+   "type": "journal-article",
+   "authors": [
+    "UniProt\u00a0Consortium"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "year: bib ['2023'] vs CrossRef 2018",
+   "volume: CrossRef 46 not in bib venue",
+   "pages: CrossRef 2699-2699 vs bib venue",
+   "first author: bib 'Consortium' not among CrossRef ['UniProt\\xa0Consortium']"
+  ]
+ },
+ {
+  "key": "go2023",
+  "authors": "Gene Ontology Consortium",
+  "title": "The Gene Ontology knowledgebase in 2023",
+  "venue": "Genetics, 224(1):iyad031, 2023",
+  "crossref": {
+   "score": 0.826,
+   "doi": "10.1093/nar/gkag678",
+   "title": "Correction to \u2018The Gene Ontology knowledgebase in 2026\u2019",
+   "container": "Nucleic Acids Research",
+   "volume": "54",
+   "issue": "12",
+   "page": null,
+   "year": 2026,
+   "type": "journal-article",
+   "authors": [],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "no confident CrossRef match (score 0.826)"
+  ]
+ },
+ {
+  "key": "mistry2021",
+  "authors": "J. Mistry et al",
+  "title": "Pfam: The protein families database in 2021",
+  "venue": "Nucleic Acids Research, 49(D1):D412-D419, 2021",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1093/nar/gkaa913",
+   "title": "Pfam: The protein families database in 2021",
+   "container": "Nucleic Acids Research",
+   "volume": "49",
+   "issue": "D1",
+   "page": "D412-D419",
+   "year": 2020,
+   "type": "journal-article",
+   "authors": [
+    "Mistry",
+    "Chuguransky",
+    "Williams",
+    "Qureshi",
+    "Salazar",
+    "Sonnhammer",
+    "Tosatto",
+    "Paladin"
+   ],
+   "abstract": "Abstract\n                  The Pfam database is a widely used resource for classifying protein sequences into families and domains. Since Pfam was last described in this journal, over 350 new families have been added in Pfam 33.1 and numerous improvements have been made to existing entries. To facilitate research on COVID-19, we have revised the Pfam entries that cover the SARS-CoV-2 proteome, and built new entries for regions that were not covered by Pfam. We have reintroduced Pfam-B which provides an automatically generated supplement to Pfam and contains 136 730 novel clusters of sequences that are not yet matched by a Pfam family. The new Pfam-B is based on a clustering by the MMseqs2 software. We have compared all of the regions in the RepeatsDB to those in Pfam and have started to use the results to build and refine Pfam repeat families. Pfam is freely available for browsing and download at http://pfam.xfam.org/."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "year: bib ['2021'] vs CrossRef 2020"
+  ]
+ },
+ {
+  "key": "naulaerts2015",
+  "authors": "S. Naulaerts, P. Meysman, W. Bittremieux, T. N. Vu, W. Vanden Berghe, B. Goethals, and K. Laukens",
+  "title": "A primer to frequent itemset mining for bioinformatics",
+  "venue": "Briefings in Bioinformatics, 16(2):216-231, 2015",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1093/bib/bbt074",
+   "title": "A primer to frequent itemset mining for bioinformatics",
+   "container": "Briefings in Bioinformatics",
+   "volume": "16",
+   "issue": "2",
+   "page": "216-231",
+   "year": 2013,
+   "type": "journal-article",
+   "authors": [
+    "Naulaerts",
+    "Meysman",
+    "Bittremieux",
+    "Vu",
+    "Vanden Berghe",
+    "Goethals",
+    "Laukens"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "year: bib ['2015'] vs CrossRef 2013"
+  ]
+ },
+ {
+  "key": "fang2009",
+  "authors": "W. Fang, K. K. Lau, M. Lu, X. Xiao, C. K. Lam, P. Y. Yang, B. He, Q. Luo, P. V. Sander, and K. Yang",
+  "title": "Frequent itemset mining on graphics processors",
+  "venue": "In Proc.\\ DaMoN Workshop, pp.\\ 34-42, 2009",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1145/1565694.1565702",
+   "title": "Frequent itemset mining on graphics processors",
+   "container": "Proceedings of the Fifth International Workshop on Data Management on New Hardware",
+   "volume": null,
+   "issue": null,
+   "page": "34-42",
+   "year": 2009,
+   "type": "proceedings-article",
+   "authors": [
+    "Fang",
+    "Lu",
+    "Xiao",
+    "He",
+    "Luo"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "webb2007",
+  "authors": "G. I. Webb",
+  "title": "Discovering significant patterns",
+  "venue": "Machine Learning, 68(1):1-33, 2007",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1007/s10994-007-5006-x",
+   "title": "Discovering Significant Patterns",
+   "container": "Machine Learning",
+   "volume": "68",
+   "issue": "1",
+   "page": "1-33",
+   "year": 2007,
+   "type": "journal-article",
+   "authors": [
+    "Webb"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "webb2014",
+  "authors": "G. I. Webb and J. Vreeken",
+  "title": "Efficient discovery of the most interesting associations",
+  "venue": "ACM Trans.\\ Knowledge Discovery from Data, 8(3):15, 2014",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1145/2601433",
+   "title": "Efficient Discovery of the Most Interesting Associations",
+   "container": "ACM Transactions on Knowledge Discovery from Data",
+   "volume": "8",
+   "issue": "3",
+   "page": "1-31",
+   "year": 2013,
+   "type": "journal-article",
+   "authors": [
+    "Webb",
+    "Vreeken"
+   ],
+   "abstract": "\n            Self-sufficient itemsets have been proposed as an effective approach to summarizing the key associations in data. However, their computation appears highly demanding, as assessing whether an itemset is self-sufficient requires consideration of all pairwise partitions of the itemset into pairs of subsets as well as consideration of all supersets. This article presents the first published algorithm for efficiently discovering self-sufficient itemsets. This branch-and-bound algorithm deploys two powerful pruning mechanisms based on upper bounds on itemset value and statistical significance level. It demonstrates that finding top-\n            k\n            productive and nonredundant itemsets, with postprocessing to identify those that are not independently productive, can efficiently identify small sets of key associations. We present extensive evaluation of the strengths and limitations of the technique, including comparisons with alternative approaches to finding the most interesting associations.\n          "
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "year: bib ['2014'] vs CrossRef 2013"
+  ]
+ },
+ {
+  "key": "abramson2024",
+  "authors": "J. Abramson et al",
+  "title": "Accurate structure prediction of biomolecular interactions with AlphaFold 3",
+  "venue": "Nature, 630:493-500, 2024",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1038/s41586-024-07487-w",
+   "title": "Accurate structure prediction of biomolecular interactions with AlphaFold 3",
+   "container": "Nature",
+   "volume": "630",
+   "issue": "8016",
+   "page": "493-500",
+   "year": 2024,
+   "type": "journal-article",
+   "authors": [
+    "Abramson",
+    "Adler",
+    "Dunger",
+    "Evans",
+    "Green",
+    "Pritzel",
+    "Ronneberger",
+    "Willmore"
+   ],
+   "abstract": "Abstract\n                  \n                    The introduction of AlphaFold\u20092\n                    1\n                    has spurred a revolution in modelling the structure of proteins and their interactions, enabling a huge range of applications in protein modelling and design\n                    2\u20136\n                    . Here we describe our AlphaFold\u20093 model with a substantially updated diffusion-based architecture that is capable of predicting the joint structure of complexes including proteins, nucleic acids, small molecules, ions and modified residues. The new AlphaFold model demonstrates substantially improved accuracy over many previous specialized tools: far greater accuracy for protein\u2013ligand interactions compared with state-of-the-art docking tools, much higher accuracy for protein\u2013nucleic acid interactions compared with nucleic-acid-specific predictors and substantially higher antibody\u2013antigen prediction accuracy compared with AlphaFold-Multimer v.2.3\n                    7,8\n                    . Together, these results show that high-accuracy modelling across biomolecular space is possible within a single unified deep-learning framework.\n                  "
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "chon2018b",
+  "authors": "K.-W. Chon and M.-S. Kim",
+  "title": "BIGMiner: A fast and scalable distributed frequent pattern miner for big data",
+  "venue": "Cluster Computing, 21(3):1507-1520, 2018",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.1007/s10586-018-1812-0",
+   "title": "BIGMiner: a fast and scalable distributed frequent pattern miner for big data",
+   "container": "Cluster Computing",
+   "volume": "21",
+   "issue": "3",
+   "page": "1507-1520",
+   "year": 2018,
+   "type": "journal-article",
+   "authors": [
+    "Chon",
+    "Kim"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "borgelt2003",
+  "authors": "C. Borgelt",
+  "title": "Efficient implementations of Apriori and Eclat",
+  "venue": "In Proc.\\ FIMI Workshop, CEUR-WS Vol. 90, 2003",
+  "crossref": {
+   "score": 0.562,
+   "doi": "10.1145/1133905.1133907",
+   "title": "An implementation of the FP-growth algorithm",
+   "container": "Proceedings of the 1st international workshop on open source data mining: frequent pattern mining implementations",
+   "volume": null,
+   "issue": null,
+   "page": "1-5",
+   "year": 2005,
+   "type": "proceedings-article",
+   "authors": [
+    "Borgelt"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": [
+   "no confident CrossRef match (score 0.562)"
+  ]
+ },
+ {
+  "key": "zaki1997",
+  "authors": "M. J. Zaki, S. Parthasarathy, M. Ogihara, and W. Li",
+  "title": "New algorithms for fast discovery of association rules",
+  "venue": "In Proc.\\ 3rd Int.\\ Conf.\\ Knowledge Discovery and Data Mining (KDD), pp.\\ 283-296, 1997",
+  "crossref": {
+   "score": 0.87,
+   "doi": "10.1023/a:1009773317876",
+   "title": "Parallel Algorithms for Discovery of Association Rules",
+   "container": "Data Mining and Knowledge Discovery",
+   "volume": "1",
+   "issue": "4",
+   "page": "343-373",
+   "year": 1997,
+   "type": "journal-article",
+   "authors": [
+    "Zaki",
+    "Parthasarathy",
+    "Ogihara",
+    "Li"
+   ],
+   "abstract": ""
+  },
+  "s2": {
+   "score": 1.0,
+   "title": "New Algorithms for Fast Discovery of Association Rules",
+   "year": 1997,
+   "venue": "Knowledge Discovery and Data Mining",
+   "ids": {
+    "MAG": "1483679765",
+    "DBLP": "conf/kdd/ZakiPOL97",
+    "CorpusId": 10561854
+   },
+   "authors": [
+    "Mohammed J. Zaki",
+    "S. Parthasarathy",
+    "Mitsunori Ogihara",
+    "Wei Li"
+   ],
+   "oa_pdf": "",
+   "abstract": ""
+  },
+  "mismatch": [
+   "pages: CrossRef 343-373 vs bib venue"
+  ]
+ },
+ {
+  "key": "phipson2010",
+  "authors": "B. Phipson and G. K. Smyth",
+  "title": "Permutation p-values should never be zero: calculating exact p-values when permutations are randomly drawn",
+  "venue": "Statistical Applications in Genetics and Molecular Biology, 9(1):39, 2010",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.2202/1544-6115.1585",
+   "title": "Permutation P-values Should Never Be Zero: Calculating Exact P-values When Permutations Are Randomly Drawn",
+   "container": "Statistical Applications in Genetics and Molecular Biology",
+   "volume": "9",
+   "issue": "1",
+   "page": null,
+   "year": 2010,
+   "type": "journal-article",
+   "authors": [
+    "Phipson",
+    "Smyth"
+   ],
+   "abstract": "Permutation tests are amongst the most commonly used statistical tools in modern genomic research, a process by which p-values are attached to a test statistic by randomly permuting the sample or gene labels.  Yet permutation p-values published in the genomic literature are often computed incorrectly, understated by about 1/m, where m is the number of permutations.  The same is often true in the more general situation when Monte Carlo simulation is used to assign p-values.  Although the p-value understatement is usually small in absolute terms, the implications can be serious in a multiple testing context. The understatement arises from the intuitive but mistaken idea of using permutation to estimate the tail probability of the test statistic.  We argue instead that permutation should be viewed as generating an exact discrete null distribution.  The relevant literature, some of which is likely to have been relatively inaccessible to the genomic community, is reviewed and summarized.  A computation strategy is developed for exact p-values when permutations are randomly drawn.  The strategy is valid for any number of permutations and samples.  Some simple recommendations are made for the implementation of permutation tests in practice."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ },
+ {
+  "key": "miettinen2020",
+  "authors": "P. Miettinen and S. Neumann",
+  "title": "Recent developments in Boolean matrix factorization",
+  "venue": "In Proc.\\ IJCAI Survey Track, pp.\\ 4922-4928, 2020",
+  "crossref": {
+   "score": 1.0,
+   "doi": "10.24963/ijcai.2020/685",
+   "title": "Recent Developments in Boolean Matrix Factorization",
+   "container": "Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence",
+   "volume": null,
+   "issue": null,
+   "page": "4922-4928",
+   "year": 2020,
+   "type": "proceedings-article",
+   "authors": [
+    "Miettinen",
+    "Neumann"
+   ],
+   "abstract": "The goal of Boolean Matrix Factorization (BMF) is to approximate a given binary matrix as the product of two low-rank binary factor matrices, where the product of the factor matrices is computed under the Boolean algebra. While the problem is computationally hard, it is also attractive because the binary nature of the factor matrices makes them highly interpretable.  In the last decade, BMF has received a considerable amount of attention in the data mining and formal concept analysis communities and, more recently, the machine learning and the theory communities also started studying BMF. In this survey, we give a concise summary of the efforts of all of these communities and raise some open questions which in our opinion require further investigation."
+  },
+  "s2": {
+   "error": "HTTP Error 429: "
+  },
+  "mismatch": []
+ }
+]

@@ -234,8 +234,9 @@ for line in [
     w(line)
 w("")
 w("## 4. Flagged for your decision (inconclusive claims kept in V2)\n")
-w("These are not results of this paper and cannot be verified by re-execution. They are still in the V2 tex; say the word and I remove or reword any of them.\n")
-w("### 4a. Literature values about other systems (kept as attributed citations)\n")
+w("These are not results of this paper and cannot be verified by re-execution. Rows in 4a were removed from the V2 tex by the citation audit (passes 8 and 9); rows in 4b and 4c are still in the tex.\n")
+w("### 4a. Literature values about other systems (removed by the citation audit; see §7)\n")
+w("Every row below described another system or tool. Passes 8 and 9 deleted these values and the sentences that carried them; §7 records the verification outcome per citation.\n")
 w("| V1 claim id | line | quantity | value | where |")
 w("|---|---|---|---|---|")
 for r in literature:
@@ -269,11 +270,11 @@ w("Tokens were extracted programmatically from the document body (preamble and b
 TRACE = {
 "200": "M-001 ('over 200 million')", "1,002": "X-015", "76.9": "X-011", "43.9": "P-028 (2,631.2 s)", "3090": "E-001",
 "26.8": "P-002", "22": "P-003 (K max); K index; K=22 itemset P-006..P-009", "0.001": "P-028/P-018 (0.001 % support); Table 3 % (P-004)",
-"100": "P-018 (100 permutations); X-020 (100 items/txn row); 'BIGMiner 100M/100K' literature (§4a)",
+"100": "P-018 (100 permutations); X-020 (100 items/txn row)",
 "6": "P-018 (null K max); X-015 (6 bins); P-028 (six runs); K index", "88,745": "P-018", "7": "P-018 (K≥7); P-007 (7 CC terms); K index",
-"0.01": "P-023 (p≈0.01); P-028 (0.01 % support); Table 3 %", "2026": "U-005 (2026_01); U-009 (retrieved 2026-09-02); version date",
-"1,234": "P-026", "50": "M-003 (pLDDT≥50); M-009 (bin 50–90); '50–350×' literature (§4a)", "350": "literature (§4a)",
-"206": "X-018 (dense full set)", "205.6": "X-010", "80": "literature: 80 GB datacenter GPUs (§4a)",
+"0.01": "P-023 (p≈0.01); P-028 (0.01 % support); Table 3 %", "2026": "U-005 (2026_01); U-009 (retrieved 2026-09-02); version date; afdb2026news (March and May 2026, §7)",
+"1,234": "P-026", "50": "M-003 (pLDDT≥50); M-009 (bin 50–90)",
+"206": "X-018 (dense full set)", "205.6": "X-010", 
 "4": "P-018 (enriched from K=4); X-015 (4 empty bins); K index; Figure 1 toy example", "5.1": "COMPARISON csr_bytes_gb (5.06)",
 "2": "E-001 (two GPUs); X-015 (2 bins); P-007 (2 Pfam); P-013 (2 chunks); K index", "214": "M-001", "205,620,298": "X-010 / M-003",
 "01": "U-005 (release 2026_01)", "202,556,314": "X-001 / U-005", "500": "X-008 / X-015", "24": "E-001 (24 GB); Phase 0 audit (24 cores); X-008 (24,291)",
@@ -287,25 +288,25 @@ TRACE = {
 "14.1": "COMPARISON sw_cupy", "2.2": "COMPARISON sw_numpy (2.2.6)", "22.04": "COMPARISON sw_os", "16": "P-028 (Ultra min_count); K index", "0.1": "P-028 (0.1 % support); X-020 (0.1 % density row)",
 "76,891": "P-028", "5,305": "P-028 / P-015", "9": "P-028 (Base K max); K index", "31.1": "P-028", "7,690": "P-028", "113,405": "P-028 / P-016", "14": "P-028; K index; P-029 (pass 2, 14.1 min)",
 "52.6": "P-028", "769": "P-028 / P-010 / P-018", "475,865": "P-028 / P-010", "74.7": "P-028", "0.0001": "P-028", "2,841,280": "P-028 / P-011",
-"19": "P-028 (Blitz K max); X-017 (19 proteins ≥23); K index", "4.9": "P-028 (292.9 s); X-018 (4.9× full-set ratio)", "0.00002": "P-028 (nominal)", "14,558,875": "P-028", "20": "P-028 (Ultra K max); K index",
+"19": "P-028 (Blitz K max); X-017 (19 proteins ≥23); K index; afdb2026news update of 19 May 2026 (§7)", "4.9": "P-028 (292.9 s); X-018 (4.9× full-set ratio)", "0.00002": "P-028 (nominal)", "14,558,875": "P-028", "20": "P-028 (Ultra K max); K index",
 "33.3": "P-028 (1,996.4 s)", "0.00001": "P-028 (nominal)", "26,849,505": "P-002 / P-028", "0.9": "P-013 (local factor)", "779.6": "P-015", "1,426.0": "P-016",
  "62.2": "P-029 (62.25 s)", "6,151.1": "P-029", "99": "P-029 (98.8×)", "88": "P-029 (pass 1, 88.3 min)", "6.0": "COMPARISON run_blitz_vs_power_itemset_ratio (5.97)", "3,529,257": "P-004", "13.14": "P-004", "3.53": "P-004",
-"4.2": "P-018 (108,059/25,442); LaTeX column width p{4.2cm}", "46": "X-013 / X-017", "32": "X-017; '32-bit __popc' literature (§4a); X-024 (32-word window)", "48,007,493": "P-017", "75.6": "P-017", "342": "P-017", "27": "P-017",
-"187": "P-011", "611": "P-011", "7714": "P-011 (PF07714)", "0017": "P-011 (PF00017)", "0018": "P-011 (PF00018)",
+"4.2": "P-018 (108,059/25,442); LaTeX column width p{4.2cm}", "46": "X-013 / X-017", "32": "X-017; X-024 (32-word window)", "48,007,493": "P-017", "75.6": "P-017", "342": "P-017", "27": "P-017",
+"187": "P-030 (single K=19 itemset)", "611": "P-030 (single matching K=17 itemset)", "7714": "P-011 (PF07714)", "0017": "P-011 (PF00017)", "0018": "P-011 (PF00018)",
 "000": "COMPARISON pattern_k13_support / pattern_k12_support / pattern_k11_support (~11,000 / ~10,500 / ~16,000)", "0905": "COMPARISON pattern_k12_member_1", "0912": "COMPARISON pattern_k12_member_2",
 "42": "P-018 (seed)", "2,007": "P-018", "18.6": "P-018", "46.2": "P-022", "21.7": "P-022", "101": "P-023", "0.0099": "P-023", "95": "P-023 (95 % bound)", "0.05": "P-023 (formula constant)", "0.0295": "P-023",
 "0.0": "P-018 (Table 5)", "1.0": "P-018 (Table 5)", "22,019": "P-018 / P-010", "63,703": "P-018", "33.6": "P-018", "239": "P-018 (−1,239)", "73,205": "P-018 / P-010", "79,144": "P-018", "46.5": "P-018",
 "128": "P-018 (−128)", "108,059": "P-018 / P-010", "25,442": "P-018", "30.3": "P-018", "728": "P-018 (+2,728)", "104,239": "P-018 / P-010", "1,993": "P-018", "632": "P-018 (+10,632)", "78,596": "P-018 / P-010",
 "1.1": "P-018", "68": "P-018 (+68,730)", "730": "P-018 (+68,730)", "0": "P-018 (null K≥7); P-009 (0 parent–child pairs)",
-"30": "literature: BIGMiner 30 nodes, GMiner ~30 (§4a)", "1.7": "literature: GMiner 1.7M (§4a)", "280": "literature: GTX 280 (§4a)", "1080": "literature: GTX 1080 (§4a)", "150": "literature: GMiner 20–150 s (§4a)",
+"1.7": "afdb2026news: 1.7 million high-confidence homodimers (§7)", "80,000": "afdb2026news: almost 80,000 high-confidence heterodimers, 19 May 2026 update (§7)", "8.1": "afdb2026news: 8.1 million lower-confidence heterodimers (§7)",
 "128.7": "X-012", "62.6": "X-012", "10.5281": "metadata (Zenodo DOI)", "18674353": "metadata (Zenodo DOI)", "997": "metadata (author e-mail)", "20260902": "metadata (run directory)",
 "0.5": "LaTeX layout (vspace)", "1.5": "LaTeX layout (vspace); X-020 (~1.5 % break-even)", "0.4": "LaTeX layout (addlinespace)", "2.4": "section number reference",
-"264": "removed in V2 (X-024)", "2018": "citation year (table header)", "2024": "citation year (table header)",
+"264": "removed in V2 (X-024)",
 "7.8": "X-018/X-020 (theoretical row)", "1.2": "X-018/X-020 (theoretical row)", "6.8": "X-018/X-020", "62.1": "X-018/X-020", "1.4": "X-018/X-020 (theoretical row)", "0.15": "X-018/X-020",
 "0.22": "X-018", "0.41": "X-018", "3.1": "X-018", "2.16": "X-018 / X-013", "25.8": "X-018", "5.2": "X-018", "4.12": "X-018 / X-013", "002": "X-015 (|F1| = 1,002)",
 "1": "K index; counts of one (1 GPU, 1 itemset at K=22 = P-003)", "3": "K index; structural counts (three innovations); P-026 (3-feature)", "5": "K index; five highlighted patterns (editorial)",
-"10": "K index; X-021 (~10 GB bitmap = 9.6); X-020 (10 items/txn row)", "12": "K index; X-024 (12-byte survivor records)", "21": "K index; X-022 (21 independent features)", "23": "P-004 (K=21 count); X-017 (≥23 features)",
-"11": "K index", "17": "K index", "18": "K index", "0.00": "P-004 (K=1 share)", "1,996,772": "P-004", "7.44": "P-004", "73,786": "P-004", "0.27": "P-004", "1,259,045": "P-004", "4.69": "P-004",
+"10": "K index; X-021 (~10 GB bitmap = 9.6); X-020 (10 items/txn row)", "12": "K index; X-024 (12-byte survivor records)", "21": "K index; X-022 (21 independent features)", "23": "P-004 (K=21 count); X-017 (≥23 features); P-031 (23 K=13 itemsets with the SOS term)",
+"11": "K index", "17": "K index", "18": "K index; afdb2026news: 18 million lower-confidence homodimers (§7)", "0.00": "P-004 (K=1 share)", "1,996,772": "P-004", "7.44": "P-004", "73,786": "P-004", "0.27": "P-004", "1,259,045": "P-004", "4.69": "P-004",
 "452,777": "P-004", "1.69": "P-004", "679,471": "P-004", "2.53": "P-004 (K=14 share of Table 3)", "1,184,461": "P-004", "4.41": "P-004", "310,527": "P-004", "1.16": "P-004", "1,974,126": "P-004", "7.35": "P-004",
 "118,659": "P-004", "0.44": "P-004", "2,626,332": "P-004", "9.78": "P-004", "37,261": "P-004", "0.14": "P-004", "3,118,459": "P-004", "11.61": "P-004", "9,375": "P-004", "0.03": "P-004",
 "3,442,954": "P-004", "12.82": "P-004", "1,818": "P-004", "255": "P-004", "3,293,612": "P-004", "12.27": "P-004", "2,739,532": "P-004", "10.20": "P-004",
@@ -314,6 +315,8 @@ TRACE = {
 "030424": "P-008", "030425": "P-008", "016607": "P-008", "11545": "X-022 (IPR011545)", "01650": "X-022 (IPR001650)", "11,521": "P-030", "16,185": "P-030", "28,913": "P-030", "111": "P-030",
 "214,683,829": "M-001", "10.4": "X-019 (622 s wall)", "0.32": "X-024 (12 B × 26,849,505)", "2,048": "X-024 / code inspection (32 words × 64 proteins)",
 "3.1": "X-023 (3.15 GB); X-018 (3.1× subset ratio)",
+"10,978": "P-031 (K=13 itemsets with the SOS term)", "18,257": "P-031 (K=11 AAA+Clp itemsets)", "491": "P-031 (K=11 AAA+Clp itemsets)",
+"0004": "P-031 (PF00004)", "7724": "P-031 (PF07724)", "7871": "P-031 (PF17871)", "0431": "P-031 (PF10431)", "0574": "P-031 (PF00574)", "2861": "P-031 (PF02861)",
 }
 
 body = tex[tex.index(r"\begin{document}"): tex.index(r"\begin{thebibliography}")] + tex[tex.index(r"\end{thebibliography}"):]
@@ -332,5 +335,19 @@ w("|---|---|---|")
 for t, n in tokens.items():
     w(f"| {t} | {n} | {TRACE[t]} |")
 w("")
+audit_path = root / "runs/20260902T0000Z/phase4/citation_audit/citation_audit.json"
+if audit_path.exists():
+    audit = json.load(open(audit_path))
+    w("## 7. Citation audit (passes 8 and 9)\n")
+    w(audit["method"] + "\n")
+    w("| key | DOI / source | claims checked | verdicts | action in V2 |")
+    w("|---|---|---|---|---|")
+    for e in audit["entries"]:
+        verdicts = "; ".join(f'{c["verdict"]}: {c["claim"][:60]}' for c in e["claims"]).replace("|", "/")
+        w(f'| {e["key"]} | {e.get("doi", "")} | {len(e["claims"])} | {verdicts} | {e["outcome"].replace("|", "/")} |')
+    w("")
+    w("Bibliographic corrections: " + "; ".join(audit["bib_corrections"]) + ".\n")
+    w("Bibliography entries removed: " + ", ".join(audit["bibitems_removed"]) + ". Entries added: " + ", ".join(audit["bibitems_added"]) + ".\n")
+    w("Full report with verbatim quotes and file pointers: `runs/20260902T0000Z/phase4/citation_audit/CITATION_AUDIT.md`.\n")
 (root / "CHANGELOG_V1_V2.md").write_text("\n".join(out) + "\n", encoding="utf-8")
 print("wrote CHANGELOG_V1_V2.md:", len(out), "lines;", len(changed), "changed rows,", len(resolved), "resolved inconclusive,", len(literature), "literature,", len(design), "design")

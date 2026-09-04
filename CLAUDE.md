@@ -156,4 +156,9 @@ compaction.
   IMPORTANT for future runs: `src/et_miner/gpu/dispatch.py` sends any K>=3 level with >= 500,000
   candidates to ALL visible GPUs, so pin `CUDA_VISIBLE_DEVICES` when a single-GPU measurement is
   wanted (RESULTS X-025, P-028, P-029).
+- 2026-09-04: citation audit of the V2 tex (`runs/20260902T0000Z/phase4/citation_audit/`, passes 8 and 9):
+  every tool-comparison value deleted, every remaining `\cite` verified against the source text or cut back
+  to what the source states, 13 bibliography entries removed and 2 added, bibliography in first-citation
+  order (27 entries). Web access works here for CrossRef/Europe PMC/PLOS/BMC/arXiv; ScienceDirect, OUP,
+  ACM, IEEE and Nature block non-browser fetches.
 - The operating rules above stay in force for any follow-up reproduction work.

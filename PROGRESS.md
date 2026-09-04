@@ -415,13 +415,12 @@ OUP, ACM, IEEE and Nature block non-browser access), so the audit verified inste
       wording ('entire known protein universe') -> 76.9M mined proteins. Rebuild clean; changelog assert passes.
 - [x] paper/et_miner_proteome.pdf replaced by the pass-10 build (12 pages).
 - [x] committed as 72c45f6 and pushed to `origin/v2`.
-- [ ] OPEN THE PR (blocked on this box): the `gh` token is a fine-grained PAT without pull-request write
-      permission (`createPullRequest` refused via GraphQL and REST, HTTP 403). The description is ready in
-      `runs/20260902T0000Z/phase4/PR_V2_BODY.md`. From a machine with an authorized token:
-      `gh pr create --repo Et9797/ET-Miner --base alphafold-experimental-results-reproduction --head v2 \
-         --title "V2 preprint: RTX 3090 rerun only, citation audit" --body-file runs/20260902T0000Z/phase4/PR_V2_BODY.md`
-      or open https://github.com/Et9797/ET-Miner/compare/alphafold-experimental-results-reproduction...v2?expand=1
-      and paste the file. Do not merge; leave open for review.
+- [~] PR #6 exists (https://github.com/Et9797/ET-Miner/pull/6, opened from the Claude Code UI on 2026-09-04),
+      but it targets `main` and carries an auto-generated title/body. Et's brief requires base
+      `alphafold-experimental-results-reproduction`, never main. The token on this box cannot edit PRs
+      (`gh pr edit` and `PATCH /pulls/6` both HTTP 403), so Et must, in the GitHub UI: (1) Edit -> change the
+      base to `alphafold-experimental-results-reproduction`; (2) replace the description with
+      `runs/20260902T0000Z/phase4/PR_V2_BODY.md`. Do not merge; leave open for review. Pushes to `v2` update it.
 RESUME: if the tex is edited again, run `make_changelog_v2.py .` (assert) and `build_paper.sh` before committing;
 the binhex.tex stub (`\def\nhex#1#2{}`) must be on TEXINPUTS for latexmk on this box.
 - [x] README.md: AlphaFold section, results table and GPU feature bullets now carry the 2026-09-02 RTX 3090 values

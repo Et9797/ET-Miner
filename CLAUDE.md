@@ -161,4 +161,7 @@ compaction.
   to what the source states, 13 bibliography entries removed and 2 added, bibliography in first-citation
   order (27 entries). Web access works here for CrossRef/Europe PMC/PLOS/BMC/arXiv; ScienceDirect, OUP,
   ACM, IEEE and Nature block non-browser fetches.
+- 2026-09-04 (later): PR #6 merged `v2` into `alphafold-experimental-results-reproduction` (14aab73); the `v2`
+  branch and the old `claude/*` branches were deleted at Et's request (tip SHAs in PROGRESS.md). Only `main`
+  and `alphafold-experimental-results-reproduction` remain; the latter carries the V2 preprint and the audit.
 - The operating rules above stay in force for any follow-up reproduction work.

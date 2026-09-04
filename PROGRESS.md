@@ -415,12 +415,15 @@ OUP, ACM, IEEE and Nature block non-browser access), so the audit verified inste
       wording ('entire known protein universe') -> 76.9M mined proteins. Rebuild clean; changelog assert passes.
 - [x] paper/et_miner_proteome.pdf replaced by the pass-10 build (12 pages).
 - [x] committed as 72c45f6 and pushed to `origin/v2`.
-- [~] PR #6 exists (https://github.com/Et9797/ET-Miner/pull/6, opened from the Claude Code UI on 2026-09-04),
-      but it targets `main` and carries an auto-generated title/body. Et's brief requires base
-      `alphafold-experimental-results-reproduction`, never main. The token on this box cannot edit PRs
-      (`gh pr edit` and `PATCH /pulls/6` both HTTP 403), so Et must, in the GitHub UI: (1) Edit -> change the
-      base to `alphafold-experimental-results-reproduction`; (2) replace the description with
-      `runs/20260902T0000Z/phase4/PR_V2_BODY.md`. Do not merge; leave open for review. Pushes to `v2` update it.
+- [x] PR #6 (https://github.com/Et9797/ET-Miner/pull/6) merged by Et on 2026-09-04T15:47Z into
+      `alphafold-experimental-results-reproduction` (merge commit 14aab73), which now carries the V2 preprint,
+      the citation audit and the README update.
+- [x] remote branches deleted on Et's instruction (2026-09-04), tip SHAs kept here for recovery with
+      `git push origin <sha>:refs/heads/<name>`: v2 a107559 (merged); claude/codebase-structural-map-bpfw6k ce054b6
+      (merged); claude/delete-prefilter-shared-decode 883fa4b (merged); claude/density-adaptive-gpu-transition-g0i3t5
+      3d94c52 (merged); claude/sparse-csr-gpu-resident b1f147e (merged); claude/density-transition-handoff-kgluxc
+      2bc185c (one unmerged commit: a .gitignore entry for .claude/handoffs/). Remaining: `main` (default branch,
+      not touched) and `alphafold-experimental-results-reproduction`.
 RESUME: if the tex is edited again, run `make_changelog_v2.py .` (assert) and `build_paper.sh` before committing;
 the binhex.tex stub (`\def\nhex#1#2{}`) must be on TEXINPUTS for latexmk on this box.
 - [x] README.md: AlphaFold section, results table and GPU feature bullets now carry the 2026-09-02 RTX 3090 values

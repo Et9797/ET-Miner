@@ -263,12 +263,12 @@ fn build_k3plus_groups_from_flat<'py>(
 // Phase 4: Pruning Functions (K=4 regression elimination)
 // =============================================================================
 
-/// Prune closed itemsets: remove itemsets whose count equals a (k-1)-subset's count.
+/// Keep only free-sets: remove itemsets whose count equals a (k-1)-subset's count.
 ///
 /// Returns boolean mask (true = keep, false = prune). Uses Rayon parallel iteration
 /// over current itemsets with binary-search lookup into prev-level counts (R2).
 #[pyfunction]
-fn prune_closed_flat<'py>(
+fn prune_non_free_flat<'py>(
     py: Python<'py>,
     current_flat: PyReadonlyArray2<'py, i32>,
     current_counts: PyReadonlyArray1<'py, i64>,
@@ -318,14 +318,14 @@ fn prune_closed_flat<'py>(
 
     if k >= 2 && !core::groups::is_sorted_by_row(prev_flat_slice, n_prev, k - 1) {
         return Err(PyValueError::new_err(
-            "prev_flat must be sorted lexicographically by row for the closed-prune binary search \
+            "prev_flat must be sorted lexicographically by row for the free-set-prune binary search \
              (K>=3 decode order is j-major within a group, not lex order — lexsort current_flat at level end)",
         ));
     }
 
     #[allow(deprecated)]
     let mask = py.allow_threads(|| {
-        core::groups::prune_closed_flat_raw(
+        core::groups::prune_non_free_flat_raw(
             cur_flat,
             cur_counts,
             prev_flat_slice,
@@ -339,7 +339,7 @@ fn prune_closed_flat<'py>(
     Ok(PyArray1::from_vec(py, mask))
 }
 
-/// Compact variant: prune non-closed itemsets and return pruned (flat, counts)
+/// Compact variant: prune non-free itemsets and return pruned (flat, counts)
 /// arrays directly — eliminates the Python-side numpy fancy-index bottleneck.
 ///
 /// Replaces the bool-mask roundtrip + Python
@@ -351,7 +351,7 @@ fn prune_closed_flat<'py>(
 /// `n_kept` is returned explicitly so the Python wrapper avoids a redundant
 /// `mask.sum()` for logging.
 #[pyfunction]
-fn prune_closed_flat_compact<'py>(
+fn prune_non_free_flat_compact<'py>(
     py: Python<'py>,
     current_flat: PyReadonlyArray2<'py, i32>,
     current_counts: PyReadonlyArray1<'py, i64>,
@@ -401,14 +401,14 @@ fn prune_closed_flat_compact<'py>(
 
     if k >= 2 && !core::groups::is_sorted_by_row(prev_flat_slice, n_prev, k - 1) {
         return Err(PyValueError::new_err(
-            "prev_flat must be sorted lexicographically by row for the closed-prune binary search \
+            "prev_flat must be sorted lexicographically by row for the free-set-prune binary search \
              (K>=3 decode order is j-major within a group, not lex order — lexsort current_flat at level end)",
         ));
     }
 
     #[allow(deprecated)]
     let (out_flat, out_counts) = py.allow_threads(|| {
-        core::groups::prune_closed_flat_compact_raw(
+        core::groups::prune_non_free_flat_compact_raw(
             cur_flat,
             cur_counts,
             prev_flat_slice,
@@ -560,15 +560,15 @@ fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_k3plus_groups_from_flat, m)?)?;
 
     // Phase 4: Pruning functions (K=4 regression elimination)
-    m.add_function(wrap_pyfunction!(prune_closed_flat, m)?)?;
-    m.add_function(wrap_pyfunction!(prune_closed_flat_compact, m)?)?;
+    m.add_function(wrap_pyfunction!(prune_non_free_flat, m)?)?;
+    m.add_function(wrap_pyfunction!(prune_non_free_flat_compact, m)?)?;
     m.add_function(wrap_pyfunction!(prune_groups_apriori, m)?)?;
 
     // Parallel unique-column extraction
     m.add_function(wrap_pyfunction!(unique_columns_from_flat, m)?)?;
 
     // Version info
-    m.add("__version__", "0.2.0")?;
+    m.add("__version__", "0.3.0")?;
     m.add("__author__",  "E. Ahmic")?;
 
     Ok(())

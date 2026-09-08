@@ -24,9 +24,8 @@ from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transiti
 from et_miner.gpu.mining import (
     _anchor_keep_mask,
     _apply_anchor_filter,
-    _prune_closed_flat,
-    _prune_closed_mask,
     _prune_groups_apriori,
+    _prune_non_free_mask,
     _rows_sorted,
 )
 from et_miner.gpu.nccl import _init_nccl
@@ -64,8 +63,8 @@ def _apriori_row_split_multi_gpu(
     bitvecs_list=None,  # Pre-built row-split bitvecs: list[(gpu_array, dev_id, n_rows)]
     output_dir=None,  # Per-K Parquet flush: write frequent_k{k}.parquet per level
     resume_from_k: int | None = None,  # Resume from K=N+1, loading K=N from parquet
-    prune_closed: bool = False,  # V3: prune non-closed itemsets between K-levels
-    prune_apriori: bool = False,  # V3: Apriori subset pruning on candidate groups
+    prune_non_free: bool = False,  # keep only free-sets (generators) per level
+    prune_apriori: bool = False,  # Apriori subset pruning on candidate groups
     sparse_from_k: int | str | None = None,  # V3: CSR from this K level, or "auto" = measured density
     anchor_items: set | None = None,  # V3 B6: two-phase anchor filtering
 ) -> "pl.DataFrame":
@@ -90,6 +89,22 @@ def _apriori_row_split_multi_gpu(
     7.2 MB instead of the 2.4 GB dense array. (The default `compact`
     filter keeps this guarantee at any survivor count; the `cpu` A/B
     baseline impl deliberately re-enacts the historical full-array D2H.)
+
+    ``prune_non_free`` keeps two populations per level, and which one each
+    consumer gets is the whole correctness story:
+
+      * ``prev_frequent_flat`` — the free-sets, i.e. what this level EMITS and
+        what the next level's prefix join generates from. Emitting a level and
+        then generating from a smaller one is what silently dropped frequent,
+        apriori-valid itemsets from K=5 on: the output advertised itemsets the
+        run would never extend.
+      * ``prev_full_flat`` — the complete frequent level, which every subset
+        test of the next level resolves against (both the apriori prune and the
+        free-set test). Testing against the pruned level instead misses subsets
+        that were themselves pruned, and under-prunes.
+
+    With ``prune_non_free=False`` the two are the same array, so the unpruned
+    path carries no extra cost and its output is the complete lattice.
     """
     import numpy as np
 
@@ -253,29 +268,42 @@ def _apriori_row_split_multi_gpu(
         n_loaded = len(itemsets_col)
         prev_frequent_flat = flat_col_ids.reshape(n_loaded, resume_from_k).astype(np.int32)
 
-        # V3: reconstruct raw counts from the flushed support column, so the
-        # first resumed level keeps closed pruning and the "auto" density
+        # Reconstruct raw counts from the flushed support column, so the first
+        # resumed level keeps the free-set prune and the "auto" density
         # transition. count → support → count round-trips exactly through
         # float64 for any int32-range count.
         if "support" in table.column_names:
             supports_np = table.column("support").combine_chunks().to_numpy(zero_copy_only=False)
             prev_counts_flat = np.rint(supports_np.astype(np.float64) * n_transactions).astype(np.int64)
         else:
-            prev_counts_flat = None  # counts unknown — closed pruning and auto transition wait one level
+            prev_counts_flat = None  # counts unknown — the prune and auto transition wait one level
         del table, itemsets_col, flat_item_ids, flat_col_ids, item_to_col
-        if prune_closed and not _rows_sorted(prev_frequent_flat):
-            # Parquet order is not row-sorted; the closed-prune binary search needs it.
+        if prune_non_free and not _rows_sorted(prev_frequent_flat):
+            # Parquet order is not row-sorted; the free-set binary search needs it.
             _order = np.lexsort(prev_frequent_flat[:, ::-1].T)
             prev_frequent_flat = prev_frequent_flat[_order]
             if prev_counts_flat is not None:
                 prev_counts_flat = prev_counts_flat[_order]
 
+        # The parquet holds the EMITTED level, which under prune_non_free is the
+        # free subset — the complete level of K=resume_from_k was never written.
+        # Generation resumes exactly (it reads the free-sets), but the first
+        # resumed level's free-set test resolves against the free subset instead
+        # of the complete level, which can only under-prune (keep a few extra).
+        prev_full_flat = prev_frequent_flat
+        prev_full_counts = prev_counts_flat
+        if prune_non_free:
+            logger.warning(
+                f"  RESUME: K={resume_from_k} parquet holds the free-sets, not the complete level — "
+                f"the K={resume_from_k + 1} free-set test may under-prune slightly. "
+                "Levels after that are exact."
+            )
+
         resume_time = time.perf_counter() - t_resume
         logger.info(f"  RESUME: {n_loaded:,} itemsets → col indices in {resume_time:.1f}s")
 
         k = resume_from_k + 1
-        prev_live_mgpu = set(prev_frequent_flat.ravel().tolist())
-        logger.info(f"  RESUME: Jumping to K={k} ({len(prev_live_mgpu)} live columns)")
+        logger.info(f"  RESUME: Jumping to K={k} ({len(prev_frequent_flat):,} itemsets)")
 
     # ── K=1: parallel popcount across GPUs, sum ────────────────────────
     if not _resume_active:
@@ -307,24 +335,39 @@ def _apriori_row_split_multi_gpu(
         freq_col_indices = np.where(freq_mask_k1)[0]
         freq_col_counts = global_col_counts[freq_mask_k1]
 
-        if len(freq_col_indices) > 0:
-            freq_items_k1 = col_to_item_arr[freq_col_indices]
-            k1_supports = freq_col_counts / n_transactions
-            _flush_or_defer(freq_items_k1.reshape(-1, 1), k1_supports, 1)
+        # K=1 frequent columns as flat (n, 1) array — already numpy
+        prev_full_flat = freq_col_indices.astype(np.int32).reshape(-1, 1)
+        prev_full_counts = freq_col_counts.astype(np.int64)  # preserved for the free-set test
+
+        # Free-set semantics start at K=1: an item in EVERY transaction has the
+        # empty set's support, so it is not a generator. Dropping it here is what
+        # makes the kept level exactly the free-sets at every K.
+        prev_frequent_flat = prev_full_flat
+        prev_counts_flat = prev_full_counts
+        if prune_non_free:
+            _k1_free = prev_full_counts < n_transactions
+            if not _k1_free.all():
+                prev_frequent_flat = prev_full_flat[_k1_free]
+                prev_counts_flat = prev_full_counts[_k1_free]
+                logger.debug(
+                    f"    Free-set pruning K=1: {len(prev_full_flat):,} → {len(prev_frequent_flat):,} "
+                    "(items present in every transaction)"
+                )
+
+        if len(prev_frequent_flat) > 0:
+            _flush_or_defer(
+                col_to_item_arr[prev_frequent_flat], prev_counts_flat / n_transactions, 1
+            )
 
         k1_time = time.perf_counter() - _k1_start
         if level_callback:
-            level_callback(1, n_cols, len(freq_col_indices), k1_time * 1000)
-        logger.info(f"  K=1: {len(freq_col_indices):,} frequent items in {k1_time:.1f}s")
+            level_callback(1, n_cols, len(prev_frequent_flat), k1_time * 1000)
+        logger.info(f"  K=1: {len(prev_frequent_flat):,} frequent items in {k1_time:.1f}s")
 
-        if len(freq_col_indices) == 0:
+        if len(prev_frequent_flat) == 0:
             return _build_result_df([])
 
-        # K=1 frequent columns as flat (n, 1) array — already numpy
-        prev_frequent_flat = freq_col_indices.astype(np.int32).reshape(-1, 1)
-        prev_counts_flat = freq_col_counts.astype(np.int64)  # V3: preserve for closed pruning
         k = 2
-        prev_live_mgpu = set(freq_col_indices.tolist())
 
     # ── K>=2: GPU-resident dense counting ────────────────────────────────
     # State: prev_frequent_flat — numpy (n_freq, k-1) array of column indices.
@@ -383,11 +426,15 @@ def _apriori_row_split_multi_gpu(
                 # permutation the CSR kernels enumerate candidates from.
                 groups_info = build_k3plus_groups_from_flat(prev_frequent_flat, with_src_rows=True)
 
-                # Apriori pruning (reuse A3) — Rust fast path with Python fallback
+                # Apriori pruning — resolved against the COMPLETE previous level.
+                # Against the free subset it rejects candidates whose (k-1)-subsets
+                # are frequent but not free, which loses frequent itemsets; against
+                # the complete level it only drops candidates that cannot be
+                # frequent, so it is lossless.
                 if prune_apriori and groups_info is not None:
                     tc_before = groups_info.total_candidates
-                    prev_freq_set = set(map(tuple, prev_frequent_flat.tolist()))
-                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_frequent_flat)
+                    prev_freq_set = set(map(tuple, prev_full_flat.tolist()))
+                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
                         logger.debug(
@@ -434,13 +481,10 @@ def _apriori_row_split_multi_gpu(
                                     f"    Anchor filter K={k}: {_n_before:,} → {n_freq:,} ({100 * (1 - n_freq / _n_before):.1f}% filtered)"
                                 )
 
-                        if n_freq > 0:
-                            items_flat = col_to_item_arr[current_flat]
-                            _flush_or_defer(items_flat, current_counts_raw / n_transactions, k)
-
             elif k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
+                _n_cands_cb = n_pairs
 
                 # Chunked by measured VRAM budget — big cards get one chunk,
                 # small (or pool-limited) cards split the pair space. The
@@ -486,9 +530,6 @@ def _apriori_row_split_multi_gpu(
                         current_flat, current_counts_raw, anchor_col_arr, k
                     )
 
-                    items_flat = col_to_item_arr[current_flat]  # (n, 2) int32
-                    _flush_or_defer(items_flat, current_counts_raw / n_transactions, k)
-
                     # Pair cache disabled — not yet wired to K>=3 kernels (saves ~13.6 GB VRAM)
                 else:
                     current_flat = np.empty((0, 2), dtype=np.int32)
@@ -498,11 +539,12 @@ def _apriori_row_split_multi_gpu(
                 # K>=3: build groups from flat array — no Python tuple grouping
                 groups_info = build_k3plus_groups_from_flat(prev_frequent_flat)
 
-                # V3: Apriori subset pruning — Rust fast path with Python fallback
+                # Apriori subset pruning — resolved against the COMPLETE previous
+                # level (see the sparse branch above for why that matters).
                 if prune_apriori and groups_info is not None:
                     tc_before = groups_info.total_candidates
-                    prev_freq_set = set(map(tuple, prev_frequent_flat.tolist()))
-                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_frequent_flat)
+                    prev_freq_set = set(map(tuple, prev_full_flat.tolist()))
+                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
                         logger.debug(
@@ -515,6 +557,7 @@ def _apriori_row_split_multi_gpu(
 
                 if groups_info is not None:
                     tc = groups_info.total_candidates
+                    _n_cands_cb = tc
 
                     # VRAM budget for candidate-range chunking. Group data
                     # stays resident across all chunks; only the dense int32
@@ -586,12 +629,47 @@ def _apriori_row_split_multi_gpu(
                             current_flat, current_counts_raw, anchor_col_arr, k
                         )
 
-                        items_flat = col_to_item_arr[current_flat]  # (n, k) int32
-                        _flush_or_defer(
-                            items_flat,
-                            current_counts_raw / n_transactions,
-                            k,
-                        )
+            # ── Level end: sort, split the two populations, emit ─────────
+            # The lexsort runs BEFORE the free-set prune so that the COMPLETE
+            # level is sorted too: the next level binary-searches it, and the
+            # prune below is order-preserving, so one sort serves both. Neither
+            # decode is lex-sorted by itself — K=2 enumerates pairs
+            # triangularly and K>=3 emits each prefix group's pairs in j-major
+            # order ((0,1),(0,2),(1,2),(0,3),...), which is not lex order once a
+            # group has >= 4 suffixes. Skipped when already sorted
+            # (_rows_sorted is O(n·k), no sort), and when nothing needs it.
+            if n_freq > 0 and (k == 2 or prune_non_free) and not _rows_sorted(current_flat):
+                sort_idx = np.lexsort(current_flat[:, ::-1].T)
+                current_flat = current_flat[sort_idx]
+                current_counts_raw = current_counts_raw[sort_idx]
+                if _surv is not None:
+                    _surv = _surv[sort_idx]
+
+            # The complete frequent level — what every subset test of K+1
+            # resolves against. Same object as the emitted level when the flag
+            # is off, so the unpruned path pays nothing for this.
+            full_flat = current_flat
+            full_counts = current_counts_raw
+
+            # Free-set (generator) pruning: drop itemsets whose count equals a
+            # (k-1)-subset's, tested against the COMPLETE previous level. What
+            # survives is both what this level emits and what K+1 generates
+            # from — those must be the same population, or the output
+            # advertises itemsets the run will never extend.
+            if prune_non_free and n_freq > 0:
+                # Mask form on both branches: the sparse path also carries the
+                # survivor index array and must filter it in lockstep, so the
+                # shards materialize exactly the kept rows.
+                _keep = _prune_non_free_mask(current_flat, current_counts_raw, prev_full_flat, prev_full_counts)
+                current_flat = current_flat[_keep]
+                current_counts_raw = current_counts_raw[_keep]
+                if _surv is not None:
+                    _surv = _surv[_keep]
+                n_freq = len(current_flat)
+
+            if n_freq > 0:
+                items_flat = col_to_item_arr[current_flat]  # (n, k) int32
+                _flush_or_defer(items_flat, current_counts_raw / n_transactions, k)
 
             k_time = time.perf_counter() - _k_start
             if level_callback:
@@ -600,73 +678,6 @@ def _apriori_row_split_multi_gpu(
 
             if n_freq == 0:
                 break
-
-            # Progressive bitvector deallocation across all GPUs (skip in sparse mode)
-            # Replace single-threaded np.unique on
-            # (n, k) int32 (~30-90s on K=6's 2.58B elements) with Rust parallel
-            # bitset extract (sub-second). Falls back to np.unique if older wheel.
-            try:
-                from et_miner.backends import get_rust_ext
-
-                et_miner_rust = get_rust_ext()
-                if hasattr(et_miner_rust, "unique_columns_from_flat"):
-                    current_live_mgpu = set(
-                        int(x)
-                        for x in et_miner_rust.unique_columns_from_flat(
-                            np.ascontiguousarray(current_flat, dtype=np.int32).ravel()
-                        )
-                    )
-                else:
-                    current_live_mgpu = set(np.unique(current_flat).tolist())
-            except (ImportError, AttributeError):
-                current_live_mgpu = set(np.unique(current_flat).tolist())
-            dead_cols = prev_live_mgpu - current_live_mgpu
-            if dead_cols and bitvecs_list:
-                dead_arr = sorted(dead_cols)
-                for bv, did, _ in bitvecs_list:
-                    with cp.cuda.Device(did):
-                        dead_idx = cp.array(dead_arr, dtype=cp.int64)
-                        bv[dead_idx] = 0
-                freed_mb = len(dead_cols) * bitvecs_list[0][0].shape[1] * 8 / 1024**2
-                logger.debug(
-                    f"    Pruning: zeroed {len(dead_cols)} dead bitvecs at K={k} ({freed_mb:.0f} MB logical × {len(bitvecs_list)} GPUs)"
-                )
-            prev_live_mgpu = current_live_mgpu
-
-            # V3: Closed itemset pruning — remove non-closed before next-level candidate gen
-            if prune_closed and n_freq > 0:
-                if _surv is not None:
-                    # Sparse mode: filter the survivor index array in lockstep so the
-                    # shards are materialized for exactly the kept rows (the old
-                    # host-CSR path pruned AFTER building tidsets and misaligned).
-                    _keep = _prune_closed_mask(current_flat, current_counts_raw, prev_frequent_flat, prev_counts_flat)
-                    current_flat = current_flat[_keep]
-                    current_counts_raw = current_counts_raw[_keep]
-                    _surv = _surv[_keep]
-                else:
-                    current_flat, current_counts_raw = _prune_closed_flat(
-                        current_flat, current_counts_raw, prev_frequent_flat, prev_counts_flat
-                    )
-                n_freq = len(current_flat)
-
-            # The Rust closed-prune binary-searches prev_flat, so the table
-            # handed to the NEXT level must be lexicographically sorted by row
-            # whenever pruning is on. Neither decode guarantees that by itself:
-            # K=2 enumerates pairs triangularly, and K>=3 emits each prefix
-            # group's pairs in j-major order ((0,1),(0,2),(1,2),(0,3),...),
-            # which is not lex order once a group has >= 4 suffixes. The old
-            # "K>=3 output is sorted" claim silently under-pruned and let
-            # dense+prune emit itemsets the CPU tier never generates
-            # (tests/test_row_split_e2e.py::TestClosedPruning, Spec B). Sort at
-            # K=2 (as before) and at every pruning level, skipping levels that
-            # are already sorted (_rows_sorted is O(n·k), no sort). In sparse
-            # mode the survivor index array is permuted in lockstep.
-            if n_freq > 0 and (k == 2 or prune_closed) and not _rows_sorted(current_flat):
-                sort_idx = np.lexsort(current_flat[:, ::-1].T)
-                current_flat = current_flat[sort_idx]
-                current_counts_raw = current_counts_raw[sort_idx]
-                if _surv is not None:
-                    _surv = _surv[sort_idx]
 
             if sparse_state.active and _sparse_groups_gpu is not None:
                 # Rebuild the shards for K+1 in the final row order (skipped when no
@@ -684,7 +695,9 @@ def _apriori_row_split_multi_gpu(
                 _sparse_groups_gpu = None
 
             prev_frequent_flat = current_flat
-            prev_counts_flat = current_counts_raw if n_freq > 0 else np.empty(0, dtype=np.int64)
+            prev_counts_flat = current_counts_raw
+            prev_full_flat = full_flat
+            prev_full_counts = full_counts
             k += 1
     finally:
         # Release the resident CSR shards and any group arrays of an aborted level.

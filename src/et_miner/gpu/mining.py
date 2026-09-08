@@ -25,30 +25,16 @@ from et_miner.core.result import (
 from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse
 
 
-def _deallocate_dead_bitvecs(bitvecs_gpu, live_cols, prev_live_cols, k_level):
-    """Zero bitvec rows for columns that dropped out of the frequent set.
 
-    Progressive bitvector deallocation: after each K-level, columns no longer
-    in any frequent itemset have their bitvec rows zeroed. The CuPy array is
-    contiguous so we can't free individual rows, but zeroing makes subsequent
-    AND operations trivially fast (AND with zero = zero) and prevents dead
-    columns from contributing false positives.
 
-    Returns the set of live columns for tracking across levels.
+def _rust_prune_fn(et_miner_rust, name: str):
+    """Resolve a free-set prune entry point, tolerating a pre-0.3.0 wheel.
+
+    0.3.0 renamed ``prune_closed_flat*`` to ``prune_non_free_flat*`` — the test
+    was always the free-set one, only the word was wrong. The old name is tried
+    second so an unrebuilt wheel keeps working (identical semantics).
     """
-    import cupy as cp
-
-    dead_cols = prev_live_cols - live_cols
-    if dead_cols:
-        dead_indices = cp.array(sorted(dead_cols), dtype=cp.int64)
-        bitvecs_gpu[dead_indices] = 0
-        freed_bytes = len(dead_cols) * bitvecs_gpu.shape[1] * 8
-        logger.debug(
-            f"    Pruning: zeroed {len(dead_cols)} dead bitvecs at K={k_level} ({freed_bytes / 1024**2:.0f} MB logical)"
-        )
-    return live_cols
-
-
+    return getattr(et_miner_rust, name, None) or getattr(et_miner_rust, name.replace("non_free", "closed"), None)
 
 
 def _rows_sorted(flat) -> bool:
@@ -60,7 +46,7 @@ def _rows_sorted(flat) -> bool:
     column 0, where ``a < b`` is false, so duplicates count as UNSORTED and
     merely trigger a (harmless) redundant sort. Rows are unique itemsets, so
     this is by design, not a defect. Used to skip the level-end lexsort that
-    the closed-prune binary search requires when the level is already sorted.
+    the free-set-prune binary search requires when the level is already sorted.
     """
     import numpy as np
 
@@ -75,12 +61,20 @@ def _rows_sorted(flat) -> bool:
     return bool(np.all(a[rows, first] < b[rows, first]))
 
 
-def _prune_closed_flat(current_flat, current_counts, prev_flat, prev_counts):
-    """Prune non-closed itemsets from flat numpy arrays.
+def _prune_non_free_flat(current_flat, current_counts, prev_flat, prev_counts):
+    """Keep only the free-sets (generators) of a level.
 
-    An itemset is non-closed if its support count equals any (k-1)-subset's count.
-    This means the k-th item appears in ALL transactions of that subset — no new
-    information. Removing these reduces candidate generation at K+1 by 50-90%.
+    An itemset is a free-set when no proper subset has the same support
+    [Bastide et al. 2000, Pascal]. If dropping one item leaves the count
+    unchanged, that item is implied by the rest and the itemset is not free.
+    Free-sets are anti-monotone (every subset of a free-set is free), so the
+    next level can be generated from the survivors alone without losing any
+    free-set — which is why the caller may hand the survivors forward.
+
+    NOT closed-itemset mining: closed asks about equal-support *supersets*,
+    this asks about equal-support *subsets*. ``prev_flat``/``prev_counts`` must
+    be the COMPLETE previous level, not a previously pruned one, or the test
+    misses subsets that were themselves pruned and under-prunes.
 
     Operates on raw integer counts (not float support) for exact comparison.
     Uses bytes-key dict for O(1) lookup of (k-1)-subsets.
@@ -92,7 +86,7 @@ def _prune_closed_flat(current_flat, current_counts, prev_flat, prev_counts):
         prev_counts: numpy int64 (m,) — raw support counts for previous level.
 
     Returns:
-        Tuple of (pruned_flat, pruned_counts) with non-closed itemsets removed.
+        Tuple of (pruned_flat, pruned_counts) with the non-free itemsets removed.
     """
     import numpy as np
 
@@ -117,11 +111,12 @@ def _prune_closed_flat(current_flat, current_counts, prev_flat, prev_counts):
         # Compact path returns pruned arrays directly, skipping the
         # single-threaded numpy fancy-index that bottlenecked at 30-60s on 430M
         # K=6 rows. Sequential extend_from_slice in Rust ~10-13× faster.
-        if hasattr(et_miner_rust, "prune_closed_flat_compact"):
-            flat_1d, pruned_counts, n_kept = et_miner_rust.prune_closed_flat_compact(cf, cc, pf, pc)
+        _compact = _rust_prune_fn(et_miner_rust, "prune_non_free_flat_compact")
+        if _compact is not None:
+            flat_1d, pruned_counts, n_kept = _compact(cf, cc, pf, pc)
             if n_before > n_kept:
                 logger.debug(
-                    f"    Closed pruning: {n_before:,} → {n_kept:,} ({100 * (1 - n_kept / n_before):.1f}% non-closed removed) [rust-compact]"
+                    f"    Free-set pruning: {n_before:,} → {n_kept:,} ({100 * (1 - n_kept / n_before):.1f}% non-free removed) [rust-compact]"
                 )
             # Reshape (n_kept * k,) → (n_kept, k) — zero-copy view on
             # C-contiguous source. Empty case yields (0, k) shape, not (0,),
@@ -129,23 +124,26 @@ def _prune_closed_flat(current_flat, current_counts, prev_flat, prev_counts):
             return flat_1d.reshape((n_kept, k)), pruned_counts
 
         # Legacy path: bool mask + Python fancy-index (slow at high K)
-        mask = et_miner_rust.prune_closed_flat(cf, cc, pf, pc)
+        _mask_fn = _rust_prune_fn(et_miner_rust, "prune_non_free_flat")
+        if _mask_fn is None:
+            raise AttributeError("et_miner_rust exposes no free-set prune")
+        mask = _mask_fn(cf, cc, pf, pc)
         n_after = int(mask.sum())
         if n_before > n_after:
             logger.debug(
-                f"    Closed pruning: {n_before:,} → {n_after:,} ({100 * (1 - n_after / n_before):.1f}% non-closed removed) [rust-mask]"
+                f"    Free-set pruning: {n_before:,} → {n_after:,} ({100 * (1 - n_after / n_before):.1f}% non-free removed) [rust-mask]"
             )
         return current_flat[mask], current_counts[mask]
     except (ImportError, AttributeError):
         pass
 
     # --- Python fallback ---
-    mask = _prune_closed_mask_python(current_flat, current_counts, prev_flat, prev_counts)
+    mask = _prune_non_free_mask_python(current_flat, current_counts, prev_flat, prev_counts)
     return current_flat[mask], current_counts[mask]
 
 
-def _prune_closed_mask_python(current_flat, current_counts, prev_flat, prev_counts):
-    """Pure-Python closed-prune keep-mask (True = keep). Dict-based, so it
+def _prune_non_free_mask_python(current_flat, current_counts, prev_flat, prev_counts):
+    """Pure-Python free-set keep-mask (True = keep). Dict-based, so it
     does not need prev_flat sorted."""
     import numpy as np
 
@@ -172,16 +170,16 @@ def _prune_closed_mask_python(current_flat, current_counts, prev_flat, prev_coun
     n_after = int(mask.sum())
     if n_before > n_after:
         logger.debug(
-            f"    Closed pruning: {n_before:,} → {n_after:,} ({100 * (1 - n_after / n_before):.1f}% non-closed removed)"
+            f"    Free-set pruning: {n_before:,} → {n_after:,} ({100 * (1 - n_after / n_before):.1f}% non-free removed)"
         )
     return mask
 
 
-def _prune_closed_mask(current_flat, current_counts, prev_flat, prev_counts):
-    """Keep-mask form of :func:`_prune_closed_flat` (True = keep / open), for
+def _prune_non_free_mask(current_flat, current_counts, prev_flat, prev_counts):
+    """Keep-mask form of :func:`_prune_non_free_flat` (True = keep / open), for
     callers that must filter more than the two arrays in lockstep (the
     sparse-CSR path also carries the survivor index array). Rust
-    ``prune_closed_flat`` when available (prev_flat must be row-sorted),
+    ``prune_non_free_flat`` when available (prev_flat must be row-sorted),
     else the dict-based Python fallback."""
     import numpy as np
 
@@ -194,8 +192,11 @@ def _prune_closed_mask(current_flat, current_counts, prev_flat, prev_counts):
         et_miner_rust = get_rust_ext()
         if et_miner_rust is None:
             raise ImportError("et_miner_rust not built")
+        _mask_fn = _rust_prune_fn(et_miner_rust, "prune_non_free_flat")
+        if _mask_fn is None:
+            raise AttributeError("et_miner_rust exposes no free-set prune")
         mask = np.asarray(
-            et_miner_rust.prune_closed_flat(
+            _mask_fn(
                 np.ascontiguousarray(current_flat, dtype=np.int32),
                 np.ascontiguousarray(current_counts, dtype=np.int64),
                 np.ascontiguousarray(prev_flat, dtype=np.int32),
@@ -206,12 +207,12 @@ def _prune_closed_mask(current_flat, current_counts, prev_flat, prev_counts):
         n_after = int(mask.sum())
         if n > n_after:
             logger.debug(
-                f"    Closed pruning: {n:,} → {n_after:,} ({100 * (1 - n_after / n):.1f}% non-closed removed) [rust-mask]"
+                f"    Free-set pruning: {n:,} → {n_after:,} ({100 * (1 - n_after / n):.1f}% non-free removed) [rust-mask]"
             )
         return mask
     except (ImportError, AttributeError):
         pass
-    return _prune_closed_mask_python(current_flat, current_counts, prev_flat, prev_counts)
+    return _prune_non_free_mask_python(current_flat, current_counts, prev_flat, prev_counts)
 
 
 def _anchor_keep_mask(current_flat, anchor_col_arr, k):
@@ -423,7 +424,10 @@ def _apriori_from_bitvecs(
         n_transactions: Total number of transactions (for support calculation).
         min_support: Minimum support threshold (0.0-1.0).
         max_length: Maximum itemset length (None = unlimited).
-        batch_size: Candidates per batch (used for batching CUDA kernel calls).
+        batch_size: Unused. The dense levels size their own chunks from the
+            measured VRAM budget (gpu.row_split_chunks.compute_chunk_budget);
+            the parameter is kept only so the positional call sites in
+            core.apriori keep working.
         profile: If True, return profiling metrics alongside results.
         level_callback: Optional callback for per-level progress updates.
         sparse_from_k: Dense→sparse CSR transition. Int = fixed K-level
@@ -578,7 +582,6 @@ def _apriori_from_bitvecs(
 
     # Phase 2: k >= 2 using CUDA kernels
     k = 2
-    prev_live = {col for tup in prev_frequent for col in tup}  # Track live columns for deallocation
 
     # Sparse CSR state (GPU-resident shard, see gpu.sparse_csr); sticky once
     # active. prev_frequent_flat mirrors prev_frequent in the shard's row order.
@@ -757,11 +760,6 @@ def _apriori_from_bitvecs(
             logger.warning(f"  Mining stopped at K={k} by memory guard. Total: {_cumulative_itemsets:,} itemsets")
             break
 
-        # Progressive bitvector deallocation: zero dead columns (skip if CSR active)
-        if not sparse_state.active:
-            current_live = {col for tup in current_frequent for col in tup}
-            prev_live = _deallocate_dead_bitvecs(bitvecs_gpu, current_live, prev_live, k)
-
         prev_frequent = current_frequent
         prev_counts = current_counts
         k += 1
@@ -905,7 +903,6 @@ def _apriori_from_bitvecs_gpu_resident(
     # === K=2: fused kernel -> pair_items (n,2) in VRAM ===
     k = 2
     prev_freq_gpu = k1_itemsets  # (n, 1) — sorted freq column indices
-    prev_live_gr = set(freq_col_indices.tolist())  # K=1 live cols for progressive deallocation
 
     while k <= effective_max_length and len(prev_freq_gpu) >= k:
         _k_start = time.perf_counter()
@@ -962,10 +959,6 @@ def _apriori_from_bitvecs_gpu_resident(
 
             if n_frequent_k == 0:
                 break
-
-            # Progressive bitvector deallocation (gpu-resident path)
-            current_live_gr = set(cp.unique(prev_freq_gpu.ravel()).get().tolist())
-            prev_live_gr = _deallocate_dead_bitvecs(bitvecs_gpu, current_live_gr, prev_live_gr, k)
 
         k += 1
 

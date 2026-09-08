@@ -107,46 +107,53 @@ def _validate_parameters(
 
 def _prune_equal_support(
     current_frequent: list[tuple[str, ...]],
-    current_supports: dict[tuple[str, ...], float],
-    prev_supports: dict[tuple[str, ...], float],
-    tolerance: float = 1e-9,
+    current_counts: dict[tuple[str, ...], int],
+    prev_counts: dict[tuple[str, ...], int],
 ) -> list[tuple[str, ...]]:
-    """Prune itemsets with equal support to their subsets (non-closed itemsets).
+    """Keep only the free-sets (generators) of a level.
 
-    Based on BitApriori [Zheng 2010]: if support({A,B,C}) == support({A,B}),
-    then C appears in ALL transactions containing {A,B}. These non-closed
-    itemsets add no information for rule mining and can be pruned to reduce
-    candidate generation in subsequent iterations.
+    An itemset is a *free-set* when no proper subset has the same support
+    [Bastide et al. 2000, Pascal]. If support({A,B,C}) == support({A,B}) then C
+    is implied by {A,B} and {A,B,C} is not free. Free-sets are anti-monotone —
+    every subset of a free-set is free — so the next level can be generated
+    from the survivors alone without losing a single free-set.
+
+    NOT closed-itemset mining: closed asks about equal-support *supersets*,
+    this asks about equal-support *subsets*, and the two select different
+    itemsets. ``prev_counts`` must be the COMPLETE previous level (it is never
+    pruned in the caller) or the test misses subsets that were themselves
+    pruned and under-prunes.
+
+    Compares raw integer counts, exactly as the GPU path does — a float
+    comparison with a tolerance made the two tiers disagree at the boundary.
 
     Args:
         current_frequent: Frequent k-itemsets from current iteration.
-        current_supports: Support values for current k-itemsets.
-        prev_supports: Support values for (k-1)-itemsets from previous iteration.
-        tolerance: Floating point comparison tolerance.
+        current_counts: Integer counts for the current k-itemsets.
+        prev_counts: Integer counts for the COMPLETE (k-1)-itemset level.
 
     Returns:
-        List of closed itemsets (those with support different from all subsets).
+        The free-sets, in input order.
     """
-    if not prev_supports:
+    if not prev_counts:
         return current_frequent
 
-    closed = []
+    free = []
     for itemset in current_frequent:
-        is_closed = True
-        current_sup = current_supports[itemset]
+        is_free = True
+        current_count = current_counts[itemset]
 
-        # Check if support equals any (k-1) subset
+        # Not free if the count equals any (k-1)-subset's count
         for i in range(len(itemset)):
             subset = itemset[:i] + itemset[i + 1 :]
-            if subset in prev_supports:
-                if abs(current_sup - prev_supports[subset]) < tolerance:
-                    is_closed = False
-                    break
+            if prev_counts.get(subset) == current_count:
+                is_free = False
+                break
 
-        if is_closed:
-            closed.append(itemset)
+        if is_free:
+            free.append(itemset)
 
-    return closed
+    return free
 
 
 
@@ -154,50 +161,56 @@ def _prune_equal_support(
 def _infer_count_from_subsets(
     candidate: tuple[str, ...],
     prev_counts: dict[tuple[str, ...], int],
+    prev_free: set[tuple[str, ...]] | None,
 ) -> int | None:
-    """Infer candidate count when ALL subsets have EQUAL count (APPROXIMATION).
+    """Infer a candidate's exact count from its (k-1)-subsets, or None.
 
-    WARNING: This is mathematically unsound. Anti-monotonicity only guarantees
-    support(superset) <= min(subset_supports), NOT equality when all subsets
-    match. Counterexample: support({A,B})=support({A,C})=support({B,C})=30
-    but support({A,B,C})=15. Use with caution — may overcount.
+    Pascal [Bastide et al. 2000]: if a (k-1)-subset Y of X is *not* free — some
+    Z ⊊ Y has rows(Z) = rows(Y) — then for X = Y ∪ {a} we have
+    rows(X) = rows(Z ∪ {a}), and any (k-1)-subset W with Z ∪ {a} ⊆ W ⊂ X
+    satisfies rows(W) = rows(X). So X is not free either and
 
-    Only used in CPU path when use_generator_pruning=True (default: False).
-    GPU production path does NOT use this function.
+        count(X) = min{count(W) : W ⊂ X, |W| = k-1}
+
+    exactly — no counting pass needed. When every (k-1)-subset is free nothing
+    can be inferred and the candidate must be counted.
+
+    This replaces an earlier rule that inferred whenever ALL subsets happened to
+    share a count, which is unsound: support({A,B}) = support({A,C}) =
+    support({B,C}) = 30 with support({A,B,C}) = 15 was its own documented
+    counterexample. Here all three pairs are free, so no inference is made.
 
     Args:
         candidate: Candidate k-itemset to check.
-        prev_counts: Integer counts for (k-1)-itemsets from previous iteration.
+        prev_counts: Integer counts for the COMPLETE (k-1)-itemset level.
+        prev_free: The free (generator) (k-1)-itemsets. None disables inference.
 
     Returns:
-        Inferred count if ALL subsets have equal count, None otherwise.
-        NOTE: Returned count is an UPPER BOUND, not exact.
+        The exact count, or None when the candidate has to be counted.
     """
     k = len(candidate)
-    if k < 2:
+    if k < 2 or prev_free is None:
         return None
 
-    # Collect counts for ALL (k-1)-subsets
     subset_counts: list[int] = []
+    licensed = False
     for i in range(k):
         subset = candidate[:i] + candidate[i + 1 :]
-        if subset not in prev_counts:
-            # If ANY subset is missing (not frequent), we can't infer
+        count = prev_counts.get(subset)
+        if count is None:
+            # A subset is not frequent — the candidate cannot be either, and we
+            # have no minimum to take. Let the caller count it.
             return None
-        subset_counts.append(prev_counts[subset])
+        subset_counts.append(count)
+        if subset not in prev_free:
+            licensed = True
 
-    # Check if ALL subsets have the SAME count
-    unique_counts = set(subset_counts)
-    if len(unique_counts) == 1:
-        # All subsets have equal count -> candidate must have this count too
-        inferred = subset_counts[0]
-        logger.debug(f"INFERRED {candidate}: all {k} subsets have count={inferred}")
-        return inferred
+    if not licensed:
+        return None
 
-    # Not inferable
-    logger.debug("Cannot infer {}: subsets have different counts {}", candidate, subset_counts)
-
-    return None
+    inferred = min(subset_counts)
+    logger.debug(f"INFERRED {candidate}: non-free subset licenses count={inferred}")
+    return inferred
 
 
 
@@ -254,11 +267,22 @@ def apriori(
         profile: If True, return profiling metrics alongside results.
         show_progress: If True, display progress bar (requires tqdm).
         warn_complexity: If True, warn when candidate pairs > 1M.
-        prune_equal_support: Prune non-closed itemsets (equal support to subset).
-            Based on BitApriori [Zheng 2010]. 3-50x speedup on dense datasets.
+        prune_equal_support: Mine frequent FREE-SETS (generators) instead of the
+            complete lattice. An itemset is free when no proper subset has the
+            same support [Bastide et al. 2000]; free-sets are anti-monotone, so
+            each level is generated from the previous level's free-sets alone —
+            3-50x fewer candidates on dense data. The returned lattice is
+            exactly the free-sets: what is emitted is what the next level is
+            generated from, so the support of every omitted frequent itemset
+            equals that of one of its subsets. False (default) returns the
+            complete frequent lattice. This is NOT closed-itemset mining, which
+            asks about equal-support supersets. GPU runs take the row-split
+            path when this is on — the only one that implements the gates.
         use_generator_pruning: Infer support from (k-1)-subsets instead of counting.
-            Based on Pascal/generator pruning [Bastide et al. 2000]. 10-40% speedup,
-            no impact on results (unlike prune_equal_support).
+            Pascal [Bastide et al. 2000]: a candidate with a non-free (k-1)-subset
+            is itself non-free and its support is exactly the minimum of its
+            (k-1)-subset supports, so it never has to be counted. Exact, no
+            impact on results. CPU path only.
         sparse: Scipy CSR matrix usage. True = force, False = Polars, None = auto
             (switches at >100K k=2 candidates or >500 items <10% density).
         n_jobs: Parallel workers for sparse k>2 counting. 1=sequential, -1=all CPUs.
@@ -277,6 +301,9 @@ def apriori(
             (k, n_candidates, n_frequent, duration_ms).
         bitvecs: Pre-built GPU bitvectors tuple (bitvecs_gpu, col_to_item, n_transactions).
             Skips DataFrame conversion; transactions must be None when provided.
+            The array is READ-ONLY to the engine: ET-Miner writes only to
+            bitvectors it builds itself, never to one it is handed, so the
+            caller may reuse it after the call without copying it first.
         sparse_from_k: GPU paths only — when to switch support counting from
             dense bitvectors to sparse CSR tidsets. An int fixes the K-level;
             "auto" transitions when the previous level's measured mean support
@@ -300,6 +327,19 @@ def apriori(
         >>> result = apriori(huge_df, min_support=0.001, streaming=True, n_gpus=8)
     """
     _validate_parameters(min_support, max_length, batch_size, sparse_from_k)
+
+    # prune_equal_support is implemented by the row-split miner alone — both
+    # gates live there. Every other GPU route accepted the flag and dropped it
+    # on the floor, handing back the complete lattice while the caller believed
+    # it had asked for the free-sets. Route those calls instead of ignoring
+    # them; the row-split path runs on one GPU as happily as on many.
+    _route_for_pruning = bool(prune_equal_support) and (use_gpu or bitvecs is not None)
+    if _route_for_pruning and profile:
+        raise ValueError(
+            "profile=True cannot be combined with prune_equal_support on a GPU path: "
+            "pruning is implemented by the row-split miner, which builds no ProfilingSession. "
+            "Drop one of the two."
+        )
 
     # Route to bitvecs fast path if pre-built GPU bitvectors provided
     if bitvecs is not None:
@@ -338,6 +378,24 @@ def apriori(
         if len(col_to_item) != bitvecs_gpu.shape[0]:
             raise ValueError(
                 f"col_to_item has {len(col_to_item)} keys but bitvecs_gpu has {bitvecs_gpu.shape[0]} columns"
+            )
+
+        # Pruning requested → the only route that implements it.
+        if _route_for_pruning:
+            from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
+
+            return _apriori_row_split_multi_gpu(
+                None,
+                col_to_item,
+                n_trans,
+                min_support,
+                max_length,
+                n_gpus,
+                level_callback,
+                bitvecs_list=[(bitvecs_gpu, int(bitvecs_gpu.device.id), n_trans)],
+                prune_non_free=True,
+                prune_apriori=True,
+                sparse_from_k=sparse_from_k,
             )
 
         # Route to GPU-resident or standard bitvecs fast path
@@ -432,8 +490,9 @@ def apriori(
 
         csr, idx_to_item, n_trans = csr_result
 
-        # Multi-GPU row-split path, or single-GPU with anchor filtering
-        if n_gpus > 1 or anchor_items is not None:
+        # Row-split path: multiple GPUs, anchor filtering, or free-set pruning
+        # (the single-GPU bitvec miner implements neither gate).
+        if n_gpus > 1 or anchor_items is not None or _route_for_pruning:
             from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
 
             return _apriori_row_split_multi_gpu(
@@ -446,8 +505,8 @@ def apriori(
                 level_callback,
                 output_dir=output_dir,
                 resume_from_k=resume_from_k,
-                prune_closed=prune_equal_support,  # V3: reuse existing flag
-                prune_apriori=prune_equal_support,  # V3: Apriori subset pruning
+                prune_non_free=prune_equal_support,  # free-sets: emit == generate
+                prune_apriori=prune_equal_support,  # Apriori subset pruning
                 sparse_from_k=sparse_from_k,  # V3: density transition K-level
                 anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
             )
@@ -530,6 +589,10 @@ def apriori(
     for col in item_cols:
         count = one_counts.get_column(col).item()
         if count >= min_count_threshold:
+            # Free-set semantics start at K=1: an item in EVERY transaction has
+            # the empty set's support, so it is not a generator.
+            if prune_equal_support and count == n_trans:
+                continue
             support = count / n_trans
             results.append(([col_to_item[col]], support))
             prev_frequent.append((col,))
@@ -551,19 +614,26 @@ def apriori(
     if warn_complexity:
         _warn_complexity(len(prev_frequent), min_support)
 
-    # Initialize prev_supports for equal-support pruning
-    # Use integer count filtering for consistency
+    # The COMPLETE K=1 level (including any item pruned above as non-free):
+    # every subset test of K=2 resolves against this, not against prev_frequent.
     prev_supports: dict[tuple[str, ...], float] = {
         (col,): one_counts.get_column(col).item() / n_trans
         for col in item_cols
         if one_counts.get_column(col).item() >= min_count_threshold
     }
 
-    # Initialize prev_counts for generator-based pruning (uses integer counts for precision)
+    # Integer counts of the same complete level — what the free-set test uses.
     prev_counts: dict[tuple[str, ...], int] = {
         (col,): one_counts.get_column(col).item()
         for col in item_cols
         if one_counts.get_column(col).item() >= min_count_threshold
+    }
+
+    # The free (generator) 1-itemsets: everything frequent except items present
+    # in every transaction, which carry the empty set's support. Tracked
+    # independently of prune_equal_support because Pascal inference needs it.
+    prev_free: set[tuple[str, ...]] | None = {
+        itemset for itemset, count in prev_counts.items() if count < n_trans
     }
 
     # Phase 3: k >= 2 with vectorized support counting
@@ -594,7 +664,7 @@ def apriori(
 
         if use_generator_pruning and prev_counts and k >= 2:
             for candidate in candidates:
-                inferred_count = _infer_count_from_subsets(candidate, prev_counts)
+                inferred_count = _infer_count_from_subsets(candidate, prev_counts, prev_free)
                 if inferred_count is not None:
                     # Count can be inferred - no need to count!
                     inferred_counts[candidate] = inferred_count
@@ -641,12 +711,27 @@ def apriori(
             count = all_counts[itemset]
 
             if count >= min_count_threshold:
-                support = count / n_trans
                 current_frequent.append(itemset)
-                current_supports[itemset] = support
+                current_supports[itemset] = count / n_trans
                 current_counts[itemset] = count
-                item_list = [col_to_item[c] for c in itemset]
-                results.append((item_list, support))
+
+        # Free-set (generator) pruning, resolved against the COMPLETE previous
+        # level — prev_counts is never pruned, only prev_frequent is. What
+        # survives is both what this level emits and what K+1 generates from:
+        # emitting a level and then generating from a smaller one advertises
+        # itemsets the run will never extend, which is how apriori-valid
+        # itemsets went missing from K=5 on.
+        if prune_equal_support and prev_counts:
+            current_frequent = _prune_equal_support(current_frequent, current_counts, prev_counts)
+            current_free = set(current_frequent)
+        elif use_generator_pruning and prev_counts:
+            # Not pruning, but Pascal needs to know which itemsets are free.
+            current_free = set(_prune_equal_support(current_frequent, current_counts, prev_counts))
+        else:
+            current_free = None
+
+        for itemset in current_frequent:
+            results.append(([col_to_item[c] for c in itemset], current_supports[itemset]))
 
         if session:
             session.end_phase(
@@ -662,12 +747,11 @@ def apriori(
         if not current_frequent:
             break
 
-        # Apply equal-support pruning if enabled
-        if prune_equal_support and prev_supports:
-            current_frequent = _prune_equal_support(current_frequent, current_supports, prev_supports)
-
+        # The complete level feeds the next level's subset tests; the free
+        # subset feeds its candidate generation.
         prev_supports = current_supports
         prev_counts = current_counts
+        prev_free = current_free
         prev_frequent = current_frequent
         k += 1
 

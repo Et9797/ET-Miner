@@ -205,10 +205,19 @@ pub fn build_k3plus_groups_from_flat_raw(
     })
 }
 
-/// Prune closed itemsets: remove itemsets whose count equals a (k-1)-subset's count.
+/// Keep only free-sets (generators): drop itemsets whose count equals a (k-1)-subset's.
 ///
-/// An itemset is "non-closed" (prunable) if dropping any one column yields a (k-1)-subset
-/// with the same support count — the k-th item adds no discriminative power.
+/// An itemset is a *free-set* (equivalently a generator, or key) when no proper
+/// subset has the same support [Bastide et al. 2000]. Dropping any one column
+/// and finding the same count means the dropped item is implied by the rest, so
+/// the itemset is not free. Free-sets are anti-monotone — every subset of a
+/// free-set is free — which is what makes it sound to generate the next level
+/// from the survivors alone.
+///
+/// This is NOT closed-itemset mining: closed asks about equal-support
+/// *supersets*, this asks about equal-support *subsets*. The two notions select
+/// different itemsets, and the caller must resolve the test against the
+/// COMPLETE previous level (not a previously pruned one) for it to be exact.
 ///
 /// # Algorithm
 /// 1. Binary-search lookup on prev_flat, which the CALLER must have sorted
@@ -220,7 +229,7 @@ pub fn build_k3plus_groups_from_flat_raw(
 ///    PyO3 wrappers enforce the invariant with an always-on O(n·k) check
 ///    (`is_sorted_by_row`) that raises ValueError instead of under-pruning.
 /// 2. For each current itemset, try all k drop positions
-/// 3. If any (k-1)-subset has equal count in prev → mark as closed (prune)
+/// 3. If any (k-1)-subset has equal count in prev → not free (prune)
 /// 4. Rayon parallel over current itemsets
 ///
 /// Replaces the earlier HashMap-based lookup. The HashMap had ~50ns/get but
@@ -238,8 +247,8 @@ pub fn build_k3plus_groups_from_flat_raw(
 /// * `k` - Current itemset length (columns)
 ///
 /// # Returns
-/// Boolean mask of length n_current. `true` = keep (open), `false` = prune (closed).
-pub fn prune_closed_flat_raw(
+/// Boolean mask of length n_current. `true` = keep (free), `false` = prune (not free).
+pub fn prune_non_free_flat_raw(
     current_flat: &[i32],
     current_counts: &[i64],
     prev_flat: &[i32],
@@ -270,7 +279,7 @@ pub fn prune_closed_flat_raw(
     );
 
     // Parallel check — for each current itemset, see if any (k-1)-subset has the
-    // same count in prev. If yes, the itemset is non-closed → prune it.
+    // same count in prev. If yes, the itemset is not free → prune it.
     (0..n_current)
         .into_par_iter()
         .map(|idx| {
@@ -290,7 +299,7 @@ pub fn prune_closed_flat_raw(
                     binary_search_row(prev_flat, prev_counts, n_prev, prev_k, &subset)
                 {
                     if prev_count == my_count {
-                        return false; // non-closed → prune
+                        return false; // not a free-set → prune
                     }
                 }
             }
@@ -300,9 +309,9 @@ pub fn prune_closed_flat_raw(
 }
 
 /// Verify that flat row-major data is sorted lexicographically by row
-/// (non-descending). O(n_rows × row_len). Used by the PyO3 closed-prune
+/// (non-descending). O(n_rows × row_len). Used by the PyO3 free-set-prune
 /// wrappers as an always-on invariant check before the binary-search lookup,
-/// and by the debug_assert! in `prune_closed_flat_raw`.
+/// and by the debug_assert! in `prune_non_free_flat_raw`.
 pub fn is_sorted_by_row(flat: &[i32], n_rows: usize, row_len: usize) -> bool {
     if n_rows < 2 || row_len == 0 {
         return true;
@@ -320,10 +329,10 @@ pub fn is_sorted_by_row(flat: &[i32], n_rows: usize, row_len: usize) -> bool {
 /// Binary search for `subset` in `prev_flat` (sorted lexicographically by row).
 /// Returns `Some(count)` if found, `None` if not present.
 ///
-/// Replaces the HashMap.get() lookup in prune_closed_flat_raw, eliminating the
+/// Replaces the HashMap.get() lookup in prune_non_free_flat_raw, eliminating the
 /// O(n_prev) sequential HashMap build phase. Caller must ensure prev_flat is
 /// sorted-by-row (enforced by the PyO3 wrappers; debug_assert! in
-/// prune_closed_flat_raw).
+/// prune_non_free_flat_raw).
 fn binary_search_row(
     prev_flat: &[i32],
     prev_counts: &[i64],
@@ -396,7 +405,7 @@ pub fn unique_columns_from_flat_raw(flat: &[i32]) -> Vec<i32> {
         .collect()
 }
 
-/// Compact variant: prunes non-closed itemsets and returns the surviving
+/// Compact variant: prunes non-free itemsets and returns the surviving
 /// `(flat, counts)` arrays directly, eliminating the Python-side numpy fancy
 /// index step that bottlenecks at K=6+ on multi-GB arrays.
 ///
@@ -417,7 +426,7 @@ pub fn unique_columns_from_flat_raw(flat: &[i32]) -> Vec<i32> {
 /// # Returns
 /// `(out_flat, out_counts)` — flat row-major Vec<i32> of length `n_kept * k`,
 /// and Vec<i64> of length `n_kept`. Caller reshapes flat to (n_kept, k).
-pub fn prune_closed_flat_compact_raw(
+pub fn prune_non_free_flat_compact_raw(
     current_flat: &[i32],
     current_counts: &[i64],
     prev_flat: &[i32],
@@ -427,7 +436,7 @@ pub fn prune_closed_flat_compact_raw(
     k: usize,
 ) -> (Vec<i32>, Vec<i64>) {
     // Re-use mask computation (binary search + Rayon parallel check) from existing path.
-    let mask = prune_closed_flat_raw(
+    let mask = prune_non_free_flat_raw(
         current_flat,
         current_counts,
         prev_flat,
@@ -711,7 +720,7 @@ mod tests {
     // =========================================================================
 
     #[test]
-    fn test_prune_closed_basic() {
+    fn test_prune_non_free_basic() {
         // K=3 current: [1,2,3] count=10, [1,2,4] count=20
         // K=2 prev: [1,2] count=10, [1,3] count=15, [2,3] count=30
         // [1,2,3]: drop col 2 → [1,3] count=15 != 10, drop col 1 → [2,3] count=30 != 10,
@@ -722,7 +731,7 @@ mod tests {
         let prev_flat: Vec<i32> = vec![1, 2, 1, 3, 2, 3];
         let prev_counts: Vec<i64> = vec![10, 15, 30];
 
-        let mask = prune_closed_flat_raw(
+        let mask = prune_non_free_flat_raw(
             &current_flat, &current_counts, &prev_flat, &prev_counts, 2, 3, 3,
         );
         // [1,2,3]: drop 3 → [1,2] has count 10 == 10 → prune
@@ -731,28 +740,28 @@ mod tests {
     }
 
     #[test]
-    fn test_prune_closed_all_open() {
+    fn test_prune_non_free_all_open() {
         // All counts differ from any prev subset → keep all
         let current_flat: Vec<i32> = vec![1, 2, 3, 4, 5, 6];
         let current_counts: Vec<i64> = vec![100, 200];
         let prev_flat: Vec<i32> = vec![1, 2, 4, 5];
         let prev_counts: Vec<i64> = vec![50, 60];
 
-        let mask = prune_closed_flat_raw(
+        let mask = prune_non_free_flat_raw(
             &current_flat, &current_counts, &prev_flat, &prev_counts, 2, 2, 3,
         );
         assert_eq!(mask, vec![true, true]);
     }
 
     #[test]
-    fn test_prune_closed_empty_input() {
-        let mask = prune_closed_flat_raw(&[], &[], &[1, 2], &[10], 0, 1, 3);
+    fn test_prune_non_free_empty_input() {
+        let mask = prune_non_free_flat_raw(&[], &[], &[1, 2], &[10], 0, 1, 3);
         assert!(mask.is_empty());
     }
 
     #[test]
-    fn test_prune_closed_empty_prev() {
-        let mask = prune_closed_flat_raw(&[1, 2, 3], &[10], &[], &[], 1, 0, 3);
+    fn test_prune_non_free_empty_prev() {
+        let mask = prune_non_free_flat_raw(&[1, 2, 3], &[10], &[], &[], 1, 0, 3);
         assert_eq!(mask, vec![true]); // nothing to compare against → keep
     }
 
@@ -761,14 +770,14 @@ mod tests {
     // =========================================================================
 
     #[test]
-    fn test_prune_closed_compact_basic() {
-        // Same fixture as test_prune_closed_basic: [1,2,3] pruned, [1,2,4] kept.
+    fn test_prune_non_free_compact_basic() {
+        // Same fixture as test_prune_non_free_basic: [1,2,3] pruned, [1,2,4] kept.
         let current_flat: Vec<i32> = vec![1, 2, 3, 1, 2, 4];
         let current_counts: Vec<i64> = vec![10, 20];
         let prev_flat: Vec<i32> = vec![1, 2, 1, 3, 2, 3];
         let prev_counts: Vec<i64> = vec![10, 15, 30];
 
-        let (out_flat, out_counts) = prune_closed_flat_compact_raw(
+        let (out_flat, out_counts) = prune_non_free_flat_compact_raw(
             &current_flat, &current_counts, &prev_flat, &prev_counts, 2, 3, 3,
         );
         assert_eq!(out_flat, vec![1, 2, 4]); // only [1,2,4] survives
@@ -776,13 +785,13 @@ mod tests {
     }
 
     #[test]
-    fn test_prune_closed_compact_preserves_order() {
+    fn test_prune_non_free_compact_preserves_order() {
         // Order-preservation invariant (Schizo-Arch correctness flag): rows must
         // come out in the same order they went in, modulo pruned ones.
         let current_flat: Vec<i32> = vec![5, 1, 9, 3, 2, 7, 8, 4, 6];
         let current_counts: Vec<i64> = vec![100, 200, 300];
         // Empty prev → no pruning, all rows preserved in original order.
-        let (out_flat, out_counts) = prune_closed_flat_compact_raw(
+        let (out_flat, out_counts) = prune_non_free_flat_compact_raw(
             &current_flat, &current_counts, &[], &[], 3, 0, 3,
         );
         assert_eq!(out_flat, current_flat);
@@ -790,7 +799,7 @@ mod tests {
     }
 
     #[test]
-    fn test_prune_closed_compact_partial_prune() {
+    fn test_prune_non_free_compact_partial_prune() {
         // One row pruned, one kept — exercises the count-mismatch branch.
         let current_flat: Vec<i32> = vec![1, 2, 3, 1, 2, 4];
         let current_counts: Vec<i64> = vec![10, 20];
@@ -799,7 +808,7 @@ mod tests {
         let prev_flat: Vec<i32> = vec![1, 2];
         let prev_counts: Vec<i64> = vec![10];
 
-        let (out_flat, out_counts) = prune_closed_flat_compact_raw(
+        let (out_flat, out_counts) = prune_non_free_flat_compact_raw(
             &current_flat, &current_counts, &prev_flat, &prev_counts, 2, 1, 3,
         );
         // [1,2,3]: drop col 2 → [1,2] count=10 == 10 → prune
@@ -809,14 +818,14 @@ mod tests {
     }
 
     #[test]
-    fn test_prune_closed_compact_empty_input() {
-        let (out_flat, out_counts) = prune_closed_flat_compact_raw(&[], &[], &[1, 2], &[10], 0, 1, 3);
+    fn test_prune_non_free_compact_empty_input() {
+        let (out_flat, out_counts) = prune_non_free_flat_compact_raw(&[], &[], &[1, 2], &[10], 0, 1, 3);
         assert!(out_flat.is_empty());
         assert!(out_counts.is_empty());
     }
 
     #[test]
-    fn test_prune_closed_compact_matches_mask_path() {
+    fn test_prune_non_free_compact_matches_mask_path() {
         // Equivalence guarantee: compact must produce same rows/counts as
         // applying the mask path manually. This is the contract that lets us
         // ship without touching the Python rule-gen consumers.
@@ -828,10 +837,10 @@ mod tests {
         let prev_flat: Vec<i32> = vec![1, 2, 1, 3, 1, 5, 2, 3, 2, 5, 5, 6, 5, 7, 6, 7];
         let prev_counts: Vec<i64> = vec![10, 15, 8, 30, 12, 50, 25, 35];
 
-        let mask = prune_closed_flat_raw(
+        let mask = prune_non_free_flat_raw(
             &current_flat, &current_counts, &prev_flat, &prev_counts, 4, 8, 3,
         );
-        let (compact_flat, compact_counts) = prune_closed_flat_compact_raw(
+        let (compact_flat, compact_counts) = prune_non_free_flat_compact_raw(
             &current_flat, &current_counts, &prev_flat, &prev_counts, 4, 8, 3,
         );
 

@@ -1,6 +1,6 @@
 [package]
 name = "et_miner_rust"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "High-performance Rust extension for ET-Miner support counting."
 license-file = "LICENSE"

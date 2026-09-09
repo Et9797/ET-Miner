@@ -239,6 +239,57 @@ defects in the remediation itself, all measured. Fixed here:
   wrapping; a `%s` in a loguru call printed literally; a stale "take max"
   comment; a dead log line; an `int | None` annotation.
 
+*PR 6 — GPU hygiene, device affinity, docs (no output change)*
+
+- **#26** — the row-split miner returned **three different `itemset` dtypes**.
+  Both empty-result paths and the list fallback gave `List(Int64)`; the PyArrow
+  fast path — the one that normally runs — gave `List(Int32)`, and the sibling
+  `_apriori_from_bitvecs` route built its lookup as int64, so the two GPU routes
+  disagreed with each other. Every in-memory return is now `List(Int64)`. The
+  flushed parquet deliberately stays `large_list<int32>`: widening it would
+  double the itemset bytes of every existing artifact, no reader is
+  dtype-sensitive, and widening `core/rules.py`'s join keys would cost ~84 GB on
+  a K=7 K-1 frame. A test enumerates every `itemset` reader so the asymmetry
+  cannot spread unnoticed.
+- **#30, N10, N20 — three device/ownership assumptions, all silent.**
+  `_apriori_from_bitvecs` and the row-split density transition both logged
+  *"Freed bitvec VRAM"* while freeing nothing, and on the
+  `apriori(bitvecs=..., prune_equal_support=True)` route the arrays belong to the
+  **caller**, so no reordering could make the claim true. The row-split path also
+  mutated a caller-supplied list. Separately, five multi-GPU fan-out wrappers
+  hardcoded `if device_id == 0` for the alias device (**N10**), and three more
+  sites hardcoded device 0 in the *output* half — two merge/decode tails and
+  `build_prefix_groups_gpu`, which allocated on the ambient device rather than
+  its input's (**N20**). A caller whose bitvecs live on device 1 hit
+  *"the device where the array resides (0) is different from the current device
+  (1)"*. Latent on every in-tree route today; PR 10 makes it reachable.
+  `count_k3plus_gpu_resident_multi_gpu` now states a co-residency contract and
+  raises on a mixed-device call rather than hiding it behind a transfer.
+- **#27** — one bare `except Exception: pass` wrapped two unrelated releases, so
+  a failure freeing the group arrays silently skipped the CSR shards. Split, and
+  logged instead of swallowed.
+- **#31** — the dense K≥3 group arrays (tens of GB) had no `finally`, so any
+  raise inside the chunked level — the truncation `RuntimeError` most obviously —
+  left them resident on every device for the rest of the run.
+- **#29** — both row-split callers materialised a `set()` of the previous level
+  (~371 B/itemset, ~35 s per level at 10M itemsets) and handed it to a Rust path
+  that never reads it. Built now only where it is read, with the
+  array-wins-over-set precedence written down and made build-independent.
+
+### Documentation
+
+- `docs/specs/et_miner_fix_spec.md` amended in place. All three of its items are
+  fixed, and it pointed at four paths that do not exist. It also recorded two
+  things wrongly: its "Done when" for Defect A measured **closed** itemsets,
+  while `prune_equal_support` returns **free-sets** — a notion the engine does
+  compute — so that criterion could not have reached zero even on correct
+  output. Defect A now has the standing gate it never had, at
+  `bench/repro/d63_spec_defect_a_row_split_drop.py`.
+- `CLAUDE.md`'s CUDA intrinsic list stated a closed enumeration that was missing
+  two intrinsics the tree uses (`__ffsll`, and the 32-bit `__popc`). It now
+  states the *rule* — sm_60+, NVRTC-compilable with no arch flags — with the
+  current contents as an example rather than a boundary.
+
 ### Added
 
 - `bench/baseline/` — behaviour-change impact assessment, the min-count sweep

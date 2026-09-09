@@ -35,10 +35,14 @@ Guidance for Claude Code when working in this repository.
 - Plain C, `extern "C"`, compiled per-device at first use via
   `cupy.RawKernel`/NVRTC with **no arch flags** — sources must build on
   sm_86 (RTX 3090) as well as sm_90 (H100/H200).
-- Use only intrinsics already present in the tree (all sm_60+):
-  `__popcll`, `__shfl_down_sync`/`__shfl_sync`, `__ballot_sync`,
-  `__activemask`, `__ffs`, 64-bit atomics. No CUB, no templates, no
-  cooperative groups, no `memcpy_async`.
+- The rule is the *intent*, not the list: an intrinsic is allowed if it is
+  **sm_60+ and NVRTC-compilable with no arch flags**. What is in the tree today
+  is `__popcll`, the 32-bit `__popc` (`_src/csr_warp.cu`,
+  `_src/compact_threshold.cu`), `__shfl_down_sync`/`__shfl_sync`,
+  `__ballot_sync`, `__activemask`, `__ffs`, `__ffsll`
+  (`_src/bitvec_extract_tids.cu`), and 64-bit atomics. No CUB, no templates, no
+  cooperative groups, no `memcpy_async`. Check a new one against the rule; do
+  not treat this enumeration as closed.
 - Static shared memory only, ≤ 48 KB per block (the sm_86 static limit;
   dynamic-shmem opt-in is not used).
 - Counting kernels assume `blockDim.x == 256`, coupled to

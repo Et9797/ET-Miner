@@ -470,8 +470,11 @@ def _apriori_row_split_multi_gpu(
                 # frequent, so it is lossless.
                 if prune_apriori and groups_info is not None:
                     tc_before = groups_info.total_candidates
-                    prev_freq_set = set(map(tuple, prev_full_flat.tolist()))
-                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_full_flat)
+                    # None, not a prebuilt set: prev_full_flat is authoritative
+                    # and the Rust path never reads the set. See #29 --
+                    # materialising it here cost ~35 s/level at 10M itemsets for
+                    # an argument that was then discarded.
+                    groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
                         logger.debug(
@@ -564,8 +567,11 @@ def _apriori_row_split_multi_gpu(
                 # level (see the sparse branch above for why that matters).
                 if prune_apriori and groups_info is not None:
                     tc_before = groups_info.total_candidates
-                    prev_freq_set = set(map(tuple, prev_full_flat.tolist()))
-                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_full_flat)
+                    # None, not a prebuilt set: prev_full_flat is authoritative
+                    # and the Rust path never reads the set. See #29 --
+                    # materialising it here cost ~35 s/level at 10M itemsets for
+                    # an argument that was then discarded.
+                    groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
                         logger.debug(

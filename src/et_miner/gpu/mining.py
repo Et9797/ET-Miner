@@ -264,17 +264,51 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     Rust fast path: HashSet + Rayon parallel, GIL-free. Falls back to Python if
     the Rust extension is not available.
 
+    Which argument is authoritative, and why it matters
+    ---------------------------------------------------
+    `prev_flat_np` wins whenever it is not None; `prev_frequent_set` is then
+    never read. That is not a new rule -- it is what the Rust fast path below
+    has always done, since it takes the flat array and returns without touching
+    the set. Writing it down turns a silent asymmetry into a contract.
+
+    The consequence is that `prev_frequent_set` may be None. It used to be built
+    eagerly by both callers in gpu/row_split.py, at `set(map(tuple,
+    prev_full_flat.tolist()))` -- roughly 371 B per itemset and ~35 s per level
+    at 10M itemsets -- and then handed to a Rust call that never looked at it.
+    On any build with the extension present it was pure cost. Now the Python
+    fallback derives it from `prev_flat_np` at the one place that reads it.
+
+    No cross-check is performed when both are supplied and disagree: comparing
+    them would cost exactly the set this change removes. `prev_flat_np` wins,
+    and that is the documented behaviour rather than an accident.
+
     Args:
         groups_info: K3PlusGroups namedtuple.
-        prev_frequent_set: set of tuples of frequent (k-1)-itemsets.
+        prev_frequent_set: set of tuples of frequent (k-1)-itemsets, or None to
+            derive it from `prev_flat_np` if and when the Python fallback runs.
+            Ignored entirely when `prev_flat_np` is not None.
         k: current itemset size.
-        prev_flat_np: optional numpy int32 (n_prev, k-1) array for Rust fast path.
+        prev_flat_np: numpy int32 (n_prev, k-1) array. Authoritative when given;
+            drives the Rust fast path and, failing that, the fallback's set.
+
+    Raises:
+        ValueError: if both `prev_frequent_set` and `prev_flat_np` are None --
+            there is then no previous level to resolve subsets against, and
+            pruning nothing silently would look like a level with no invalid
+            candidates.
 
     Returns:
         Pruned K3PlusGroups or None if all candidates pruned.
     """
     import numpy as np
     from et_miner.gpu.kernels import K3PlusGroups
+
+    if prev_frequent_set is None and prev_flat_np is None:
+        raise ValueError(
+            "_prune_groups_apriori needs a previous level: pass prev_flat_np "
+            "(preferred) or prev_frequent_set. Both None would prune nothing "
+            "and be indistinguishable from a level with no invalid candidates."
+        )
 
     # --- Rust fast path: HashSet + Rayon parallel, GIL-free ---
     if prev_flat_np is not None:
@@ -320,6 +354,19 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
             _warn_stale_rust_once("prune_groups_apriori has no suffix_src_rows")
 
     # --- Python fallback ---
+    # The only reader of prev_frequent_set. Derive it here rather than at the
+    # call sites, so the Rust path above never pays for a set it does not read.
+    #
+    # Derived whenever prev_flat_np is given, NOT only when the set is None:
+    # the precedence documented above has to hold on a build without the Rust
+    # extension too. Honouring a passed-in set here would make the answer
+    # depend on whether the wheel happened to be present -- the exact
+    # two-paths-to-one-answer shape this change is meant to remove. Every
+    # in-tree caller that passes both derives the set from the same array, so
+    # this is a no-op for them.
+    if prev_flat_np is not None:
+        prev_frequent_set = set(map(tuple, prev_flat_np.tolist()))
+
     prefix_items = groups_info.prefix_items
     prefix_offsets = groups_info.prefix_offsets
     suffixes = groups_info.suffixes

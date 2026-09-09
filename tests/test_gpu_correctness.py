@@ -386,3 +386,85 @@ class TestLevelStateCleanupIsolation:
         joined = "".join(messages)
         assert "group arrays" in joined and "CSR shards" in joined
         assert "group free exploded" in joined and "release exploded" in joined
+
+
+class TestApr1oriPruneSetIsLazy:
+    """#29 -- the prune set was built by both callers and read by neither.
+
+    `_prune_groups_apriori`'s Rust fast path takes `prev_flat_np` and returns
+    without touching `prev_frequent_set`; only the Python fallback reads it. So
+    on every build with the extension present, `set(map(tuple, ...))` at the two
+    row_split call sites was pure cost -- ~371 B/itemset and ~35 s per level at
+    10M itemsets -- for an argument that was discarded.
+
+    The equivalence assertions matter more than the timing: making the argument
+    optional is only safe if the fallback derives *the same* set.
+    """
+
+    @staticmethod
+    def _groups(prev_flat):
+        from et_miner.gpu.kernels import build_k3plus_groups_from_flat
+
+        return build_k3plus_groups_from_flat(prev_flat, with_src_rows=True)
+
+    @staticmethod
+    def _prev_flat():
+        # A K=3 level with enough structure that pruning actually removes
+        # suffixes -- otherwise both branches trivially agree.
+        return np.array(
+            [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3], [0, 4], [1, 4], [4, 5]],
+            dtype=np.int32,
+        )
+
+    def test_none_matches_an_explicit_set_on_the_python_fallback(self):
+        """The fallback must derive exactly what the callers used to pass."""
+        from et_miner.gpu.mining import _prune_groups_apriori
+
+        prev_flat = self._prev_flat()
+        explicit = set(map(tuple, prev_flat.tolist()))
+
+        with_set = _prune_groups_apriori(self._groups(prev_flat), explicit, 3, prev_flat_np=None)
+        derived = _prune_groups_apriori(self._groups(prev_flat), None, 3, prev_flat_np=prev_flat)
+
+        assert (with_set is None) == (derived is None)
+        if with_set is not None:
+            assert with_set.total_candidates == derived.total_candidates
+            np.testing.assert_array_equal(with_set.suffixes, derived.suffixes)
+            np.testing.assert_array_equal(with_set.prefix_items, derived.prefix_items)
+
+    def test_both_none_raises_rather_than_pruning_nothing(self):
+        """Silently pruning nothing is indistinguishable from a level with no
+        invalid candidates, which is why this is an error and not a default."""
+        from et_miner.gpu.mining import _prune_groups_apriori
+
+        with pytest.raises(ValueError, match="needs a previous level"):
+            _prune_groups_apriori(self._groups(self._prev_flat()), None, 3, prev_flat_np=None)
+
+    @pytest.mark.parametrize("force_python", [False, True])
+    def test_prev_flat_np_wins_over_a_disagreeing_set(self, force_python, monkeypatch):
+        """Documented precedence, asserted on BOTH branches.
+
+        The Rust path ignores the set structurally, so testing only that proves
+        nothing about the contract. Parametrised over a forced Python fallback
+        because the precedence must not depend on whether the wheel is present:
+        an answer that changes with the build is the two-paths defect this
+        change exists to remove.
+
+        No cross-check is performed when the two disagree -- comparing them
+        would cost the very set this change removes.
+        """
+        import et_miner.backends as backends
+
+        from et_miner.gpu.mining import _prune_groups_apriori
+
+        if force_python:
+            monkeypatch.setattr(backends, "get_rust_ext", lambda: None)
+
+        prev_flat = self._prev_flat()
+        authoritative = _prune_groups_apriori(self._groups(prev_flat), None, 3, prev_flat_np=prev_flat)
+        with_wrong_set = _prune_groups_apriori(self._groups(prev_flat), {(99, 98)}, 3, prev_flat_np=prev_flat)
+
+        assert (authoritative is None) == (with_wrong_set is None)
+        assert authoritative is not None, "fixture must survive pruning"
+        assert authoritative.total_candidates == with_wrong_set.total_candidates
+        np.testing.assert_array_equal(authoritative.suffixes, with_wrong_set.suffixes)

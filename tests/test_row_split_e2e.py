@@ -196,7 +196,7 @@ class TestOOMRegression:
 # Two datasets, each asserting sparse+prune == dense+prune == CPU+prune on
 # exact itemsets AND counts. Both were run against the unfixed tree
 # (main @ 3d94c52) first: Spec A's sparse leg fails (the CSR tidset rows
-# are built before prune_closed filters current_flat, so rows misalign at
+# are built before the free-set prune filters current_flat, so rows misalign at
 # the next level whenever a pruned row precedes a surviving one); Spec B's
 # dense leg fails (the Rust closed-prune binary-searches a K=3 table that
 # is emitted in j-major group order, not lex order, under-prunes, and then
@@ -266,7 +266,7 @@ class TestClosedPruning:
         cpu, dense, sparse = _prune_legs(df, min_support)
         assert len(cpu) > 0
         assert dense == cpu, "dense+prune diverged from CPU+prune"
-        assert sparse == cpu, "sparse+prune diverged from CPU+prune (CSR rows misaligned after prune_closed)"
+        assert sparse == cpu, "sparse+prune diverged from CPU+prune (CSR rows misaligned after the free-set prune)"
 
     def test_spec_b_dense_under_pruning(self):
         df, min_support = _spec_b_df()

@@ -1,9 +1,9 @@
-"""CPU tests for the closed-prune sortedness invariant.
+"""CPU tests for the free-set prune's sortedness invariant.
 
-The Rust closed-prune binary-searches the previous level, so that table must
+The Rust free-set prune binary-searches the previous level, so that table must
 be lexicographically sorted by row. `_rows_sorted` lets the miners skip the
-level-end sort when a level is already sorted, and the Rust pyfunctions now
-refuse an unsorted table instead of silently under-pruning.
+level-end sort when a level is already sorted, and the Rust pyfunctions refuse
+an unsorted table instead of silently under-pruning.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from et_miner.backends import get_rust_ext
-from et_miner.gpu.mining import _prune_closed_flat, _rows_sorted
+from et_miner.gpu.mining import _prune_non_free_flat, _rust_prune_fn, _rows_sorted
 
 
 def _fresh_rust():
@@ -21,6 +21,12 @@ def _fresh_rust():
         return None
     version = tuple(int(x) for x in str(getattr(ext, "__version__", "0.0.0")).split(".")[:2])
     return ext if version >= (0, 2) else None
+
+
+def _prune_fns(ext):
+    """The mask and compact entry points under whichever name the wheel has —
+    0.3.0 renamed prune_closed_flat* to prune_non_free_flat*."""
+    return _rust_prune_fn(ext, "prune_non_free_flat"), _rust_prune_fn(ext, "prune_non_free_flat_compact")
 
 
 def test_rows_sorted_semantics():
@@ -51,26 +57,27 @@ def test_rows_sorted_agrees_with_lexsort_on_random_tables():
 
 
 @pytest.mark.skipif(_fresh_rust() is None, reason="et_miner_rust >= 0.2.0 not built")
-def test_rust_closed_prune_rejects_unsorted_prev():
+def test_rust_free_set_prune_rejects_unsorted_prev():
     ext = _fresh_rust()
+    mask_fn, compact_fn = _prune_fns(ext)
     cur = np.array([[0, 1, 4]], np.int32)
     cc = np.array([5], np.int64)
     prev_unsorted = np.array([[0, 1], [0, 2], [1, 2], [0, 3], [0, 4]], np.int32)  # j-major order
     pc = np.array([5, 5, 5, 5, 5], np.int64)
     with pytest.raises(ValueError, match="sorted"):
-        ext.prune_closed_flat(cur, cc, prev_unsorted, pc)
+        mask_fn(cur, cc, prev_unsorted, pc)
     with pytest.raises(ValueError, match="sorted"):
-        ext.prune_closed_flat_compact(cur, cc, prev_unsorted, pc)
+        compact_fn(cur, cc, prev_unsorted, pc)
 
     order = np.lexsort(prev_unsorted[:, ::-1].T)
     prev_sorted, pc_sorted = prev_unsorted[order], pc[order]
-    # (0,1,4) has subset (0,1) with the same count -> non-closed -> pruned
-    assert ext.prune_closed_flat(cur, cc, prev_sorted, pc_sorted).tolist() == [False]
-    flat_1d, counts, n_kept = ext.prune_closed_flat_compact(cur, cc, prev_sorted, pc_sorted)
+    # (0,1,4) has subset (0,1) with the same count -> not free -> pruned
+    assert mask_fn(cur, cc, prev_sorted, pc_sorted).tolist() == [False]
+    flat_1d, counts, n_kept = compact_fn(cur, cc, prev_sorted, pc_sorted)
     assert n_kept == 0 and len(counts) == 0
 
-    # the Python wrapper goes through the compact path and keeps closed rows
+    # the Python wrapper goes through the compact path and keeps the free rows
     cur2 = np.array([[0, 1, 4], [0, 2, 4]], np.int32)
     cc2 = np.array([5, 3], np.int64)
-    kept_flat, kept_counts = _prune_closed_flat(cur2, cc2, prev_sorted, pc_sorted)
+    kept_flat, kept_counts = _prune_non_free_flat(cur2, cc2, prev_sorted, pc_sorted)
     assert kept_flat.tolist() == [[0, 2, 4]] and kept_counts.tolist() == [3]

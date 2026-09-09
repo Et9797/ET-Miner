@@ -68,6 +68,35 @@ def matrix() -> list[dict]:
     ]
 
 
+def run_repeats(cfg: dict, timeout_s: int, repeats: int) -> dict:
+    """Run a config `repeats` times and keep the MINIMUM wall time.
+
+    A single sample is not usable as a regression gate at this scale: smoke-gpu2
+    was measured at 1.11 s, 1.58 s and 1.57 s on identical code, a 42% spread,
+    because CUDA/NCCL context setup dominates a ~1 s run. The minimum is the
+    right statistic for a timing -- it is the sample least contaminated by
+    unrelated work on the box -- and reporting it turns "+47%" back into noise.
+
+    The itemset_hash must be identical across repeats; if it is not, the run is
+    non-deterministic and the timing is the least of the problems.
+    """
+    best = None
+    walls, hashes = [], set()
+    for _ in range(repeats):
+        rec = run_one(cfg, timeout_s)
+        if rec.get("status") != "ok":
+            return rec
+        walls.append(rec["wall_s"])
+        hashes.add(rec.get("itemset_hash"))
+        if best is None or rec["wall_s"] < best["wall_s"]:
+            best = rec
+    best["wall_samples"] = walls
+    best["wall_spread_pct"] = round((max(walls) - min(walls)) / min(walls) * 100, 1) if walls else 0.0
+    if len(hashes) > 1:
+        best["status"] = f"NON-DETERMINISTIC: {len(hashes)} distinct itemset_hash across {repeats} runs"
+    return best
+
+
 def run_one(cfg: dict, timeout_s: int) -> dict:
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "result.json"
@@ -98,8 +127,10 @@ def summarize(rec: dict) -> str:
     if rec.get("status") != "ok":
         return f"  {rec['id']:24} FAILED  {str(rec.get('status'))[:70]}"
     vram = max(rec.get("peak_vram_mb", {}).values(), default=0)
+    spread = rec.get("wall_spread_pct")
+    tail = f"  spread={spread:>5.1f}%" if spread is not None else ""
     return (
-        f"  {rec['id']:24} {rec['wall_s']:>8.2f}s  "
+        f"  {rec['id']:24} {rec['wall_s']:>8.2f}s{tail}  "
         f"itemsets={rec.get('n_itemsets', 0):>9,}  "
         f"rss={rec.get('peak_rss_mb', 0):>8.0f}MB  vram={vram:>6}MB  "
         f"K={len(rec.get('levels', []))}"
@@ -117,11 +148,15 @@ def compare(base: list[dict], now: list[dict]) -> int:
             continue
         b, a = old["wall_s"], rec["wall_s"]
         pct = (a - b) / b * 100 if b else 0.0
-        worst = max(worst, pct)
+        # Only count a regression as real if it exceeds the measured run-to-run
+        # spread of this config -- otherwise the gate reports noise.
+        spread = max(old.get("wall_spread_pct", 0.0), rec.get("wall_spread_pct", 0.0))
+        if pct > spread:
+            worst = max(worst, pct)
         same = old.get("itemset_hash") == rec.get("itemset_hash")
         mark = "same" if same else f"CHANGED {old.get('n_itemsets')}->{rec.get('n_itemsets')}"
         print(f"{rec['id']:24} {b:>9.2f}s {a:>9.2f}s {pct:>+8.1f}%   {mark}")
-    print(f"\nworst regression: {worst:+.1f}%")
+    print(f"\nworst regression beyond measured noise: {worst:+.1f}%")
     return 0
 
 
@@ -131,6 +166,8 @@ def main() -> int:
     ap.add_argument("--compare", type=Path, help="compare against a previous results JSON")
     ap.add_argument("--timeout", type=int, default=1800, help="per-config timeout (s)")
     ap.add_argument("--only", action="append", help="run only these config ids")
+    ap.add_argument("--repeats", type=int, default=3,
+                    help="runs per config; the MINIMUM wall time is kept (default 3)")
     args = ap.parse_args()
 
     cfgs = matrix()
@@ -141,7 +178,7 @@ def main() -> int:
     for cfg in cfgs:
         print(f"running {cfg['id']} ...", flush=True)
         try:
-            rec = run_one(cfg, args.timeout)
+            rec = run_repeats(cfg, args.timeout, args.repeats)
         except subprocess.TimeoutExpired:
             rec = {"id": cfg["id"], "config": cfg, "status": f"timeout after {args.timeout}s"}
         results.append(rec)

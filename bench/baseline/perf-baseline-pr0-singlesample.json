@@ -5,53 +5,53 @@
       "id": "smoke-gpu1",
       "preset": "smoke",
       "n_gpus": 1,
-      "result_path": "/tmp/tmpy2mxolu4/result.json"
+      "result_path": "/tmp/tmp2b5gsyoj/result.json"
     },
     "status": "ok",
-    "wall_s": 0.205,
+    "wall_s": 0.222,
     "levels": [
       {
         "k": 1,
         "n_candidates": 118,
         "n_frequent": 118,
-        "ms": 18.369123979937285
+        "ms": 18.43011798337102
       },
       {
         "k": 2,
         "n_candidates": 6903,
         "n_frequent": 290,
-        "ms": 2.3122820421122015
+        "ms": 2.334539021831006
       },
       {
         "k": 3,
         "n_candidates": 202,
         "n_frequent": 202,
-        "ms": 1.4091850025579333
+        "ms": 1.4064499991945922
       },
       {
         "k": 4,
         "n_candidates": 63,
         "n_frequent": 63,
-        "ms": 1.010725973173976
+        "ms": 1.016720023471862
       },
       {
         "k": 5,
         "n_candidates": 18,
         "n_frequent": 18,
-        "ms": 0.7595370407216251
+        "ms": 0.76248002005741
       },
       {
         "k": 6,
         "n_candidates": 3,
         "n_frequent": 3,
-        "ms": 0.6331680342555046
+        "ms": 0.6376199889928102
       }
     ],
     "peak_vram_mb": {
       "0": 3,
       "1": 3
     },
-    "peak_rss_mb": 466.8,
+    "peak_rss_mb": 467.1,
     "throttle_reasons": [
       "0x0000000000000001"
     ],
@@ -59,13 +59,7 @@
     "n_itemsets": 694,
     "sum_counts": 1109810,
     "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
-    "parent_wall_s": 1.508,
-    "wall_samples": [
-      0.23,
-      0.214,
-      0.205
-    ],
-    "wall_spread_pct": 12.2
+    "parent_wall_s": 1.507
   },
   {
     "id": "smoke-gpu2",
@@ -73,65 +67,61 @@
       "id": "smoke-gpu2",
       "preset": "smoke",
       "n_gpus": 2,
-      "result_path": "/tmp/tmppv_u1280/result.json"
+      "result_path": "/tmp/tmpfhocy5yh/result.json"
     },
     "status": "ok",
-    "wall_s": 1.067,
+    "wall_s": 1.082,
     "levels": [
       {
         "k": 1,
         "n_candidates": 118,
         "n_frequent": 118,
-        "ms": 47.65754705294967
+        "ms": 35.58341600000858
       },
       {
         "k": 2,
         "n_candidates": 6903,
         "n_frequent": 290,
-        "ms": 89.25343496957794
+        "ms": 92.93947002151981
       },
       {
         "k": 3,
         "n_candidates": 7045,
         "n_frequent": 202,
-        "ms": 10.201042983680964
+        "ms": 9.895509982015938
       },
       {
         "k": 4,
         "n_candidates": 1240,
         "n_frequent": 63,
-        "ms": 9.215257014147937
+        "ms": 10.350468975957483
       },
       {
         "k": 5,
         "n_candidates": 66,
         "n_frequent": 18,
-        "ms": 3.2032179879024625
+        "ms": 4.419928998686373
       },
       {
         "k": 6,
         "n_candidates": 3,
         "n_frequent": 3,
-        "ms": 3.0638090102002025
+        "ms": 4.092360031791031
       }
     ],
     "peak_vram_mb": {
-      "0": 419,
-      "1": 419
+      "0": 391,
+      "1": 391
     },
-    "peak_rss_mb": 1069.8,
-    "throttle_reasons": [],
+    "peak_rss_mb": 1068.8,
+    "throttle_reasons": [
+      "0x0000000000000001"
+    ],
     "motifs_ok": true,
     "n_itemsets": 694,
     "sum_counts": 1109810,
     "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
-    "parent_wall_s": 2.49,
-    "wall_samples": [
-      1.09,
-      1.067,
-      1.587
-    ],
-    "wall_spread_pct": 48.7
+    "parent_wall_s": 2.603
   },
   {
     "id": "deepk-gpu2",
@@ -139,95 +129,89 @@
       "id": "deepk-gpu2",
       "preset": "deep_k",
       "n_gpus": 2,
-      "result_path": "/tmp/tmp2_mqu4m0/result.json"
+      "result_path": "/tmp/tmpp01c027i/result.json"
     },
     "status": "ok",
-    "wall_s": 2.026,
+    "wall_s": 2.082,
     "levels": [
       {
         "k": 1,
         "n_candidates": 112,
         "n_frequent": 112,
-        "ms": 46.340772008989006
+        "ms": 48.55967400362715
       },
       {
         "k": 2,
         "n_candidates": 6216,
         "n_frequent": 471,
-        "ms": 92.03106595668942
+        "ms": 105.97956698620692
       },
       {
         "k": 3,
         "n_candidates": 9174,
         "n_frequent": 901,
-        "ms": 13.489080010913312
+        "ms": 13.9334179693833
       },
       {
         "k": 4,
         "n_candidates": 3659,
         "n_frequent": 1407,
-        "ms": 16.183411993552
+        "ms": 15.6780980178155
       },
       {
         "k": 5,
         "n_candidates": 2251,
         "n_frequent": 1854,
-        "ms": 9.77786403382197
+        "ms": 9.635299036744982
       },
       {
         "k": 6,
         "n_candidates": 1855,
         "n_frequent": 1848,
-        "ms": 5.92140801018104
+        "ms": 6.17524900007993
       },
       {
         "k": 7,
         "n_candidates": 1320,
         "n_frequent": 1320,
-        "ms": 5.714688973966986
+        "ms": 5.647409008815885
       },
       {
         "k": 8,
         "n_candidates": 660,
         "n_frequent": 660,
-        "ms": 5.517389974556863
+        "ms": 7.158408989198506
       },
       {
         "k": 9,
         "n_candidates": 220,
         "n_frequent": 220,
-        "ms": 5.051601969171315
+        "ms": 5.245768988970667
       },
       {
         "k": 10,
         "n_candidates": 44,
         "n_frequent": 44,
-        "ms": 5.1851109601557255
+        "ms": 5.019899981562048
       },
       {
         "k": 11,
         "n_candidates": 4,
         "n_frequent": 4,
-        "ms": 5.140611028764397
+        "ms": 5.1369190332479775
       }
     ],
     "peak_vram_mb": {
       "0": 425,
       "1": 425
     },
-    "peak_rss_mb": 1337.6,
+    "peak_rss_mb": 1345.1,
     "throttle_reasons": [],
     "motifs_ok": true,
     "n_itemsets": 8841,
     "sum_counts": 266261275,
     "itemset_hash": "4d2c8d28bcd33cd61f763915e42cb60c0f60f16e1ffec2af32a887faabf47567",
-    "parent_wall_s": 3.497,
-    "wall_samples": [
-      2.041,
-      2.026,
-      2.068
-    ],
-    "wall_spread_pct": 2.1
+    "parent_wall_s": 3.624
   },
   {
     "id": "deepk-gpu2-sparse",
@@ -236,83 +220,83 @@
       "preset": "deep_k",
       "n_gpus": 2,
       "sparse_from_k": 3,
-      "result_path": "/tmp/tmpo28y569u/result.json"
+      "result_path": "/tmp/tmpd5vjf9tg/result.json"
     },
     "status": "ok",
-    "wall_s": 2.036,
+    "wall_s": 2.021,
     "levels": [
       {
         "k": 1,
         "n_candidates": 112,
         "n_frequent": 112,
-        "ms": 58.56747704092413
+        "ms": 46.56560200965032
       },
       {
         "k": 2,
         "n_candidates": 6216,
         "n_frequent": 471,
-        "ms": 98.6459509585984
+        "ms": 101.27005499089137
       },
       {
         "k": 3,
         "n_candidates": 9174,
         "n_frequent": 901,
-        "ms": 86.81019500363618
+        "ms": 86.35867602424696
       },
       {
         "k": 4,
         "n_candidates": 3659,
         "n_frequent": 1407,
-        "ms": 14.812196022830904
+        "ms": 14.813377987593412
       },
       {
         "k": 5,
         "n_candidates": 2251,
         "n_frequent": 1854,
-        "ms": 8.43777903355658
+        "ms": 8.294559025671333
       },
       {
         "k": 6,
         "n_candidates": 1855,
         "n_frequent": 1848,
-        "ms": 6.181267031934112
+        "ms": 5.906838981900364
       },
       {
         "k": 7,
         "n_candidates": 1320,
         "n_frequent": 1320,
-        "ms": 5.945359007455409
+        "ms": 5.582669982686639
       },
       {
         "k": 8,
         "n_candidates": 660,
         "n_frequent": 660,
-        "ms": 5.281289981212467
+        "ms": 5.496989004313946
       },
       {
         "k": 9,
         "n_candidates": 220,
         "n_frequent": 220,
-        "ms": 5.239291000179946
+        "ms": 4.969569039531052
       },
       {
         "k": 10,
         "n_candidates": 44,
         "n_frequent": 44,
-        "ms": 5.063691991381347
+        "ms": 4.762968979775906
       },
       {
         "k": 11,
         "n_candidates": 4,
         "n_frequent": 4,
-        "ms": 4.5146740158088505
+        "ms": 4.342069965787232
       }
     ],
     "peak_vram_mb": {
       "0": 483,
       "1": 481
     },
-    "peak_rss_mb": 1330.5,
+    "peak_rss_mb": 1377.4,
     "throttle_reasons": [
       "0x0000000000000001"
     ],
@@ -320,13 +304,7 @@
     "n_itemsets": 8841,
     "sum_counts": 266261275,
     "itemset_hash": "4d2c8d28bcd33cd61f763915e42cb60c0f60f16e1ffec2af32a887faabf47567",
-    "parent_wall_s": 3.591,
-    "wall_samples": [
-      2.043,
-      2.07,
-      2.036
-    ],
-    "wall_spread_pct": 1.7
+    "parent_wall_s": 3.543
   },
   {
     "id": "deepk-gpu2-low",
@@ -335,113 +313,107 @@
       "preset": "deep_k",
       "n_gpus": 2,
       "min_support": 0.005,
-      "result_path": "/tmp/tmpdbrwf9i8/result.json"
+      "result_path": "/tmp/tmpfv734a5j/result.json"
     },
     "status": "ok",
-    "wall_s": 2.162,
+    "wall_s": 2.14,
     "levels": [
       {
         "k": 1,
         "n_candidates": 294,
         "n_frequent": 294,
-        "ms": 52.63528897194192
+        "ms": 57.173619978129864
       },
       {
         "k": 2,
         "n_candidates": 43071,
         "n_frequent": 1737,
-        "ms": 105.37533700698987
+        "ms": 104.9608220346272
       },
       {
         "k": 3,
         "n_candidates": 115051,
         "n_frequent": 4447,
-        "ms": 12.440983962733299
+        "ms": 14.809596992563456
       },
       {
         "k": 4,
         "n_candidates": 101536,
         "n_frequent": 8810,
-        "ms": 37.87544200895354
+        "ms": 41.152702004183084
       },
       {
         "k": 5,
         "n_candidates": 42141,
         "n_frequent": 15674,
-        "ms": 47.962696000467986
+        "ms": 49.72387198358774
       },
       {
         "k": 6,
         "n_candidates": 23779,
         "n_frequent": 22307,
-        "ms": 28.29536603530869
+        "ms": 29.4910540105775
       },
       {
         "k": 7,
         "n_candidates": 23724,
         "n_frequent": 23706,
-        "ms": 15.097135037649423
+        "ms": 15.724638011306524
       },
       {
         "k": 8,
         "n_candidates": 18600,
         "n_frequent": 18600,
-        "ms": 16.30835101241246
+        "ms": 16.072676982730627
       },
       {
         "k": 9,
         "n_candidates": 10660,
         "n_frequent": 10660,
-        "ms": 10.823161050211638
+        "ms": 10.533267981372774
       },
       {
         "k": 10,
         "n_candidates": 4344,
         "n_frequent": 4344,
-        "ms": 7.663562020752579
+        "ms": 7.568239001557231
       },
       {
         "k": 11,
         "n_candidates": 1193,
         "n_frequent": 1193,
-        "ms": 5.889329011552036
+        "ms": 5.996527965180576
       },
       {
         "k": 12,
         "n_candidates": 198,
         "n_frequent": 198,
-        "ms": 4.97188197914511
+        "ms": 5.142949987202883
       },
       {
         "k": 13,
         "n_candidates": 15,
         "n_frequent": 15,
-        "ms": 5.111492006108165
+        "ms": 5.246179003734142
       },
       {
         "k": 14,
         "n_candidates": 0,
         "n_frequent": 0,
-        "ms": 0.0237500062212348
+        "ms": 0.02415996277704835
       }
     ],
     "peak_vram_mb": {
-      "0": 435,
-      "1": 435
+      "0": 437,
+      "1": 437
     },
-    "peak_rss_mb": 1313.4,
+    "peak_rss_mb": 1381.4,
     "throttle_reasons": [],
     "motifs_ok": true,
     "n_itemsets": 111985,
     "sum_counts": 1165999029,
     "itemset_hash": "185054fb0488aa1366f54593d21af399bb6573920ebc8118d926be5cad54d74b",
-    "parent_wall_s": 4.386,
-    "wall_samples": [
-      2.162,
-      2.169,
-      2.166
-    ],
-    "wall_spread_pct": 0.3
+    "parent_wall_s": 4.288
   },
   {
     "id": "twophase-deepk",
@@ -453,89 +425,83 @@
       "min_support": 0.02,
       "phase2_support": 0.005,
       "max_length": 5,
-      "result_path": "/tmp/tmpl090nyn9/result.json"
+      "result_path": "/tmp/tmp4rlfnuer/result.json"
     },
     "status": "ok",
-    "wall_s": 3.257,
+    "wall_s": 3.145,
     "levels": [
       {
         "k": 1,
         "n_candidates": 112,
         "n_frequent": 112,
-        "ms": 391.2494109827094
+        "ms": 397.4976869649254
       },
       {
         "k": 2,
         "n_candidates": 6216,
         "n_frequent": 471,
-        "ms": 95.17534298356622
+        "ms": 86.78800100460649
       },
       {
         "k": 3,
         "n_candidates": 6437,
         "n_frequent": 509,
-        "ms": 10.969030030537397
+        "ms": 12.634836952202022
       },
       {
         "k": 4,
         "n_candidates": 969,
         "n_frequent": 159,
-        "ms": 12.85159302642569
+        "ms": 12.348518008366227
       },
       {
         "k": 5,
         "n_candidates": 73,
         "n_frequent": 6,
-        "ms": 49.88235799828544
+        "ms": 49.03152899350971
       },
       {
         "k": 1,
         "n_candidates": 294,
         "n_frequent": 294,
-        "ms": 3.177987993694842
+        "ms": 2.461159019730985
       },
       {
         "k": 2,
         "n_candidates": 43071,
         "n_frequent": 1737,
-        "ms": 68.36607999866828
+        "ms": 64.73400600953028
       },
       {
         "k": 3,
         "n_candidates": 81903,
         "n_frequent": 4055,
-        "ms": 67.65745294978842
+        "ms": 64.99113596510142
       },
       {
         "k": 4,
         "n_candidates": 38531,
         "n_frequent": 3607,
-        "ms": 37.89730102289468
+        "ms": 30.87773296283558
       },
       {
         "k": 5,
         "n_candidates": 13373,
         "n_frequent": 1059,
-        "ms": 25.605216971598566
+        "ms": 23.826034972444177
       }
     ],
     "peak_vram_mb": {
-      "0": 483,
-      "1": 501
+      "0": 433,
+      "1": 433
     },
-    "peak_rss_mb": 1830.6,
+    "peak_rss_mb": 1900.9,
     "throttle_reasons": [],
     "motifs_ok": true,
     "n_itemsets": 10752,
     "sum_counts": 134590111,
     "itemset_hash": "4753bce84b7b1a7e7d5fdc46060b25be86bce755ad353354213c75be2c99ea3d",
-    "parent_wall_s": 4.8,
-    "wall_samples": [
-      3.291,
-      3.261,
-      3.257
-    ],
-    "wall_spread_pct": 1.0
+    "parent_wall_s": 4.673
   },
   {
     "id": "smoke-cpu-polars",
@@ -544,67 +510,59 @@
       "preset": "smoke",
       "route": "cpu",
       "sparse": false,
-      "result_path": "/tmp/tmplpgan7ds/result.json"
+      "result_path": "/tmp/tmp_x_hjgle/result.json"
     },
     "status": "ok",
-    "wall_s": 0.327,
+    "wall_s": 0.303,
     "levels": [
       {
         "k": 1,
         "n_candidates": 118,
         "n_frequent": 118,
-        "ms": 2.7120200102217495
+        "ms": 2.228609984740615
       },
       {
         "k": 2,
         "n_candidates": 6903,
         "n_frequent": 290,
-        "ms": 180.56185101158917
+        "ms": 164.76519202115014
       },
       {
         "k": 3,
         "n_candidates": 560,
         "n_frequent": 202,
-        "ms": 31.362015986815095
+        "ms": 34.05731194652617
       },
       {
         "k": 4,
         "n_candidates": 95,
         "n_frequent": 63,
-        "ms": 13.459711044561118
+        "ms": 12.128516973461956
       },
       {
         "k": 5,
         "n_candidates": 18,
         "n_frequent": 18,
-        "ms": 6.600165972486138
+        "ms": 5.871099012438208
       },
       {
         "k": 6,
         "n_candidates": 3,
         "n_frequent": 3,
-        "ms": 5.543749954085797
+        "ms": 5.509207956492901
       }
     ],
     "peak_vram_mb": {
       "0": 3,
       "1": 3
     },
-    "peak_rss_mb": 371.9,
-    "throttle_reasons": [
-      "0x0000000000000001"
-    ],
+    "peak_rss_mb": 372.3,
+    "throttle_reasons": [],
     "motifs_ok": true,
     "n_itemsets": 694,
     "sum_counts": 1109810,
     "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
-    "parent_wall_s": 1.598,
-    "wall_samples": [
-      0.33,
-      0.329,
-      0.327
-    ],
-    "wall_spread_pct": 0.9
+    "parent_wall_s": 1.457
   },
   {
     "id": "smoke-cpu-sparse-j1",
@@ -614,53 +572,53 @@
       "route": "cpu",
       "sparse": true,
       "n_jobs": 1,
-      "result_path": "/tmp/tmpj6hu7yiu/result.json"
+      "result_path": "/tmp/tmpoiihhnre/result.json"
     },
     "status": "ok",
-    "wall_s": 0.575,
+    "wall_s": 0.524,
     "levels": [
       {
         "k": 1,
         "n_candidates": 118,
         "n_frequent": 118,
-        "ms": 2.8708899626508355
+        "ms": 2.7227189857512712
       },
       {
         "k": 2,
         "n_candidates": 6903,
         "n_frequent": 290,
-        "ms": 331.59717801027
+        "ms": 282.9659800045192
       },
       {
         "k": 3,
         "n_candidates": 560,
         "n_frequent": 202,
-        "ms": 56.86898302519694
+        "ms": 50.84630800411105
       },
       {
         "k": 4,
         "n_candidates": 95,
         "n_frequent": 63,
-        "ms": 41.212618991266936
+        "ms": 40.94758001156151
       },
       {
         "k": 5,
         "n_candidates": 18,
         "n_frequent": 18,
-        "ms": 33.62491796724498
+        "ms": 32.208031974732876
       },
       {
         "k": 6,
         "n_candidates": 3,
         "n_frequent": 3,
-        "ms": 29.49065197026357
+        "ms": 31.309131998568773
       }
     ],
     "peak_vram_mb": {
       "0": 3,
       "1": 3
     },
-    "peak_rss_mb": 340.6,
+    "peak_rss_mb": 339.9,
     "throttle_reasons": [
       "0x0000000000000001"
     ],
@@ -668,13 +626,7 @@
     "n_itemsets": 694,
     "sum_counts": 1109810,
     "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
-    "parent_wall_s": 1.798,
-    "wall_samples": [
-      0.576,
-      0.585,
-      0.575
-    ],
-    "wall_spread_pct": 1.7
+    "parent_wall_s": 1.763
   },
   {
     "id": "smoke-cpu-sparse-j8",
@@ -684,53 +636,53 @@
       "route": "cpu",
       "sparse": true,
       "n_jobs": 8,
-      "result_path": "/tmp/tmpzjt4rkp5/result.json"
+      "result_path": "/tmp/tmpw_6ep5r_/result.json"
     },
     "status": "ok",
-    "wall_s": 0.591,
+    "wall_s": 0.595,
     "levels": [
       {
         "k": 1,
         "n_candidates": 118,
         "n_frequent": 118,
-        "ms": 2.436921000480652
+        "ms": 4.707659012638032
       },
       {
         "k": 2,
         "n_candidates": 6903,
         "n_frequent": 290,
-        "ms": 289.1222430043854
+        "ms": 270.1755400048569
       },
       {
         "k": 3,
         "n_candidates": 560,
         "n_frequent": 202,
-        "ms": 85.58902697404847
+        "ms": 100.69873300381005
       },
       {
         "k": 4,
         "n_candidates": 95,
         "n_frequent": 63,
-        "ms": 54.253931040875614
+        "ms": 50.98787700990215
       },
       {
         "k": 5,
         "n_candidates": 18,
         "n_frequent": 18,
-        "ms": 44.56617799587548
+        "ms": 33.8927119737491
       },
       {
         "k": 6,
         "n_candidates": 3,
         "n_frequent": 3,
-        "ms": 38.48245902918279
+        "ms": 32.025680993683636
       }
     ],
     "peak_vram_mb": {
       "0": 3,
       "1": 3
     },
-    "peak_rss_mb": 380.1,
+    "peak_rss_mb": 395.1,
     "throttle_reasons": [
       "0x0000000000000001"
     ],
@@ -738,13 +690,7 @@
     "n_itemsets": 694,
     "sum_counts": 1109810,
     "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
-    "parent_wall_s": 1.852,
-    "wall_samples": [
-      0.591,
-      0.664,
-      0.67
-    ],
-    "wall_spread_pct": 13.4
+    "parent_wall_s": 1.89
   },
   {
     "id": "deepk-cpu-sparse-j8",
@@ -755,41 +701,41 @@
       "sparse": true,
       "n_jobs": 8,
       "max_length": 4,
-      "result_path": "/tmp/tmpaazs07he/result.json"
+      "result_path": "/tmp/tmptfpoeb_e/result.json"
     },
     "status": "ok",
-    "wall_s": 4.39,
+    "wall_s": 4.98,
     "levels": [
       {
         "k": 1,
         "n_candidates": 112,
         "n_frequent": 112,
-        "ms": 3.2143680145964026
+        "ms": 4.004558955784887
       },
       {
         "k": 2,
         "n_candidates": 6216,
         "n_frequent": 471,
-        "ms": 1823.6623289994895
+        "ms": 2289.5806829910725
       },
       {
         "k": 3,
         "n_candidates": 1262,
         "n_frequent": 901,
-        "ms": 640.8261060132645
+        "ms": 694.1779949702322
       },
       {
         "k": 4,
         "n_candidates": 1456,
         "n_frequent": 1407,
-        "ms": 693.3834030060098
+        "ms": 745.2995530329645
       }
     ],
     "peak_vram_mb": {
       "0": 3,
       "1": 3
     },
-    "peak_rss_mb": 1733.3,
+    "peak_rss_mb": 2039.5,
     "throttle_reasons": [
       "0x0000000000000001"
     ],
@@ -797,13 +743,7 @@
     "n_itemsets": 2891,
     "sum_counts": 98601926,
     "itemset_hash": "4869a4352b20d08284d2197c17ba6ca39149fbfae2c7263652ca5209d854a15a",
-    "parent_wall_s": 5.816,
-    "wall_samples": [
-      4.39,
-      4.615,
-      4.631
-    ],
-    "wall_spread_pct": 5.5
+    "parent_wall_s": 6.416
   },
   {
     "id": "stressk2-cpu-sparse",
@@ -815,29 +755,29 @@
       "n_jobs": 8,
       "max_length": 2,
       "min_support": 0.002,
-      "result_path": "/tmp/tmpw_swbmqk/result.json"
+      "result_path": "/tmp/tmpadwmzj3z/result.json"
     },
     "status": "ok",
-    "wall_s": 75.027,
+    "wall_s": 87.617,
     "levels": [
       {
         "k": 1,
         "n_candidates": 1443,
         "n_frequent": 1443,
-        "ms": 52.506955980788916
+        "ms": 51.96499603334814
       },
       {
         "k": 2,
         "n_candidates": 1040403,
         "n_frequent": 1383,
-        "ms": 23724.345923983492
+        "ms": 36268.54281302076
       }
     ],
     "peak_vram_mb": {
       "0": 3,
       "1": 3
     },
-    "peak_rss_mb": 4238.1,
+    "peak_rss_mb": 5487.3,
     "throttle_reasons": [
       "0x0000000000000001",
       "0x0000000000000004"
@@ -846,12 +786,6 @@
     "n_itemsets": 2826,
     "sum_counts": 32277154,
     "itemset_hash": "695c285da2ba7e3711ea1eb58f8a676d33e4681ef59df8b662c0690f57611d9b",
-    "parent_wall_s": 76.568,
-    "wall_samples": [
-      75.751,
-      75.027,
-      75.529
-    ],
-    "wall_spread_pct": 1.0
+    "parent_wall_s": 89.299
   }
 ]

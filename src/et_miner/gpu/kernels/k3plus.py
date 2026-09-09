@@ -133,6 +133,14 @@ def count_itemsets_fused_k3plus_multi_gpu(bitvecs_gpu, candidates, n_u64s, min_c
     all_items_np = np.array(all_items, dtype=np.int32)
     offsets_np = np.array(offsets, dtype=np.int64)
     bitvecs_np = bitvecs_gpu.get()
+    # The device the caller's arrays actually live on. Every one of these
+    # wrappers hardcoded `if device_id == 0`, i.e. "the caller's bitvecs are on
+    # GPU 0". When they are not, device 0 aliases a foreign array -- the
+    # "device where the array resides (0) is different from the current device
+    # (1)" fault -- and the real home device re-uploads a copy of what it
+    # already holds. Latent while every in-tree route builds on device 0;
+    # gpu/dispatch reaches these from callers that need not. N10
+    _home = int(bitvecs_gpu.device.id)
     n_cols = bitvecs_gpu.shape[0]
 
     candidates_per_gpu = (n_candidates + n_gpus - 1) // n_gpus
@@ -150,7 +158,7 @@ def count_itemsets_fused_k3plus_multi_gpu(bitvecs_gpu, candidates, n_u64s, min_c
             with cp.cuda.Device(device_id):
                 stream = cp.cuda.Stream(non_blocking=True)
                 with stream:
-                    if device_id == 0:
+                    if device_id == _home:
                         bv_gpu = bitvecs_gpu
                     else:
                         bv_gpu = cp.array(bitvecs_np, dtype=cp.uint64)
@@ -389,6 +397,14 @@ def count_k3plus_fully_fused_multi_gpu(
     gso_np = group_suffix_offsets
     cp_np = cumulative_pairs
     bitvecs_np = bitvecs_gpu.get()
+    # The device the caller's arrays actually live on. Every one of these
+    # wrappers hardcoded `if device_id == 0`, i.e. "the caller's bitvecs are on
+    # GPU 0". When they are not, device 0 aliases a foreign array -- the
+    # "device where the array resides (0) is different from the current device
+    # (1)" fault -- and the real home device re-uploads a copy of what it
+    # already holds. Latent while every in-tree route builds on device 0;
+    # gpu/dispatch reaches these from callers that need not. N10
+    _home = int(bitvecs_gpu.device.id)
 
     cands_per_gpu = (total_candidates + n_gpus - 1) // n_gpus
     kernel = get_cuda_kernel("count_k3plus_from_groups")
@@ -406,7 +422,7 @@ def count_k3plus_fully_fused_multi_gpu(
             with cp.cuda.Device(device_id):
                 stream = cp.cuda.Stream(non_blocking=True)
                 with stream:
-                    if device_id == 0:
+                    if device_id == _home:
                         bv_gpu = bitvecs_gpu
                     else:
                         bv_gpu = cp.array(bitvecs_np, dtype=cp.uint64)

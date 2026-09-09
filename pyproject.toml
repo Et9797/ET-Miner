@@ -94,6 +94,13 @@ testpaths = ["tests"]
 markers = [
     "gpu: requires a physical CUDA device (auto-skipped when none is present)",
     "slow: long-running test (deselect with -m 'not slow')",
+    # Applied PER TEST, never to a whole file. A file-wide marker on
+    # test_tier_equivalence.py would put the mandated tier chain -- including
+    # the Polars, Rust and efficient-apriori tiers, which need no GPU at all --
+    # behind a two-device gate, and make it vanish under any
+    # -m "not multigpu" selection. That is the same failure as a module-scope
+    # importorskip: the gate exits 0 having checked nothing.
+    "multigpu: requires two or more CUDA devices (see the note above)",
 ]
 
 [tool.ruff]

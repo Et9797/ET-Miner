@@ -16,9 +16,24 @@ def build_prefix_groups_gpu(prev_freq_gpu):
 
     Returns:
         Tuple of (group_starts, group_sizes, cumulative_pairs, total_candidates)
-        where group_starts/sizes/cumulative_pairs are CuPy int32/int64 arrays in VRAM,
-        and total_candidates is a Python int (single 8-byte PCIe transfer).
+        where group_starts/sizes/cumulative_pairs are CuPy int32/int64 arrays in
+        VRAM **on prev_freq_gpu's device**, and total_candidates is a Python int
+        (single 8-byte PCIe transfer).
+
+    Device: every allocation here follows the input, not the ambient current
+    device. It used to follow the ambient one, so calling it from a thread
+    parked on device 0 with `prev_freq_gpu` on device 1 built `cp.array([True])`
+    and friends on the wrong card and raised on the first comparison. Fixed
+    here rather than at the call site so the property holds for every caller.
+    N20.
     """
+    import cupy as cp
+
+    with cp.cuda.Device(int(prev_freq_gpu.device.id)):
+        return _build_prefix_groups_gpu_impl(prev_freq_gpu)
+
+
+def _build_prefix_groups_gpu_impl(prev_freq_gpu):
     import cupy as cp
 
     n, k_prev = prev_freq_gpu.shape
@@ -251,18 +266,23 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
     """Multi-GPU GPU-resident K=2: split pairs across GPUs, merge results in VRAM.
 
     Each GPU processes its slice of the pair index range. Results are gathered
-    to GPU 0, where fancy indexing + sorting happen entirely in VRAM.
+    to the caller's device, where fancy indexing + sorting happen in VRAM.
+
+    Contract: all inputs must be resident on ONE device -- the wrapper
+    replicates them to the others. That device used to be hardcoded as 0.
 
     Args:
-        bitvecs_gpu: CuPy array of shape (n_cols, n_u64s) on GPU 0.
-        freq_cols_gpu: CuPy int32 array of frequent item column indices (sorted, GPU 0).
+        bitvecs_gpu: CuPy array of shape (n_cols, n_u64s). Its device is the
+            home device for every other input and for the returned arrays.
+        freq_cols_gpu: CuPy int32 array of frequent item column indices
+            (sorted), on the home device.
         n_u64s: Number of uint64 words per bitvector.
         min_count: Minimum support count threshold.
         n_gpus: Number of GPUs to use.
 
     Returns:
-        Tuple of (pair_itemsets_gpu, counts_gpu) CuPy arrays on GPU 0,
-        or (None, None) if no frequent pairs found.
+        Tuple of (pair_itemsets_gpu, counts_gpu) CuPy arrays on the caller's
+        device, or (None, None) if no frequent pairs found.
     """
     import cupy as cp
     from concurrent.futures import ThreadPoolExecutor
@@ -282,6 +302,14 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
     pairs_per_gpu = (n_pairs + n_gpus - 1) // n_gpus
     freq_items_np = freq_cols_gpu.get()
     bitvecs_np = bitvecs_gpu.get()
+    # The device the caller's arrays actually live on. Every one of these
+    # wrappers hardcoded `if device_id == 0`, i.e. "the caller's bitvecs are on
+    # GPU 0". When they are not, device 0 aliases a foreign array -- the
+    # "device where the array resides (0) is different from the current device
+    # (1)" fault -- and the real home device re-uploads a copy of what it
+    # already holds. Latent while every in-tree route builds on device 0;
+    # gpu/dispatch reaches these from callers that need not. N10
+    _home = int(bitvecs_gpu.device.id)
     kernel = get_cuda_kernel("count_pairs_fused_k2")
 
     def _run_on_gpu(device_id):
@@ -296,7 +324,7 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
             with cp.cuda.Device(device_id):
                 stream = cp.cuda.Stream(non_blocking=True)
                 with stream:
-                    if device_id == 0:
+                    if device_id == _home:
                         bv_gpu = bitvecs_gpu
                     else:
                         bv_gpu = cp.array(bitvecs_np, dtype=cp.uint64)
@@ -367,8 +395,16 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
     rj_merged = np.concatenate(all_rj)
     rc_merged = np.concatenate(all_rc)
 
-    # Build + sort on GPU 0 in VRAM
-    with cp.cuda.Device(0):
+    # Build + sort on the HOME device in VRAM.
+    #
+    # N20 -- a second device assumption, distinct from N10 and in the output
+    # half rather than the input alias. This tail forced device 0 and then
+    # indexed `freq_cols_gpu`, which belongs to the caller and lives wherever
+    # the caller put it. With bitvecs on device 1 that raises "the device where
+    # the array resides (1) is different from the current device (0)". Fixing
+    # only the `if device_id == 0` alias leaves this live, which is how it was
+    # found: the N10 test still failed here.
+    with cp.cuda.Device(_home):
         ri_gpu = cp.array(ri_merged, dtype=cp.int64)  # FIXED: int32 -> int64 for >2B candidate indices
         rj_gpu = cp.array(rj_merged, dtype=cp.int64)
 
@@ -385,22 +421,29 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
 
 
 def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, n_gpus, max_results=10_000_000):
-    """Multi-GPU GPU-resident K>=3: split candidates across GPUs, decode + sort on GPU 0.
+    """Multi-GPU GPU-resident K>=3: split candidates across GPUs, decode + sort on the home device.
 
     Each GPU processes its slice of candidates. Results (indices + counts) are
-    gathered to GPU 0, where decode and sort happen entirely in VRAM.
+    gathered to the caller's device, where decode and sort happen in VRAM.
+
+    Contract: all inputs must be resident on ONE device -- the wrapper
+    replicates them to the others and aliases them on that one. It used to
+    assume that device was 0 and is now taken from `bitvecs_gpu.device.id`; a
+    mixed-device call raises rather than being silently repaired by a transfer,
+    because that is a caller bug and a hidden copy makes it unattributable.
 
     Args:
-        bitvecs_gpu: CuPy array of shape (n_cols, n_u64s) on GPU 0.
-        prev_freq_gpu: CuPy array of shape (n_freq, k_prev) on GPU 0.
+        bitvecs_gpu: CuPy array of shape (n_cols, n_u64s). Its device is the
+            home device for every other input.
+        prev_freq_gpu: CuPy array of shape (n_freq, k_prev), on the home device.
         n_u64s: Number of uint64 words per bitvector.
         min_count: Minimum support count threshold.
         n_gpus: Number of GPUs to use.
         max_results: Output buffer capacity per GPU.
 
     Returns:
-        Tuple of (freq_itemsets_gpu, counts_gpu) CuPy arrays on GPU 0,
-        or (None, None) if no frequent itemsets found.
+        Tuple of (freq_itemsets_gpu, counts_gpu) CuPy arrays on the caller's
+        device, or (None, None) if no frequent itemsets found.
     """
     _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident_multi_gpu")
     import cupy as cp
@@ -422,11 +465,38 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
 
     # Get numpy copies for replication to other GPUs
     bitvecs_np = bitvecs_gpu.get()
+    # The device the caller's arrays actually live on. Every one of these
+    # wrappers hardcoded `if device_id == 0`, i.e. "the caller's bitvecs are on
+    # GPU 0". When they are not, device 0 aliases a foreign array -- the
+    # "device where the array resides (0) is different from the current device
+    # (1)" fault -- and the real home device re-uploads a copy of what it
+    # already holds. Latent while every in-tree route builds on device 0;
+    # gpu/dispatch reaches these from callers that need not. N10
+    _home = int(bitvecs_gpu.device.id)
     prev_freq_np = prev_freq_gpu.get()
     group_starts_np = group_starts.get()
     group_sizes_np = group_sizes.get()
     cumulative_pairs_np = cumulative_pairs.get()
     n_groups = len(group_starts)
+
+    # All five inputs are aliased together on the home device below, so they
+    # must live together. Asserted rather than transferred: a mixed-device
+    # caller is a caller bug, and silently copying would hide it behind a
+    # transfer nobody attributes. See this function's docstring for the
+    # contract that makes the assert the documented behaviour.
+    for _name, _arr in (
+        ("prev_freq_gpu", prev_freq_gpu),
+        ("group_starts", group_starts),
+        ("group_sizes", group_sizes),
+        ("cumulative_pairs", cumulative_pairs),
+    ):
+        if int(_arr.device.id) != _home:
+            raise ValueError(
+                f"count_k3plus_gpu_resident_multi_gpu: {_name} is on device "
+                f"{int(_arr.device.id)} but bitvecs_gpu is on device {_home}. "
+                "All inputs must be resident on one device; the wrapper "
+                "replicates them to the others."
+            )
 
     cands_per_gpu = (total_candidates + n_gpus - 1) // n_gpus
     kernel = get_cuda_kernel("count_k3plus_gpu_resident")
@@ -443,7 +513,7 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
             with cp.cuda.Device(device_id):
                 stream = cp.cuda.Stream(non_blocking=True)
                 with stream:
-                    if device_id == 0:
+                    if device_id == _home:
                         bv_gpu = bitvecs_gpu
                         pf_gpu = prev_freq_gpu
                         gs_gpu = group_starts
@@ -523,11 +593,14 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
     ri_merged = np.concatenate(all_ri)
     rc_merged = np.concatenate(all_rc)
 
-    # Decode + sort on GPU 0 (group arrays still in VRAM from build_prefix_groups_gpu)
+    # Decode + sort on the HOME device (group arrays still in VRAM from
+    # build_prefix_groups_gpu, which built them there). N20, as above: the
+    # decode kernel is handed prev_freq_gpu, group_starts, group_sizes and
+    # cumulative_pairs, all caller-side or derived from caller-side arrays.
     n = len(ri_merged)
     k = k_prev + 1
 
-    with cp.cuda.Device(0):
+    with cp.cuda.Device(_home):
         result_indices_gpu = cp.array(ri_merged, dtype=cp.int64)  # FIXED: int32 -> int64 for >2B candidate indices
         result_counts_gpu = cp.array(rc_merged, dtype=cp.int64)
 

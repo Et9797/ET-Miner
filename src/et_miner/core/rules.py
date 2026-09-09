@@ -38,9 +38,21 @@ def _powerset_nonempty(iterable: Iterable[int]) -> Iterator[tuple[int, ...]]:
 
 
 def _build_support_lookup(frequent_itemsets: pl.DataFrame) -> dict[tuple[int, ...], float]:
-    """Dict of itemset tuple -> support for O(1) subset lookups during rule generation."""
+    """Dict of sorted itemset tuple -> support for O(1) subset lookups.
+
+    Keyed on ``tuple(sorted(...))`` because that is how both callers query it
+    (``generate_rules`` at the lhs and rhs lookups). Keying on the stored order
+    instead made the map disagree with its own callers whenever a producer
+    emitted a non-ascending tuple: an lhs miss dropped the rule silently, an rhs
+    miss emitted ``lift = 0.0``. Producers now emit ascending tuples, so this is
+    belt-and-braces -- but a lookup helper should not depend on its producer's
+    tuple ordering, and the next producer need not know that.
+    """
     # iter_rows() is 3x faster than to_dicts() at 100K itemsets (benched 2026-01-18)
-    return {tuple(row["itemset"]): row["support"] for row in frequent_itemsets.iter_rows(named=True)}
+    return {
+        tuple(sorted(row["itemset"])): row["support"]
+        for row in frequent_itemsets.iter_rows(named=True)
+    }
 
 
 def generate_rules(
@@ -170,8 +182,10 @@ def _explode_drop1(chunk: pl.DataFrame, k: int) -> pl.DataFrame:
     This is the core of the "drop-1" approach: each row becomes a rule
     antecedent -> dropped_item with the original itemset's support.
 
-    The antecedent list is already sorted because the input itemsets are
-    sorted and we remove one element while preserving order.
+    The antecedent list is ascending because apriori() emits ascending itemsets
+    (see its Returns block) and removing one element preserves order. That is a
+    producer contract now; it used to be an assumption stated only here, and it
+    was false on the CPU route.
 
     Args:
         chunk: DataFrame with columns "itemset" (list[i32]) and "support" (f64).
@@ -260,8 +274,12 @@ def generate_rules_drop1(
     that exceed Polars' u32 row limit. It uses PyArrow row-group iteration
     and processes chunks independently to keep memory bounded.
 
-    The K and K-1 parquets must be sorted lexicographically (which is the default
-    output of et-miner's apriori pipeline).
+    Both parquets must carry itemsets as ascending tuples of item ids, which is
+    what every apriori() route emits (see its Returns block). The join below is
+    positional -- _list_to_scalar_cols unpacks the list column into scalar keys
+    by index -- so a K level and a K-1 level written by producers that disagree
+    on element order will simply miss, and a miss is indistinguishable from a
+    genuinely absent subset.
 
     Join strategy:
         The K-1 parquet is loaded once and its itemset list is unpacked into

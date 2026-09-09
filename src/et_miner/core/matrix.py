@@ -132,8 +132,26 @@ def build_boolean_matrix(
         return pl.DataFrame(), {}, n_transactions
 
     # Step 3: Item -> column mapping
+    #
+    # The names are ZERO-PADDED, and that is load-bearing rather than cosmetic.
+    # Every ordering decision on the CPU path is a *string* comparison over
+    # these names -- sorted(...) in core.candidates._generate_candidates_k2 and
+    # the pl.col("a") < pl.col("b") prefix-join filters -- and item_ids comes
+    # from freq_1.sort("item"), so the column index is monotone in item id.
+    # Unpadded, "i_10" < "i_2" from 11 frequent items on, and the emitted
+    # itemsets stop being ascending item-id tuples. Padded, lexicographic order
+    # over the names IS numeric order over the indices, which IS item-id order,
+    # so the CPU route agrees with the GPU route by construction rather than by
+    # a second sort bolted on at emission.
+    #
+    # The width depends on how many items were frequent, so it varies from run
+    # to run. That is harmless and deliberate: ordering only needs the width to
+    # be constant *within* a run. The names never leave this function --
+    # col_to_item resolves them back to item ids before anything is emitted --
+    # so nothing downstream and nothing on disk depends on the width.
     item_ids = freq_1.get_column("item").to_list()
-    col_names = [f"i_{idx}" for idx in range(len(item_ids))]
+    width = len(str(len(item_ids)))
+    col_names = [f"i_{idx:0{width}d}" for idx in range(len(item_ids))]
     col_to_item = dict(zip(col_names, item_ids))
 
     # Step 4: Build boolean matrix via vectorized list.contains

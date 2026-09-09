@@ -317,6 +317,19 @@ def apriori(
 
     Returns:
         DataFrame with itemset (List[Int64]) and support (Float64) columns.
+
+        Every itemset is emitted as an **ascending tuple of item ids**, on every
+        route. That is a contract, not an accident: both parquet consumers in
+        core.rules join K against K-1 positionally, and _build_support_lookup is
+        keyed on the itemset, so a producer emitting [10, 2] where another emits
+        [2, 10] silently loses rows and corrupts numbers across routes. The
+        order is also stable across min_support values, so a stored artifact or
+        a frozen digest keyed on the emitted list stays valid when the threshold
+        moves.
+
+        Row order within the frame is NOT part of the contract -- only the order
+        of items within each itemset.
+
         If profile=True: tuple of (DataFrame, ProfilingSession).
 
     Example:

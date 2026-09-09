@@ -52,8 +52,12 @@ def matrix() -> list[dict]:
          "min_support": 0.02, "phase2_support": 0.005, "max_length": 5},
         # --- CPU tier: the #4 / #13 / #18 surface -------------------------
         {"id": "smoke-cpu-polars", "preset": "smoke", "route": "cpu", "sparse": False},
-        {"id": "smoke-cpu-sparse-j1", "preset": "smoke", "route": "cpu", "sparse": True, "n_jobs": 1},
-        {"id": "smoke-cpu-sparse-j8", "preset": "smoke", "route": "cpu", "sparse": True, "n_jobs": 8},
+        # The n_jobs pair runs on deep_k, not smoke: the smoke sparse configs
+        # finish in ~0.6 s with a 14-22% run-to-run spread, which is far too
+        # noisy to gate a 20% change on. deep_k is ~4.5 s at ~3%.
+        {"id": "deepk-cpu-sparse-j1", "preset": "deep_k", "route": "cpu", "sparse": True,
+         "n_jobs": 1, "max_length": 4},
+        {"id": "smoke-cpu-sparse", "preset": "smoke", "route": "cpu", "sparse": True, "n_jobs": 8},
         # deep_k on the CPU sparse path is where the MKL matmul actually bites
         {"id": "deepk-cpu-sparse-j8", "preset": "deep_k", "route": "cpu", "sparse": True,
          "n_jobs": 8, "max_length": 4},

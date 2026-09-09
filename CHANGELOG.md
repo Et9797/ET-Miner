@@ -71,6 +71,38 @@ figures move — measured, per artifact, not assumed.
   case, since it previously derived its oracle threshold from the expression it
   was meant to check.
 
+*PR 2 — sparse/MKL numerics and the Rust boundary*
+
+- **#4** — `_sparse_matmul` widens integer input to **float64**, not float32.
+  float32's 24-bit significand made a support count stick at
+  2²⁴ = 16,777,216: measured 20,000,000 → 16,777,216, a 16.1% **under**-count
+  that silently dropped frequent pairs and cascaded into every higher K. Costs
+  2× the value-array bytes inside the matmul.
+- **#5** — `panic = "abort"` removed from the release profile, so an FFI panic
+  raises a catchable `PanicException` instead of an uncatchable SIGABRT that
+  loses every unflushed level of a campaign. All FFI entry points now share one
+  contract: non-contiguous numpy input is copied rather than panicking (half of
+  them already did this and half did not), and CSR shape problems raise a
+  `ValueError` naming the offending value instead of an index-out-of-bounds
+  panic from inside a kernel.
+- **#16** — importing `core.sparse` no longer overrides the process-global MKL
+  thread count. The module is imported lazily from inside
+  `count_support_batched`, so this fired mid-run and silently oversubscribed a
+  host application's own MKL configuration (measured: a host setting of 2
+  became 24). `_restore_mkl_threads` now restores the value it displaced
+  rather than re-deriving one from the environment.
+- **#17** — MKL discovery globs `libmkl_rt.so*` across candidate directories
+  and logs the outcome either way. It previously tested one filename at one
+  location and returned silently on a miss, so nothing distinguished "the path
+  was already fine" from "found nothing" — and the numerics then ran against
+  whichever unpinned system MKL loaded, which is what #4's accuracy depends on.
+- **#18** — `n_jobs` is honoured on the Rust path. rayon took every core
+  regardless, so `n_jobs=1` — documented as "sequential execution" — silently
+  oversubscribed a shared box. The counting kernels now accept a thread budget
+  and run on a scoped pool (verified: `n_threads=1` is 5.9× slower than
+  unbounded, with identical counts). The dead `_RUST_MIN_ITEMSETS` fossil is
+  gone.
+
 ### Added
 
 - `bench/baseline/` — behaviour-change impact assessment, the min-count sweep

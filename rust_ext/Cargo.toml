@@ -41,7 +41,25 @@ serde_json = "1"
 opt-level = 3
 lto = "fat"           # Link-time optimization
 codegen-units = 1     # Better optimization at cost of compile time
-panic = "abort"       # Smaller binary, no unwinding overhead
+#
+# NO `panic = "abort"`. It was here for binary size, and it turned every FFI
+# panic into an uncatchable SIGABRT: PyO3's error model depends on unwinding to
+# produce a PanicException, and CLAUDE.md's documented build is
+# `maturin develop --release`, so the shipped extension always aborted. Five
+# ordinary-looking inputs -- a non-contiguous numpy view, n_rows=0, an n_cols
+# smaller than the largest column index, an n_rows larger than len(indptr)-1, a
+# current_counts length mismatch -- exited 134 with no traceback, losing every
+# unflushed level of a long campaign.
+#
+# It was also never a consistent choice: lib.rs implements a non-contiguous
+# copy fallback five times and omits it six times, raises a proper PyValueError
+# for an unsorted prev_flat and then aborts one call later for a length
+# mismatch, and gpu/mining.py:324-329 wraps a Rust call in a stale-wheel
+# recovery path that is dead code under abort.
+#
+# Unwinding costs some binary size and enables unwind tables. A panic must
+# still never cross an `extern "C"` boundary: PyO3 catches at its own boundary,
+# and any future CUDA-callback path has to do the same explicitly.
 
 [profile.dev]
 # Fast compile times for development

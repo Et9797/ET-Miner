@@ -42,21 +42,86 @@ pub use core::CscMatrix;
 ///
 /// # Returns
 /// * `Vec<u32>` - Support count for each itemset
+// =============================================================================
+// FFI boundary helpers
+//
+// Half this file's entry points already hardened against a non-contiguous
+// numpy view (an `arr[::2]`, an F-order array, a strided slice) by copying;
+// the other half called `as_slice().unwrap()` and panicked. Under the old
+// `panic = "abort"` that was a SIGABRT with no traceback. Both halves now go
+// through the same two helpers, so the contract is one rule rather than a
+// coin flip over which entry point you happened to call.
+// =============================================================================
+
+/// Borrow a 1-D numpy array as a slice, copying only if it is not contiguous.
+fn contiguous<'a, T>(arr: &'a PyReadonlyArray1<'a, T>) -> std::borrow::Cow<'a, [T]>
+where
+    T: numpy::Element + Copy,
+{
+    match arr.as_slice() {
+        Ok(s) => std::borrow::Cow::Borrowed(s),
+        Err(_) => std::borrow::Cow::Owned(arr.as_array().iter().copied().collect()),
+    }
+}
+
+/// Validate a CSR shape at the boundary, so a bad shape is a Python exception
+/// naming the offending value rather than an index-out-of-bounds panic from
+/// somewhere inside the kernel.
+fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<usize>) -> PyResult<()> {
+    if indptr.is_empty() {
+        return Err(PyValueError::new_err("csr_indptr must have at least one element"));
+    }
+    if n_rows + 1 > indptr.len() {
+        return Err(PyValueError::new_err(format!(
+            "n_rows={} requires csr_indptr of length >= {}, got {}",
+            n_rows,
+            n_rows + 1,
+            indptr.len()
+        )));
+    }
+    let nnz = indptr[n_rows] as usize;
+    if nnz > indices.len() {
+        return Err(PyValueError::new_err(format!(
+            "csr_indptr[{}]={} exceeds len(csr_indices)={}",
+            n_rows, nnz, indices.len()
+        )));
+    }
+    if let Some(n_cols) = n_cols {
+        if let Some(&max_idx) = indices[..nnz].iter().max() {
+            if max_idx < 0 || max_idx as usize >= n_cols {
+                return Err(PyValueError::new_err(format!(
+                    "column index {} is out of range for n_cols={}",
+                    max_idx, n_cols
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
 #[pyfunction]
+#[pyo3(signature = (indptr, indices, n_rows, itemsets, n_threads = 0))]
 fn count_itemsets_sparse<'py>(
     py: Python<'py>,
     indptr: PyReadonlyArray1<'py, i64>,
     indices: PyReadonlyArray1<'py, i64>,
     n_rows: usize,
     itemsets: Vec<Vec<usize>>,
-) -> Bound<'py, PyArray1<u32>> {
-    let counts = core::counting::count_itemsets_sparse_raw(
-        indptr.as_slice().unwrap(),
-        indices.as_slice().unwrap(),
-        n_rows,
-        &itemsets,
-    );
-    PyArray1::from_vec(py, counts)
+    n_threads: usize,
+) -> PyResult<Bound<'py, PyArray1<u32>>> {
+    // The slices are hoisted out of the closure deliberately: a
+    // PyReadonlyArray1 is tied to the 'py lifetime and is not Send, so it
+    // cannot cross into a rayon pool. &[i64] can.
+    let indptr_c = contiguous(&indptr);
+    let indices_c = contiguous(&indices);
+    let (indptr_s, indices_s) = (indptr_c.as_ref(), indices_c.as_ref());
+    validate_csr(indptr_s, indices_s, n_rows, None)?;
+    // n_threads == 0 keeps the previous behaviour (the global rayon pool, i.e.
+    // every core). Anything else is the caller's n_jobs, honoured for real.
+    let counts = core::utils::with_thread_budget(n_threads, || {
+        core::counting::count_itemsets_sparse_raw(indptr_s, indices_s, n_rows, &itemsets)
+    });
+    Ok(PyArray1::from_vec(py, counts))
 }
 
 /// Count itemset support using column-based SIMD intersection.
@@ -66,6 +131,7 @@ fn count_itemsets_sparse<'py>(
 /// 2. Bitvec row masks for efficient set intersection
 /// 3. SIMD-friendly popcount for counting
 #[pyfunction]
+#[pyo3(signature = (csr_indptr, csr_indices, n_rows, n_cols, itemsets, n_threads = 0))]
 fn count_itemsets_simd<'py>(
     py: Python<'py>,
     csr_indptr: PyReadonlyArray1<'py, i64>,
@@ -73,15 +139,20 @@ fn count_itemsets_simd<'py>(
     n_rows: usize,
     n_cols: usize,
     itemsets: Vec<Vec<usize>>,
-) -> Bound<'py, PyArray1<u32>> {
-    let counts = core::counting::count_itemsets_simd_raw(
-        csr_indptr.as_slice().unwrap(),
-        csr_indices.as_slice().unwrap(),
-        n_rows,
-        n_cols,
-        &itemsets,
-    );
-    PyArray1::from_vec(py, counts)
+    n_threads: usize,
+) -> PyResult<Bound<'py, PyArray1<u32>>> {
+    // Slices hoisted out of the closure: PyReadonlyArray1 is tied to 'py and
+    // is not Send, so it cannot cross into a rayon pool. &[i64] can.
+    let indptr_c = contiguous(&csr_indptr);
+    let indices_c = contiguous(&csr_indices);
+    let (indptr_s, indices_s) = (indptr_c.as_ref(), indices_c.as_ref());
+    validate_csr(indptr_s, indices_s, n_rows, Some(n_cols))?;
+    // n_threads == 0 keeps the previous behaviour (the global rayon pool, i.e.
+    // every core). Anything else is the caller's n_jobs, honoured for real.
+    let counts = core::utils::with_thread_budget(n_threads, || {
+        core::counting::count_itemsets_simd_raw(indptr_s, indices_s, n_rows, n_cols, &itemsets)
+    });
+    Ok(PyArray1::from_vec(py, counts))
 }
 
 /// Build column bitvecs as u64 arrays for GPU transfer.
@@ -92,15 +163,28 @@ fn build_column_bitvecs_u64<'py>(
     csr_indices: PyReadonlyArray1<'py, i64>,
     n_rows: usize,
     n_cols: usize,
-) -> Bound<'py, PyArray2<u64>> {
+) -> PyResult<Bound<'py, PyArray2<u64>>> {
+    let indptr_c = contiguous(&csr_indptr);
+    let indices_c = contiguous(&csr_indices);
+    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, Some(n_cols))?;
     let bitvecs = core::bitvec::build_column_bitvecs_u64_raw(
-        csr_indptr.as_slice().unwrap(),
-        csr_indices.as_slice().unwrap(),
+        indptr_c.as_ref(),
+        indices_c.as_ref(),
         n_rows,
         n_cols,
     );
 
     let n_u64s = core::bitvec::words_for_rows(n_rows);
+
+    // n_rows == 0 gives n_u64s == 0, and `chunks(0)` panics ("chunk size must
+    // be non-zero"). An empty transaction set is a legitimate degenerate input
+    // -- build_boolean_matrix can produce it -- so return the correctly shaped
+    // empty array rather than failing.
+    if n_u64s == 0 {
+        let empty: Vec<Vec<u64>> = vec![Vec::new(); n_cols];
+        return PyArray2::from_vec2(py, &empty)
+            .map_err(|e| PyValueError::new_err(format!("could not build empty bitvec array: {}", e)));
+    }
 
     // Convert to 2D array [n_cols, n_u64s]
     let bitvecs_2d: Vec<Vec<u64>> = bitvecs
@@ -108,7 +192,8 @@ fn build_column_bitvecs_u64<'py>(
         .map(|chunk| chunk.to_vec())
         .collect();
 
-    PyArray2::from_vec2(py, &bitvecs_2d).unwrap()
+    PyArray2::from_vec2(py, &bitvecs_2d)
+        .map_err(|e| PyValueError::new_err(format!("could not build bitvec array: {}", e)))
 }
 
 /// Convert bitvector AND results to CSR tid-sets (reverse direction).
@@ -121,7 +206,14 @@ fn bitvec_to_tidsets<'py>(
     let shape = bitvecs.shape();
     let n_itemsets = shape[0];
     let n_u64s = shape[1];
-    let flat = bitvecs.as_slice().unwrap();
+    let flat_owned: Vec<u64>;
+    let flat = match bitvecs.as_slice() {
+        Ok(sl) => sl,
+        Err(_) => {
+            flat_owned = bitvecs.as_array().iter().copied().collect();
+            &flat_owned
+        }
+    };
 
     let (offsets, indices) = core::bitvec::bitvec_to_tidsets_raw(flat, n_itemsets, n_u64s);
 
@@ -186,16 +278,19 @@ fn apriori_from_csr<'py>(
     n_cols: usize,
     min_support: f64,
     max_length: usize,
-) -> (Vec<Vec<usize>>, Vec<u32>) {
+) -> PyResult<(Vec<Vec<usize>>, Vec<u32>)> {
+    let indptr_c = contiguous(&csr_indptr);
+    let indices_c = contiguous(&csr_indices);
+    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, Some(n_cols))?;
     let result = core::apriori::apriori_from_csr(
-        csr_indptr.as_slice().unwrap(),
-        csr_indices.as_slice().unwrap(),
+        indptr_c.as_ref(),
+        indices_c.as_ref(),
         n_rows,
         n_cols,
         min_support,
         max_length,
     );
-    result.flatten()
+    Ok(result.flatten())
 }
 
 // =============================================================================

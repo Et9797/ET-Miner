@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "et-miner"
-version = "0.1.0"
+version = "0.2.0"
 description = "ET-Miner: Efficient Transaction Miner - a blazing fast Apriori / frequent-itemset miner with a Rust backend and multi-GPU support."
 readme = "README.md"
 license = {file = "LICENSE"}

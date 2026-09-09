@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import resource
 import subprocess
 import sys
 import threading
@@ -124,7 +125,11 @@ def main() -> int:
                 mine_two_phase(
                     df,
                     phase1_support=min_support,
-                    phase2_support=min_support,
+                    # Distinct supports are the ONLY configuration in which the
+                    # anchor filter does anything; phase2 == phase1 makes every
+                    # frequent item an anchor and the mask all-True (the vacuous
+                    # shape tests/test_row_split_e2e.py:102 also has).
+                    phase2_support=cfg.get("phase2_support", min_support),
                     max_length=cfg.get("max_length"),
                     item_col="items",
                     n_gpus=cfg.get("n_gpus", 2),
@@ -135,6 +140,19 @@ def main() -> int:
                 res = pl.concat([pl.read_parquet(p) for p in parts]) if parts else pl.DataFrame(
                     {"itemset": [], "support": []}
                 )
+        elif cfg.get("route") == "cpu":
+            # CPU tier: the path #4 (MKL float cast), #13 (batch length filter)
+            # and #18 (n_jobs) change. Not reachable through the GPU branch.
+            res = apriori(
+                df,
+                min_support=min_support,
+                max_length=cfg.get("max_length"),
+                item_col="items",
+                use_gpu=False,
+                sparse=cfg.get("sparse"),
+                n_jobs=cfg.get("n_jobs", 1),
+                level_callback=level_cb,
+            )
         else:
             res = apriori(
                 df,
@@ -178,6 +196,7 @@ def main() -> int:
             "wall_s": round(wall_s, 3),
             "levels": levels,
             "peak_vram_mb": sampler.peak_mb,
+            "peak_rss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
             "throttle_reasons": sorted(sampler.throttle_reasons),
             "motifs_ok": motifs_ok,
             **signatures,

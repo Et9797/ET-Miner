@@ -8,7 +8,7 @@ from collections import namedtuple
 import numpy as np
 from loguru import logger
 
-from .loader import _get_device_lock, _grid_dims, _warn_result_truncation, get_cuda_kernel
+from .loader import _assert_k_supported, _get_device_lock, _grid_dims, _warn_result_truncation, get_cuda_kernel
 
 
 def count_itemsets_fused_k3plus(bitvecs_gpu, candidates, n_u64s, min_count, max_results=10_000_000):
@@ -29,6 +29,7 @@ def count_itemsets_fused_k3plus(bitvecs_gpu, candidates, n_u64s, min_count, max_
           frequent_candidates: list of tuples (column index tuples) that met min_count
           counts: numpy array of int64 support counts
     """
+    _assert_k_supported(len(candidates[0]) if candidates else None, "count_itemsets_fused_k3plus")
     import cupy as cp
 
     n_candidates = len(candidates)
@@ -108,6 +109,7 @@ def count_itemsets_fused_k3plus_multi_gpu(bitvecs_gpu, candidates, n_u64s, min_c
     Returns:
         Tuple of (frequent_candidates, counts) - same format as single-GPU version.
     """
+    _assert_k_supported(len(candidates[0]) if candidates else None, "count_itemsets_fused_k3plus_multi_gpu")
     import cupy as cp
     from concurrent.futures import ThreadPoolExecutor
 
@@ -190,7 +192,12 @@ def count_itemsets_fused_k3plus_multi_gpu(bitvecs_gpu, candidates, n_u64s, min_c
                 if n == 0:
                     return [], np.array([], dtype=np.int64)
 
-                n = min(n, gpu_max)
+                n = _warn_result_truncation(
+                    n,
+                    gpu_max,
+                    f"filtered_kernel (device {device_id})",
+                    k=len(candidates[0]) if candidates else None,
+                )
                 ri = res_indices[:n].get()
                 rc = res_counts[:n].get()
 
@@ -243,6 +250,7 @@ def count_k3plus_fully_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, m
           frequent_candidates: list of tuples (column index tuples) that met min_count
           counts: numpy array of int64 support counts
     """
+    _assert_k_supported(k, "count_k3plus_fully_fused")
     import cupy as cp
     import math
 
@@ -350,6 +358,7 @@ def count_k3plus_fully_fused_multi_gpu(
     Returns:
         Tuple of (frequent_candidates, counts) - same format as single-GPU version.
     """
+    _assert_k_supported(k, "count_k3plus_fully_fused_multi_gpu")
     import cupy as cp
     import math
     from concurrent.futures import ThreadPoolExecutor
@@ -444,7 +453,9 @@ def count_k3plus_fully_fused_multi_gpu(
                 n = int(n_res.get()[0])
                 if n == 0:
                     return np.array([], dtype=np.int64), np.array([], dtype=np.int64)
-                n = min(n, gpu_max)
+                n = _warn_result_truncation(
+                    n, gpu_max, f"filtered_kernel (device {device_id})", k=k
+                )
                 ri = res_indices[:n].get()
                 rc = res_counts[:n].get()
 
@@ -661,6 +672,9 @@ def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chun
     Returns:
         CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
     """
+    from .shared_tiled import _assert_k_cap
+
+    _assert_k_cap(groups_info)
     import cupy as cp
 
     if variant is None:

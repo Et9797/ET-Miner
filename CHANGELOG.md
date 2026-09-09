@@ -158,6 +158,45 @@ figures move — measured, per artifact, not assumed.
   implementation. Both keep a suffix that participates in **at least one** valid
   pair, which over-approximates one-sidedly.
 
+*PR 5 — GPU correctness*
+
+- **#22** — `anchor_items` is an **output selector**, applied only where a level
+  is emitted. It used to filter `current_flat`, and that one array then became
+  both the subset oracle and the generation base, which is unsound twice over:
+  the apriori oracle must test the (k-1)-subsets that *drop* the anchor (they
+  are unanchored by construction), and the prefix-join needs the surviving
+  family closed under its two prefix-parents. Anchoredness is not
+  anti-monotone — that single property is why the same code shape is sound for
+  the free-set prune and catastrophic here. K=1 is masked too; it used to be
+  exempt. The unsound `_apply_anchor_filter` helper is deleted rather than left
+  for reuse.
+- **`mine_two_phase`** is re-documented accordingly and its `phase2_support`
+  default raised **0.00001 → 0.0005**. Phase 2 mines the full lattice at that
+  threshold and post-filters; it does not and cannot prune, so the old default
+  was chosen on a false premise. A pruning-preserving variant was sought and
+  measured not to exist (hoist+remap loses 129 of 321). Per-anchor conditional
+  databases are the one sound shape if candidate reduction is genuinely needed.
+- **#23, #24** — any GPU result-buffer overflow **raises**. Four multi-GPU
+  kernels clamped with a bare `min(n, gpu_max)` while their single-GPU siblings
+  called the helper, and the helper itself tolerated 5% loss with a warning —
+  so neither fix works alone. The dropped set is non-deterministic (`atomicAdd`
+  append), so those routes disagreed with the row-split path, with the CPU
+  tiers, and with themselves run twice. The error names the level, the knob to
+  raise and the K to resume from.
+- **#25** — a single `MAX_SUPPORTED_K = 62` is enforced host-side from all
+  seven K≥3 wrappers; previously only the shared/tiled one checked anything, and
+  K=63 silently returned 640 where the true count is 0. **Zero `.cu` edits** —
+  widening the device guards buys unreachable capacity and leaves K≥65 corrupt.
+- **#28** — a tripped memory guard raises `MemoryError` instead of breaking out
+  of the level loop and returning a truncated lattice as if complete (measured:
+  249 itemsets against 31,160, a 99.2% loss, with no exception). The VRAM half
+  could never fire at all, because the probe's exception was swallowed to 0.0.
+- **#32** — `n_gpus` is honoured: every dispatch entry point takes it as a cap,
+  so `n_gpus=1` on a two-GPU box stays on one device instead of landing on the
+  fan-out path. `gpu/dispatch.py` had no logging at all; it now records the
+  resolved device count with the caller's request, which is what makes a
+  truncation diagnosable after the fact.
+
 ### Added
 
 - `bench/baseline/` — behaviour-change impact assessment, the min-count sweep

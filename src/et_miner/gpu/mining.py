@@ -217,46 +217,22 @@ def _prune_non_free_mask(current_flat, current_counts, prev_flat, prev_counts):
 
 def _anchor_keep_mask(current_flat, anchor_col_arr, k):
     """Boolean keep-mask for itemsets containing >= 1 anchor column, or None
-    when no filtering applies (no anchors, K < 2, or nothing to filter)."""
+    when no filtering applies (no anchors, or nothing to filter).
+
+    K=1 is masked like any other level. The `k < 2` early return this used to
+    carry made a two-phase run emit every frequent item at K=1 while filtering
+    every deeper level -- an inconsistency that only made sense while anchoring
+    was a mining gate. As an output selector it is uniform, and free: the
+    generation base is a different array.
+    """
     import numpy as np
 
-    if anchor_col_arr is None or k < 2 or len(current_flat) == 0:
+    if anchor_col_arr is None or len(current_flat) == 0:
         return None
     anchor_mask = np.zeros(len(current_flat), dtype=bool)
     for col in range(k):
         anchor_mask |= np.isin(current_flat[:, col], anchor_col_arr)
     return anchor_mask
-
-
-def _apply_anchor_filter(current_flat, current_counts_raw, anchor_col_arr, k):
-    """Filter itemsets to keep only those containing >=1 anchor item (by column index).
-
-    Used by two-phase mining (V3 B6): Phase 2 restricts candidates to neighborhoods
-    of anchor items discovered in Phase 1, reducing candidate explosion at ultra-low
-    support thresholds.
-
-    Args:
-        current_flat: numpy int32 (n, k) — itemset column indices.
-        current_counts_raw: numpy int64 (n,) — raw support counts.
-        anchor_col_arr: numpy int32 — sorted array of anchor column indices.
-            None means no filtering (pass-through).
-        k: current itemset length.
-
-    Returns:
-        Tuple of (filtered_flat, filtered_counts, n_after).
-    """
-    anchor_mask = _anchor_keep_mask(current_flat, anchor_col_arr, k)
-    if anchor_mask is None:
-        return current_flat, current_counts_raw, len(current_flat)
-    n_before = len(current_flat)
-    filtered_flat = current_flat[anchor_mask]
-    filtered_counts = current_counts_raw[anchor_mask]
-    n_after = len(filtered_flat)
-    if n_before > n_after:
-        logger.debug(
-            f"    Anchor filter K={k}: {n_before:,} → {n_after:,} ({100 * (1 - n_after / n_before):.1f}% filtered)"
-        )
-    return filtered_flat, filtered_counts, n_after
 
 
 def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
@@ -423,7 +399,7 @@ def _apriori_from_bitvecs(
     batch_size: int | None,
     profile: bool,
     level_callback: Callable[[int, int, int, float], None] | None,
-    n_gpus: int = 1,
+    n_gpus: int = 1,  # honoured: forwarded to dispatch as a cap, see gpu/dispatch._resolve_gpus
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
     sparse_from_k: int | str | None = None,
@@ -502,8 +478,11 @@ def _apriori_from_bitvecs(
         try:
             pool = cp.get_default_memory_pool()
             vram_gb = pool.used_bytes() / (1024**3)
-        except Exception:
-            pass
+        except Exception as e:  # noqa: BLE001 — reported, never swallowed
+            # This used to be a bare `pass`, leaving vram_gb at 0.0, so the VRAM
+            # half of the guard below could never fire at all. A guard that
+            # cannot trip is worse than no guard: it reads as protection.
+            logger.warning(f"    VRAM usage unavailable ({e}); the VRAM memory guard is inactive")
         return ram_gb, vram_gb
 
     def _log_level(k, n_cand, n_freq, elapsed_s, cumulative_itemsets):
@@ -516,23 +495,32 @@ def _apriori_from_bitvecs(
         logger.info(msg)
 
     def _check_memory_guard(k, cumulative_itemsets):
-        """Return True if memory guard triggered (should stop)."""
+        """Raise if a memory guard has tripped.
+
+        This used to return True and let the caller `break` out of the level
+        loop with only a logger.warning, falling straight through to
+        _build_result_df -- so the caller received a DataFrame that stopped at
+        some K, with nothing on it to say so. Measured: max_ram_gb=0.0 returned
+        249 itemsets where the complete answer is 31,160, a 99.2% loss, with no
+        exception and a perfectly ordinary-looking frame.
+
+        It needs the user to set a low guard, so it is not silent by default --
+        but the guard's whole purpose is to be set, and when it fires the
+        contract break is total. A miner whose contract is exactness must raise
+        or return an explicit partial signal, never a bare truncated result.
+        This is the same failure mode as the result-buffer clamps: an
+        incomplete lattice handed back through a value-returning API.
+        """
         ram_gb, vram_gb = _get_memory_gb()
-        if ram_gb > max_ram_gb:
-            msg = (
-                f"  MEMORY GUARD: RAM={ram_gb:.1f}GB > {max_ram_gb}GB limit at K={k} "
-                f"({cumulative_itemsets:,} itemsets). Stopping to prevent OOM."
-            )
-            logger.warning(msg)
-            return True
-        if vram_gb > max_vram_gb:
-            msg = (
-                f"  MEMORY GUARD: VRAM={vram_gb:.1f}GB > {max_vram_gb}GB limit at K={k} "
-                f"({cumulative_itemsets:,} itemsets). Stopping to prevent OOM."
-            )
-            logger.warning(msg)
-            return True
-        return False
+        for used, limit, what in ((ram_gb, max_ram_gb, "RAM"), (vram_gb, max_vram_gb, "VRAM")):
+            if used > limit:
+                raise MemoryError(
+                    f"Memory guard tripped at K={k}: {what}={used:.1f}GB exceeds the "
+                    f"max_{what.lower()}_gb={limit}GB limit after {cumulative_itemsets:,} "
+                    f"itemsets. The lattice is INCOMPLETE at this point, so it is not "
+                    f"returned. Raise max_{what.lower()}_gb, lower max_length, or mine "
+                    f"with output_dir set so each level is flushed as it completes."
+                )
 
     _t_total_start = time.perf_counter()
     _cumulative_itemsets = 0
@@ -697,7 +685,9 @@ def _apriori_from_bitvecs(
 
             from et_miner.gpu.dispatch import dispatch_k2
 
-            pairs, counts = dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count_threshold)
+            pairs, counts = dispatch_k2(
+                bitvecs_gpu, freq_cols, n_u64s, min_count_threshold, n_gpus=n_gpus
+            )
 
             if session:
                 session.end_phase(n_candidates=n_pairs, n_frequent=len(pairs))
@@ -741,7 +731,9 @@ def _apriori_from_bitvecs(
                 _prefix_groups[_p] = _prefix_groups.get(_p, 0) + 1
             _est_cands = sum(g * (g - 1) // 2 for g in _prefix_groups.values())
 
-            frequent_candidates, counts = dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold)
+            frequent_candidates, counts = dispatch_k3plus_fused(
+                bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold, n_gpus=n_gpus
+            )
 
             # Build results from frequent candidates (already filtered by kernel)
             current_frequent = []
@@ -770,10 +762,9 @@ def _apriori_from_bitvecs(
             )
             break
 
-        # Memory guard: check BEFORE starting next level
-        if _check_memory_guard(k, _cumulative_itemsets):
-            logger.warning(f"  Mining stopped at K={k} by memory guard. Total: {_cumulative_itemsets:,} itemsets")
-            break
+        # Memory guard: check BEFORE starting the next level. Raises rather
+        # than breaking -- see _check_memory_guard.
+        _check_memory_guard(k, _cumulative_itemsets)
 
         prev_frequent = current_frequent
         prev_counts = current_counts
@@ -842,6 +833,7 @@ def _apriori_from_bitvecs_gpu_resident(
     max_length: int | None,
     profile: bool,
     level_callback: Callable[[int, int, int, float], None] | None,
+    n_gpus: int = 1,
 ) -> "pl.DataFrame | tuple[pl.DataFrame, ProfilingSession]":
     """Fully GPU-resident Apriori: all frequent itemsets stay in VRAM.
 
@@ -929,7 +921,7 @@ def _apriori_from_bitvecs_gpu_resident(
             n_pairs = n_frequent_k1 * (n_frequent_k1 - 1) // 2
 
             pair_itemsets, pair_counts = dispatch_k2_gpu_resident(
-                bitvecs_gpu, freq_col_indices, n_u64s, min_count_threshold
+                bitvecs_gpu, freq_col_indices, n_u64s, min_count_threshold, n_gpus=n_gpus
             )
 
             if pair_itemsets is not None:
@@ -955,7 +947,7 @@ def _apriori_from_bitvecs_gpu_resident(
                 session.start_phase(f"k{k}_gpu_resident")
 
             freq_itemsets, freq_counts = dispatch_k3plus_gpu_resident(
-                bitvecs_gpu, prev_freq_gpu, n_u64s, min_count_threshold
+                bitvecs_gpu, prev_freq_gpu, n_u64s, min_count_threshold, n_gpus=n_gpus
             )
 
             if freq_itemsets is not None:

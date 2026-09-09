@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .loader import _get_device_lock, _grid_dims, _warn_result_truncation, get_cuda_kernel
+from .loader import _assert_k_supported, _get_device_lock, _grid_dims, _warn_result_truncation, get_cuda_kernel
 
 
 def build_prefix_groups_gpu(prev_freq_gpu):
@@ -83,6 +83,7 @@ def count_k3plus_gpu_resident(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, max
           counts_gpu: CuPy array (n_results,) of support counts in VRAM
         Returns (None, None) if no frequent itemsets found.
     """
+    _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident")
     import cupy as cp
 
     n_freq, k_prev = prev_freq_gpu.shape
@@ -335,7 +336,9 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
                 n = int(n_results.get()[0])
                 if n == 0:
                     return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.int64)
-                n = min(n, gpu_max)
+                n = _warn_result_truncation(
+                    n, gpu_max, f"filtered_kernel (device {device_id})", k=2
+                )
                 ri = result_i[:n].get()
                 rj = result_j[:n].get()
                 rc = result_count[:n].get()
@@ -399,6 +402,7 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
         Tuple of (freq_itemsets_gpu, counts_gpu) CuPy arrays on GPU 0,
         or (None, None) if no frequent itemsets found.
     """
+    _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident_multi_gpu")
     import cupy as cp
     from concurrent.futures import ThreadPoolExecutor
 
@@ -488,7 +492,12 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
                 n = int(n_res.get()[0])
                 if n == 0:
                     return np.array([], dtype=np.int64), np.array([], dtype=np.int64)
-                n = min(n, gpu_max)
+                n = _warn_result_truncation(
+                    n,
+                    gpu_max,
+                    f"filtered_kernel (device {device_id})",
+                    k=int(prev_freq_gpu.shape[1]) + 1,
+                )
                 ri = res_indices[:n].get()
                 rc = res_counts[:n].get()
 

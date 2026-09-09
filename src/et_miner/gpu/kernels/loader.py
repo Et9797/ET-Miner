@@ -11,7 +11,6 @@ from __future__ import annotations
 import threading
 from importlib import resources
 
-from loguru import logger
 
 # Per-device locks for thread-safe CUDA operations on each GPU independently.
 # Allows true parallel kernel execution across GPUs (the old single global lock
@@ -29,16 +28,89 @@ def _get_device_lock(device_id: int) -> threading.Lock:
     return _cuda_device_locks[device_id]
 
 
-def _warn_result_truncation(n_actual: int, max_results: int, context: str = ""):
-    """Warn or raise on result buffer truncation."""
-    if n_actual > max_results:
-        overflow_pct = (n_actual - max_results) / n_actual * 100
-        msg = f"Result truncation: {n_actual:,} found but buffer={max_results:,} ({overflow_pct:.1f}% lost). {context}"
-        if overflow_pct > 5:
-            raise RuntimeError(msg + " Use allcounts path or increase max_results.")
-        logger.warning(msg)
-    return min(n_actual, max_results)
+def _warn_result_truncation(
+    n_actual: int,
+    max_results: int,
+    context: str = "",
+    *,
+    k: int | None = None,
+    knob: str = "max_results",
+):
+    """Raise on result-buffer overflow. Never truncate silently.
 
+    This used to tolerate an overflow of up to 5% with a `logger.warning` and
+    return the truncated count. There is no percentage of silently-lost frequent
+    itemsets that is acceptable for a miner whose contract is exactness, and the
+    tolerance was worse than it looks on three counts:
+
+      - the kernels append via atomicAdd, so the DROPPED SET IS
+        NON-DETERMINISTIC. Three repeats at 3% overflow kept three different
+        sets, pairwise differing by 30-32 itemsets. Those routes disagreed with
+        the row-split path, with the CPU tiers, and with themselves run twice --
+        so the tier-equivalence chain CLAUDE.md mandates could not hold at that
+        scale even against itself.
+      - the truncated level feeds candidate generation, so the loss compounds at
+        every deeper K.
+      - a silent 60% loss cannot be caught by a log grep, and 5% of a 10M-result
+        buffer is 500,000 itemsets.
+
+    The raise lands hours into a run, so the message has to be actionable: it
+    names the level, the overflow, the exact knob to raise, and the K to resume
+    from. See `resume_from_k` on the row-split miner.
+    """
+    if n_actual <= max_results:
+        return n_actual
+
+    overflow_pct = (n_actual - max_results) / n_actual * 100
+    where = f" at K={k}" if k is not None else ""
+    resume = (
+        f" Resume with resume_from_k={k - 1} once the buffer is larger."
+        if k is not None and k > 1
+        else ""
+    )
+    raise RuntimeError(
+        f"Result truncation{where}: {n_actual:,} frequent itemsets found but the "
+        f"result buffer holds {max_results:,} ({overflow_pct:.1f}% would be lost, "
+        f"non-deterministically). {context} "
+        f"Raise {knob} to at least {n_actual:,}, or use the allcounts path, which "
+        f"sizes exactly to the survivor count and has no ceiling.{resume}"
+    )
+
+
+#: Every K>=3 kernel caches the candidate in `__shared__ int s_items[64]`,
+#: immediately followed by `__shared__ unsigned long long warp_sums[8]`.
+#:
+#: The three GROUP kernels fill s_items under `threadIdx.x < prefix_len &&
+#: threadIdx.x < 62`, and thread 0 then separately writes s_items[prefix_len]
+#: and s_items[prefix_len+1] -- which at prefix_len == 62 land exactly on slots
+#: 62 and 63. So they are correct to K=64 and break at K=65, where slot 62 is
+#: never written but IS read as a column index, and s_items[prefix_len+1]
+#: writes index 64: one past the array, into warp_sums, corrupting the block
+#: reduction too.
+#:
+#: count_itemsets_fused_k3plus caches the whole itemset with no separate suffix
+#: write, and its guard `threadIdx.x < k && threadIdx.x < 62` leaves slots 62-63
+#: unwritten while the AND loop reads s_items[0..k-1] -- so it is correct only
+#: to K=62, as its own comment says.
+#:
+#: 62 is therefore the uniform host-side cap. It costs nothing: reaching K=63
+#: requires a frequent 62-itemset, i.e. all 2**62 of its subsets frequent, which
+#: no run completes. Enforcing it on the host is the whole fix -- do NOT widen
+#: the device guards, which buys unreachable capacity and leaves K>=65 silently
+#: corrupt while making the code look repaired.
+MAX_SUPPORTED_K = 62
+
+
+def _assert_k_supported(k: int, context: str = "") -> None:
+    """Raise before launching a K>=3 kernel that would read uninitialised shared memory."""
+    if k is not None and k > MAX_SUPPORTED_K:
+        where = f" ({context})" if context else ""
+        raise ValueError(
+            f"K={k} exceeds the kernel cap of {MAX_SUPPORTED_K}{where}: the K>=3 "
+            "kernels cache the candidate in a fixed 64-slot shared array, and "
+            "beyond this they read an uninitialised slot as a column index and "
+            "write one past the array into the block reduction."
+        )
 
 _MAX_GRID_X = 2_147_483_647  # 2^31 - 1
 

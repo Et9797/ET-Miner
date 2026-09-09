@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .loader import _grid_dims, get_cuda_kernel
+from .loader import _assert_k_supported, _grid_dims, get_cuda_kernel
 
 #: Suffixes per tile — fixed with the kernel's TILE_T (and blockDim 256).
 TILE_T = 32
@@ -40,11 +40,16 @@ def compute_cumulative_tilepairs(suffix_offsets) -> np.ndarray:
 
 
 def _assert_k_cap(groups_info) -> None:
+    """The groups_info-shaped form of loader._assert_k_supported.
+
+    A prefix of length p yields candidates of length p+2, so the cap on the
+    prefix is MAX_SUPPORTED_K - 2. Delegating keeps one rule rather than two
+    copies of a constant.
+    """
     gpo = np.asarray(groups_info.prefix_offsets, dtype=np.int64)
     if len(gpo) > 1:
         max_prefix = int(np.max(np.diff(gpo)))
-        if max_prefix > 60:
-            raise ValueError(f"shared kernel supports K <= 62 (prefix {max_prefix} + 2)")
+        _assert_k_supported(max_prefix + 2, "shared/tiled kernel")
 
 
 def _tilepair_range(groups_info, ctp: np.ndarray, chunk_start: int, chunk_end: int) -> tuple[int, int]:

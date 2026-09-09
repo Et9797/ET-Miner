@@ -575,6 +575,7 @@ def apriori(
                 max_length,
                 profile,
                 level_callback,
+                n_gpus=n_gpus,
             )
         from et_miner.gpu.mining import _apriori_from_bitvecs
 
@@ -691,6 +692,7 @@ def apriori(
                 max_length,
                 profile,
                 level_callback,
+                n_gpus=n_gpus,
             )
         from et_miner.gpu.mining import _apriori_from_bitvecs
 

@@ -23,7 +23,6 @@ from et_miner.core.result import (
 from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse
 from et_miner.gpu.mining import (
     _anchor_keep_mask,
-    _apply_anchor_filter,
     _prune_groups_apriori,
     _prune_non_free_mask,
     _rows_sorted,
@@ -355,9 +354,20 @@ def _apriori_row_split_multi_gpu(
                 )
 
         if len(prev_frequent_flat) > 0:
-            _flush_or_defer(
-                col_to_item_arr[prev_frequent_flat], prev_counts_flat / n_transactions, 1
-            )
+            # K=1 is emit-filtered too. _anchor_keep_mask used to return None
+            # for k<2, so a two-phase run emitted every frequent item at K=1 --
+            # a separate inconsistency that disappears once anchoring is purely
+            # an output selector. It is free: generation reads
+            # prev_frequent_flat, not the emitted array.
+            _k1_flat, _k1_counts = prev_frequent_flat, prev_counts_flat
+            _k1_keep = _anchor_keep_mask(prev_frequent_flat, anchor_col_arr, 1)
+            if _k1_keep is not None:
+                _k1_flat = prev_frequent_flat[_k1_keep]
+                _k1_counts = prev_counts_flat[_k1_keep]
+            if len(_k1_flat) > 0:
+                _flush_or_defer(
+                    col_to_item_arr[_k1_flat], _k1_counts / n_transactions, 1
+                )
 
         k1_time = time.perf_counter() - _k1_start
         if level_callback:
@@ -468,18 +478,6 @@ def _apriori_row_split_multi_gpu(
                         current_flat = decode_k3plus_flat(_surv, groups_info, k)
                         current_counts_raw = current_counts_raw.astype(np.int64)
 
-                        # V3 B6: Anchor filter (sparse CSR path) — survivors in lockstep
-                        _keep = _anchor_keep_mask(current_flat, anchor_col_arr, k)
-                        if _keep is not None:
-                            _n_before = n_freq
-                            current_flat = current_flat[_keep]
-                            current_counts_raw = current_counts_raw[_keep]
-                            _surv = _surv[_keep]
-                            n_freq = len(_surv)
-                            if n_freq < _n_before:
-                                logger.debug(
-                                    f"    Anchor filter K={k}: {_n_before:,} → {n_freq:,} ({100 * (1 - n_freq / _n_before):.1f}% filtered)"
-                                )
 
             elif k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
@@ -525,10 +523,6 @@ def _apriori_row_split_multi_gpu(
                     current_flat = decode_k2_pairs_flat(freq_pair_indices, freq_cols)
                     current_counts_raw = freq_pair_counts  # already int64
 
-                    # V3 B6: Anchor filter (K=2 dense path)
-                    current_flat, current_counts_raw, n_freq = _apply_anchor_filter(
-                        current_flat, current_counts_raw, anchor_col_arr, k
-                    )
 
                     # Pair cache disabled — not yet wired to K>=3 kernels (saves ~13.6 GB VRAM)
                 else:
@@ -624,10 +618,6 @@ def _apriori_row_split_multi_gpu(
                         )
                         current_counts_raw = freq_cand_counts  # already int64
 
-                        # V3 B6: Anchor filter (K>=3 dense path)
-                        current_flat, current_counts_raw, n_freq = _apply_anchor_filter(
-                            current_flat, current_counts_raw, anchor_col_arr, k
-                        )
 
             # ── Level end: sort, split the two populations, emit ─────────
             # The lexsort runs BEFORE the free-set prune so that the COMPLETE
@@ -668,8 +658,39 @@ def _apriori_row_split_multi_gpu(
                 n_freq = len(current_flat)
 
             if n_freq > 0:
-                items_flat = col_to_item_arr[current_flat]  # (n, k) int32
-                _flush_or_defer(items_flat, current_counts_raw / n_transactions, k)
+                # V3 B6: anchoring is an OUTPUT SELECTOR, applied here and
+                # nowhere else. It used to filter `current_flat`, and that one
+                # array then became BOTH downstream populations: full_flat (the
+                # subset oracle every K+1 apriori test resolves against) and
+                # prev_frequent_flat (the generation base). That is unsound in
+                # two independent ways at once -- the oracle needs the
+                # (k-1)-subsets that DROP the anchor, which are unanchored by
+                # construction, and the prefix-join needs the family closed
+                # under its two prefix-parents, which an anchored candidate's
+                # parents need not be. Measured loss: 95-99% of the anchored
+                # itemsets, in every configuration the public API can produce.
+                #
+                # This is the same defect class the free-set prune documents as
+                # fixed above; the difference in outcome is one property.
+                # Freeness is anti-monotone. Anchoredness is not.
+                #
+                # A pruning-preserving variant does not exist: hoist+remap was
+                # implemented and measured to lose 129 of 321, because it can
+                # only repair the level immediately below the first filtered
+                # one. The candidate-space reduction and the apriori prune are
+                # mutually exclusive. See mine_two_phase's docstring.
+                _emit_flat, _emit_counts = current_flat, current_counts_raw
+                _keep = _anchor_keep_mask(current_flat, anchor_col_arr, k)
+                if _keep is not None:
+                    _emit_flat = current_flat[_keep]
+                    _emit_counts = current_counts_raw[_keep]
+                    logger.debug(
+                        f"    Anchor filter K={k}: emitting {len(_emit_flat):,} of "
+                        f"{n_freq:,} (generation base left intact)"
+                    )
+                if len(_emit_flat) > 0:
+                    items_flat = col_to_item_arr[_emit_flat]  # (n, k) int32
+                    _flush_or_defer(items_flat, _emit_counts / n_transactions, k)
 
             k_time = time.perf_counter() - _k_start
             if level_callback:
@@ -759,7 +780,7 @@ def _apriori_row_split_multi_gpu(
 def mine_two_phase(
     transactions,
     phase1_support: float = 0.001,
-    phase2_support: float = 0.00001,
+    phase2_support: float = 0.0005,
     max_length: int | None = None,
     item_col: str = "items",
     n_gpus: int = 1,
@@ -767,20 +788,50 @@ def mine_two_phase(
     sparse_from_k: int | str | None = SPARSE_AUTO,
     level_callback=None,
 ) -> tuple:
-    """Two-phase mining: anchor discovery + neighborhood zoom.
+    """Two-phase mining: anchor discovery, then an anchor-restricted REPORT.
 
     Phase 1 mines at phase1_support to find anchor items — the items that
     participate in frequent patterns at reasonable support thresholds.
 
-    Phase 2 mines at phase2_support (much lower), restricting candidates to
-    those containing >=1 anchor item from Phase 1. This reduces candidate
-    explosion from billions to a tractable search space focused on the
-    neighborhoods of known-interesting items.
+    Phase 2 mines at phase2_support (lower) and **reports only the itemsets
+    containing at least one anchor**.
+
+    .. warning::
+       **Phase 2 mines the full lattice at phase2_support and post-filters. It
+       does not reduce the candidate space, and it cannot.**
+
+       An earlier version applied the anchor mask to the mining state, which
+       did shrink the next level's generation base — and was unsound, losing
+       95-99% of the anchored itemsets in every configuration this function can
+       produce. Two independent reasons: the apriori oracle must test the
+       (k-1)-subsets that DROP the anchor, and those are unanchored by
+       construction; and the prefix-join needs the surviving family closed
+       under its two prefix-parents, which an anchored candidate's parents need
+       not be. Anchoredness is not anti-monotone, which is exactly why the same
+       code shape is sound for the free-set prune and catastrophic here.
+
+       A pruning-preserving variant was sought and does not exist. hoist+remap
+       was implemented and measured to lose 129 of 321: it repairs only the
+       level immediately below the first filtered one, because level k-1 was
+       itself generated from a restricted base. No column ordering repairs it —
+       ordering changes which subsets go missing, never whether they do.
+
+       So budget Phase 2 as a full run at phase2_support. The default was
+       0.00001, chosen when the filter was believed to cut the search space;
+       at that threshold a post-filtering Phase 2 is likely intractable, so it
+       is now 0.0005. Set it lower deliberately, having sized the full lattice.
+
+       If genuine candidate reduction is needed, the one sound shape is
+       per-anchor conditional databases: for each anchor `a`, mine the
+       projection onto transactions containing `a` — downward-closed within
+       itself — then union and dedupe. One run per anchor is the cost.
 
     Args:
         transactions: Transaction data (DataFrame or LazyFrame).
         phase1_support: Support threshold for anchor discovery (higher).
-        phase2_support: Support threshold for neighborhood zoom (lower).
+        phase2_support: Support threshold for phase 2 (lower). Phase 2 mines the
+            FULL lattice at this threshold and then reports the anchored subset,
+            so this is the cost driver — see the warning above.
         max_length: Maximum itemset length (None = unlimited).
         item_col: Column name containing item lists.
         n_gpus: Number of GPUs to use.
@@ -868,6 +919,21 @@ def mine_two_phase(
     )
 
     logger.info("  Phase 2 complete")
+
+    # Phase 2 post-filters rather than pruning, so a small anchored fraction
+    # means the run paid for the whole lattice and reported a sliver of it.
+    # Say so: the cost is invisible in the returned frame.
+    try:
+        _n_reported = phase2_result.height if hasattr(phase2_result, "height") else 0
+        if _n_reported and anchor_items:
+            logger.info(
+                f"  Phase 2 reported {_n_reported:,} anchored itemsets from "
+                f"{len(anchor_items):,} anchors. Note the full lattice at "
+                f"phase2_support={phase2_support} was mined to produce them — "
+                "anchoring selects the output, it does not prune the search."
+            )
+    except Exception:  # noqa: BLE001 — a log line must never fail the run
+        pass
 
     if _cleanup_phase2:
         shutil.rmtree(phase2_dir, ignore_errors=True)

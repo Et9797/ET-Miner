@@ -122,14 +122,30 @@ fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<u
     // Per-row STRICTLY INCREASING, not a global min/max range test. Three
     // separate defects live in this one clause:
     //
-    //   * `count_itemsets_sparse_raw` binary-searches each row -- its own
-    //     comment says "the indices are sorted, so we can use binary search" --
-    //     and nothing validated it. A row stored descending silently
+    //   * SORTEDNESS: `count_itemsets_sparse_raw` binary-searches each row --
+    //     its own comment says "the indices are sorted, so we can use binary
+    //     search" -- and nothing validated it. A row stored descending silently
     //     UNDERCOUNTS there (measured 2 against a truth of 3, a 33% loss) while
     //     the SIMD path returns the right answer, so which number a caller got
     //     was decided by `hasattr(rust, "count_itemsets_simd")`, an
     //     optional-feature probe. That is Tier 2 of CLAUDE.md's mandated chain
     //     disagreeing with itself depending on how the wheel was built.
+    //   * STRICTNESS, which is a SEPARATE reason and the one most likely to be
+    //     relaxed by mistake. Duplicates are harmless to the binary search and
+    //     idempotent in the bitvec path, so "non-decreasing" looks sufficient.
+    //     It is not: `find_frequent_1` (core/apriori.rs:217 and :230) counts
+    //     CSC column-list ENTRIES rather than distinct rows, so one row {0,1}
+    //     with column 0 stored twice yields (0,) -> count 2 over n_rows = 1,
+    //     i.e. SUPPORT 2.0. A count above n_rows is impossible by construction,
+    //     and this is the K=1 level every deeper level's min_count filtering
+    //     proceeds from.
+    //
+    //     Note an anti-monotonicity assertion would NOT catch it: inflating K=1
+    //     only moves a superset further below its subsets, so the ordering check
+    //     a reader would reach for stays green. The only visible symptom is a
+    //     support exceeding 1.0 -- and the predicate for that is `count >
+    //     n_rows`, not `>=`, since an item present in every transaction
+    //     legitimately counts n_rows.
     //   * checking each row's FIRST element catches a negative sitting beside a
     //     positive. The previous test was `max_idx < 0` over the whole array's
     //     maximum, which only rejects when the LARGEST index is negative, so

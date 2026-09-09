@@ -237,3 +237,47 @@ class TestValidateCsrCoversEveryMalformedShape:
             self._i([0, 2, 2, 4]), self._i([0, 1, 0, 1]), 3, [[0, 1]]
         )
         assert int(got[0]) == 2
+
+
+class TestDuplicateColumnsAreRejectedNotCounted:
+    """Why the row check is STRICTLY increasing rather than non-decreasing.
+
+    Duplicates are harmless to `count_itemsets_sparse_raw`'s binary search and
+    idempotent in the bitvec path, so "non-decreasing" looks sufficient. It is
+    not: `find_frequent_1` counts CSC column-list ENTRIES rather than distinct
+    rows, so a duplicated column inflates the K=1 count past `n_rows`.
+
+    These pin the strictness so a future relaxation cannot reintroduce it.
+    """
+
+    @staticmethod
+    def _i(a):
+        return np.array(a, dtype=np.int64)
+
+    def test_a_duplicated_column_cannot_produce_support_above_one(self):
+        """One row {0,1} with column 0 stored twice returned (0,) -> 2 over
+        n_rows=1, i.e. support 2.0, while the K=2 level below it was correctly
+        1. A count above n_rows is impossible by construction."""
+        with pytest.raises(ValueError, match="strictly increasing"):
+            rust.apriori_from_csr(self._i([0, 3]), self._i([0, 0, 1]), 1, 2, 0.5, 3)
+
+    def test_the_four_row_case(self):
+        """Four rows all {0,1} with column 0 duplicated in row 2 returned
+        (0,) -> 5 over n_rows=4: support 1.25."""
+        with pytest.raises(ValueError, match="strictly increasing"):
+            rust.apriori_from_csr(
+                self._i([0, 2, 4, 7, 9]), self._i([0, 1, 0, 1, 0, 0, 1, 0, 1]), 4, 2, 0.5, 3
+            )
+
+    @pytest.mark.parametrize("n_rows,indptr,indices,want", [
+        (1, [0, 2], [0, 1], 1),
+        (4, [0, 2, 4, 6, 8], [0, 1] * 4, 4),
+    ])
+    def test_the_same_shapes_without_duplicates_are_unaffected(self, n_rows, indptr, indices, want):
+        """The guard must reject only the malformed case."""
+        itemsets, counts = rust.apriori_from_csr(
+            self._i(indptr), self._i(indices), n_rows, 2, 0.5, 3
+        )
+        got = dict(zip((tuple(x) for x in itemsets), counts))
+        assert got[(0,)] == want and got[(0, 1)] == want
+        assert all(c <= n_rows for c in counts), f"a count above n_rows is impossible: {got}"

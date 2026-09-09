@@ -43,6 +43,7 @@ from et_miner._compat import HAS_TQDM, tqdm
 # SON-specific helpers live in streaming.py; generic ones in matrix.py (foundation layer)
 from et_miner.streaming.son import (
     _build_matrix_for_items,
+    _estimate_chunk_size_from_memory,
     _get_memory_gb,
     _mine_chunk_frequent,
 )
@@ -117,6 +118,7 @@ def apriori_streaming_multi_gpu(
     item_col: str = "items",
     n_gpus: int = 8,
     chunk_size: int = 10_000_000,
+    memory_budget_gb: float | None = None,
     local_support_factor: float = 0.9,
     batch_size: int | None = 10_000,
     show_progress: bool = True,
@@ -232,6 +234,16 @@ def apriori_streaming_multi_gpu(
             show_progress=show_progress,
             sparse=sparse,
             n_jobs=n_jobs,
+        )
+
+    # memory_budget_gb overrides chunk_size, mirroring streaming/son.py. Without
+    # this the parameter was accepted by apriori() and dropped at the route
+    # boundary, so a run sized its chunks against a budget the caller never
+    # chose -- on the one path whose reason to exist is not exceeding memory.
+    if memory_budget_gb is not None:
+        chunk_size = _estimate_chunk_size_from_memory(memory_budget_gb)
+        logger.info(
+            "Memory budget {:.3f} GB -> chunk size {}", memory_budget_gb, chunk_size
         )
 
     # Calculate number of chunks and waves

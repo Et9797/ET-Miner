@@ -103,6 +103,31 @@ figures move — measured, per artifact, not assumed.
   unbounded, with identical counts). The dead `_RUST_MIN_ITEMSETS` fossil is
   gone.
 
+*PR 3 — routing parameters*
+
+- **#6, #7, #8, #9, #10, N1** — every parameter/route mismatch now raises an
+  explicit `ValueError` naming the parameter and the route, checked **above**
+  the routing rather than after it. Previously the caller passed the parameter,
+  the route dropped it, and nothing in the return value or the logs said so.
+  Measured on a 400-row fixture: `streaming=True` + `prune_equal_support`
+  returned the complete 214-itemset lattice where the gated answer is 176;
+  `anchor_items` on the CPU route returned 214 rows identical to unanchored;
+  `output_dir` on the CPU route wrote no files; `profile=True` on multi-GPU
+  streaming returned a bare DataFrame that **unpacks into two Series**, so
+  `result, session = apriori(...)` succeeded and handed back a column of
+  itemsets and a column of floats. **N1** (not in the reviewed 62) is the same
+  shape: `gpu_resident=True` was silently ignored whenever
+  `prune_equal_support` was set.
+
+  Where a route *can* honour a parameter it is forwarded instead of rejected:
+  `output_dir` / `resume_from_k` on the `bitvecs=` + pruning route, and
+  `memory_budget_gb` on multi-GPU streaming (which gained the parameter,
+  mirroring `apriori_streaming`).
+
+  `level_callback`'s `n_candidates` is documented as route-dependent — the GPU
+  group path over-approximates the subset test where the CPU path does not, so
+  the two report different counts for the same input at the same level.
+
 ### Added
 
 - `bench/baseline/` — behaviour-change impact assessment, the min-count sweep

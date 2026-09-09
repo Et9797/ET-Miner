@@ -169,7 +169,13 @@ def _apriori_row_split_multi_gpu(
         f"  Row-split multi-GPU: {n_gpus} GPUs, min_count={min_count_threshold:,} (GPU-resident dense counting)"
     )
 
-    # Phase 0: Build row-split bitvecs across GPUs
+    # Phase 0: Build row-split bitvecs across GPUs.
+    #
+    # Ownership is recorded BEFORE the branch, because the density transition
+    # below has to know whether the arrays are ours to free. They are not, on
+    # the route core/apriori.py:600 takes: it forwards the caller's own
+    # `bitvecs=` array (validated at :562) when `_route_for_pruning` holds.
+    _owns_bitvecs = bitvecs_list is None
     if bitvecs_list is None:
         t0 = time.perf_counter()
         bitvecs_list = build_bitvecs_row_split(csr, n_gpus)
@@ -451,13 +457,42 @@ def _apriori_row_split_multi_gpu(
                     # against the dense counts of the previous level exactly.
                     sparse_state.shards = convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat)
 
-                    # Free ALL bitvec VRAM across all GPUs
-                    for bv, did, _ in bitvecs_list:
-                        with cp.cuda.Device(did):
-                            del bv
+                    # Release the dense bitvecs -- but only claim it when the
+                    # arrays are actually ours. #30.
+                    #
+                    # What was here freed nothing and said it had. `del bv`
+                    # unbinds a loop name while bitvecs_list[i][0] still holds
+                    # the array; free_all_blocks() then ran BEFORE .clear()
+                    # dropped those references, so the blocks were still in use;
+                    # and .clear() mutates a list the caller may own. On the
+                    # borrowed route the caller holds the array regardless, so
+                    # no ordering makes the old message true.
+                    #
+                    # Note that dropping `del bv` and leaning on .clear() alone
+                    # would not fix it either: a `for` target outlives its loop,
+                    # so `bv` would still pin the LAST device's bitvecs. Hence
+                    # the comprehension -- its scope does not leak in Python 3,
+                    # so no array is ever bound to a surviving name.
+                    _bv_devices = [did for _, did, _ in bitvecs_list]
+                    if _owns_bitvecs:
+                        bitvecs_list.clear()
+                    else:
+                        # Never mutate a caller-supplied container.
+                        bitvecs_list = []
+                    for _did in _bv_devices:
+                        with cp.cuda.Device(_did):
                             cp.get_default_memory_pool().free_all_blocks()
-                    bitvecs_list.clear()
-                    logger.debug("    Freed bitvec VRAM across all GPUs")
+                    if _owns_bitvecs:
+                        logger.debug("    Freed bitvec VRAM across all GPUs")
+                    else:
+                        # The pool call stays on both branches: it is not scoped
+                        # to this function's allocations, and the sibling
+                        # try/finally around the K>=3 group arrays relies on it.
+                        # Only the claim changes.
+                        logger.debug(
+                            "    Bitvecs are caller-owned and were not released; "
+                            "returned this route's pool blocks across all GPUs"
+                        )
 
                 # Build groups from prev_frequent, with the suffix-slot → row
                 # permutation the CSR kernels enumerate candidates from.

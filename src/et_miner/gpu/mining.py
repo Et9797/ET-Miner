@@ -675,9 +675,18 @@ def _apriori_from_bitvecs(
             sparse_state.shards = convert_shards_to_csr(
                 [(bitvecs_gpu, int(bitvecs_gpu.device.id), n_transactions)], prev_frequent_flat, prev_counts_flat
             )
+            # `bitvecs_gpu` is this function's PARAMETER -- the caller still
+            # holds the array, so `del` drops one reference of two and frees
+            # nothing. The old message claimed the VRAM was freed. #30.
+            #
+            # The pool call stays (it is not scoped to allocations made here,
+            # and the CSR conversion above did allocate); only the claim goes.
             del bitvecs_gpu
             cp.get_default_memory_pool().free_all_blocks()
-            logger.debug(f"    Freed bitvec VRAM, {sparse_state.shards[0].nnz:,} tid entries in the CSR shard")
+            logger.debug(
+                f"    CSR shard built with {sparse_state.shards[0].nnz:,} tid entries; "
+                "the bitvecs are the caller's and were not released"
+            )
 
         if sparse_state.active:
             # ═══ SPARSE CSR LEVEL (GPU-resident shard, see gpu.sparse_csr) ═══

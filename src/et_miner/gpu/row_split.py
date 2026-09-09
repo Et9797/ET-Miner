@@ -660,22 +660,30 @@ def _apriori_row_split_multi_gpu(
                                 variant="legacy" if chunk.use_legacy else None,
                             )
 
-                    freq_cand_indices, freq_cand_counts = run_chunked_dense_level(
-                        bitvecs_list,
-                        k3_chunks,
-                        _k3plus_chunk_on_gpu,
-                        min_count_threshold,
-                        nccl_comms,
-                        _use_nccl,
-                        level_label=f"K={k}",
-                    )
-
-                    # Free group data from all GPUs
-                    for did in list(all_groups_gpu):
-                        with cp.cuda.Device(did):
-                            del all_groups_gpu[did]
-                            cp.get_default_memory_pool().free_all_blocks()
-                    del all_groups_gpu
+                    # try/finally, because this is ~40 GB on a wide level and
+                    # run_chunked_dense_level can raise -- most obviously
+                    # through the result-truncation RuntimeError, which is
+                    # exactly the case where the process continues afterwards.
+                    # Without it the group arrays stayed resident on every
+                    # device for the rest of the run. The sparse twin in
+                    # gpu/mining.py already had this shape (upload / try /
+                    # finally: free_groups); this branch did not. #31
+                    try:
+                        freq_cand_indices, freq_cand_counts = run_chunked_dense_level(
+                            bitvecs_list,
+                            k3_chunks,
+                            _k3plus_chunk_on_gpu,
+                            min_count_threshold,
+                            nccl_comms,
+                            _use_nccl,
+                            level_label=f"K={k}",
+                        )
+                    finally:
+                        # Free group data from all GPUs
+                        for did in list(all_groups_gpu):
+                            with cp.cuda.Device(did):
+                                del all_groups_gpu[did]
+                                cp.get_default_memory_pool().free_all_blocks()
 
                     n_freq = len(freq_cand_indices)
                     if n_freq > 0:

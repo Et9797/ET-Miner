@@ -468,3 +468,82 @@ class TestApr1oriPruneSetIsLazy:
         assert authoritative is not None, "fixture must survive pruning"
         assert authoritative.total_candidates == with_wrong_set.total_candidates
         np.testing.assert_array_equal(authoritative.suffixes, with_wrong_set.suffixes)
+
+
+@pytest.mark.gpu
+class TestGroupArraysAreReleasedOnAnAbortedLevel:
+    """#31 -- the dense K>=3 group arrays had no `finally`.
+
+    `upload_k3plus_groups` puts group data on every device and it stays
+    resident across all chunks -- tens of GB on a wide level. The free ran
+    after `run_chunked_dense_level` returned, so any raise inside skipped it
+    entirely, most obviously the result-truncation RuntimeError PR 5 added,
+    which is precisely the case where the process carries on afterwards.
+
+    Measured INSIDE the `except` block, deliberately. Once the traceback is
+    released the miner's frames die and the dict is collected anyway, so a
+    check after the handler would pass with or without the fix. While the
+    traceback is alive, the pre-fix code still holds the arrays and the
+    post-fix code does not -- that is the only window in which they differ.
+    """
+
+    def test_pool_releases_the_group_arrays_before_the_traceback_dies(self, nested_df, monkeypatch):
+        import cupy as cp
+
+        import et_miner.gpu.row_split as rs
+        from et_miner.core.matrix import _build_csr_from_transactions
+
+        built = _build_csr_from_transactions(nested_df.lazy(), 0.05, "items")
+        assert built is not None, "fixture produced no frequent items"
+        csr, idx_to_item, n_trans = built
+
+        pool = cp.get_default_memory_pool()
+        during: dict[str, int] = {}
+
+        # K=2 goes through run_chunked_dense_level too, before any group data
+        # exists. Raising there would measure nothing, so the injection is
+        # gated on an actual K>=3 upload having happened.
+        # upload_k3plus_groups is imported inside the miner's body, so it has
+        # to be patched at its source module, not on rs.
+        import et_miner.gpu.kernels as kernels
+
+        real_upload = kernels.upload_k3plus_groups
+        real_level = rs.run_chunked_dense_level
+        uploaded = {"yes": False}
+
+        def _spy_upload(*args, **kwargs):
+            uploaded["yes"] = True
+            return real_upload(*args, **kwargs)
+
+        def _raise_after_upload(*args, **kwargs):
+            if not uploaded["yes"]:
+                return real_level(*args, **kwargs)
+            during["used"] = pool.used_bytes()
+            raise RuntimeError("injected: chunked dense level failed")
+
+        monkeypatch.setattr(kernels, "upload_k3plus_groups", _spy_upload)
+        monkeypatch.setattr(rs, "run_chunked_dense_level", _raise_after_upload)
+
+        used_after = None
+        try:
+            rs._apriori_row_split_multi_gpu(
+                csr,
+                idx_to_item,
+                n_trans,
+                0.05,
+                None,
+                1,
+                prune_non_free=True,
+                prune_apriori=True,
+            )
+        except RuntimeError as exc:
+            assert "injected" in str(exc)
+            used_after = pool.used_bytes()
+        else:  # pragma: no cover - the injection must fire
+            pytest.fail("the injected failure did not propagate")
+
+        assert "used" in during, "fixture never reached the dense K>=3 upload"
+        assert used_after < during["used"], (
+            "group arrays were still resident while the traceback held the frame: "
+            f"{during['used']:,} -> {used_after:,} bytes"
+        )

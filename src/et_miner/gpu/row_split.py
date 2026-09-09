@@ -51,6 +51,33 @@ from et_miner.io.gcs import (
 )
 
 
+def _release_level_state(groups_gpu, sparse_state) -> None:
+    """Release both level-scoped GPU allocations, independently.
+
+    These are two unrelated allocations -- the current level's group arrays
+    (tens of GB on a dense K>=3 level) and the resident CSR shards -- and they
+    used to share one `try` with a bare `except Exception: pass`. Any failure in
+    `free_groups` therefore skipped `sparse_state.release()` entirely, leaking
+    the shards, and the `pass` meant nothing recorded that it had happened.
+
+    The bare catch itself is deliberate and stays: this runs from a `finally`,
+    frequently while an exception is already propagating, and a cleanup failure
+    must never replace the original error. What changes is that a failure in one
+    cannot cancel the other, and that both are logged instead of swallowed.
+
+    Extracted to module scope so the isolation is testable directly, rather than
+    by driving a whole mining run to failure at the right moment.
+    """
+    for label, release in (
+        ("group arrays", lambda: free_groups(groups_gpu)),
+        ("CSR shards", sparse_state.release),
+    ):
+        try:
+            release()
+        except Exception as exc:  # noqa: BLE001 -- see docstring
+            logger.warning(f"    Cleanup failed while releasing {label}: {exc!r}")
+
+
 def _apriori_row_split_multi_gpu(
     csr,  # scipy CSR matrix (None when bitvecs_list provided)
     col_to_item: dict[int, int],
@@ -721,12 +748,9 @@ def _apriori_row_split_multi_gpu(
             prev_full_counts = full_counts
             k += 1
     finally:
-        # Release the resident CSR shards and any group arrays of an aborted level.
-        try:
-            free_groups(_sparse_groups_gpu)
-            sparse_state.release()
-        except Exception:
-            pass
+        # Release the resident CSR shards and any group arrays of an aborted
+        # level -- independently, so one failure cannot leak the other.
+        _release_level_state(_sparse_groups_gpu, sparse_state)
         # Emergency uploader shutdown (happy path does ordered drain below)
         try:
             uploader.close(wait=False)

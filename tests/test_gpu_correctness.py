@@ -305,3 +305,84 @@ class TestMineTwoPhase:
 
         default = inspect.signature(mine_two_phase).parameters["phase2_support"].default
         assert default >= 1e-4, f"phase2_support default {default} is a full-lattice run"
+
+
+class TestLevelStateCleanupIsolation:
+    """#27 -- one bare `except Exception: pass` wrapped two unrelated releases.
+
+    `free_groups(...)` and `sparse_state.release()` free different allocations:
+    the current level's group arrays (tens of GB on a dense K>=3 level) and the
+    resident CSR shards. Sharing one `try` meant a failure in the first silently
+    skipped the second, and the `pass` meant nothing recorded it. Both run from
+    a `finally`, so neither may raise -- but neither may cancel the other.
+
+    No GPU needed: the point is the control flow, so both collaborators are
+    injected.
+    """
+
+    @staticmethod
+    def _patch_free_groups(monkeypatch, fn):
+        import et_miner.gpu.row_split as rs
+
+        monkeypatch.setattr(rs, "free_groups", fn)
+
+    def test_shards_are_released_when_free_groups_raises(self, monkeypatch, caplog):
+        """CONTROL: pre-fix, `release()` is never reached."""
+        from et_miner.gpu.row_split import _release_level_state
+
+        released = []
+
+        def _boom(_groups):
+            raise RuntimeError("group free exploded")
+
+        self._patch_free_groups(monkeypatch, _boom)
+
+        class _Sparse:
+            def release(self):
+                released.append(True)
+
+        _release_level_state(object(), _Sparse())
+        assert released == [True], "a failing group free must not skip the shard release"
+
+    def test_group_free_runs_when_release_raises(self, monkeypatch):
+        from et_miner.gpu.row_split import _release_level_state
+
+        freed = []
+        self._patch_free_groups(monkeypatch, lambda g: freed.append(g))
+
+        class _Sparse:
+            def release(self):
+                raise RuntimeError("release exploded")
+
+        sentinel = object()
+        _release_level_state(sentinel, _Sparse())
+        assert freed == [sentinel]
+
+    def test_never_raises_and_logs_both_failures(self, monkeypatch):
+        """It runs from a `finally`, often with an exception already in flight:
+        a cleanup failure must never replace the original error. But it must be
+        visible, which the bare `pass` made impossible."""
+        from loguru import logger
+
+        from et_miner.gpu.row_split import _release_level_state
+
+        messages: list[str] = []
+        sink = logger.add(lambda m: messages.append(m), level="WARNING")
+        try:
+
+            def _boom(_groups):
+                raise RuntimeError("group free exploded")
+
+            self._patch_free_groups(monkeypatch, _boom)
+
+            class _Sparse:
+                def release(self):
+                    raise RuntimeError("release exploded")
+
+            _release_level_state(object(), _Sparse())  # must not raise
+        finally:
+            logger.remove(sink)
+
+        joined = "".join(messages)
+        assert "group arrays" in joined and "CSR shards" in joined
+        assert "group free exploded" in joined and "release exploded" in joined

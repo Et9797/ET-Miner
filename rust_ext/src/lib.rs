@@ -71,27 +71,98 @@ fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<u
     if indptr.is_empty() {
         return Err(PyValueError::new_err("csr_indptr must have at least one element"));
     }
-    if n_rows + 1 > indptr.len() {
+
+    // Compared WITHOUT the add. `n_rows + 1` wraps at usize::MAX -- the release
+    // profile sets no overflow-checks -- so at n_rows = 2**64-1 the sum was 0,
+    // `0 > indptr.len()` was false, the guard was skipped entirely, and the
+    // call panicked at the index below. That is the exact in-kernel panic this
+    // function exists to convert into a named Python exception.
+    if n_rows >= indptr.len() {
         return Err(PyValueError::new_err(format!(
             "n_rows={} requires csr_indptr of length >= {}, got {}",
             n_rows,
-            n_rows + 1,
+            n_rows.saturating_add(1),
             indptr.len()
         )));
     }
-    let nnz = indptr[n_rows] as usize;
+    if indptr[0] < 0 {
+        return Err(PyValueError::new_err(format!(
+            "csr_indptr[0]={} is negative",
+            indptr[0]
+        )));
+    }
+
+    // The kernels slice indices[indptr[i]..indptr[i+1]] for EVERY row, so the
+    // whole prefix must be non-decreasing. Bounds-checking only indptr[n_rows]
+    // left the in-kernel slice panic reachable on all four entry points this
+    // function guards: indptr=[0,5,2] gave "range end index 5 out of range",
+    // indptr=[0,2,1] gave "slice index starts at 2 but ends at 1", and a
+    // negative interior entry wrapped to 18446744073709551615 because only
+    // indptr[n_rows] was ever cast to usize.
+    for i in 0..n_rows {
+        if indptr[i + 1] < indptr[i] {
+            return Err(PyValueError::new_err(format!(
+                "csr_indptr must be non-decreasing: indptr[{}]={} > indptr[{}]={}",
+                i,
+                indptr[i],
+                i + 1,
+                indptr[i + 1]
+            )));
+        }
+    }
+
+    let nnz = indptr[n_rows] as usize; // non-negative and maximal by the above
     if nnz > indices.len() {
         return Err(PyValueError::new_err(format!(
             "csr_indptr[{}]={} exceeds len(csr_indices)={}",
             n_rows, nnz, indices.len()
         )));
     }
-    if let Some(n_cols) = n_cols {
-        if let Some(&max_idx) = indices[..nnz].iter().max() {
-            if max_idx < 0 || max_idx as usize >= n_cols {
+
+    // Per-row STRICTLY INCREASING, not a global min/max range test. Three
+    // separate defects live in this one clause:
+    //
+    //   * `count_itemsets_sparse_raw` binary-searches each row -- its own
+    //     comment says "the indices are sorted, so we can use binary search" --
+    //     and nothing validated it. A row stored descending silently
+    //     UNDERCOUNTS there (measured 2 against a truth of 3, a 33% loss) while
+    //     the SIMD path returns the right answer, so which number a caller got
+    //     was decided by `hasattr(rust, "count_itemsets_simd")`, an
+    //     optional-feature probe. That is Tier 2 of CLAUDE.md's mandated chain
+    //     disagreeing with itself depending on how the wheel was built.
+    //   * checking each row's FIRST element catches a negative sitting beside a
+    //     positive. The previous test was `max_idx < 0` over the whole array's
+    //     maximum, which only rejects when the LARGEST index is negative, so
+    //     indices=[-1, 1] with n_cols=2 cleared the guard and panicked in-kernel.
+    //   * checking each row's LAST element bounds the column range, which the
+    //     max test did do.
+    for i in 0..n_rows {
+        let (s, e) = (indptr[i] as usize, indptr[i + 1] as usize);
+        if s == e {
+            continue;
+        }
+        let row = &indices[s..e];
+        if row[0] < 0 {
+            return Err(PyValueError::new_err(format!(
+                "csr_indices[{}]={} is negative (row {})",
+                s, row[0], i
+            )));
+        }
+        for w in row.windows(2) {
+            if w[1] <= w[0] {
                 return Err(PyValueError::new_err(format!(
-                    "column index {} is out of range for n_cols={}",
-                    max_idx, n_cols
+                    "csr_indices must be strictly increasing within each row; \
+                     row {} has {} followed by {}",
+                    i, w[0], w[1]
+                )));
+            }
+        }
+        if let Some(n_cols) = n_cols {
+            let last = row[row.len() - 1];
+            if last as usize >= n_cols {
+                return Err(PyValueError::new_err(format!(
+                    "column index {} is out of range for n_cols={} (row {})",
+                    last, n_cols, i
                 )));
             }
         }

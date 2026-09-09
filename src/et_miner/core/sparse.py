@@ -89,8 +89,10 @@ def _setup_mkl_library_path() -> None:
         logger.debug(f"MKL: added {lib_dir} to LD_LIBRARY_PATH for {[os.path.basename(m) for m in matches]}")
         return
 
+    # loguru formats with str.format, not %-style: the old "%s" printed literally
+    # and the search-dir list never appeared in the diagnostic.
     logger.debug(
-        "MKL: no libmkl_rt.so* found under %s; sparse_dot_mkl will import only if "
+        "MKL: no libmkl_rt.so* found under {}; sparse_dot_mkl will import only if "
         "MKL is already on the loader path, and _sparse_matmul falls back to scipy if not",
         _mkl_search_dirs(),
     )

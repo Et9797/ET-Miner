@@ -197,6 +197,48 @@ figures move — measured, per artifact, not assumed.
   resolved device count with the caller's request, which is what makes a
   truncation diagnosable after the fact.
 
+*Council review — defects found in the fixes above*
+
+A four-lens adversarial review of PRs 1–5 blocked unanimously and found eight
+defects in the remediation itself, all measured. Fixed here:
+
+- **`validate_csr` had five holes**, one of them a logic bug in the guard added
+  by PR 2. `n_rows + 1` wrapped at `usize::MAX`, skipping the guard entirely;
+  `indptr` monotonicity was never checked, so the kernels' per-row slice
+  panicked on all four guarded entry points; a negative interior `indptr` entry
+  wrapped; and the column-range test read `max_idx < 0` over the array's
+  **maximum**, so a negative index beside a positive one passed clean.
+  **The worst was pre-existing and silent**: `count_itemsets_sparse_raw`
+  binary-searches each row and nothing validated that rows are sorted — a row
+  stored descending returned **2 against a truth of 3**, a 33% undercount, while
+  the SIMD path returned 3. Which number a caller got was decided by
+  `hasattr(rust, "count_itemsets_simd")`, so **Tier 2 of the mandated chain
+  disagreed with itself depending on how the wheel was built.** All five now
+  close in one O(n_rows + nnz) pass.
+- **`anchor_items` was accepted and dropped on the `bitvecs=` route** — measured
+  210 itemsets returned with 136 unanchored, defect #8's exact failure mode in
+  the guard written to close it. The guard now tests whether the call *resolves*
+  to row-split rather than which parameters were passed. It refuses rather than
+  forwards, so everything that route flushes stays a complete level structurally.
+- **`resume_from_k` + `anchor_items` silently lost 93% of the lattice** —
+  838 → 57 itemsets. An anchored per-K parquet is a report, not a resumable
+  mining state, but resume reloads it as both generation base and subset oracle.
+  The invariant is now written down: *a persisted K-level is a valid resume
+  artifact iff it is the complete frequent level at that K.* The **read** is
+  refused, not the write, so `mine_two_phase` keeps working.
+- **`memory_budget_gb` was still dropped below 10M rows** — the override sat
+  after the single-chunk shortcut that consumes `chunk_size`. Now resolved
+  first, in `son.py`'s order.
+- **Two error messages advised remedies this same release forbids** —
+  `resume_from_k` and `output_dir` are both refused by the route validator on
+  exactly the routes that raise, and `max_results` is not a public parameter.
+  Reworded to name only reachable remedies.
+- **#12's aggregate change had no test at all.** Reverting `.min()` to `.max()`
+  left the whole suite green. Now pinned by `tests/test_self_sufficiency.py`.
+- Smaller: the `u32` cast in `exact_min_count` now saturates rather than
+  wrapping; a `%s` in a loguru call printed literally; a stale "take max"
+  comment; a dead log line; an `int | None` annotation.
+
 ### Added
 
 - `bench/baseline/` — behaviour-change impact assessment, the min-count sweep

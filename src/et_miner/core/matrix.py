@@ -343,7 +343,7 @@ def count_support_batched(
         # Measured on a mixed-length batch [("i_0","i_1","i_2"), ("i_0",),
         # ("i_1",)] over 6 transactions: the long-itemset-first order dropped
         # every transaction with fewer than 3 items, undercounting ("i_0",) as
-        # 1 against a true 5 -- a 75% undercount. Reversing the list gave the
+        # 1 against a true 5 -- an 80% undercount. Reversing the list gave the
         # right answer.
         #
         # Cost: a lower k filters fewer transactions, so a mixed-length batch

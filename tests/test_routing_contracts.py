@@ -199,3 +199,118 @@ class TestResumeFromK:
         assert set(a) == set(b), f"resumed run produced levels {sorted(b)}, expected {sorted(a)}"
         for k in sorted(a):
             assert a[k] == b[k], f"K={k} differs between the full and resumed runs"
+
+
+class TestGuardsCoverEveryRouteNotJustTheOnesTheTestsExercise:
+    """Three combinations the first version of `_validate_route_support` blessed.
+
+    All three have one shape: the guard was keyed on the PARAMETERS the caller
+    passed rather than on the route the call actually resolves to, so a route it
+    had not enumerated slipped through. The validator was even out of sync with
+    itself -- `_routes_to_row_split` accounted for `has_bitvecs` while the
+    `anchor_items` check thirteen lines below did not.
+    """
+
+    def test_anchor_items_is_refused_on_the_bitvecs_route(self, df):
+        """Measured before the fix: 210 itemsets returned, 136 of them
+        UNANCHORED. `_apriori_from_bitvecs` has no `anchor_items` parameter, so
+        the call validated and then dropped it -- defect #8's exact failure mode,
+        in the guard written to close it."""
+        pytest.importorskip("cupy")
+        from et_miner.core.matrix import _build_csr_from_transactions
+        from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
+
+        csr, idx_to_item, n = _build_csr_from_transactions(df.lazy(), 0.05, "items")
+        bitvecs = (_build_gpu_bitvec_matrix(csr), idx_to_item, n)
+
+        with pytest.raises(ValueError, match="anchor_items requires the row-split miner"):
+            apriori(bitvecs=bitvecs, min_support=0.05, use_gpu=True, anchor_items={0, 1})
+
+    def test_anchor_items_still_works_on_the_route_that_implements_it(self, df):
+        """The guard must refuse only what the route cannot do."""
+        pytest.importorskip("cupy")
+        got = apriori(df, min_support=0.05, use_gpu=True, anchor_items={0, 1})
+        assert isinstance(got, pl.DataFrame)
+
+    def test_resume_from_k_is_refused_with_anchor_items(self, df, tmp_path):
+        """An anchored per-K parquet holds only the itemsets containing an
+        anchor, so resuming from it rebuilds the next level from a restricted
+        generation base -- measured 57 itemsets against 838 for the same call
+        without resume, a 93% silent loss, every level after the resume point
+        wrong.
+
+        The rule: a persisted K-level is a valid resume artifact iff it is the
+        COMPLETE frequent level at that K. The free-set prune violates that in
+        the safe direction and says so; anchoring violates it in the unsafe
+        direction, because anchoredness is not anti-monotone.
+        """
+        with pytest.raises(ValueError, match="resume_from_k cannot be combined with anchor_items"):
+            apriori(df, min_support=0.05, use_gpu=True, anchor_items={0, 1},
+                    output_dir=str(tmp_path), resume_from_k=2)
+
+    def test_output_dir_with_anchor_items_is_still_allowed(self, df, tmp_path):
+        """Only the READ is refused, not the write. `mine_two_phase` sets
+        `output_dir` unconditionally alongside `anchor_items`, so rejecting the
+        pair outright would raise on every invocation of that feature."""
+        pytest.importorskip("cupy")
+        apriori(df, min_support=0.05, use_gpu=True, anchor_items={0, 1},
+                output_dir=str(tmp_path))
+        assert sorted(p.name for p in tmp_path.iterdir()), "the anchored flush must still run"
+
+
+class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
+    """`memory_budget_gb` was forwarded but resolved AFTER the branch that
+    consumes `chunk_size`, so it was still dropped on every dataset below the
+    10M default -- which is exactly the small-budget case.
+
+    The earlier test spied on the forwarded kwarg and raised before entering the
+    body, so it could not see the ordering. These call the real body.
+    """
+
+    def test_a_small_budget_forces_multiple_chunks(self, monkeypatch):
+        """A small budget derives a 100,000-row chunk (the helper's floor), so a
+        300,000-row dataset must NOT take the single-chunk shortcut even though
+        chunk_size is the 10M default."""
+        pytest.importorskip("cupy")
+        import sys
+
+        from et_miner.streaming import multi_gpu as mg
+
+        derived = mg._estimate_chunk_size_from_memory(0.001)
+        n_rows = derived * 3
+        assert derived < n_rows
+
+        took_shortcut = False
+
+        def _spy(*a, **kw):
+            nonlocal took_shortcut
+            took_shortcut = True
+            raise RuntimeError("single-chunk shortcut taken")
+
+        # `from et_miner.core.apriori import apriori` runs INSIDE the function,
+        # so patch the attribute on the module object. `et_miner.core.apriori`
+        # as a dotted name resolves to the re-exported function, not the module.
+        monkeypatch.setattr(sys.modules["et_miner.core.apriori"], "apriori", _spy)
+
+        rows = [[0, 1]] * n_rows
+        try:
+            mg.apriori_streaming_multi_gpu(
+                pl.DataFrame({"items": rows}).lazy(), min_support=0.5,
+                n_gpus=1, chunk_size=10_000_000, memory_budget_gb=0.001,
+                show_progress=False,
+            )
+        except Exception:  # noqa: BLE001 - the chunked path may fail on the spy
+            pass
+
+        assert not took_shortcut, (
+            f"the budget must be resolved BEFORE the single-chunk test: "
+            f"chunk_size=10,000,000 takes the shortcut on {n_rows:,} rows, the "
+            f"derived {derived:,} must not"
+        )
+
+    def test_the_budget_still_overrides_chunk_size(self):
+        """son.py's order, mirrored: resolve first, then test."""
+        from et_miner.streaming import multi_gpu as mg
+        from et_miner.streaming import son
+
+        assert mg._estimate_chunk_size_from_memory is son._estimate_chunk_size_from_memory

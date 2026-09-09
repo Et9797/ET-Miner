@@ -920,21 +920,6 @@ def mine_two_phase(
 
     logger.info("  Phase 2 complete")
 
-    # Phase 2 post-filters rather than pruning, so a small anchored fraction
-    # means the run paid for the whole lattice and reported a sliver of it.
-    # Say so: the cost is invisible in the returned frame.
-    try:
-        _n_reported = phase2_result.height if hasattr(phase2_result, "height") else 0
-        if _n_reported and anchor_items:
-            logger.info(
-                f"  Phase 2 reported {_n_reported:,} anchored itemsets from "
-                f"{len(anchor_items):,} anchors. Note the full lattice at "
-                f"phase2_support={phase2_support} was mined to produce them — "
-                "anchoring selects the output, it does not prune the search."
-            )
-    except Exception:  # noqa: BLE001 — a log line must never fail the run
-        pass
-
     if _cleanup_phase2:
         shutil.rmtree(phase2_dir, ignore_errors=True)
 

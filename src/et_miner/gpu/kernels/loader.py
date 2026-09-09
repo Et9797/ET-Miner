@@ -63,17 +63,23 @@ def _warn_result_truncation(
 
     overflow_pct = (n_actual - max_results) / n_actual * 100
     where = f" at K={k}" if k is not None else ""
-    resume = (
-        f" Resume with resume_from_k={k - 1} once the buffer is larger."
-        if k is not None and k > 1
-        else ""
-    )
+    # Name ONLY remedies reachable on the route that raises. These kernels are
+    # reached from _apriori_from_bitvecs / _apriori_from_bitvecs_gpu_resident,
+    # where `max_results` is not a public apriori() parameter and both
+    # `output_dir` and `resume_from_k` are refused by _validate_route_support --
+    # so an earlier version of this message advised two impossible things and
+    # one knob the caller cannot set.
     raise RuntimeError(
         f"Result truncation{where}: {n_actual:,} frequent itemsets found but the "
         f"result buffer holds {max_results:,} ({overflow_pct:.1f}% would be lost, "
-        f"non-deterministically). {context} "
-        f"Raise {knob} to at least {n_actual:,}, or use the allcounts path, which "
-        f"sizes exactly to the survivor count and has no ceiling.{resume}"
+        f"non-deterministically, because the kernels append via atomicAdd). "
+        f"{context} "
+        f"Re-run on the row-split miner, which sizes exactly to the survivor "
+        f"count and has no ceiling: pass n_gpus>1 or prune_equal_support=True to "
+        f"apriori(). That route also supports output_dir, so each level is "
+        f"flushed as it completes. Otherwise lower max_length"
+        + (f" (this is K={k})" if k is not None else "")
+        + "."
     )
 
 
@@ -101,7 +107,7 @@ def _warn_result_truncation(
 MAX_SUPPORTED_K = 62
 
 
-def _assert_k_supported(k: int, context: str = "") -> None:
+def _assert_k_supported(k: int | None, context: str = "") -> None:
     """Raise before launching a K>=3 kernel that would read uninitialised shared memory."""
     if k is not None and k > MAX_SUPPORTED_K:
         where = f" ({context})" if context else ""

@@ -573,7 +573,7 @@ def compute_self_sufficiency(
         joined = joined.drop(join_cols)
         del exploded
 
-        # Group by _row_idx (= original itemset) and take max K-1 support
+        # Group by _row_idx (= original itemset) and take the MINIMUM K-1 support
         grouped = joined.group_by("_row_idx").agg(pl.col("km1_support").min().alias("min_k_minus1_support"))
         del joined
 

@@ -123,7 +123,14 @@ pub fn apriori_from_csr(
     min_support: f64,
     max_length: usize,
 ) -> AprioriResult {
-    let min_count = exact_min_count(min_support, n_rows) as u32;
+    // .min() before the cast: `as u32` TRUNCATES where the old
+    // `(f64).ceil() as u32` SATURATED. At n_rows=5e9, min_support=0.9 the exact
+    // 4,500,000,000 wrapped to 205,032,704 -- a threshold far too LOW, i.e. the
+    // wrong-answer direction, where saturating gives "nothing is frequent".
+    // Unreachable in practice (it needs a >32 GB indptr and CLAUDE.md guards
+    // n_transactions < 2**31), but the direction of the failure should not get
+    // worse for free.
+    let min_count = exact_min_count(min_support, n_rows).min(u32::MAX as u64) as u32;
     let max_k = if max_length == 0 { n_cols } else { max_length };
 
     // Convert CSR to CSC for efficient column access

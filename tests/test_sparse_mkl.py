@@ -169,7 +169,11 @@ class TestNJobsIsHonouredOnTheRustPath:
 
         rng = np.random.default_rng(0)
         n_rows, n_cols = 200_000, 200
-        rows = [rng.choice(n_cols, size=12, replace=False) for _ in range(n_rows)]
+        # sorted(): a CSR row must be strictly increasing, which the Rust
+        # boundary now validates. rng.choice returns them unsorted, so this
+        # fixture was building a malformed CSR and the binary-search path
+        # silently undercounted on it.
+        rows = [np.sort(rng.choice(n_cols, size=12, replace=False)) for _ in range(n_rows)]
         indptr = np.arange(0, 12 * n_rows + 1, 12, dtype=np.int64)
         indices = np.concatenate(rows).astype(np.int64)
         itemsets = [

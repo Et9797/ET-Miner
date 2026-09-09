@@ -138,14 +138,28 @@ class TestResultTruncationRaises:
         with pytest.raises(RuntimeError, match="Result truncation"):
             _warn_result_truncation(10_000_001, 10_000_000, "one over")
 
-    def test_the_message_is_actionable(self):
-        """It lands hours into a run, so it has to say which knob and which K."""
+    def test_the_message_names_only_reachable_remedies(self):
+        """It lands hours into a run, so it has to be actionable ON THIS ROUTE.
+
+        The first version advised `resume_from_k` and raising `max_results`.
+        Neither is reachable here: these kernels run under
+        `_apriori_from_bitvecs`, where `max_results` is not a public apriori()
+        parameter and `_validate_route_support` refuses both `resume_from_k` and
+        `output_dir`. So the message told a user hours into a campaign to do two
+        things that raise ValueError.
+        """
         from et_miner.gpu.kernels.loader import _warn_result_truncation
 
         with pytest.raises(RuntimeError) as exc:
             _warn_result_truncation(5000, 4000, "ctx", k=6)
         msg = str(exc.value)
-        assert "K=6" in msg and "max_results" in msg and "resume_from_k=5" in msg
+        assert "K=6" in msg, msg
+        # the reachable remedies
+        assert "n_gpus>1" in msg and "prune_equal_support=True" in msg, msg
+        assert "max_length" in msg, msg
+        # and not the unreachable ones
+        assert "resume_from_k" not in msg, msg
+        assert "Raise max_results" not in msg, msg
 
     def test_no_bare_clamp_survives(self):
         """The four sites were found by exactly this grep."""

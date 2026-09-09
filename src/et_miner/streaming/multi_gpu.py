@@ -215,6 +215,20 @@ def apriori_streaming_multi_gpu(
     if n_total == 0:
         return _empty_result()
 
+    # memory_budget_gb overrides chunk_size, in streaming/son.py's ORDER: resolve
+    # the effective chunk size first, THEN test whether the data fits in one.
+    #
+    # Placed after the single-chunk shortcut instead, the parameter was still
+    # dropped on every dataset below the 10M default -- which is exactly the
+    # small-budget case, on the one path whose reason to exist is not exceeding
+    # memory. A budget of 0.25 GB derives a ~1M-row chunk, so a 5M-row dataset
+    # must run as five chunks and previously ran as one.
+    if memory_budget_gb is not None:
+        chunk_size = _estimate_chunk_size_from_memory(memory_budget_gb)
+        logger.info(
+            "Memory budget {:.3f} GB -> chunk size {}", memory_budget_gb, chunk_size
+        )
+
     # Single chunk optimization: use standard apriori if data fits
     if n_total <= chunk_size:
         logger.info(
@@ -234,16 +248,6 @@ def apriori_streaming_multi_gpu(
             show_progress=show_progress,
             sparse=sparse,
             n_jobs=n_jobs,
-        )
-
-    # memory_budget_gb overrides chunk_size, mirroring streaming/son.py. Without
-    # this the parameter was accepted by apriori() and dropped at the route
-    # boundary, so a run sized its chunks against a budget the caller never
-    # chose -- on the one path whose reason to exist is not exceeding memory.
-    if memory_budget_gb is not None:
-        chunk_size = _estimate_chunk_size_from_memory(memory_budget_gb)
-        logger.info(
-            "Memory budget {:.3f} GB -> chunk size {}", memory_budget_gb, chunk_size
         )
 
     # Calculate number of chunks and waves

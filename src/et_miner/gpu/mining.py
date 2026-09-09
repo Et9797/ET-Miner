@@ -514,12 +514,18 @@ def _apriori_from_bitvecs(
         ram_gb, vram_gb = _get_memory_gb()
         for used, limit, what in ((ram_gb, max_ram_gb, "RAM"), (vram_gb, max_vram_gb, "VRAM")):
             if used > limit:
+                # Only remedies reachable on THIS route. output_dir is refused
+                # here by _validate_route_support -- the per-K flush belongs to
+                # the row-split miner -- so advising it unqualified sent the
+                # user to a ValueError after an hours-long run.
                 raise MemoryError(
                     f"Memory guard tripped at K={k}: {what}={used:.1f}GB exceeds the "
                     f"max_{what.lower()}_gb={limit}GB limit after {cumulative_itemsets:,} "
                     f"itemsets. The lattice is INCOMPLETE at this point, so it is not "
-                    f"returned. Raise max_{what.lower()}_gb, lower max_length, or mine "
-                    f"with output_dir set so each level is flushed as it completes."
+                    f"returned. Raise max_{what.lower()}_gb, lower max_length, or "
+                    f"re-run on the row-split miner (n_gpus>1 or "
+                    f"prune_equal_support=True), which accepts output_dir and "
+                    f"flushes each level as it completes."
                 )
 
     _t_total_start = time.perf_counter()

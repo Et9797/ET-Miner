@@ -1,0 +1,119 @@
+{
+  "_comment": "Shared ground truth for the min-count threshold, read by BOTH tests/test_min_count.py and rust_ext/src/core/apriori.rs's #[test]. Two hand-maintained tables drift -- that is how defect #11 arose, with three sites carrying the same wrong expression and therefore agreeing with each other while all three disagreed with the oracle. expected = ceil(Fraction(str(min_support)) * n_rows), i.e. min_support denotes the shortest decimal that round-trips to the given f64, not the exact binary value of that f64. That is a contract, not a law; both implementations must share it.",
+  "cases": [
+    {
+      "min_support": 0.07,
+      "n_rows": 100,
+      "expected": 7,
+      "why": "0.07 has no exact binary64 form; fl64 product lands just above the integer"
+    },
+    {
+      "min_support": 0.07,
+      "n_rows": 10000,
+      "expected": 700,
+      "why": "0.07 has no exact binary64 form; fl64 product lands just above the integer"
+    },
+    {
+      "min_support": 0.07,
+      "n_rows": 100000,
+      "expected": 7000,
+      "why": "0.07 has no exact binary64 form; fl64 product lands just above the integer"
+    },
+    {
+      "min_support": 0.01,
+      "n_rows": 60000,
+      "expected": 600,
+      "why": "PRESETS['smoke'] -- must NOT move, or the tier gate changes meaning"
+    },
+    {
+      "min_support": 0.048003,
+      "n_rows": 100000,
+      "expected": 4801,
+      "why": "a threshold measured mid-review"
+    },
+    {
+      "min_support": 0.5,
+      "n_rows": 7,
+      "expected": 4,
+      "why": "exact binary fraction, odd n_rows"
+    },
+    {
+      "min_support": 0.5,
+      "n_rows": 1,
+      "expected": 1,
+      "why": "smallest non-trivial case"
+    },
+    {
+      "min_support": 0.25,
+      "n_rows": 4,
+      "expected": 1,
+      "why": "exact binary fraction landing exactly on an integer"
+    },
+    {
+      "min_support": 1e-07,
+      "n_rows": 1000000,
+      "expected": 1,
+      "why": "1e-7: Python str gives '1e-07', Rust Display gives '0.0000001'"
+    },
+    {
+      "min_support": 1e-07,
+      "n_rows": 76890945,
+      "expected": 8,
+      "why": "1e-7: Python str gives '1e-07', Rust Display gives '0.0000001'"
+    },
+    {
+      "min_support": 0.3333333333333333,
+      "n_rows": 1000000,
+      "expected": 333334,
+      "why": "division-derived: 16 significant digits"
+    },
+    {
+      "min_support": 3.3333333333333334e-08,
+      "n_rows": 1000000,
+      "expected": 1,
+      "why": "division-derived AND tiny: 17 sig digits behind 7 leading zeros"
+    },
+    {
+      "min_support": 0.6666666666666666,
+      "n_rows": 999999,
+      "expected": 666666,
+      "why": "division-derived, close to 1"
+    },
+    {
+      "min_support": 1e-40,
+      "n_rows": 1000000,
+      "expected": 1,
+      "why": "fractional length > 38: 10^d leaves u128; result must be 1"
+    },
+    {
+      "min_support": 1e-300,
+      "n_rows": 10,
+      "expected": 1,
+      "why": "extreme: still a positive support, ceiling is 1"
+    },
+    {
+      "min_support": 0.0,
+      "n_rows": 1000,
+      "expected": 0,
+      "why": "zero support: no threshold"
+    },
+    {
+      "min_support": 1.0,
+      "n_rows": 1000,
+      "expected": 1000,
+      "why": "full support"
+    },
+    {
+      "min_support": 0.0085,
+      "n_rows": 60000,
+      "expected": 510,
+      "why": "shifts at the smoke row count (511 -> 510)"
+    },
+    {
+      "min_support": 0.000123,
+      "n_rows": 1000000,
+      "expected": 123,
+      "why": "shifts at 1M (124 -> 123)"
+    }
+  ]
+}

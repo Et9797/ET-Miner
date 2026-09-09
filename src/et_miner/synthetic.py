@@ -25,6 +25,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import math
+from fractions import Fraction
 from dataclasses import dataclass
 from typing import NamedTuple
 
@@ -69,7 +70,15 @@ class SynthSpec:
 
     @property
     def min_count(self) -> int:
-        return math.ceil(self.min_support * self.n_rows)
+        """Exact ceil(min_support * n_rows) -- see core.result._min_count.
+
+        This is the third site of one rule (with core/result.py and
+        rust_ext/src/core/apriori.rs) and must not drift from the other two: it
+        feeds check_preset_purpose's vacuity guard and the tier-equivalence
+        gate's oracle threshold, so a discrepancy here moves what the gate
+        certifies rather than failing it.
+        """
+        return math.ceil(Fraction(str(self.min_support)) * self.n_rows)
 
 
 class GeneratedData(NamedTuple):

@@ -45,12 +45,40 @@ figures move — measured, per artifact, not assumed.
   up to 99.3% of the correct answer. `bench/baseline/perf-baseline.json` holds
   the before.
 
+### Fixed
+
+*PR 1 — canonical order and the exact threshold*
+
+- **#1, #2, #3, #20** — itemsets are emitted as **ascending tuples of item ids
+  on every route**, and that contract is now written into `apriori()`'s Returns
+  block. `build_boolean_matrix`'s column names are zero-padded, which makes
+  lexicographic name order equal item-id order and so fixes the CPU route at
+  the root rather than re-sorting at emission. Measured: 271/461 emitted
+  itemsets were non-ascending, now 0; `generate_rules` was dropping 408 of
+  2,256 rules (18.1%) and reporting `lift = 0.0` on 408 more, now 0 and 0.
+  `_build_support_lookup` is additionally keyed on the sorted tuple, so it no
+  longer depends on its producer's ordering.
+- **#11, #14** — `_min_count` is the **exact decimal ceiling**,
+  `ceil(Fraction(str(s)) * N)`, at all three sites (`core/result.py`,
+  `synthetic.py`, and `exact_min_count` in the Rust extension). The old
+  `ceil(fl64(s) * N)` returned 701 where the exact ceiling is 700 at
+  `s = 0.07, N = 10000`, dropping the boundary itemset and the entire cone
+  above it — 3 itemsets mined against the oracle's 7. All three sites are
+  checked against one shared table, `tests/fixtures/min_count_cases.json`,
+  read by both the Python tests and a Rust `#[test]`: three implementations
+  agreeing with each other is worth nothing when they share a bug, which is
+  exactly how this defect survived. The tier gate gains an independent boundary
+  case, since it previously derived its oracle threshold from the expression it
+  was meant to check.
+
 ### Added
 
 - `bench/baseline/` — behaviour-change impact assessment, the min-count sweep
   tool, and a performance baseline covering every code path a slow fix touches.
 - `bench/repro/` — one reproduction per defect, exiting non-zero while the
   defect is live and zero once fixed, so the same file is evidence and gate.
+- `tests/fixtures/min_count_cases.json` — shared ground truth for the min-count
+  rule, read by the Python and Rust test suites alike.
 
 ---
 

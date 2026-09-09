@@ -194,7 +194,7 @@ def _apriori_row_split_multi_gpu(
     # Deferred results: accumulate numpy arrays per level,
     # build Polars DataFrame at the end via PyArrow. No .tolist() overhead.
     # When output_dir is set, arrays flush to Parquet per K and are NOT accumulated.
-    deferred_itemsets_np: list[np.ndarray] = []  # (n, k) int64 arrays
+    deferred_itemsets_np: list[np.ndarray] = []  # (n, k) int32 arrays (col_to_item_arr dtype)
     deferred_supports: list[np.ndarray] = []
 
     # GCSUploader: single instance for the whole K-loop.
@@ -747,11 +747,30 @@ def _apriori_row_split_multi_gpu(
 
     all_supports = np.concatenate(deferred_supports)
 
-    # PyArrow path: O(1) Python overhead via Arrow ListArray from numpy
+    # PyArrow path: O(1) Python overhead via Arrow ListArray from numpy.
+    #
+    # The int64 cast is load-bearing, not cosmetic. This function has three
+    # return paths and they used to disagree on the itemset dtype: both
+    # _empty_result() calls above give List(Int64) (core/result.py:55), the
+    # list fallback below gives List(Int64) via Python ints, and this path gave
+    # List(Int32) -- because col_to_item_arr is np.int32 (see :165, guarded to
+    # item IDs < 2**31) and Arrow preserves it. So the ONE path that normally
+    # runs was the odd one out, and _apriori_from_bitvecs (gpu/mining.py:599)
+    # builds the same lookup as int64, so the two GPU routes disagreed as well.
+    #
+    # Deliberately asymmetric with the flushed parquet, which stays
+    # large_list<int32> (io/flush.py builds its own list array from the same
+    # int32 items_flat): widening it would double the itemset bytes of every
+    # artifact already on disk, and nothing reads it in a dtype-sensitive way --
+    # the resume reader indexes item_to_col[flat_item_ids] (:265), the
+    # mine_two_phase anchor read goes through .to_list() (:883), and both
+    # core/rules.py consumers are parquet-to-parquet so their join keys are
+    # int32 on both sides. Widening those would cost ~84 GB on a K=7 K-1 frame.
+    # tests/test_row_split_dtypes.py pins each of those boundaries.
     try:
         import pyarrow as pa
 
-        flat_values = np.concatenate([a.ravel() for a in deferred_itemsets_np])
+        flat_values = np.concatenate([a.ravel() for a in deferred_itemsets_np]).astype(np.int64, copy=False)
         widths = np.concatenate([np.full(a.shape[0], a.shape[1], dtype=np.int64) for a in deferred_itemsets_np])
         offsets = np.empty(len(widths) + 1, dtype=np.int64)
         offsets[0] = 0
@@ -763,8 +782,12 @@ def _apriori_row_split_multi_gpu(
                 "support": all_supports,
             }
         )
-    except (ImportError, Exception):
-        # Fallback: single-pass list construction
+    except ImportError:
+        # Fallback: single-pass list construction.
+        # Narrowed from `except (ImportError, Exception)`, which collapses to
+        # Exception and swallowed every PyArrow failure -- silently taking a
+        # path with a different dtype and different memory behaviour. A missing
+        # pyarrow is a fallback; a broken one is a bug and must surface.
         all_itemsets = []
         for arr in deferred_itemsets_np:
             for i in range(arr.shape[0]):

@@ -468,14 +468,24 @@ pub fn prune_non_free_flat_compact_raw(
     (out_flat, out_counts)
 }
 
-/// Apriori-prune prefix groups: remove suffix pairs whose candidates have
-/// non-frequent (k-1)-subsets.
+/// Apriori-prune prefix groups: drop SUFFIXES that participate in no valid
+/// candidate pair.
+///
+/// The summary used to say "remove suffix pairs", which is what the test does
+/// but not what the prune keeps: validity is decided per pair and recorded per
+/// suffix, so the granularity of removal is the suffix, not the pair.
 ///
 /// For each group (prefix, suffixes), enumerates all suffix pairs (s_i, s_j).
 /// For K=3: checks only (s_i, s_j) membership in prev.
 /// For K>=4: also checks k-2 "prefix-drop" subsets.
 /// A suffix survives if it participates in at least one valid pair.
 /// Groups with < 2 surviving suffixes are dropped.
+///
+/// This OVER-APPROXIMATES: the group is rebuilt from every surviving suffix
+/// over all C(m,2) pairs among them, re-admitting pairs just found invalid. The
+/// surplus is one-sided -- by anti-monotonicity a re-admitted pair cannot reach
+/// min_count -- so the cost is wasted counting, never a wrong output. The
+/// Python twin in gpu/mining.py::_prune_groups_apriori is identical in shape.
 ///
 /// # Arguments
 /// * `groups` - K3PlusGroupsResult from group building

@@ -262,10 +262,25 @@ def _apply_anchor_filter(current_flat, current_counts_raw, anchor_col_arr, k):
 def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     """Prune prefix groups by removing suffix pairs whose (k-1)-subsets are not all frequent.
 
-    At K=3 this is exact: check if (suffix_i, suffix_j) is a frequent K=2 pair.
-    At K>=4 this is also exact: for each suffix, checks all k-2 prefix-drop subsets
-    plus the two suffix-drop subsets. A suffix is only kept if ALL its (k-1)-subsets
-    are in prev_frequent_set. (Verified by Auditor: 16/16 math checks pass, 2026-03-25.)
+    Validity is tested per PAIR and then recorded per SUFFIX SLOT: for a
+    candidate prefix + [s_i, s_j] the k-2 prefix-drop subsets are checked (the
+    two suffix-drop subsets are rows of the level the group was built from, so
+    they are frequent by construction), and a valid pair marks BOTH of its
+    suffixes as keepers. The group is then rebuilt from every surviving suffix
+    with total_candidates recomputed over all C(m,2) pairs among them, which
+    re-admits pairs just found invalid.
+
+    So this **over-approximates**: a suffix kept for one valid pair drags every
+    other pair in its group along. It is not the per-suffix all-subsets test an
+    earlier version of this docstring described — that claim carried a
+    verification badge and was wrong about both implementations (this one and
+    rust_ext/src/core/groups.rs, which is identical in shape).
+
+    The behaviour is sound, and the surplus is provably one-sided: by
+    anti-monotonicity a re-admitted pair cannot reach min_count, so the cost is
+    wasted counting and never a wrong output. Fuzzed over 300 random previous
+    levels against a brute-force enumeration: 0/300 lost a valid candidate,
+    83/300 carried extra ones.
 
     The GPU dense kernel counts ALL pairs within a group. By removing invalid
     suffixes, we reduce the group sizes and thus the candidate count.

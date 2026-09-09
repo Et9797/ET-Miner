@@ -146,7 +146,7 @@ class TestMixedTierParquetJoins:
         b = compute_self_sufficiency(mixed[3], mixed[2]).sort("itemset")
         assert a.height > 0, "fixture produced no self-sufficiency rows"
         assert a.height == b.height, f"mixing routes dropped {a.height - b.height} rows"
-        assert a["max_k_minus1_support"].to_list() == b["max_k_minus1_support"].to_list()
+        assert a["min_k_minus1_support"].to_list() == b["min_k_minus1_support"].to_list()
 
     @pytest.mark.gpu
     def test_drop1_survives_a_cpu_k_level_against_a_gpu_k_minus_1(self, tmp_path):

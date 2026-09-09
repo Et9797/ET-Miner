@@ -42,7 +42,20 @@ def _generate_candidates(
 
 
 def _generate_candidates_k2_streaming(items: list[str]) -> Iterator[tuple[str, str]]:
-    """Yield (a, b) pairs with a<b — O(1) memory vs n*(n-1)/2 cross-join materialization."""
+    """Yield (a, b) pairs with a<b, avoiding the Polars cross-join's intermediates.
+
+    The generator itself is O(1), but **the caller drains it into a list**
+    (`_generate_candidates_k2` below), so the pair list is fully materialised
+    either way: measured 1,242 MB peak RSS at 6,000 items (17,997,000 pairs),
+    and the stress_k2 preset's 35,000 items would be ~600M pairs. The saving
+    over the cross-join branch is real but partial — it avoids the intermediate
+    DataFrame, not the list.
+
+    The laziness cannot be used without reworking the caller:
+    `_generate_candidates` is typed `-> list[tuple[str, ...]]`, and
+    `core/apriori.py`'s level loop takes `len()` of the result and then iterates
+    it twice. Making the O(1) claim true means folding that into a single pass.
+    """
     n = len(items)
     for i in range(n):
         for j in range(i + 1, n):

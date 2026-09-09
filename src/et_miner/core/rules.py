@@ -474,8 +474,8 @@ def compute_self_sufficiency(
     """Compute self-sufficiency ratio for K-itemsets vs their (K-1)-subsets.
 
     For each K-itemset, computes:
-        max_k_minus1_support = max(support of all K-1 subsets)
-        self_sufficiency_ratio = support_K / max_k_minus1_support
+        min_k_minus1_support = min(support of all K-1 subsets)
+        self_sufficiency_ratio = support_K / min_k_minus1_support
 
     A ratio close to 1.0 means the K-th item adds almost no information
     beyond what the (K-1)-subset already captures -- the itemset is
@@ -484,6 +484,24 @@ def compute_self_sufficiency(
     Ratios well below 1.0 indicate genuine combinatorial signal: the
     K-itemset's co-occurrence is notably less frequent than any of its
     subsets, meaning the combination is informative.
+
+    The aggregate is **min**, and that is load-bearing. Since
+    ``support_K <= support(W)`` for every (K-1)-subset ``W``, requiring
+    ``support_K == max(subset supports)`` would force ALL subsets to share a
+    support -- a degenerate corner, not the near-closed family described above.
+    Under ``max``, a maximally redundant itemset ({1,2,3} at 0.30 with subsets
+    {1,2}=0.30, {1,3}=0.90, {2,3}=0.95, i.e. item 3 fully implied by {1,2})
+    scored 0.32 and read as "genuine combinatorial signal" -- exactly backwards,
+    so anyone filtering on the ratio kept the redundancy and discarded the
+    signal.
+
+    Recalibrating a cutoff was not an available fix: under ``max`` the ratio is
+    not monotone in the property described, so two itemsets that are EQUALLY
+    redundant by the engine's own predicate scored 0.9375 and 0.3158. It was the
+    wrong *kind* of aggregation, not a mis-scaled one. The package already
+    implements the correct predicate twice, both as the min test --
+    ``core/apriori.py::_prune_equal_support`` and ``groups.rs`` -- so this was a
+    third copy of one rule that had drifted to the other aggregate.
 
     Processes K parquet in chunks via PyArrow row-group iteration to
     handle billion-row files without exceeding memory or u32 limits.
@@ -499,8 +517,8 @@ def compute_self_sufficiency(
         pl.DataFrame with columns:
             - itemset: the K-itemset (list[i32])
             - support: K-itemset support (f64)
-            - max_k_minus1_support: max support across all (K-1)-subsets (f64)
-            - self_sufficiency_ratio: support / max_k_minus1_support (f64)
+            - min_k_minus1_support: min support across all (K-1)-subsets (f64)
+            - self_sufficiency_ratio: support / min_k_minus1_support (f64)
     """
     # ── Detect K ──
     k = _detect_k(k_parquet)
@@ -556,14 +574,21 @@ def compute_self_sufficiency(
         del exploded
 
         # Group by _row_idx (= original itemset) and take max K-1 support
-        grouped = joined.group_by("_row_idx").agg(pl.col("km1_support").max().alias("max_k_minus1_support"))
+        grouped = joined.group_by("_row_idx").agg(pl.col("km1_support").min().alias("min_k_minus1_support"))
         del joined
 
         # Re-attach original itemset and support from the chunk
-        result = chunk.join(grouped, on="_row_idx", how="inner").select("itemset", "support", "max_k_minus1_support")
+        result = chunk.join(grouped, on="_row_idx", how="inner").select("itemset", "support", "min_k_minus1_support")
         del grouped, chunk
 
-        result_chunks.append(result)
+        # Guarded exactly as generate_rules_drop1 guards its own append. Without
+        # this, result_chunks is never empty once any chunk has been read, the
+        # documented empty-result path below is dead code, `combined`'s ratio
+        # column .min() returns None, and the logging f-string raises TypeError
+        # -- an unhandled crash from inside a log statement, after all the
+        # mining work is done.
+        if result.height > 0:
+            result_chunks.append(result)
 
     del km1_df
 
@@ -573,7 +598,7 @@ def compute_self_sufficiency(
             schema={
                 "itemset": pl.List(pl.Int32),
                 "support": pl.Float64,
-                "max_k_minus1_support": pl.Float64,
+                "min_k_minus1_support": pl.Float64,
                 "self_sufficiency_ratio": pl.Float64,
             }
         )
@@ -582,7 +607,7 @@ def compute_self_sufficiency(
 
     # Compute ratio
     combined = combined.with_columns(
-        (pl.col("support") / pl.col("max_k_minus1_support")).alias("self_sufficiency_ratio"),
+        (pl.col("support") / pl.col("min_k_minus1_support")).alias("self_sufficiency_ratio"),
     )
 
     logger.info(

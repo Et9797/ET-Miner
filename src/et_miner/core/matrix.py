@@ -331,10 +331,30 @@ def count_support_batched(
     actual_n_transactions = n_transactions
 
     if enable_length_filter and itemsets:
-        # Auto-detect k from itemsets if not provided
+        # Auto-detect k from itemsets if not provided.
+        #
+        # The MINIMUM length across the batch, not len(itemsets[0]). A
+        # transaction shorter than k cannot contain any k-itemset, so filtering
+        # at the batch minimum is exact for every itemset in the batch. Keying
+        # off the first element instead made the result depend on the order of
+        # the input list: the same batch counted differently when permuted, and
+        # a caller building the list from a set got a different answer per run.
+        #
+        # Measured on a mixed-length batch [("i_0","i_1","i_2"), ("i_0",),
+        # ("i_1",)] over 6 transactions: the long-itemset-first order dropped
+        # every transaction with fewer than 3 items, undercounting ("i_0",) as
+        # 1 against a true 5 -- a 75% undercount. Reversing the list gave the
+        # right answer.
+        #
+        # Cost: a lower k filters fewer transactions, so a mixed-length batch
+        # does more work than the (wrong) tight filter did. Filtering per
+        # length-group would recover that and is strictly more correct than
+        # either, but it is a larger change to the batching structure; the
+        # exact-and-simple version ships first. apriori() always passes a
+        # uniform level, so its filtering is unchanged.
         k = min_transaction_length
         if k is None:
-            k = len(itemsets[0]) if itemsets else 2
+            k = min(len(s) for s in itemsets)
 
         filtered_matrix, n_filtered = _filter_transactions_by_length(matrix, k)
         actual_n_transactions = filtered_matrix.height

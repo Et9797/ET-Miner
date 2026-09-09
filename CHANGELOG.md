@@ -25,7 +25,7 @@ figures move — measured, per artifact, not assumed.
 | Defect | Change | Who is affected |
 |---|---|---|
 | **#11** | `_min_count` becomes `ceil(Fraction(str(s)) * N)` instead of `ceil(fl64(s) * N)`, at all three sites (`core/result.py`, `rust_ext`, `synthetic.py`) | any run whose `(min_support, n_rows)` pair shifts — check with `bench/baseline/min_count_impact.py` |
-| **#12** | `compute_self_sufficiency` aggregates `min`, not `max`, over the (K-1)-subsets | **every row's ratio changes**; any published self-sufficiency value is invalidated, not merely shifted |
+| **#12** | `compute_self_sufficiency` aggregates `min`, not `max`, over the (K-1)-subsets, and the output column is renamed `max_k_minus1_support` → `min_k_minus1_support` | **every row's ratio changes**; any published self-sufficiency value is invalidated, not merely shifted. Readers of the output frame must rename the column. |
 | **#13** | `count_support_batched`'s length filter uses the batch **minimum**, not `itemsets[0]` | callers passing mixed-length batches; `apriori()` always passes a uniform level and is unaffected |
 | **#22** | `anchor_items` becomes an output selector; the generating level is no longer filtered | `mine_two_phase` and `apriori(anchor_items=...)` return the itemsets they always advertised — up to 99.3% more — and Phase 2 gets slower |
 | **#24** | any GPU result-buffer overflow raises instead of silently truncating | runs that were completing with a non-deterministic ≤5% loss now fail loudly and say which knob to raise |
@@ -127,6 +127,36 @@ figures move — measured, per artifact, not assumed.
   `level_callback`'s `n_candidates` is documented as route-dependent — the GPU
   group path over-approximates the subset test where the CPU path does not, so
   the two report different counts for the same input at the same level.
+
+*PR 4 — host counting and rule metrics*
+
+- **#12** — `compute_self_sufficiency` aggregates **`min`** over the
+  (K-1)-subsets, not `max`, and the output column is renamed
+  `max_k_minus1_support` → **`min_k_minus1_support`**. Under `max`, a maximally
+  redundant itemset ({1,2,3} at 0.30 with subsets 0.30/0.90/0.95, item 3 fully
+  implied by {1,2}) scored **0.32** and read as "genuine combinatorial signal" —
+  exactly backwards, so anyone filtering on the ratio kept the redundancy and
+  discarded the signal. It now scores 1.0. Recalibrating a cutoff was not
+  available: under `max` the ratio is not monotone in the property described, so
+  two equally redundant itemsets scored 0.9375 and 0.3158.
+- **#13** — `count_support_batched`'s length filter uses the batch **minimum**
+  instead of `len(itemsets[0])`. Whichever itemset happened to be first set the
+  row filter for the whole call, so a mixed-length batch counted differently
+  when permuted and a caller building the list from a set got a different
+  answer per run (measured: `("i_0",)` counted 1 against a true 5, a 75%
+  undercount). No in-tree caller is affected — `apriori()` always passes a
+  uniform level and both SON pass-2 callers already pass
+  `enable_length_filter=False`.
+- **#21** — `compute_self_sufficiency` returns its documented empty frame
+  instead of raising `TypeError` from inside a log statement. The chunk append
+  is now guarded exactly as the sibling `generate_rules_drop1` guards its own.
+- **#15**, **#19** — documentation corrected where it described neither
+  implementation: the k=2 "O(1) memory" claim (the caller drains the generator
+  into a list — 1,242 MB at 6,000 items), and `_prune_groups_apriori`'s
+  "kept only if ALL its (k-1)-subsets are in prev_frequent_set", which carried a
+  verification badge and was wrong about both the Python and the Rust
+  implementation. Both keep a suffix that participates in **at least one** valid
+  pair, which over-approximates one-sidedly.
 
 ### Added
 

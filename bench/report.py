@@ -32,9 +32,14 @@ def load(raw: Path) -> list[dict]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(DEFAULT_OUT))
+    ap.add_argument("--out", default=None, help="results dir (default: the runner's per-revision dir)")
     args = ap.parse_args()
-    out_dir = Path(args.out)
+    # Same derivation as the runner, imported rather than repeated: a report
+    # that looked in a different directory than the runner wrote to would
+    # report "no results" at exactly the revision it was asked about.
+    from runner import _campaign_out
+
+    out_dir = Path(args.out) if args.out else _campaign_out()
     raw = out_dir / "raw.jsonl"
     if not raw.exists():
         print(f"no results at {raw}")

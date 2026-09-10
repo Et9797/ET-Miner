@@ -154,6 +154,32 @@ def capture_environment(out_dir: Path) -> None:
         f.write("\n\n".join(blocks))
 
 
+def _campaign_out() -> Path:
+    """Per-revision results directory, keyed by `_git_rev()`.
+
+    Derived HERE and not in the shell scripts, which each computed it with a
+    bare `git rev-parse --short HEAD`. That drops the `-dirty` suffix, so rows
+    stamped `<sha>-dirty` were filed under `<sha>` -- a directory named for a
+    revision that did not produce its contents, which is the exact confusion
+    the rev stamp exists to prevent. One derivation, one definition of "this
+    revision", used by the runner and the report alike.
+
+    The runner resumes from whatever is already in the directory, which is
+    what a multi-hour campaign needs. Keyed by revision, a resume at the same
+    commit still resumes and a new commit starts clean, so the distinction is
+    structural rather than something a reader has to notice after the fact.
+
+    BOTH modes share one directory, deliberately: `check_equivalence` compares
+    smoke and full rows in the same equivalence groups, and splitting the
+    directory by mode would silence the campaign's only cross-mode refutation.
+    See the comment on that call.
+
+    Nested under `bench/results/campaign/` because that path is already
+    gitignored, so per-revision dirs need no `.gitignore` change.
+    """
+    return DEFAULT_OUT / _git_rev()
+
+
 def run_config(cfg: dict, out_dir: Path) -> dict:
     print(f"→ {cfg['id']} (timeout {cfg['timeout_s']}s) env={cfg['env']}", flush=True)
     safe_id = cfg["id"].replace("#", "_")
@@ -217,14 +243,15 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["smoke", "full"], required=True)
-    ap.add_argument("--out", default=str(DEFAULT_OUT))
+    ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--only", default=None, help="run only configs whose id contains this")
     ap.add_argument("--skip", default=None, help="skip configs whose id contains this")
     args = ap.parse_args()
 
-    out_dir = Path(args.out)
+    out_dir = Path(args.out) if args.out else _campaign_out()
     out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"campaign dir: {out_dir}")
     capture_environment(out_dir)
     raw = out_dir / "raw.jsonl"
 
@@ -245,43 +272,59 @@ def main() -> int:
         print("no CUDA devices — nothing to run")
         return 2
     matrix = build_matrix(args.mode, n_dev)
-    matrix_ids = [
-        c["id"]
+
+    # ONE view of the config set, derived twice from the same matrix.
+    #
+    # There used to be three that disagreed: `matrix_ids` (filtered), the loop
+    # body (filtered again, separately), and `check_equivalence(rows)`
+    # (unfiltered). `--only` therefore gated a subset while the tick spoke for
+    # the whole matrix.
+    #
+    # `all_ids` is deliberately the UNFILTERED matrix. The tick is a claim
+    # about this revision, and `--only` narrows what this invocation RUNS, not
+    # what the claim covers -- a run that executed one config has not gated the
+    # matrix no matter how well that config did.
+    all_ids = {c["id"] for c in matrix}
+    # Filters BEFORE the done check: reversed, a `--only smoke-gpu1` run
+    # counted every other already-done config as replayed and warned about
+    # configs it was never asked to run.
+    selected = [
+        c
         for c in matrix
         if not (args.only and args.only not in c["id"]) and not (args.skip and args.skip in c["id"])
     ]
     deadline = time.time() + args.max_hours * 3600 if args.max_hours else None
 
     here = _git_rev()
-    replayed: list[str] = []
-    failed: list[str] = []
-    fresh = 0
-    for cfg in matrix:
-        # Filters BEFORE the done check: reversed, a `--only smoke-gpu1` run
-        # counted every other already-done config into `replayed` and warned
-        # about configs it was never asked to gate.
-        if args.only and args.only not in cfg["id"]:
-            continue
-        if args.skip and args.skip in cfg["id"]:
-            continue
+    failed_here: list[str] = []
+    for cfg in selected:
         if cfg["id"] in done_ids:
-            was = next((r.get("rev", "unrecorded") for r in rows if r.get("id") == cfg["id"]), "unrecorded")
-            print(f"skip (done): {cfg['id']}  [replayed from rev {was}]")
-            replayed.append(was)
+            print(f"skip (done): {cfg['id']}  [replayed from raw.jsonl]")
             continue
         if deadline and time.time() > deadline:
             print("max-hours reached — stopping (resume with the same command)")
             break
         result = run_config(cfg, out_dir)
-        if result.get("status") == "ok":
-            fresh += 1
-        else:
-            failed.append(f"{cfg['id']} ({result.get('status')})")
+        if result.get("status") != "ok":
+            failed_here.append(f"{cfg['id']} ({result.get('status')})")
         rows.append(result)
         with raw.open("a") as f:
             f.write(json.dumps(result) + "\n")
         print(f"   {result.get('status')} wall={result.get('wall_s')}s peak={result.get('peak_vram_mb')}")
 
+    # UNSCOPED on purpose -- every row in raw.jsonl, not just this selection.
+    #
+    # Refute wide, claim narrow. Scoping this to `all_ids` (or to `selected`)
+    # would suppress the campaign's only cross-mode refutation: smoke's
+    # `stressk2ml2-{legacy,shared}-2g` and full's
+    # `stressk2-filter-{compact,cupy,cpu}` all share
+    # `group_key == ('stress_k2', 2, None, False)`, and that group is the sole
+    # place KERNEL_VARIANT and FILTER_IMPL results ever meet. Both modes write
+    # to one campaign directory so that they do meet.
+    #
+    # A divergence found in a row outside this selection is still a real
+    # divergence. Narrowing the COVERAGE predicate below is what makes the tick
+    # honest; narrowing this would just make it quiet.
     problems = check_equivalence(rows)
     if problems:
         print("\nCAMPAIGN CORRECTNESS FAILURES:")
@@ -304,32 +347,58 @@ def main() -> int:
     # legitimate and failing it would break the resume this file exists to
     # support. What changes is that the line no longer says "consistent" about
     # a run that established nothing.
-    stale_rows = [r for r in replayed if r != here]
-    # `fresh == len(matrix_ids)` alone is true when BOTH are zero, so a
-    # `--only` that matches nothing printed the tick over an empty selection --
-    # the same vacuity one level down from the one this predicate exists to
-    # stop. Selecting nothing is not gating everything.
-    if not matrix_ids:
-        print("\nequivalence groups: NOT GATED — no config matched the filters (--only/--skip).")
-        return 0
-    covered = fresh == len(matrix_ids) and not replayed and not failed
+    # Coverage is read off the rows themselves, not off a tally kept by the
+    # loop. A tally only ever describes the configs this invocation visited;
+    # the question the tick answers is about the whole matrix, however the
+    # rows got there. `latest` takes the LAST row per id -- raw.jsonl is
+    # append-only and a re-run appends, so the first row for an id is the
+    # oldest, which is what the previous `next(...)` lookup returned.
+    latest = {r["id"]: r for r in rows}
+    missing = sorted(i for i in all_ids if i not in latest)
+    bad = sorted(i for i in all_ids if i in latest and latest[i].get("status") != "ok")
+    stale = sorted(i for i in all_ids if i in latest and latest[i].get("rev") != here)
+    covered = not missing and not bad and not stale
+
+    # An empty matrix cannot be gated, and `not missing and not bad and not
+    # stale` is vacuously true over an empty `all_ids`. Selecting nothing is
+    # not gating everything.
+    if not all_ids:
+        print("\nequivalence groups: NOT GATED — the matrix is empty.")
+        return 1
+
     if covered:
-        print(f"\nequivalence groups consistent ✓  ({fresh} run here at {here})")
+        n_groups = len({group_key(latest[i]["config"]) for i in all_ids})
+        print(
+            f"\nequivalence groups consistent ✓  ({len(all_ids)} configs in "
+            f"{n_groups} groups, every row at {here})"
+        )
         return 0
 
     print(f"\nequivalence groups: NOT GATED at {here} — no ✓ emitted.")
-    print(f"  {fresh} of {len(matrix_ids)} configs ran here and returned ok.")
-    if failed:
-        print(f"  {len(failed)} did not return ok: {', '.join(failed)}")
-    if stale_rows:
+    print(f"  {len(all_ids) - len(missing) - len(bad) - len(stale)} of {len(all_ids)} configs are ok at {here}.")
+    if missing:
+        print(f"  {len(missing)} never ran: {', '.join(missing)}")
+    if bad:
+        print(f"  {len(bad)} did not return ok: {', '.join(bad)}")
+    if stale:
+        revs = sorted({str(latest[i].get("rev", "unrecorded")) for i in stale})
         print(
-            f"  {len(stale_rows)} of {len(replayed)} replayed rows were produced at a "
-            f"revision other than {here} ({', '.join(sorted(set(stale_rows)))}) and say "
-            f"nothing about the current tree."
+            f"  {len(stale)} were produced at a revision other than {here} "
+            f"({', '.join(revs)}) and say nothing about the current tree."
         )
-    elif replayed:
-        print(f"  {len(replayed)} rows replayed from this same revision.")
-    print("  Re-run with a fresh --out to gate this revision.")
+    if args.only or args.skip:
+        print("  (--only/--skip narrow what RUNS; the tick still speaks for the whole matrix.)")
+    print("  Re-run without filters, or with a fresh --out, to gate this revision.")
+
+    # A row that FAILED in this invocation is a gate failure, not a partial
+    # campaign. `bench/run_smoke.sh` runs under `set -euo pipefail`, so exit 0
+    # IS the gate passing -- returning 0 from an all-crashed matrix made the
+    # gate pass on a run that established nothing, which is the same false
+    # claim the tick predicate above exists to stop, one level down. A replay
+    # or an interrupted resume still exits 0: those are legitimate and failing
+    # them would break the resume this file supports.
+    if failed_here:
+        return 1
     return 0
 
 

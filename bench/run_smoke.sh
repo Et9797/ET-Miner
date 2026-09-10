@@ -15,16 +15,12 @@ echo "== [2/3] GPU test suite (not slow) =="
 uv run pytest -q -m "gpu and not slow"
 
 echo "== [3/3] Smoke benchmark matrix =="
-# Results go in a per-revision directory. The runner resumes from whatever is
-# already in --out, which is what a multi-hour campaign needs -- but with one
-# shared directory a resumed run replays rows produced by OTHER revisions and
-# the summary can only warn about it after the fact. Keyed by revision, a
-# resume at the same commit still resumes, and a new commit starts clean, so
-# the distinction is structural rather than something a reader has to notice.
-# Nested under bench/results/campaign/ deliberately: that path is already
-# gitignored, so per-revision dirs need no .gitignore change to stay untracked.
-CAMPAIGN_OUT="bench/results/campaign/$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
-uv run python bench/runner.py --mode smoke --out "$CAMPAIGN_OUT"
-uv run python bench/report.py --out "$CAMPAIGN_OUT"
+# The per-revision results directory is derived by the runner itself (see
+# runner.py::_campaign_out) and the report reads the same one. It used to be
+# computed here, in both scripts, with a bare `git rev-parse --short HEAD` --
+# which drops the `-dirty` suffix that `_git_rev()` stamps onto every row, so
+# rows landed in a directory named for a revision that did not produce them.
+uv run python bench/runner.py --mode smoke
+uv run python bench/report.py
 
 echo "== smoke campaign complete — copy bench/results/ back =="

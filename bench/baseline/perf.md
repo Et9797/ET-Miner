@@ -1,7 +1,10 @@
 # Performance baseline (PR 0b)
 
-Captured at `22cb1dc` + PR 0, before any remediation fix. **Re-run this matrix
-after every PR and publish the delta in that PR's description:**
+Captured before any remediation fix, which is what makes the hash column
+meaningful. Its exact provenance is recorded once, under "Treat a large
+percentage as unexplained" below: the JSON was last written at `865286c`, NOT
+at `22cb1dc` + PR 0 as this line used to claim. **Re-run this matrix after
+every PR and publish the delta in that PR's description:**
 
 ```
 uv run python bench/baseline/perf_baseline.py --compare bench/baseline/perf-baseline.json
@@ -114,8 +117,11 @@ were all `same`, and they are worth distinguishing rather than collapsing into
 
 `--compare` has reported `CHANGED 10752->10570` on `twophase-deepk` on **every
 run since `2eb81b0`**, and it is correct to do so: that is #22 landing, not a
-regression. The baseline JSON is pinned at `22cb1dc` + PR 0 and has deliberately
-never been re-recorded, so this row will keep firing until it is.
+regression. The baseline JSON predates `2eb81b0` -- see the provenance note
+above for where it was actually recorded, and note that
+`git merge-base --is-ancestor 865286c 2eb81b0` is true, which is the fact the
+exemption rests on -- and it has deliberately never been re-recorded, so this
+row will keep firing until it is.
 
 `2eb81b0`'s own message states the arithmetic and it closes exactly:
 

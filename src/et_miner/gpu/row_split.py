@@ -179,8 +179,9 @@ def _apriori_row_split_multi_gpu(
     #
     # Ownership is recorded BEFORE the branch, because the density transition
     # below has to know whether the arrays are ours to free. They are not, on
-    # the route core/apriori.py:600 takes: it forwards the caller's own
-    # `bitvecs=` array (validated at :562) when `_route_for_pruning` holds.
+    # the route core/apriori.py takes where it passes `bitvecs_list=` built
+    # from the caller's own `bitvecs=` array (unpacked and validated a few
+    # lines above it), which happens when `_route_for_pruning` holds.
     _owns_bitvecs = bitvecs_list is None
     if bitvecs_list is None:
         t0 = time.perf_counter()
@@ -832,27 +833,34 @@ def _apriori_row_split_multi_gpu(
     #
     # The int64 cast is load-bearing, not cosmetic. This function has three
     # return paths and they used to disagree on the itemset dtype: both
-    # _empty_result() calls above give List(Int64) (core/result.py:55), the
+    # _empty_result() calls above give List(Int64) (core/result.py), the
     # list fallback below gives List(Int64) via Python ints, and this path gave
-    # List(Int32) -- because `col_to_item_arr` is np.int32 (:198, guarded to
-    # item IDs < 2**31) and Arrow preserves it. So the ONE path that normally
-    # runs was the odd one out, and _apriori_from_bitvecs builds the same
-    # lookup as int64 (`col_to_item_arr`, gpu/mining.py:657), so the two GPU
-    # routes disagreed with each other as well.
+    # List(Int32) -- because this file builds `col_to_item_arr` as np.int32
+    # (guarded by the `_max_item < 2**31` assert beside it) and Arrow preserves
+    # it. So the ONE path that normally runs was the odd one out, and
+    # gpu/mining.py::_apriori_from_bitvecs builds the same lookup as np.int64,
+    # so the two GPU routes disagreed with each other as well.
     #
     # Deliberately asymmetric with the flushed parquet, which stays
     # large_list<int32> (io/flush.py builds its own list array from the same
     # int32 items_flat): widening it would double the itemset bytes of every
     # artifact already on disk, and nothing reads it in a dtype-sensitive way --
-    # the resume reader indexes `item_to_col[flat_item_ids]` (:298), the
-    # mine_two_phase anchor read goes through `df["itemset"].to_list()` (:1021),
-    # and both core/rules.py consumers are parquet-to-parquet so their join keys
-    # are int32 on both sides. Widening those would cost ~84 GB on a K=7 K-1
-    # frame. tests/test_row_split_dtypes.py pins each of those boundaries.
+    # the resume reader indexes `item_to_col[flat_item_ids]`, the mine_two_phase
+    # anchor read goes through `df["itemset"].to_list()`, and both core/rules.py
+    # consumers are parquet-to-parquet so their join keys are int32 on both
+    # sides. Widening those would cost ~84 GB on a K=7 K-1 frame -- an
+    # order-of-magnitude estimate, not a measurement: the arithmetic is
+    # rows x 6 items x 4 extra bytes, so it stands on a K=6 frame of ~3.5e9
+    # rows, and that row count is recorded nowhere in this tree. The only
+    # scale figure that is written down is core/rules.py's "K=8: 12B rows,
+    # 67 GB". Quoted with its basis so the next reader can reject it.
+    # tests/test_row_split_dtypes.py pins each of those boundaries.
     #
-    # Every line citation above names the symbol it points at as well as the
-    # number: four of the five were wrong (:165, :265, :883, mining.py:599) and
-    # nothing caught it, because a bare number cannot be checked by reading.
+    # Every reference above names a symbol and no line number. Four of the five
+    # numbers this block used to carry were wrong; corrected, two of them went
+    # stale again inside the same session, because any edit above them moves
+    # them and nothing checks. A symbol is greppable and a number is not, so it
+    # is the symbol that gets written down.
     try:
         import pyarrow as pa
 

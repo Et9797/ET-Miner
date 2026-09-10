@@ -249,7 +249,8 @@ defects in the remediation itself, all measured. Fixed here:
   flushed parquet deliberately stays `large_list<int32>`: widening it would
   double the itemset bytes of every existing artifact, no reader is
   dtype-sensitive, and widening `core/rules.py`'s join keys would cost ~84 GB on
-  a K=7 K-1 frame. A test enumerates every `itemset` reader so the asymmetry
+  a K=7 K-1 frame (an estimate — rows × 6 × 4 B on a ~3.5e9-row K=6 frame — not
+  a measurement; the row count behind it is not recorded). A test enumerates every `itemset` reader so the asymmetry
   cannot spread unnoticed.
 - **#30, N10, N20 — three device/ownership assumptions, all silent.**
   `_apriori_from_bitvecs` and the row-split density transition both logged

@@ -160,7 +160,12 @@ _WINDOW = 15
 _KNOWN_ITEMSET_READERS = {
     # file:line                  # why the on-disk int32 is fine there
     "gpu/row_split.py": "resume reader indexes item_to_col[flat_item_ids]; anchor read uses .to_list()",
-    "core/rules.py": "parquet-to-parquet on both join sides; widening costs ~84 GB at K=7",
+    "core/rules.py": (
+        "parquet-to-parquet on both join sides (generate_rules_drop1 and "
+        "compute_self_sufficiency both scan_parquet + join on the k-1 cols); "
+        "widening costs ~84 GB at K=7 -- an estimate resting on a ~3.5e9-row "
+        "K=6 frame, which is not recorded anywhere, not a measurement"
+    ),
 }
 
 

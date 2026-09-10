@@ -245,26 +245,38 @@ def main() -> int:
         print("no CUDA devices — nothing to run")
         return 2
     matrix = build_matrix(args.mode, n_dev)
+    matrix_ids = [
+        c["id"]
+        for c in matrix
+        if not (args.only and args.only not in c["id"]) and not (args.skip and args.skip in c["id"])
+    ]
     deadline = time.time() + args.max_hours * 3600 if args.max_hours else None
 
     here = _git_rev()
     replayed: list[str] = []
+    failed: list[str] = []
     fresh = 0
     for cfg in matrix:
+        # Filters BEFORE the done check: reversed, a `--only smoke-gpu1` run
+        # counted every other already-done config into `replayed` and warned
+        # about configs it was never asked to gate.
+        if args.only and args.only not in cfg["id"]:
+            continue
+        if args.skip and args.skip in cfg["id"]:
+            continue
         if cfg["id"] in done_ids:
             was = next((r.get("rev", "unrecorded") for r in rows if r.get("id") == cfg["id"]), "unrecorded")
             print(f"skip (done): {cfg['id']}  [replayed from rev {was}]")
             replayed.append(was)
             continue
-        if args.only and args.only not in cfg["id"]:
-            continue
-        if args.skip and args.skip in cfg["id"]:
-            continue
         if deadline and time.time() > deadline:
             print("max-hours reached — stopping (resume with the same command)")
             break
         result = run_config(cfg, out_dir)
-        fresh += 1
+        if result.get("status") == "ok":
+            fresh += 1
+        else:
+            failed.append(f"{cfg['id']} ({result.get('status')})")
         rows.append(result)
         with raw.open("a") as f:
             f.write(json.dumps(result) + "\n")
@@ -277,22 +289,47 @@ def main() -> int:
             print(f"  {p}")
         return 1
 
-    # What the tick covers, stated. `rows` includes every replayed result, so
-    # the check runs -- but over numbers some OTHER revision produced, and a
-    # bare "consistent" line cannot be told apart from a fresh pass. It was not
-    # told apart: this gate reported green across seven commits while running
-    # nothing. Exit code is unchanged (a replay is a legitimate resume, and
-    # failing it would break long campaigns); what changes is that the line
-    # says which code it is a statement about.
+    # The tick is emitted ONLY when it is a statement about this revision.
+    #
+    # `check_equivalence` skips every row whose status is not "ok", so a matrix
+    # in which every config crashed compares nothing and reports no problems.
+    # Stamping such a run with the current revision made it read
+    # character-for-character like an honest fresh pass -- a stronger false
+    # claim than the stale-replay case this reporting was written to fix, and
+    # `bench/run_smoke.sh` runs under `set -euo pipefail`, so exit 0 IS the
+    # gate passing. Hence: the tick requires that every config in this
+    # invocation ran here, at this revision, and produced an ok row.
+    #
+    # Exit code stays 0 for a replay -- resuming a multi-hour campaign is
+    # legitimate and failing it would break the resume this file exists to
+    # support. What changes is that the line no longer says "consistent" about
+    # a run that established nothing.
     stale_rows = [r for r in replayed if r != here]
-    print(f"\nequivalence groups consistent ✓  ({fresh} run here at {here}, {len(replayed)} replayed)")
+    # `fresh == len(matrix_ids)` alone is true when BOTH are zero, so a
+    # `--only` that matches nothing printed the tick over an empty selection --
+    # the same vacuity one level down from the one this predicate exists to
+    # stop. Selecting nothing is not gating everything.
+    if not matrix_ids:
+        print("\nequivalence groups: NOT GATED — no config matched the filters (--only/--skip).")
+        return 0
+    covered = fresh == len(matrix_ids) and not replayed and not failed
+    if covered:
+        print(f"\nequivalence groups consistent ✓  ({fresh} run here at {here})")
+        return 0
+
+    print(f"\nequivalence groups: NOT GATED at {here} — no ✓ emitted.")
+    print(f"  {fresh} of {len(matrix_ids)} configs ran here and returned ok.")
+    if failed:
+        print(f"  {len(failed)} did not return ok: {', '.join(failed)}")
     if stale_rows:
         print(
-            f"  REPLAY WARNING: {len(stale_rows)} of {len(replayed)} replayed rows were "
-            f"produced at a revision other than {here} ({', '.join(sorted(set(stale_rows)))}). "
-            f"Those rows say nothing about the current tree -- re-run with a fresh --out "
-            f"to gate this revision."
+            f"  {len(stale_rows)} of {len(replayed)} replayed rows were produced at a "
+            f"revision other than {here} ({', '.join(sorted(set(stale_rows)))}) and say "
+            f"nothing about the current tree."
         )
+    elif replayed:
+        print(f"  {len(replayed)} rows replayed from this same revision.")
+    print("  Re-run with a fresh --out to gate this revision.")
     return 0
 
 

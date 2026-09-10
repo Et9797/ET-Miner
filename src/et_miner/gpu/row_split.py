@@ -513,8 +513,9 @@ def _apriori_row_split_multi_gpu(
                     tc_before = groups_info.total_candidates
                     # None, not a prebuilt set: prev_full_flat is authoritative
                     # and the Rust path never reads the set. See #29 --
-                    # materialising it here cost ~35 s/level at 10M itemsets for
-                    # an argument that was then discarded.
+                    # materialising it here cost ~9 s/level at 10M itemsets
+                    # (measured, k=5) for an argument that was then discarded.
+                    # gpu/mining.py::_prune_groups_apriori carries the numbers.
                     groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
@@ -610,8 +611,9 @@ def _apriori_row_split_multi_gpu(
                     tc_before = groups_info.total_candidates
                     # None, not a prebuilt set: prev_full_flat is authoritative
                     # and the Rust path never reads the set. See #29 --
-                    # materialising it here cost ~35 s/level at 10M itemsets for
-                    # an argument that was then discarded.
+                    # materialising it here cost ~9 s/level at 10M itemsets
+                    # (measured, k=5) for an argument that was then discarded.
+                    # gpu/mining.py::_prune_groups_apriori carries the numbers.
                     groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
@@ -832,20 +834,25 @@ def _apriori_row_split_multi_gpu(
     # return paths and they used to disagree on the itemset dtype: both
     # _empty_result() calls above give List(Int64) (core/result.py:55), the
     # list fallback below gives List(Int64) via Python ints, and this path gave
-    # List(Int32) -- because col_to_item_arr is np.int32 (see :165, guarded to
+    # List(Int32) -- because `col_to_item_arr` is np.int32 (:198, guarded to
     # item IDs < 2**31) and Arrow preserves it. So the ONE path that normally
-    # runs was the odd one out, and _apriori_from_bitvecs (gpu/mining.py:599)
-    # builds the same lookup as int64, so the two GPU routes disagreed as well.
+    # runs was the odd one out, and _apriori_from_bitvecs builds the same
+    # lookup as int64 (`col_to_item_arr`, gpu/mining.py:657), so the two GPU
+    # routes disagreed with each other as well.
     #
     # Deliberately asymmetric with the flushed parquet, which stays
     # large_list<int32> (io/flush.py builds its own list array from the same
     # int32 items_flat): widening it would double the itemset bytes of every
     # artifact already on disk, and nothing reads it in a dtype-sensitive way --
-    # the resume reader indexes item_to_col[flat_item_ids] (:265), the
-    # mine_two_phase anchor read goes through .to_list() (:883), and both
-    # core/rules.py consumers are parquet-to-parquet so their join keys are
-    # int32 on both sides. Widening those would cost ~84 GB on a K=7 K-1 frame.
-    # tests/test_row_split_dtypes.py pins each of those boundaries.
+    # the resume reader indexes `item_to_col[flat_item_ids]` (:298), the
+    # mine_two_phase anchor read goes through `df["itemset"].to_list()` (:1021),
+    # and both core/rules.py consumers are parquet-to-parquet so their join keys
+    # are int32 on both sides. Widening those would cost ~84 GB on a K=7 K-1
+    # frame. tests/test_row_split_dtypes.py pins each of those boundaries.
+    #
+    # Every line citation above names the symbol it points at as well as the
+    # number: four of the five were wrong (:165, :265, :883, mining.py:599) and
+    # nothing caught it, because a bare number cannot be checked by reading.
     try:
         import pyarrow as pa
 

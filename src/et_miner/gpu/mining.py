@@ -273,10 +273,21 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
 
     The consequence is that `prev_frequent_set` may be None. It used to be built
     eagerly by both callers in gpu/row_split.py, at `set(map(tuple,
-    prev_full_flat.tolist()))` -- roughly 371 B per itemset and ~35 s per level
-    at 10M itemsets -- and then handed to a Rust call that never looked at it.
-    On any build with the extension present it was pure cost. Now the Python
-    fallback derives it from `prev_flat_np` at the one place that reads it.
+    prev_full_flat.tolist()))`, and then handed to a Rust call that never looked
+    at it. On any build with the extension present it was pure cost. Now the
+    Python fallback derives it from `prev_flat_np` at the one place that reads
+    it.
+
+    MEASURED, 10M itemsets at k=5, VmHWM delta: **~8.9 s and ~367 B per
+    itemset**, i.e. ~3.5 GB of host RAM for a set nothing reads. Time scales
+    with k: 7.2 s at k=3, 12.0 s at k=7. An earlier revision of this docstring
+    claimed ~35 s per level; that number was never measured and is ~4x high.
+
+    The byte figure is quoted with its regime because it is not a constant.
+    Item IDs below 257 are CPython singletons, so the tuples share them and the
+    same measurement gives ~208 B/itemset. 367 B is the no-sharing case, which
+    is the one this line exists for -- a vocabulary small enough to intern is
+    also small enough that the set never gets big.
 
     No cross-check is performed when both are supplied and disagree: comparing
     them would cost exactly the set this change removes. `prev_flat_np` wins,

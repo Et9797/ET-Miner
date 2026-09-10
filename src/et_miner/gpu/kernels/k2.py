@@ -153,7 +153,7 @@ def count_pairs_fused_k2_multi_gpu(bitvecs_gpu, freq_item_cols, n_u64s, min_coun
                 with stream:
                     # Replicate data to this GPU
                     if device_id == _home:
-                        bv_gpu = bitvecs_gpu  # already on GPU 0
+                        bv_gpu = bitvecs_gpu  # already on the home device
                     else:
                         bv_gpu = cp.array(bitvecs_np, dtype=cp.uint64)
 

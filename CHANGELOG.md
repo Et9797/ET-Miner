@@ -239,7 +239,7 @@ defects in the remediation itself, all measured. Fixed here:
   wrapping; a `%s` in a loguru call printed literally; a stale "take max"
   comment; a dead log line; an `int | None` annotation.
 
-*PR 6 — GPU hygiene, device affinity, docs (no output change)*
+*PR 6 — GPU hygiene, device affinity, docs (one schema change: #26)*
 
 - **#26** — the row-split miner returned **three different `itemset` dtypes**.
   Both empty-result paths and the list fallback gave `List(Int64)`; the PyArrow

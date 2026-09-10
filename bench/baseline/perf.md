@@ -88,3 +88,25 @@ capture is kept as `perf-baseline-pr0-singlesample.json`.*
 whether `itemset_hash` moved**. A changed hash on a config the PR was not
 supposed to affect is a correctness regression, not a performance one — that is
 the more important half of the output.
+
+### Known standing delta: `twophase-deepk`, since `2eb81b0`
+
+`--compare` has reported `CHANGED 10752->10570` on `twophase-deepk` on **every
+run since `2eb81b0`**, and it is correct to do so: that is #22 landing, not a
+regression. The baseline JSON is pinned at `22cb1dc` + PR 0 and has deliberately
+never been re-recorded, so this row will keep firing until it is.
+
+`2eb81b0`'s own message states the arithmetic and it closes exactly:
+
+> K=1 is masked too. `_anchor_keep_mask` returned None for k<2, so a two-phase
+> run emitted every frequent item at K=1 while filtering every deeper level.
+> [...] 294 frequent items at phase2_support minus 112 anchors = 182 =
+> 10,752 - 10,570.
+
+Bisected on 2026-09-10 to rule out PR 6: `04770ca` (PR 6's branch point) already
+gives 10,570, as do all seven PR 6 commits; `2090cdc` and everything before it
+gives 10,752.
+
+**This is the one row on which a changed hash is expected.** Every other config
+is still a correctness signal, and this one is only benign until the baseline is
+re-recorded — at which point the exemption must be deleted along with it.

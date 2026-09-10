@@ -5,7 +5,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from .loader import _assert_k_supported, _get_device_lock, _grid_dims, _warn_result_truncation, get_cuda_kernel
+from .loader import (
+    _assert_home,
+    _assert_k_supported,
+    _get_device_lock,
+    _grid_dims,
+    _warn_result_truncation,
+    get_cuda_kernel,
+)
 
 
 def build_prefix_groups_gpu(prev_freq_gpu):
@@ -97,8 +104,30 @@ def count_k3plus_gpu_resident(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, max
           freq_itemsets_gpu: CuPy array (n_results, k) of frequent k-itemsets in VRAM
           counts_gpu: CuPy array (n_results,) of support counts in VRAM
         Returns (None, None) if no frequent itemsets found.
+
+    Device: every allocation and launch follows `bitvecs_gpu`, not the ambient
+    current device, and `prev_freq_gpu` must be on that same device. It used to
+    follow the ambient one, and got away with it only because
+    `build_prefix_groups_gpu` also did: from a thread parked on device 0 with
+    inputs on device 1, the prefix-group build raised `ValueError` before the
+    body could launch. Making that helper device-following removed the raise
+    without moving the body, turning a lost level into
+    `CUDA_ERROR_ILLEGAL_ADDRESS` -- which poisons the CUDA context
+    process-wide, i.e. a lost campaign. Same split, same reason. N20.
     """
     _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident")
+    _assert_home(
+        bitvecs_gpu,
+        context="count_k3plus_gpu_resident",
+        prev_freq_gpu=prev_freq_gpu,
+    )
+    import cupy as cp
+
+    with cp.cuda.Device(int(bitvecs_gpu.device.id)):
+        return _count_k3plus_gpu_resident_impl(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, max_results)
+
+
+def _count_k3plus_gpu_resident_impl(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, max_results):
     import cupy as cp
 
     n_freq, k_prev = prev_freq_gpu.shape
@@ -270,6 +299,8 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
 
     Contract: all inputs must be resident on ONE device -- the wrapper
     replicates them to the others. That device used to be hardcoded as 0.
+    Enforced by `_assert_home` above the routing, so it also covers the
+    single-GPU fall-through at `n_gpus <= 1`.
 
     Args:
         bitvecs_gpu: CuPy array of shape (n_cols, n_u64s). Its device is the
@@ -284,6 +315,11 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
         Tuple of (pair_itemsets_gpu, counts_gpu) CuPy arrays on the caller's
         device, or (None, None) if no frequent pairs found.
     """
+    _assert_home(
+        bitvecs_gpu,
+        context="count_pairs_fused_k2_gpu_resident_multi_gpu",
+        freq_cols_gpu=freq_cols_gpu,
+    )
     import cupy as cp
     from concurrent.futures import ThreadPoolExecutor
 
@@ -431,6 +467,9 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
     assume that device was 0 and is now taken from `bitvecs_gpu.device.id`; a
     mixed-device call raises rather than being silently repaired by a transfer,
     because that is a caller bug and a hidden copy makes it unattributable.
+    The check is `_assert_home`, above the routing, so it also covers the
+    single-GPU fall-through at `n_gpus <= 1` -- which is every call on a
+    one-GPU host and every level with a single candidate.
 
     Args:
         bitvecs_gpu: CuPy array of shape (n_cols, n_u64s). Its device is the
@@ -446,12 +485,17 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
         device, or (None, None) if no frequent itemsets found.
     """
     _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident_multi_gpu")
+    _assert_home(
+        bitvecs_gpu,
+        context="count_k3plus_gpu_resident_multi_gpu",
+        prev_freq_gpu=prev_freq_gpu,
+    )
     import cupy as cp
     from concurrent.futures import ThreadPoolExecutor
 
     n_freq, k_prev = prev_freq_gpu.shape
 
-    # Build prefix groups on GPU 0
+    # Build prefix groups on the home device (build_prefix_groups_gpu follows its input)
     group_starts, group_sizes, cumulative_pairs, total_candidates = build_prefix_groups_gpu(prev_freq_gpu)
 
     if total_candidates == 0:
@@ -478,25 +522,6 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
     group_sizes_np = group_sizes.get()
     cumulative_pairs_np = cumulative_pairs.get()
     n_groups = len(group_starts)
-
-    # All five inputs are aliased together on the home device below, so they
-    # must live together. Asserted rather than transferred: a mixed-device
-    # caller is a caller bug, and silently copying would hide it behind a
-    # transfer nobody attributes. See this function's docstring for the
-    # contract that makes the assert the documented behaviour.
-    for _name, _arr in (
-        ("prev_freq_gpu", prev_freq_gpu),
-        ("group_starts", group_starts),
-        ("group_sizes", group_sizes),
-        ("cumulative_pairs", cumulative_pairs),
-    ):
-        if int(_arr.device.id) != _home:
-            raise ValueError(
-                f"count_k3plus_gpu_resident_multi_gpu: {_name} is on device "
-                f"{int(_arr.device.id)} but bitvecs_gpu is on device {_home}. "
-                "All inputs must be resident on one device; the wrapper "
-                "replicates them to the others."
-            )
 
     cands_per_gpu = (total_candidates + n_gpus - 1) // n_gpus
     kernel = get_cuda_kernel("count_k3plus_gpu_resident")

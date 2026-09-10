@@ -118,6 +118,41 @@ def _assert_k_supported(k: int | None, context: str = "") -> None:
             "write one past the array into the block reduction."
         )
 
+
+def _assert_home(home, *, context: str = "", home_name: str = "bitvecs_gpu", **named) -> None:
+    """Raise before a wrapper aliases GPU arrays that do not share a device.
+
+    Two routes depend on the inputs already living together: the multi-GPU
+    wrappers alias the caller's arrays on one device and upload copies to the
+    others, and the single-GPU K>=3 route pins its launch to that device while
+    `build_prefix_groups_gpu` follows `prev_freq_gpu`. Mix the devices and the
+    kernel is handed pointers from two cards -- CUDA_ERROR_ILLEGAL_ADDRESS,
+    which poisons the context process-wide rather than costing one level.
+
+    It raises instead of transferring: a mixed-device call is a caller bug,
+    and repairing it with a hidden copy makes it unattributable.
+
+    Pass the array that *defines* the home device positionally and the ones
+    that must follow it by keyword. Only pass arrays the caller supplied --
+    arrays derived from them follow by construction, and naming a derived one
+    points the error at an array the caller never chose.
+
+    Callers must invoke this ABOVE any routing. Below a
+    `if n_gpus <= 1: return ...` it never runs on a single-GPU host, which is
+    the placement mistake `core/apriori.py:523-527` already records.
+    """
+    home_id = int(home.device.id)
+    for name, arr in named.items():
+        arr_id = int(arr.device.id)
+        if arr_id != home_id:
+            where = f"{context}: " if context else ""
+            raise ValueError(
+                f"{where}{name} is on device {arr_id} but {home_name} is on "
+                f"device {home_id}. All inputs must be resident on one device; "
+                "the multi-GPU wrappers replicate them to the others."
+            )
+
+
 _MAX_GRID_X = 2_147_483_647  # 2^31 - 1
 
 

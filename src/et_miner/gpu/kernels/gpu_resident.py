@@ -116,11 +116,7 @@ def count_k3plus_gpu_resident(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, max
     process-wide, i.e. a lost campaign. Same split, same reason. N20.
     """
     _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident")
-    _assert_home(
-        bitvecs_gpu,
-        context="count_k3plus_gpu_resident",
-        prev_freq_gpu=prev_freq_gpu,
-    )
+    _assert_home("count_k3plus_gpu_resident", bitvecs_gpu=bitvecs_gpu, prev_freq_gpu=prev_freq_gpu)
     import cupy as cp
 
     with cp.cuda.Device(int(bitvecs_gpu.device.id)):
@@ -232,7 +228,28 @@ def count_pairs_fused_k2_gpu_resident(bitvecs_gpu, freq_cols_gpu, n_u64s, min_co
           pair_itemsets_gpu: CuPy array (n_results, 2) of column index pairs in VRAM
           counts_gpu: CuPy array (n_results,) of support counts in VRAM
         Returns (None, None) if no frequent pairs found.
+
+    Device: every allocation and launch follows `bitvecs_gpu`, not the ambient
+    current device, and `freq_cols_gpu` must be on that same device. Identical
+    contract and identical shape to `count_k3plus_gpu_resident` -- this is the
+    K=2 twin of N20, and it was measured aborting with
+    `cudaErrorIllegalAddress` from ambient device 0 with both inputs
+    co-resident on device 1, i.e. inputs the co-residency guard passes. It is
+    reachable both directly and through the `n_gpus <= 1` fall-through in the
+    multi-GPU wrapper, which `dispatch.py::dispatch_k2_gpu_resident` takes on
+    its single-GPU branch. Unreachable off-device from in-tree callers today
+    only because the K=1 popcount upstream is a CuPy ElementwiseKernel that
+    raises first; that is an accident of the caller, not a property of this
+    function, and the K>=3 fix was blocked for relying on exactly that.
     """
+    _assert_home("count_pairs_fused_k2_gpu_resident", bitvecs_gpu=bitvecs_gpu, freq_cols_gpu=freq_cols_gpu)
+    import cupy as cp
+
+    with cp.cuda.Device(int(bitvecs_gpu.device.id)):
+        return _count_pairs_fused_k2_gpu_resident_impl(bitvecs_gpu, freq_cols_gpu, n_u64s, min_count)
+
+
+def _count_pairs_fused_k2_gpu_resident_impl(bitvecs_gpu, freq_cols_gpu, n_u64s, min_count):
     import cupy as cp
 
     n_freq = len(freq_cols_gpu)
@@ -299,8 +316,11 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
 
     Contract: all inputs must be resident on ONE device -- the wrapper
     replicates them to the others. That device used to be hardcoded as 0.
-    Enforced by `_assert_home` above the routing, so it also covers the
-    single-GPU fall-through at `n_gpus <= 1`.
+    Enforced by `_assert_home` above the routing, so the check also runs on the
+    single-GPU fall-through at `n_gpus <= 1` rather than being skipped by it.
+    The fall-through target pins its own launch to `bitvecs_gpu`'s device, so
+    that route is covered end to end -- co-residency here, ambient device
+    there. Both halves are needed and neither implies the other.
 
     Args:
         bitvecs_gpu: CuPy array of shape (n_cols, n_u64s). Its device is the
@@ -316,8 +336,8 @@ def count_pairs_fused_k2_gpu_resident_multi_gpu(bitvecs_gpu, freq_cols_gpu, n_u6
         device, or (None, None) if no frequent pairs found.
     """
     _assert_home(
-        bitvecs_gpu,
-        context="count_pairs_fused_k2_gpu_resident_multi_gpu",
+        "count_pairs_fused_k2_gpu_resident_multi_gpu",
+        bitvecs_gpu=bitvecs_gpu,
         freq_cols_gpu=freq_cols_gpu,
     )
     import cupy as cp
@@ -486,8 +506,8 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
     """
     _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident_multi_gpu")
     _assert_home(
-        bitvecs_gpu,
-        context="count_k3plus_gpu_resident_multi_gpu",
+        "count_k3plus_gpu_resident_multi_gpu",
+        bitvecs_gpu=bitvecs_gpu,
         prev_freq_gpu=prev_freq_gpu,
     )
     import cupy as cp

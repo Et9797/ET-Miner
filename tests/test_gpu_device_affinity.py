@@ -289,3 +289,109 @@ def test_k3plus_single_gpu_follows_its_inputs_not_the_ambient_device():
     if g_items is not None:
         assert int(g_items.device.id) == 1
         assert int(g_counts.device.id) == 1
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+def test_k2_single_gpu_follows_its_inputs_not_the_ambient_device():
+    """The K=2 twin of N20, which the first remediation left untreated.
+
+    `count_pairs_fused_k2_gpu_resident` allocated its result buffers on the
+    AMBIENT device and handed the kernel `bitvecs_gpu` from another card. Three
+    reviewers found it independently and one measured it aborting with
+    `cudaErrorIllegalAddress` -- on inputs that are co-resident, i.e. inputs the
+    co-residency guard passes. Co-residency and ambient-pinning are two
+    different properties and neither implies the other.
+
+    Reachable directly and through the multi-GPU wrapper's `n_gpus <= 1`
+    fall-through, which `dispatch.py::dispatch_k2_gpu_resident` takes on its
+    single-GPU branch. It was unreachable off-device from in-tree callers only
+    because the K=1 popcount upstream is a CuPy ElementwiseKernel that raises
+    first -- an accident of the caller, and relying on exactly that accident is
+    what the K>=3 version of this fix was blocked for.
+
+    CONTROL: drop the `with cp.cuda.Device(...)` from the wrapper and this
+    aborts the process rather than failing, so it asserts on counts and on the
+    device the results come back on.
+    """
+    from et_miner.gpu.kernels import count_pairs_fused_k2_gpu_resident
+
+    _assert_two_devices()
+    cols_np = np.arange(24, dtype=np.int32)
+
+    bv0, n_u64s = _bitvecs_on(0)
+    with cp.cuda.Device(0):
+        cols0 = cp.asarray(cols_np)
+        w_items, w_counts = count_pairs_fused_k2_gpu_resident(bv0, cols0, n_u64s, MIN_COUNT)
+        want = None if w_items is None else _sorted_pairs(cp.asnumpy(w_items), cp.asnumpy(w_counts))
+
+    bv1, _ = _bitvecs_on(1)
+    with cp.cuda.Device(1):
+        cols1 = cp.asarray(cols_np)
+
+    # Ambient device 0, both inputs on device 1.
+    with cp.cuda.Device(0):
+        g_items, g_counts = count_pairs_fused_k2_gpu_resident(bv1, cols1, n_u64s, MIN_COUNT)
+        got = None if g_items is None else _sorted_pairs(cp.asnumpy(g_items), cp.asnumpy(g_counts))
+
+    assert got == want
+    assert want is not None, "fixture must produce frequent pairs or this asserts nothing"
+    assert int(g_items.device.id) == 1
+    assert int(g_counts.device.id) == 1
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize(
+    "fn_name, second_kwarg",
+    [
+        ("count_k3plus_gpu_resident", "prev_freq_gpu"),
+        ("count_pairs_fused_k2_gpu_resident", "freq_cols_gpu"),
+    ],
+)
+def test_single_gpu_entry_points_reject_mixed_device_inputs(fn_name, second_kwarg):
+    """The co-residency guard on the SINGLE-GPU entry points, called directly.
+
+    These two guards were previously unreachable from any test: the multi-GPU
+    parametrisation cannot get here, because the wrapper's own check fires
+    above the routing and raises first. So the deviation that added them was
+    shipped unpinned. This calls them directly, which is also how
+    `gpu/dispatch.py` reaches them on a single-GPU host.
+
+    CONTROL: delete either `_assert_home` call and the mixed-device input
+    reaches the kernel instead of raising.
+    """
+    import et_miner.gpu.kernels as K
+
+    fn = getattr(K, fn_name)
+    _assert_two_devices()
+
+    if second_kwarg == "prev_freq_gpu":
+        second_np = np.array([(i, j) for i in range(8) for j in range(i + 1, 9)], dtype=np.int32)
+    else:
+        second_np = np.arange(16, dtype=np.int32)
+
+    bv1, n_u64s = _bitvecs_on(1)
+    with cp.cuda.Device(0):
+        second_wrong_device = cp.asarray(second_np)
+
+    with pytest.raises(ValueError, match="must be resident on one device"):
+        fn(bv1, second_wrong_device, n_u64s, MIN_COUNT)
+
+
+@pytest.mark.gpu
+def test_assert_home_rejects_a_host_array_with_a_readable_error():
+    """A host array reaching a device-only path is a ValueError, not AttributeError.
+
+    NumPy 2 gives `ndarray.device == "cpu"` and NumPy 1 has no `.device` at
+    all; both used to surface as `AttributeError: 'str' object has no attribute
+    'id'` or similar from inside the validator, which reads like a bug in the
+    check rather than a bug in the call.
+    """
+    from et_miner.gpu.kernels.loader import _assert_home
+
+    with cp.cuda.Device(0):
+        on_gpu = cp.zeros((4, 2), dtype=cp.uint64)
+
+    with pytest.raises(ValueError, match="not a CuPy array resident on a CUDA device"):
+        _assert_home("ctx", bitvecs_gpu=on_gpu, prev_freq_gpu=np.zeros((4, 2), dtype=np.int32))

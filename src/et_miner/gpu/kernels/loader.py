@@ -119,37 +119,53 @@ def _assert_k_supported(k: int | None, context: str = "") -> None:
         )
 
 
-def _assert_home(home, *, context: str = "", home_name: str = "bitvecs_gpu", **named) -> None:
+def _assert_home(context: str, **arrays) -> None:
     """Raise before a wrapper aliases GPU arrays that do not share a device.
 
-    Two routes depend on the inputs already living together: the multi-GPU
-    wrappers alias the caller's arrays on one device and upload copies to the
-    others, and the single-GPU K>=3 route pins its launch to that device while
-    `build_prefix_groups_gpu` follows `prev_freq_gpu`. Mix the devices and the
-    kernel is handed pointers from two cards -- CUDA_ERROR_ILLEGAL_ADDRESS,
+    The FIRST keyword is the home device; every later one must match it. Pass
+    them by keyword because the keyword is what the error names, and pass only
+    arrays the caller supplied -- arrays derived from those follow by
+    construction, and naming a derived one points the error at an array the
+    caller never chose.
+
+    Two things depend on the inputs living together. The multi-GPU wrappers
+    alias the caller's arrays on one device and upload copies to the others.
+    The single-GPU routes pin their launch to the home device while helpers
+    like `build_prefix_groups_gpu` follow their own input. Mix the devices and
+    the kernel is handed pointers from two cards -- CUDA_ERROR_ILLEGAL_ADDRESS,
     which poisons the context process-wide rather than costing one level.
 
-    It raises instead of transferring: a mixed-device call is a caller bug,
-    and repairing it with a hidden copy makes it unattributable.
-
-    Pass the array that *defines* the home device positionally and the ones
-    that must follow it by keyword. Only pass arrays the caller supplied --
-    arrays derived from them follow by construction, and naming a derived one
-    points the error at an array the caller never chose.
+    It raises instead of transferring: a mixed-device call is a caller bug, and
+    repairing it with a hidden copy makes it unattributable. That is this
+    module's rule, not a project-wide one -- `gpu/csr_build.py` deliberately
+    repairs with `cp.asarray`, because it takes an explicit target `device_id`
+    ("put it here") where these wrappers infer home from the data.
 
     Callers must invoke this ABOVE any routing. Below a
     `if n_gpus <= 1: return ...` it never runs on a single-GPU host, which is
-    the placement mistake `core/apriori.py:523-527` already records.
+    the placement mistake `core/apriori.py::_validate_route_support` already
+    records in its own comment.
     """
-    home_id = int(home.device.id)
-    for name, arr in named.items():
-        arr_id = int(arr.device.id)
-        if arr_id != home_id:
-            where = f"{context}: " if context else ""
+    home_name = home_id = None
+    for name, arr in arrays.items():
+        dev = getattr(arr, "device", None)
+        dev_id = getattr(dev, "id", None)
+        if dev_id is None:
+            # NumPy 2 gives ndarray.device == "cpu"; NumPy 1 has no .device at
+            # all. Either way this is a host array reaching a device-only path,
+            # and a validator should say that rather than AttributeError.
             raise ValueError(
-                f"{where}{name} is on device {arr_id} but {home_name} is on "
-                f"device {home_id}. All inputs must be resident on one device; "
-                "the multi-GPU wrappers replicate them to the others."
+                f"{context}: {name} is not a CuPy array resident on a CUDA "
+                f"device (got {type(arr).__name__}, device={dev!r})."
+            )
+        dev_id = int(dev_id)
+        if home_name is None:
+            home_name, home_id = name, dev_id
+        elif dev_id != home_id:
+            raise ValueError(
+                f"{context}: {name} is on device {dev_id} but {home_name} is "
+                f"on device {home_id}. All inputs must be resident on one "
+                "device; this route aliases them together on it."
             )
 
 

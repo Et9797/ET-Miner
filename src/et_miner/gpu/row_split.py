@@ -849,11 +849,44 @@ def _apriori_row_split_multi_gpu(
     try:
         import pyarrow as pa
 
-        flat_values = np.concatenate([a.ravel() for a in deferred_itemsets_np]).astype(np.int64, copy=False)
-        widths = np.concatenate([np.full(a.shape[0], a.shape[1], dtype=np.int64) for a in deferred_itemsets_np])
-        offsets = np.empty(len(widths) + 1, dtype=np.int64)
+        # Both arrays are preallocated and filled chunk by chunk. This is the
+        # `output_dir=None` route -- the one that keeps every level in host RAM
+        # instead of flushing it -- so it is the route where N is largest, and
+        # the peak is what decides whether a campaign survives its last level.
+        #
+        # `np.concatenate(...).astype(np.int64, copy=False)` read as two cheap
+        # steps and was not: int32 -> int64 can never satisfy copy=False, so the
+        # concatenated int32 buffer (4N) and the int64 result (8N) were both
+        # live across the cast, on top of the int32 sources (4N) that stay alive
+        # to the end of this block. #26 (17d8574) added that cast for dtype
+        # consistency and doubled the peak, 8N -> 16N, without saying so. The
+        # dtype fix stands; the undeclared cost is what is fixed here.
+        #
+        # `widths` had the same shape one line down -- a list of per-chunk
+        # arrays plus the concatenated copy, both live -- and it is dropped
+        # entirely: it existed only to be cumsum'd into `offsets`, so the widths
+        # are written straight into `offsets[1:]` and summed in place. A scalar
+        # broadcast into a slice needs no temporary at all.
+        #
+        # MEASURED, VmHWM at N=200M items / k=5 / 8 chunks, sources-only floor
+        # 0.77 GiB: 3.00 -> 2.56 GiB. Fixing only `flat_values` gives 2.85 --
+        # the peak simply relocates to `widths`, which is why both move or
+        # neither is worth doing.
+        total_rows = sum(a.shape[0] for a in deferred_itemsets_np)
+        total_items = sum(a.size for a in deferred_itemsets_np)
+
+        flat_values = np.empty(total_items, dtype=np.int64)
+        offsets = np.empty(total_rows + 1, dtype=np.int64)
         offsets[0] = 0
-        np.cumsum(widths, out=offsets[1:])
+        _item_pos = 0
+        _row_pos = 1
+        for _a in deferred_itemsets_np:
+            _nr, _k = _a.shape
+            flat_values[_item_pos : _item_pos + _a.size] = _a.ravel()  # int32 -> int64, one chunk
+            _item_pos += _a.size
+            offsets[_row_pos : _row_pos + _nr] = _k  # scalar broadcast, no temporary
+            _row_pos += _nr
+        np.cumsum(offsets[1:], out=offsets[1:])
         arrow_list = pa.LargeListArray.from_arrays(offsets, flat_values)
         return pl.DataFrame(
             {

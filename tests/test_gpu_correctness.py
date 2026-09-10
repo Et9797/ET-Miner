@@ -387,6 +387,30 @@ class TestLevelStateCleanupIsolation:
         assert "group arrays" in joined and "CSR shards" in joined
         assert "group free exploded" in joined and "release exploded" in joined
 
+    def test_group_free_runs_when_the_shard_release_cannot_even_be_looked_up(self, monkeypatch):
+        """The isolation must survive a `sparse_state` that has no `release`.
+
+        The two limbs were built as `(lambda: free_groups(...), sparse_state.release)`.
+        The second is an attribute access, evaluated while the tuple is BUILT --
+        before the loop, before either `try`. A None or part-constructed
+        `sparse_state` therefore raised out of `_release_level_state` itself and
+        `free_groups` never ran: one limb cancelling the other, which is the
+        precise coupling this function was extracted to remove, reintroduced by
+        an attribute lookup rather than by a shared `try`.
+
+        CONTROL: restore the bare `sparse_state.release` and this raises
+        AttributeError with `freed == []`.
+        """
+        from et_miner.gpu.row_split import _release_level_state
+
+        freed = []
+        self._patch_free_groups(monkeypatch, lambda g: freed.append(g))
+
+        sentinel = object()
+        _release_level_state(sentinel, None)  # must not raise
+
+        assert freed == [sentinel], "an unusable sparse_state must not skip the group free"
+
 
 class TestApr1oriPruneSetIsLazy:
     """#29 -- the prune set was built by both callers and read by neither.

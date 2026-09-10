@@ -68,9 +68,15 @@ def _release_level_state(groups_gpu, sparse_state) -> None:
     Extracted to module scope so the isolation is testable directly, rather than
     by driving a whole mining run to failure at the right moment.
     """
+    # Both limbs are lambdas. `sparse_state.release` as a bare bound method
+    # would be looked up while this tuple is BUILT -- before the loop, before
+    # any `try` -- so a None or part-built `sparse_state` would raise there and
+    # skip `free_groups` entirely: the exact "one failure cancels the other"
+    # coupling this function exists to remove, reintroduced by an attribute
+    # access. Deferring it puts the lookup inside the try that guards it.
     for label, release in (
         ("group arrays", lambda: free_groups(groups_gpu)),
-        ("CSR shards", sparse_state.release),
+        ("CSR shards", lambda: sparse_state.release()),
     ):
         try:
             release()

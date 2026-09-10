@@ -885,26 +885,66 @@ def _apriori_row_split_multi_gpu(
         # are written straight into `offsets[1:]` and summed in place. A scalar
         # broadcast into a slice needs no temporary at all.
         #
-        # MEASURED, VmHWM at N=200M items / k=5 / 8 chunks, sources-only floor
-        # 0.77 GiB: 3.00 -> 2.56 GiB. Fixing only `flat_values` gives 2.85 --
-        # the peak simply relocates to `widths`, which is why both move or
-        # neither is worth doing. Reproduced independently at 0.767 / 3.003 /
-        # 2.853 / 2.555.
+        # WHAT THE FIGURES BELOW ARE CONDITIONAL ON. `deferred_itemsets_np`
+        # holds ONE ENTRY PER K LEVEL -- appended once per level (see the
+        # `_flush_or_defer` calls for K=1 and for the level loop), so entry j
+        # has shape (n_j, j): both the row count and k vary, and an apriori
+        # lattice is strongly peaked with a tiny tail. The measurements below
+        # use a FIXTURE -- equal chunks, uniform k -- which is a property of
+        # the harness, not of this code. Five successive measurements in the
+        # review of this comment each corrected the one before by varying a
+        # dimension it had held fixed (shape, then distribution, then k); a
+        # harness only varies what its author knows is a variable. So the
+        # totals are stated as an identity, and anything distribution-
+        # dependent is stated as a condition rather than a constant.
         #
-        # The N-multiples above count the item arrays only. `offsets` is
-        # 8 bytes per ROW, another 0.30 GiB at this shape, and it is in every
-        # measured figure but in none of the multiples -- consistently, so the
-        # 16N -> 12N delta is honest, but a reader who adds `offsets` back will
-        # not land on 12N.
+        # IDENTITY, item arrays only, N = total items, R = |offsets| = rows*8B:
+        #   floor     = 4N            sources only; offsets does not exist yet
+        #   old       = 16N           4N sources + 4N concat + 8N int64 result
+        #   flat-only = 12N + 2R      fixing this line alone: the peak moves to
+        #                             `widths` -- the per-chunk list AND its
+        #                             concatenation, R each
+        #   new       = 12N + R       4N sources + 8N flat + offsets
+        # The transition is 16N -> 12N + R, NOT 16N -> 12N: `offsets` is absent
+        # from the old peak (which is set by the int32->int64 cast, before
+        # `widths`/`offsets` are built at all) and present once here, so it
+        # does not cancel under differencing. The saving is 4N - R. Reading
+        # 4N off the multiples over-states it by 1.67x.
+        #
+        # ONE WORKED INSTANCE, at the fixture shape N=200M items / k=5 /
+        # 8 equal chunks, VmHWM: 4N = 0.745, R = 0.298, interpreter floor
+        # ~0.02 -> 0.77 / 3.00 / 2.85 / 2.56 GiB, a measured saving of
+        # 0.447 GiB. Reproduced independently at 0.767 / 3.003 / 2.853 / 2.555.
         #
         # The in-place `np.cumsum(offsets[1:], out=offsets[1:])` below aliases
-        # input and output. That is correct on every NumPy that accepts it
-        # (verified on 1.26 and 2.2, and the whole build is byte-identical to
-        # the concatenate/cumsum form over randomised chunk shapes). But the
-        # second half of the saving assumes NumPy does not defensively copy on
-        # overlap: if a future version does, the RESULT stays right and 2.56
-        # silently reverts toward 2.85, with no test that would notice. The
-        # equivalence is pinned; the peak is not.
+        # input and output, and that is a documented contract, not tolerated
+        # behaviour: NumPy >= 1.13 defines an overlapping ufunc operation to
+        # give the non-overlapping result, and `accumulate` participates --
+        # `np.add.accumulate(x[:-1], out=x[1:])` returns the no-overlap answer,
+        # which a naive in-place loop cannot.
+        #
+        # The PEAK, separately, rides on a narrower property than that. The
+        # copy-on-overlap path is not a future risk; it exists and runs today,
+        # and it materialises a FULL-SIZE temporary as soon as two operands
+        # overlap without being identical. Measured on a 1.49 GiB int64 array,
+        # identical on 1.26.4 and 2.2.6:
+        #   np.cumsum(x, out=x)            0.000 GiB   exact alias
+        #   np.cumsum(x[1:], out=x[1:])    0.000 GiB   <- the form used here
+        #   np.cumsum(x[1:], out=x[:-1])   1.490 GiB   <- one element of shift
+        #   np.cumsum(x[:n/2], out=y)      0.745 GiB   disjoint: output only
+        # The line below evaluates `offsets[1:]` twice, producing two DISTINCT
+        # view objects sharing base, offset, shape and strides. Both cost
+        # nothing, so NumPy classifies on what the views describe rather than
+        # on object identity -- and the saving depends on that classification
+        # continuing to treat two identical views as identical rather than
+        # merely overlapping. One decision wide, not one feature.
+        #
+        # Nothing pins that. The equivalence to the old concatenate/cumsum
+        # form was verified ad hoc over randomised chunk shapes and holds, but
+        # that form is no longer in the tree for a test to compare against, so
+        # a future defensive copy would keep the RESULT right and revert the
+        # peak with nothing red. Same status as the note at the top of this
+        # block: verified, not pinned.
         total_rows = sum(a.shape[0] for a in deferred_itemsets_np)
         total_items = sum(a.size for a in deferred_itemsets_np)
 

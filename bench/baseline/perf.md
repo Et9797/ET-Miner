@@ -89,15 +89,26 @@ whether `itemset_hash` moved**. A changed hash on a config the PR was not
 supposed to affect is a correctness regression, not a performance one — that is
 the more important half of the output.
 
-**The percentage column is only meaningful on the box that produced the
-baseline.** `perf-baseline.json` is pinned at `22cb1dc` + PR 0 and has never
-been re-recorded, so on any other machine the wall-clock deltas measure the
-hardware, not the change: two independent reviewers reading the same run
-reported +47% to +99% and "worst +70.2%" on configs whose hashes were all
-`same`, and neither figure was a cost of the PR under review. One of them was
-additionally contending with a 200M-element host-RAM measurement on the same
-box. Read the hash column; treat the percentages as valid only against a
-baseline you recorded yourself.
+**Treat a large percentage as unexplained until you have found its cause, and
+read the hash column regardless.** `perf-baseline.json` was last recorded at
+`865286c` (`git log --follow` gives `5a1fac0 -> 7b06872 -> 865286c`, which
+rewrote it 199+/212- with a changed config set) — not at `22cb1dc` + PR 0 as
+an earlier revision of this file claimed, though it does still predate the
+remediation, which is what makes the hash column meaningful.
+
+Three separate mechanisms have produced large deltas here on runs whose hashes
+were all `same`, and they are worth distinguishing rather than collapsing into
+"the hardware":
+
+- **Run-to-run noise on sub-second configs.** `smoke-gpu2` measured a 48.9%
+  spread on identical code; `smoke-cpu-sparse` measured 20.5-26.8%. `compare()`
+  takes `max(old_spread, new_spread)`, so a delta inside that band is not
+  counted as a regression at all.
+- **Concurrent load.** One reviewer's +70.2% was measured while a 200M-element
+  host-RAM benchmark ran on the same box.
+- **Different hardware.** The baseline carries no machine identifier, so this
+  one is not checkable from the artifact — infer it only after excluding the
+  other two.
 
 ### Known standing delta: `twophase-deepk`, since `2eb81b0`
 

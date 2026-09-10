@@ -418,8 +418,10 @@ class TestApr1oriPruneSetIsLazy:
     `_prune_groups_apriori`'s Rust fast path takes `prev_flat_np` and returns
     without touching `prev_frequent_set`; only the Python fallback reads it. So
     on every build with the extension present, `set(map(tuple, ...))` at the two
-    row_split call sites was pure cost -- ~371 B/itemset and ~35 s per level at
-    10M itemsets -- for an argument that was discarded.
+    row_split call sites was pure cost -- see
+    `gpu/mining.py::_prune_groups_apriori` for the measured figures and the
+    regime they depend on. (This docstring used to quote "~35 s per level"; that
+    number was never measured and is ~4x high.)
 
     The equivalence assertions matter more than the timing: making the argument
     optional is only safe if the fallback derives *the same* set.

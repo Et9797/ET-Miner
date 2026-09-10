@@ -279,18 +279,26 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     it.
 
     MEASURED, 10M itemsets at k=5, VmHWM delta: **~9 s and ~370 B per itemset**,
-    i.e. ~3.5 GB of host RAM for a set nothing reads. Time scales with k: ~7 s
-    at k=3, ~12 s at k=7. An earlier revision of this docstring claimed ~35 s
-    per level; that number was never measured and is ~4x high.
+    i.e. ~3.7 GB of host RAM for a set nothing reads (370 B x 1e7; decimal GB,
+    matching the convention BUGS_FOUND.md uses for the same quantity). Time
+    scales with k: ~7 s at k=3, ~12 s at k=7. An earlier revision of this
+    docstring claimed ~35 s per level; that number was never measured and is
+    ~4x high, and an earlier one said ~3.5 GB, stale from a 350 B/row regime.
 
-    Two significant figures, deliberately: an independent re-measurement on the
-    same box landed 5% high on bytes (388 B) and 6% low on time (8.3 s). The
-    allocator and the ID distribution move it that much, so a third digit here
-    would be describing one run rather than the cost.
+    Two significant figures on the BYTES, because the figure is regime- rather
+    than run-dependent: three consecutive runs agreed to 0.1 B, so the
+    allocator moves it by nothing. An independent re-measurement read 388 B,
+    and the 20 B/itemset gap is deterministic, not noise -- it is the 10M x 5
+    int32 input (2.0e8 B / 1e7) sitting inside one measurement's baseline and
+    outside the other's. What genuinely varies is the ID distribution, and it
+    varies by 160 B rather than by a last digit: see the regime note below.
+
+    One significant figure on the TIME, because that one is noisy -- 8.3 to
+    10.8 s across runs on the same box.
 
     The byte figure is quoted with its regime because it is not a constant.
     Item IDs below 257 are CPython singletons, so the tuples share them and the
-    same measurement gives ~208 B/itemset. 367 B is the no-sharing case, which
+    same measurement gives ~210 B/itemset. ~370 B is the no-sharing case, which
     is the one this line exists for -- a vocabulary small enough to intern is
     also small enough that the set never gets big.
 

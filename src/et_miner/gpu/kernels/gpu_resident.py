@@ -115,8 +115,25 @@ def count_k3plus_gpu_resident(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, max
     `CUDA_ERROR_ILLEGAL_ADDRESS` -- which poisons the CUDA context
     process-wide, i.e. a lost campaign. Same split, same reason. N20.
     """
-    _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident")
+    # _assert_home FIRST: it touches only `.device`, so it turns a host list or
+    # a 1-D array into a named ValueError. Ordered the other way,
+    # `_assert_k_supported`'s `.shape[1]` raises AttributeError/IndexError from
+    # inside the k-cap guard first -- the "reads like a bug in the check"
+    # failure the ValueError was added to remove. A host 2-D ndarray reaches
+    # the good message in either order, which is why the order needs a test
+    # that passes a LIST. The K=2 twin has no preceding shape access and was
+    # already ordered this way; this makes the two identical.
     _assert_home("count_k3plus_gpu_resident", bitvecs_gpu=bitvecs_gpu, prev_freq_gpu=prev_freq_gpu)
+    if prev_freq_gpu.ndim != 2:
+        # A co-resident 1-D array passes _assert_home legitimately and then
+        # trips `.shape[1]` inside the k-cap guard as `IndexError: tuple index
+        # out of range`. Ordering the guards cannot fix that -- there is no
+        # device fault to report -- so the rank is named here instead.
+        raise ValueError(
+            f"count_k3plus_gpu_resident: prev_freq_gpu must be 2-D "
+            f"(n_freq, k_prev), got shape {tuple(prev_freq_gpu.shape)}."
+        )
+    _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident")
     import cupy as cp
 
     with cp.cuda.Device(int(bitvecs_gpu.device.id)):
@@ -504,12 +521,22 @@ def count_k3plus_gpu_resident_multi_gpu(bitvecs_gpu, prev_freq_gpu, n_u64s, min_
         Tuple of (freq_itemsets_gpu, counts_gpu) CuPy arrays on the caller's
         device, or (None, None) if no frequent itemsets found.
     """
-    _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident_multi_gpu")
+    # _assert_home first, for the reason given on the single-GPU twin.
     _assert_home(
         "count_k3plus_gpu_resident_multi_gpu",
         bitvecs_gpu=bitvecs_gpu,
         prev_freq_gpu=prev_freq_gpu,
     )
+    if prev_freq_gpu.ndim != 2:
+        # A co-resident 1-D array passes _assert_home legitimately and then
+        # trips `.shape[1]` inside the k-cap guard as `IndexError: tuple index
+        # out of range`. Ordering the guards cannot fix that -- there is no
+        # device fault to report -- so the rank is named here instead.
+        raise ValueError(
+            f"count_k3plus_gpu_resident_multi_gpu: prev_freq_gpu must be 2-D "
+            f"(n_freq, k_prev), got shape {tuple(prev_freq_gpu.shape)}."
+        )
+    _assert_k_supported(int(prev_freq_gpu.shape[1]) + 1, "count_k3plus_gpu_resident_multi_gpu")
     import cupy as cp
     from concurrent.futures import ThreadPoolExecutor
 

@@ -130,10 +130,23 @@ def _assert_home(context: str, **arrays) -> None:
 
     Two things depend on the inputs living together. The multi-GPU wrappers
     alias the caller's arrays on one device and upload copies to the others.
-    The single-GPU routes pin their launch to the home device while helpers
-    like `build_prefix_groups_gpu` follow their own input. Mix the devices and
-    the kernel is handed pointers from two cards -- CUDA_ERROR_ILLEGAL_ADDRESS,
-    which poisons the context process-wide rather than costing one level.
+    The three gpu-resident entry points that call THIS function pin their
+    launch to the home device while helpers like `build_prefix_groups_gpu`
+    follow their own input. Mix the devices and the kernel is handed pointers
+    from two cards -- CUDA_ERROR_ILLEGAL_ADDRESS, which poisons the context
+    process-wide rather than costing one level.
+
+    That pinning is NOT a module-wide property, and reading it as one is how
+    the K=2 twin of N20 shipped. `k2.py::count_pairs_fused_k2`,
+    `k3plus.py::count_itemsets_fused_k3plus`, `k3plus.py::count_k3plus_fully_fused`
+    and `shared_tiled.py::count_pairs_k2_shared_fused` all still allocate and
+    launch on the AMBIENT device; the last of those is what `gpu/dispatch.py`
+    selects by default when `ET_MINER_KERNEL_VARIANT` is unset, and both it and
+    the `k2.py` one were measured aborting with `cudaErrorIllegalAddress` from
+    ambient device 0 with bitvecs on device 1. They take host lists rather than
+    device arrays for their second argument, so they have no home to infer and
+    this function cannot guard them -- which is the reason they may be deferred
+    and equally the reason this docstring may not generalise over them.
 
     It raises instead of transferring: a mixed-device call is a caller bug, and
     repairing it with a hidden copy makes it unattributable. That is this

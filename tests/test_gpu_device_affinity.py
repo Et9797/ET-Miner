@@ -387,6 +387,9 @@ def test_assert_home_rejects_a_host_array_with_a_readable_error():
     all; both used to surface as `AttributeError: 'str' object has no attribute
     'id'` or similar from inside the validator, which reads like a bug in the
     check rather than a bug in the call.
+
+    This pins the validator. It does NOT pin the guard ORDER in the wrappers --
+    see the test below, and do not extend this one to try.
     """
     from et_miner.gpu.kernels.loader import _assert_home
 
@@ -395,3 +398,50 @@ def test_assert_home_rejects_a_host_array_with_a_readable_error():
 
     with pytest.raises(ValueError, match="not a CuPy array resident on a CUDA device"):
         _assert_home("ctx", bitvecs_gpu=on_gpu, prev_freq_gpu=np.zeros((4, 2), dtype=np.int32))
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize(
+    "bad_second",
+    [
+        pytest.param([(0, 1), (0, 2), (1, 2)], id="host-list-of-tuples"),
+        pytest.param("cupy-1d", id="1d-device-array"),
+    ],
+)
+def test_wrapper_reports_a_malformed_prev_freq_before_reading_its_shape(bad_second):
+    """The guard ORDER, pinned at the wrapper -- which needs an input that can tell.
+
+    `count_k3plus_gpu_resident` used to run `_assert_k_supported(...shape[1]...)`
+    before `_assert_home`, so a malformed `prev_freq_gpu` raised out of the
+    k-cap guard instead of the validator added to name it.
+
+    The obvious test does not catch that. A host 2-D ndarray has `.shape[1]`,
+    so it reaches the readable ValueError in EITHER order -- which is exactly
+    what the validator test above passes, and why extending that one would pin
+    nothing. Only inputs without a usable `.shape[1]` distinguish the orders:
+
+        host list of tuples -> AttributeError: 'list' object has no attribute 'shape'
+        1-D cupy array      -> IndexError: tuple index out of range
+
+    The list case is a plausible mis-call rather than a contrived one:
+    `k3plus.py::count_k3plus_fully_fused` takes precisely a list of candidate
+    tuples, one module away, with a near-identical signature.
+
+    The 1-D case is NOT fixed by the ordering, and finding that out is why it
+    is parametrised here rather than folded into the list case: a 1-D array is
+    co-resident, so `_assert_home` passes it legitimately and there is no
+    device fault to report. It needed an explicit rank check, which is what
+    the second parameter pins.
+
+    CONTROL: restore `_assert_k_supported` above `_assert_home` and the list
+    case raises AttributeError; delete the `ndim != 2` check and the 1-D case
+    raises IndexError.
+    """
+    from et_miner.gpu.kernels import count_k3plus_gpu_resident
+
+    with cp.cuda.Device(0):
+        bitvecs_gpu = cp.zeros((4, 2), dtype=cp.uint64)
+        second = cp.arange(4, dtype=cp.int32) if bad_second == "cupy-1d" else bad_second
+
+    with pytest.raises(ValueError, match="not a CuPy array resident on a CUDA device|must be 2-D"):
+        count_k3plus_gpu_resident(bitvecs_gpu, second, 2, 1)

@@ -76,7 +76,7 @@ capture is kept as `perf-baseline-pr0-singlesample.json`.*
 | `smoke-gpu1`, `smoke-gpu2` | GPU row-split, 1 vs 2 devices — #24's raise path |
 | `deepk-gpu2`, `deepk-gpu2-low` | deeper lattices, where a per-level regression compounds |
 | `deepk-gpu2-sparse` | the dense→sparse CSR transition |
-| `twophase-deepk` | **#22.** Distinct phase supports (0.02 → 0.005) — the only configuration in which the anchor filter does anything. Equal supports make the mask all-True, which is the vacuous shape `tests/test_row_split_e2e.py:102` also has. |
+| `twophase-deepk` | **#22.** Distinct phase supports (0.02 → 0.005) — the only configuration in which the anchor filter does anything. Equal supports make the mask all-True, which is the vacuous shape `tests/test_row_split_e2e.py`'s equal-support case also has. |
 | `smoke-cpu-polars` | the CPU tier, dense path |
 | `deepk-cpu-sparse-j1` vs `-j8` | **#18.** `n_jobs` was dead; after the fix these must diverge. Run on `deep_k` rather than `smoke` — the smoke sparse configs finish in ~0.6 s with a 14-22% spread, too noisy to gate a 20% change on. |
 | `deepk-cpu-sparse-j8` | CPU sparse at K=4 |
@@ -88,6 +88,16 @@ capture is kept as `perf-baseline-pr0-singlesample.json`.*
 whether `itemset_hash` moved**. A changed hash on a config the PR was not
 supposed to affect is a correctness regression, not a performance one — that is
 the more important half of the output.
+
+**The percentage column is only meaningful on the box that produced the
+baseline.** `perf-baseline.json` is pinned at `22cb1dc` + PR 0 and has never
+been re-recorded, so on any other machine the wall-clock deltas measure the
+hardware, not the change: two independent reviewers reading the same run
+reported +47% to +99% and "worst +70.2%" on configs whose hashes were all
+`same`, and neither figure was a cost of the PR under review. One of them was
+additionally contending with a 200M-element host-RAM measurement on the same
+box. Read the hash column; treat the percentages as valid only against a
+baseline you recorded yourself.
 
 ### Known standing delta: `twophase-deepk`, since `2eb81b0`
 

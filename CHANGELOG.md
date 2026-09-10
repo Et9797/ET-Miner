@@ -273,8 +273,10 @@ defects in the remediation itself, all measured. Fixed here:
   raise inside the chunked level — the truncation `RuntimeError` most obviously —
   left them resident on every device for the rest of the run.
 - **#29** — both row-split callers materialised a `set()` of the previous level
-  (~371 B/itemset, ~35 s per level at 10M itemsets) and handed it to a Rust path
-  that never reads it. Built now only where it is read, with the
+  and handed it to a Rust path that never reads it. Measured cost and the regime
+  it depends on are in `gpu/mining.py::_prune_groups_apriori`; an earlier
+  revision of this entry quoted "~35 s per level", which was never measured and
+  is ~4× high. Built now only where it is read, with the
   array-wins-over-set precedence written down and made build-independent.
 
 ### Documentation

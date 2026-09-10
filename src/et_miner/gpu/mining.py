@@ -278,10 +278,15 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     Python fallback derives it from `prev_flat_np` at the one place that reads
     it.
 
-    MEASURED, 10M itemsets at k=5, VmHWM delta: **~8.9 s and ~367 B per
-    itemset**, i.e. ~3.5 GB of host RAM for a set nothing reads. Time scales
-    with k: 7.2 s at k=3, 12.0 s at k=7. An earlier revision of this docstring
-    claimed ~35 s per level; that number was never measured and is ~4x high.
+    MEASURED, 10M itemsets at k=5, VmHWM delta: **~9 s and ~370 B per itemset**,
+    i.e. ~3.5 GB of host RAM for a set nothing reads. Time scales with k: ~7 s
+    at k=3, ~12 s at k=7. An earlier revision of this docstring claimed ~35 s
+    per level; that number was never measured and is ~4x high.
+
+    Two significant figures, deliberately: an independent re-measurement on the
+    same box landed 5% high on bytes (388 B) and 6% low on time (8.3 s). The
+    allocator and the ID distribution move it that much, so a third digit here
+    would be describing one run rather than the cost.
 
     The byte figure is quoted with its regime because it is not a constant.
     Item IDs below 257 are CPython singletons, so the tuples share them and the

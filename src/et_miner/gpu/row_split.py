@@ -856,11 +856,13 @@ def _apriori_row_split_multi_gpu(
     # 67 GB". Quoted with its basis so the next reader can reject it.
     # tests/test_row_split_dtypes.py pins each of those boundaries.
     #
-    # Every reference above names a symbol and no line number. Four of the five
-    # numbers this block used to carry were wrong; corrected, two of them went
-    # stale again inside the same session, because any edit above them moves
-    # them and nothing checks. A symbol is greppable and a number is not, so it
-    # is the symbol that gets written down.
+    # These references name symbols, not line numbers. Four of the five numbers
+    # this block used to carry were wrong; corrected, two went stale again
+    # inside the same session, because any edit above them moves them and
+    # nothing checks. Scoped to this block deliberately: it is what was fixed
+    # here, not a project-wide convention -- there is no check that would make
+    # it one, and stating it as a rule while the rest of the tree keeps its
+    # line numbers is the kind of claim this block exists to stop making.
     try:
         import pyarrow as pa
 
@@ -886,7 +888,23 @@ def _apriori_row_split_multi_gpu(
         # MEASURED, VmHWM at N=200M items / k=5 / 8 chunks, sources-only floor
         # 0.77 GiB: 3.00 -> 2.56 GiB. Fixing only `flat_values` gives 2.85 --
         # the peak simply relocates to `widths`, which is why both move or
-        # neither is worth doing.
+        # neither is worth doing. Reproduced independently at 0.767 / 3.003 /
+        # 2.853 / 2.555.
+        #
+        # The N-multiples above count the item arrays only. `offsets` is
+        # 8 bytes per ROW, another 0.30 GiB at this shape, and it is in every
+        # measured figure but in none of the multiples -- consistently, so the
+        # 16N -> 12N delta is honest, but a reader who adds `offsets` back will
+        # not land on 12N.
+        #
+        # The in-place `np.cumsum(offsets[1:], out=offsets[1:])` below aliases
+        # input and output. That is correct on every NumPy that accepts it
+        # (verified on 1.26 and 2.2, and the whole build is byte-identical to
+        # the concatenate/cumsum form over randomised chunk shapes). But the
+        # second half of the saving assumes NumPy does not defensively copy on
+        # overlap: if a future version does, the RESULT stays right and 2.56
+        # silently reverts toward 2.85, with no test that would notice. The
+        # equivalence is pinned; the peak is not.
         total_rows = sum(a.shape[0] for a in deferred_itemsets_np)
         total_items = sum(a.size for a in deferred_itemsets_np)
 

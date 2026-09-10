@@ -63,8 +63,14 @@ class TestReturnPathsAgree:
         return apriori(df, min_support=0.05, item_col="items", use_gpu=True, prune_equal_support=True)
 
     def test_pyarrow_path_is_list_int64(self, wide_df):
-        """CONTROL: without the .astype(np.int64) at row_split.py the concat
-        keeps col_to_item_arr's int32 and this is List(Int32)."""
+        """CONTROL: make the deferred-itemset fill in `_apriori_row_split_multi_gpu`
+        allocate int32 instead of int64 and this is List(Int32).
+
+        The control used to say "remove the `.astype(np.int64)`". That call is
+        gone -- the concat-then-cast was replaced by a preallocated int64
+        buffer -- so the widening is now the `dtype=` on that allocation. Same
+        property, different line; a control that names a deleted construct
+        cannot be run."""
         got = self._mine(wide_df)
         assert got.height > 0, "fixture must reach the deferred path"
         assert got.schema["itemset"] == pl.List(pl.Int64)

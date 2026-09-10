@@ -130,11 +130,16 @@ def _assert_home(context: str, **arrays) -> None:
 
     Two things depend on the inputs living together. The multi-GPU wrappers
     alias the caller's arrays on one device and upload copies to the others.
-    The three gpu-resident entry points that call THIS function pin their
-    launch to the home device while helpers like `build_prefix_groups_gpu`
-    follow their own input. Mix the devices and the kernel is handed pointers
-    from two cards -- CUDA_ERROR_ILLEGAL_ADDRESS, which poisons the context
-    process-wide rather than costing one level.
+    Every gpu-resident entry point calls THIS function, and each then pins
+    differently: the single-GPU bodies pin their whole launch to the home
+    device; the multi-GPU wrappers pin each worker to its own card and pin the
+    decode/merge tail back to home; and `build_prefix_groups_gpu`, which does
+    NOT call this function, pins to its own input's device instead. Stated as
+    clauses over those sets rather than as a count -- the count was wrong twice,
+    because the sentence quantifies over a different set than the one it names.
+    Mix the devices and the kernel is handed pointers from two cards --
+    CUDA_ERROR_ILLEGAL_ADDRESS, which poisons the context process-wide rather
+    than costing one level.
 
     That pinning is NOT a module-wide property, and reading it as one is how
     the K=2 twin of N20 shipped. `k2.py::count_pairs_fused_k2`,
@@ -179,6 +184,75 @@ def _assert_home(context: str, **arrays) -> None:
                 f"{context}: {name} is on device {dev_id} but {home_name} is "
                 f"on device {home_id}. All inputs must be resident on one "
                 "device; this route aliases them together on it."
+            )
+
+
+
+def _assert_rank(context: str, **arrays) -> None:
+    """Raise before a kernel indexes a device array of the wrong rank.
+
+    Each keyword is `name=(array, expected_ndim)`. The keyword is what the
+    error names, for the reason `_assert_home` gives; the rank travels with
+    the array because one call has to cover mixed ranks -- K=2 takes a 2-D
+    `bitvecs_gpu` beside a 1-D `freq_cols_gpu`.
+
+    A wrong-rank array is not a device fault, so no ordering of the device
+    guard can report it. A co-resident 1-D `prev_freq_gpu` passes
+    `_assert_home` legitimately and then trips `.shape[1]` inside
+    `_assert_k_supported` as `IndexError: tuple index out of range` -- the
+    "reads like a bug in the check" failure that the named ValueError exists
+    to remove. Hence a guard of its own, between the two.
+    """
+    for name, spec in arrays.items():
+        arr, want = spec
+        got = getattr(arr, "ndim", None)
+        if got is None:
+            raise ValueError(
+                f"{context}: {name} has no `.ndim` (got {type(arr).__name__}); "
+                "this route takes device arrays, not host sequences."
+            )
+        if int(got) != int(want):
+            raise ValueError(
+                f"{context}: {name} must be {want}-D, got {got}-D with shape "
+                f"{tuple(getattr(arr, 'shape', ()))}."
+            )
+
+
+def _assert_dtype(context: str, **arrays) -> None:
+    """Raise before a kernel reinterprets a device array of the wrong dtype.
+
+    Each keyword is `name=(array, expected_dtype)`, the dtype written as the
+    string the error should print.
+
+    It RAISES rather than casting, per the rule stated on `_assert_home`: a
+    wrong-dtype call is a caller bug, and repairing it with a hidden `.astype`
+    makes it unattributable. Here that rule also has a second edge -- the
+    repair would silently double the array's footprint at the point the K>=3
+    path is already most VRAM-bound.
+
+    This is the guard with nothing behind it. A mixed-device call aborts
+    loudly. A wrong rank trips an IndexError somewhere downstream. A wrong
+    dtype does NEITHER: the K>=3 kernels read `prev_freq_gpu` through an
+    `int*` cast, so an int64 array of the correct shape is reinterpreted
+    pairwise and returns plausible garbage with no exception -- measured
+    on-device as 56 itemsets of [[0, 0, 0]] at a uniform count of 46, from an
+    entry point this package exports. What stands between those entry points
+    and that result today is one hand-written cast: `cp.where(freq_mask)[0]`
+    in `gpu/mining.py` is int64 natively and is `.astype(cp.int32)`'d on the
+    spot, untested and unguarded. This guard is the test.
+    """
+    for name, spec in arrays.items():
+        arr, want = spec
+        got = getattr(arr, "dtype", None)
+        if got is None:
+            raise ValueError(
+                f"{context}: {name} has no `.dtype` (got {type(arr).__name__}); "
+                "this route takes device arrays, not host sequences."
+            )
+        if got != want:
+            raise ValueError(
+                f"{context}: {name} must be {want}, got {got}. This route raises "
+                "rather than casting -- see `_assert_home` for why."
             )
 
 

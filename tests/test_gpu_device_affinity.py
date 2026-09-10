@@ -434,8 +434,10 @@ def test_wrapper_reports_a_malformed_prev_freq_before_reading_its_shape(bad_seco
     the second parameter pins.
 
     CONTROL: restore `_assert_k_supported` above `_assert_home` and the list
-    case raises AttributeError; delete the `ndim != 2` check and the 1-D case
-    raises IndexError.
+    case raises AttributeError; drop the `_assert_rank` call and the 1-D case
+    raises IndexError. (That rank check began as an inline `ndim != 2` here and
+    in the multi-GPU twin; it is now `loader._assert_rank`, applied at all four
+    entry points. tests/test_kernel_input_guards.py covers the other three.)
     """
     from et_miner.gpu.kernels import count_k3plus_gpu_resident
 

@@ -66,6 +66,16 @@ gcs = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+    # bench/repro/d63_spec_defect_a_row_split_drop.py counts set bits with
+    # np.bitwise_count, which is NumPy 2.0+. Without this floor the standing
+    # gate CHANGELOG.md:286 names dies on AttributeError under every
+    # lowest-direct resolution -- measured py3.10 -> 1.22.4, 3.11 -> 1.23.2,
+    # 3.12/3.13 -> 1.26.0, all of them 1.x. The runtime floor deliberately
+    # stays at numpy>=1.20: src/ uses nothing 2.0-only and nothing 2.0 removed
+    # (both greps clean), so this is the bench surface's requirement, not the
+    # library's, and it does not belong in [project].dependencies.
+    # uv.lock hid this -- a plain `pip install .[dev]` does not have it.
+    "numpy>=2.0",
     "maturin>=1.7",
     "efficient-apriori>=2.0",
     "matplotlib>=3.7",

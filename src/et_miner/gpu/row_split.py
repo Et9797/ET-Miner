@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import time
+from typing import TYPE_CHECKING
 
 import polars as pl
 from loguru import logger
@@ -49,6 +50,11 @@ from et_miner.io.gcs import (
     is_upload_enabled,
     polars_storage_options,
 )
+
+if TYPE_CHECKING:
+    # numpy is imported inside the functions that use it, alongside the
+    # optional cupy import; this binds the name for annotations only.
+    import numpy as np
 
 
 def _release_level_state(groups_gpu, sparse_state) -> None:
@@ -828,6 +834,25 @@ def _apriori_row_split_multi_gpu(
         return _empty_result()
 
     all_supports = np.concatenate(deferred_supports)
+    return _build_deferred_frame(deferred_itemsets_np, all_supports)
+
+
+def _build_deferred_frame(
+    deferred_itemsets_np: list[np.ndarray],
+    all_supports: np.ndarray,
+) -> pl.DataFrame:
+    """Build the result frame from the deferred per-level itemset arrays.
+
+    Split out of `_apriori_row_split_multi_gpu` for one reason: the host-RAM
+    peak of this block is what decides whether a campaign survives its last
+    level, and inside that function it is unreachable without a GPU. Here it is
+    a pure function of its two arguments.
+
+    `all_supports` is built by the CALLER and passed in, so a peak measured
+    across this call is this block's own allocation and nothing else's. The
+    identity below, and the test that pins it, both depend on that split.
+    """
+    import numpy as np
 
     # PyArrow path: O(1) Python overhead via Arrow ListArray from numpy.
     #
@@ -898,23 +923,46 @@ def _apriori_row_split_multi_gpu(
         # totals are stated as an identity, and anything distribution-
         # dependent is stated as a condition rather than a constant.
         #
-        # IDENTITY, item arrays only, N = total items, R = |offsets| = rows*8B:
-        #   floor     = 4N            sources only; offsets does not exist yet
-        #   old       = 16N           4N sources + 4N concat + 8N int64 result
-        #   flat-only = 12N + 2R      fixing this line alone: the peak moves to
-        #                             `widths` -- the per-chunk list AND its
-        #                             concatenation, R each
-        #   new       = 12N + R       4N sources + 8N flat + offsets
-        # The transition is 16N -> 12N + R, NOT 16N -> 12N: `offsets` is absent
-        # from the old peak (which is set by the int32->int64 cast, before
-        # `widths`/`offsets` are built at all) and present once here, so it
-        # does not cancel under differencing. The saving is 4N - R. Reading
-        # 4N off the multiples over-states it by 1.67x.
+        # IDENTITY, item arrays only. N = total items, R = |offsets| = rows*8B,
+        # kbar = N/rows the mean itemset length -- so R = 8N/kbar, and N and R
+        # are one variable, not two:
+        #   floor     = 4N                 sources only; offsets does not exist yet
+        #   old       = 12N + max(4N, 2R)  TWO candidate peaks, whichever is
+        #                                  higher: the int32->int64 cast (4N
+        #                                  sources + 4N concat + 8N result) or
+        #                                  the `widths` pair (12N + 2R)
+        #   flat-only = 12N + 2R           fixing the cast alone leaves `widths`
+        #                                  -- the per-chunk list AND its
+        #                                  concatenation, R each
+        #   new       = 12N + R            4N sources + 8N flat + offsets
         #
-        # ONE WORKED INSTANCE, at the fixture shape N=200M items / k=5 /
-        # 8 equal chunks, VmHWM: 4N = 0.745, R = 0.298, interpreter floor
-        # ~0.02 -> 0.77 / 3.00 / 2.85 / 2.56 GiB, a measured saving of
-        # 0.447 GiB. Reproduced independently at 0.767 / 3.003 / 2.853 / 2.555.
+        # CROSSOVER at kbar = 4, where 4N = 2R. ABOVE it the cast sets the old
+        # peak and `old` collapses to 16N; BELOW it the `widths` pair already
+        # set the peak, and 16N under-states it. So "fixing the cast relocates
+        # the peak to `widths`" is true only above the crossover -- below it the
+        # peak was never at the cast to be moved from.
+        #
+        # The transition is `old` -> 12N + R, NOT 16N -> 12N: `offsets` is
+        # absent from the cast peak (which precedes `widths`/`offsets` existing
+        # at all) and present once here, so it does not cancel under
+        # differencing. Hence
+        #
+        #   saving = max(4N, 2R) - R = max(4N - R, R) >= R > 0
+        #
+        # which is strictly positive at every kbar: this change cannot regress
+        # the peak, at any shape. Reading the saving as 4N - R holds only above
+        # the crossover. On the real K=1..6 lattice (kbar = 2.365, measured) it
+        # is 5.5x LOW, and below kbar = 2 it is SIGN-INVERTED -- it predicts a
+        # regression where the true saving is R.
+        #
+        # ONE WORKED INSTANCE, above the crossover, so `old` = 16N in this
+        # branch only. At the fixture shape N=200M items / k=5 / 8 equal chunks,
+        # VmHWM: 4N = 0.745, R = 0.298, interpreter floor ~0.02 ->
+        # 0.77 / 3.00 / 2.85 / 2.56 GiB, a measured saving of 0.447 GiB.
+        # Reproduced independently at 0.767 / 3.003 / 2.853 / 2.555. Below the
+        # crossover, same N: kbar = 3 measures old = 3.251 against the 16N form
+        # 2.980, and kbar = 1 measures 5.238 -- the form that collapses to 16N
+        # is the one that fails here, not the max().
         #
         # The in-place `np.cumsum(offsets[1:], out=offsets[1:])` below aliases
         # input and output, and that is a documented contract, not tolerated

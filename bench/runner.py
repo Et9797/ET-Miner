@@ -110,10 +110,33 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
     return cfgs
 
 
+def _git_rev() -> str:
+    """`<sha>` at HEAD, suffixed `-dirty` when the tree carries uncommitted edits.
+
+    Stamped onto every row so a resumed campaign can say WHICH code produced
+    each number. Without it a replayed run prints the same "consistent" line as
+    a fresh one: the smoke gate did exactly that across seven commits, and the
+    green line was recomputed from JSON predating all of them.
+    """
+    try:
+        sha = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=30, cwd=REPO
+        ).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True, text=True, timeout=30, cwd=REPO,
+        ).stdout.strip()
+        return f"{sha}-dirty" if dirty else sha or "unknown"
+    except Exception:
+        return "unknown"
+
+
 def capture_environment(out_dir: Path) -> None:
+    # Re-captured per invocation, not once per directory: a resumed campaign
+    # runs on a different revision than the one that started it, and the old
+    # behaviour (return early if the file exists) froze env.txt at the first
+    # run's HEAD forever.
     env_file = out_dir / "env.txt"
-    if env_file.exists():
-        return
     blocks = []
     for cmd in (
         ["git", "rev-parse", "HEAD"],
@@ -126,7 +149,9 @@ def capture_environment(out_dir: Path) -> None:
             ).stdout)
         except Exception as e:
             blocks.append(f"$ {' '.join(cmd)} FAILED: {e}")
-    env_file.write_text("\n\n".join(blocks))
+    with env_file.open("a") as f:
+        f.write(f"\n\n===== captured {time.strftime('%Y-%m-%dT%H:%M:%S')} rev={_git_rev()} =====\n")
+        f.write("\n\n".join(blocks))
 
 
 def run_config(cfg: dict, out_dir: Path) -> dict:
@@ -149,21 +174,22 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
-            return {"id": cfg["id"], "config": cfg, "status": "timeout"}
+            return {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev()}
     # Result file first (immune to NCCL's raw fd-1 writes splicing the
     # child's stdout); stdout scan as debug fallback.
+    rev = _git_rev()
     if result_path.exists():
         try:
-            return json.loads(result_path.read_text())
+            return {**json.loads(result_path.read_text()), "rev": rev}
         except json.JSONDecodeError:
             pass
     for line in reversed(stdout.strip().splitlines() or [""]):
         if line.startswith("{"):
             try:
-                return json.loads(line)
+                return {**json.loads(line), "rev": rev}
             except json.JSONDecodeError:
                 break
-    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})"}
+    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})", "rev": rev}
 
 
 def group_key(cfg: dict) -> tuple:
@@ -221,9 +247,14 @@ def main() -> int:
     matrix = build_matrix(args.mode, n_dev)
     deadline = time.time() + args.max_hours * 3600 if args.max_hours else None
 
+    here = _git_rev()
+    replayed: list[str] = []
+    fresh = 0
     for cfg in matrix:
         if cfg["id"] in done_ids:
-            print(f"skip (done): {cfg['id']}")
+            was = next((r.get("rev", "unrecorded") for r in rows if r.get("id") == cfg["id"]), "unrecorded")
+            print(f"skip (done): {cfg['id']}  [replayed from rev {was}]")
+            replayed.append(was)
             continue
         if args.only and args.only not in cfg["id"]:
             continue
@@ -233,6 +264,7 @@ def main() -> int:
             print("max-hours reached — stopping (resume with the same command)")
             break
         result = run_config(cfg, out_dir)
+        fresh += 1
         rows.append(result)
         with raw.open("a") as f:
             f.write(json.dumps(result) + "\n")
@@ -244,7 +276,23 @@ def main() -> int:
         for p in problems:
             print(f"  {p}")
         return 1
-    print("\nequivalence groups consistent ✓")
+
+    # What the tick covers, stated. `rows` includes every replayed result, so
+    # the check runs -- but over numbers some OTHER revision produced, and a
+    # bare "consistent" line cannot be told apart from a fresh pass. It was not
+    # told apart: this gate reported green across seven commits while running
+    # nothing. Exit code is unchanged (a replay is a legitimate resume, and
+    # failing it would break long campaigns); what changes is that the line
+    # says which code it is a statement about.
+    stale_rows = [r for r in replayed if r != here]
+    print(f"\nequivalence groups consistent ✓  ({fresh} run here at {here}, {len(replayed)} replayed)")
+    if stale_rows:
+        print(
+            f"  REPLAY WARNING: {len(stale_rows)} of {len(replayed)} replayed rows were "
+            f"produced at a revision other than {here} ({', '.join(sorted(set(stale_rows)))}). "
+            f"Those rows say nothing about the current tree -- re-run with a fresh --out "
+            f"to gate this revision."
+        )
     return 0
 
 

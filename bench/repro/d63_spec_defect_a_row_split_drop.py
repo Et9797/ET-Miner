@@ -57,9 +57,11 @@ Runtime: about 40 s total plus the mine. It does not need the `slow` marker.
 
 from __future__ import annotations
 
+import itertools
 import math
 import os
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -164,6 +166,42 @@ def _free_sets(lattice):
     return free
 
 
+def _free_sets_bruteforce(lattice):
+    """Independent restatement of `_free_sets`, for Tier B to check it against.
+
+    `_free_sets` builds each (k-1)-subset by index slicing, `iset[:i] +
+    iset[i+1:]`, and that arithmetic is the whole of it. This gate's verdict is
+    not "which itemsets are frequent" -- Tier B already covers that -- but
+    "which are generators", and that verdict is produced entirely by the line
+    above. An off-by-one there would move the verdict silently, so it is
+    restated through `itertools.combinations`, which shares no index arithmetic
+    with it.
+
+    Returns `(free, n_absent)`. `n_absent` counts subsets missing from the
+    lattice, and must be 0: the exhaustive lattice is downward closed over the
+    frequent region, so every (k-1)-subset of a frequent itemset is itself
+    frequent and present. `_free_sets` relies on that -- `.get()` returning
+    None compares unequal to `count` and quietly votes "free" -- so Tier B
+    asserts it rather than inheriting it.
+    """
+    free = {}
+    n_absent = 0
+    for iset, count in lattice.items():
+        if len(iset) == 1:
+            free[iset] = count
+            continue
+        equal_support_parent = False
+        for sub in itertools.combinations(iset, len(iset) - 1):
+            got = lattice.get(sub)
+            if got is None:
+                n_absent += 1
+            elif got == count:
+                equal_support_parent = True
+        if not equal_support_parent:
+            free[iset] = count
+    return free, n_absent
+
+
 def _validate_oracle():
     """Tier B -- efficient-apriori vs the exhaustive counter, where both run."""
     try:
@@ -172,7 +210,24 @@ def _validate_oracle():
         return None, "efficient_apriori not installed"
 
     rows = _transactions(VALIDATE_ROWS, VALIDATE_ITEMS)
-    min_count = math.ceil(MIN_SUPPORT * VALIDATE_ROWS)
+    # Deliberately NOT et_miner.core.result._min_count, and this is not an
+    # un-done tidy-up: that docstring's "all three implementations must move
+    # together" rule is about the three inside the miner. This is the oracle.
+    # Importing the miner's helper would let one bug sit in both the code under
+    # test and the thing testing it, which is the entire failure mode a
+    # separate oracle exists to prevent.
+    #
+    # `Fraction(str(s))` is the same contract the miner states -- the shortest
+    # decimal that round-trips to the float -- computed independently.
+    # `math.ceil(MIN_SUPPORT * ROWS)` is wrong on the boundary: 0.07 * 10000 is
+    # 700.0000000000001 in binary64 and ceils to 701 where the exact ceiling is
+    # 700, dropping an itemset the mandated oracle keeps.
+    #
+    # LATENT at today's constants, not active: measured, 0.01 * 120_000 and
+    # 0.01 * 20_000 are both exact in binary64, so naive and exact agree here
+    # and this gate has never miscounted. It is fixed because the next person
+    # to edit MIN_SUPPORT should not have to know that.
+    min_count = math.ceil(Fraction(str(MIN_SUPPORT)) * VALIDATE_ROWS)
     # Both conventions are load-bearing: the -0.5 makes the float boundary exact
     # for integer counts, and the explicit max_length stops the silent default
     # of 8 from truncating the oracle.
@@ -186,11 +241,35 @@ def _validate_oracle():
     got, _ = _exhaustive_lattice(
         _pack(rows, VALIDATE_ROWS, VALIDATE_ITEMS), VALIDATE_ITEMS, min_count, MAX_LENGTH
     )
-    if want == got:
-        return True, f"oracle validated against efficient-apriori ({len(want):,} itemsets)"
-    return False, (
-        f"ORACLE DISAGREES with efficient-apriori: "
-        f"{len(set(want) - set(got))} missing, {len(set(got) - set(want))} extra"
+    if want != got:
+        return False, (
+            f"ORACLE DISAGREES with efficient-apriori: "
+            f"{len(set(want) - set(got))} missing, {len(set(got) - set(want))} extra"
+        )
+
+    # Tier B used to stop here, validating the LATTICE and shipping the
+    # generator layer on trust -- and the generator layer is what the verdict
+    # below actually consumes. `_free_sets` sat outside the oracle's root of
+    # trust while being the last thing to touch both sides of the comparison.
+    free_sliced = _free_sets(got)
+    free_brute, n_absent = _free_sets_bruteforce(got)
+    if n_absent:
+        return False, (
+            f"ORACLE BROKEN: the exhaustive lattice is not downward closed -- "
+            f"{n_absent:,} (k-1)-subsets of frequent itemsets are absent, so "
+            "`_free_sets` would score them as generators by default"
+        )
+    if free_sliced != free_brute:
+        only_sliced = sorted(set(free_sliced) - set(free_brute))
+        only_brute = sorted(set(free_brute) - set(free_sliced))
+        return False, (
+            f"ORACLE DISAGREES with itself on generators: "
+            f"{len(only_sliced)} only in _free_sets, {len(only_brute)} only in "
+            f"the brute-force restatement (e.g. {(only_sliced or only_brute)[:2]})"
+        )
+    return True, (
+        f"oracle validated against efficient-apriori ({len(want):,} itemsets); "
+        f"generator layer cross-checked ({len(free_sliced):,} free sets)"
     )
 
 
@@ -199,16 +278,25 @@ def _mined_free_sets(rows, n_rows: int):
 
     from et_miner import apriori
 
+    # Restored, not leaked: run_all.py runs every repro in ONE process, so a
+    # chunk cap left in os.environ silently reshapes whichever gate runs next.
+    _prev_cap = os.environ.get("ET_MINER_MAX_CHUNK_CANDS")
     os.environ["ET_MINER_MAX_CHUNK_CANDS"] = CHUNK_CANDS
-    df = pl.DataFrame({"items": [list(r) for r in rows]})
-    res = apriori(
-        df,
-        min_support=MIN_SUPPORT,
-        item_col="items",
-        use_gpu=True,
-        max_length=MAX_LENGTH,
-        prune_equal_support=True,
-    )
+    try:
+        df = pl.DataFrame({"items": [list(r) for r in rows]})
+        res = apriori(
+            df,
+            min_support=MIN_SUPPORT,
+            item_col="items",
+            use_gpu=True,
+            max_length=MAX_LENGTH,
+            prune_equal_support=True,
+        )
+    finally:
+        if _prev_cap is None:
+            os.environ.pop("ET_MINER_MAX_CHUNK_CANDS", None)
+        else:
+            os.environ["ET_MINER_MAX_CHUNK_CANDS"] = _prev_cap
     return {
         tuple(sorted(int(i) for i in iset)): round(sup * n_rows)
         for iset, sup in zip(res["itemset"].to_list(), res["support"].to_list())
@@ -232,7 +320,8 @@ def reproduce():
         return True, f"ORACLE BROKEN, engine not assessed -- {note}"
 
     rows = _transactions(N_ROWS, N_ITEMS)
-    min_count = math.ceil(MIN_SUPPORT * N_ROWS)
+    # Exact ceiling, computed independently of the miner -- see _validate_oracle.
+    min_count = math.ceil(Fraction(str(MIN_SUPPORT)) * N_ROWS)
     lattice, nodes = _exhaustive_lattice(
         _pack(rows, N_ROWS, N_ITEMS), N_ITEMS, min_count, MAX_LENGTH
     )

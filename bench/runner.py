@@ -340,8 +340,13 @@ def main() -> int:
     # character-for-character like an honest fresh pass -- a stronger false
     # claim than the stale-replay case this reporting was written to fix, and
     # `bench/run_smoke.sh` runs under `set -euo pipefail`, so exit 0 IS the
-    # gate passing. Hence: the tick requires that every config in this
-    # invocation ran here, at this revision, and produced an ok row.
+    # gate passing. Hence: the tick requires that every config in the MATRIX
+    # -- not merely every config this invocation chose to run -- has an ok row
+    # stamped with this revision. WHETHER this invocation produced that row or
+    # replayed it from raw.jsonl is not the question; WHICH REVISION produced
+    # it is. An earlier version of this sentence said "every config in this
+    # invocation", which quantified over the selection while the predicate
+    # below quantified over the matrix.
     #
     # Exit code stays 0 for a replay -- resuming a multi-hour campaign is
     # legitimate and failing it would break the resume this file exists to

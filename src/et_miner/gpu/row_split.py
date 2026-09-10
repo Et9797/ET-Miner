@@ -923,9 +923,10 @@ def _build_deferred_frame(
         # totals are stated as an identity, and anything distribution-
         # dependent is stated as a condition rather than a constant.
         #
-        # IDENTITY, item arrays only. N = total items, R = |offsets| = rows*8B,
-        # kbar = N/rows the mean itemset length -- so R = 8N/kbar, and N and R
-        # are one variable, not two:
+        # IDENTITY, item arrays only. N = total items, R = |offsets| =
+        # (rows+1)*8B, kbar = N/rows the mean itemset length -- so R = 8N/kbar
+        # to within the one extra element, and N and R are one variable, not
+        # two:
         #   floor     = 4N                 sources only; offsets does not exist yet
         #   old       = 12N + max(4N, 2R)  TWO candidate peaks, whichever is
         #                                  higher: the int32->int64 cast (4N
@@ -963,6 +964,18 @@ def _build_deferred_frame(
         # crossover, same N: kbar = 3 measures old = 3.251 against the 16N form
         # 2.980, and kbar = 1 measures 5.238 -- the form that collapses to 16N
         # is the one that fails here, not the max().
+        #
+        # RE-MEASURED on a SECOND instrument, because everything above is VmHWM
+        # and VmHWM stops being true -- not merely noisy -- below N ~= 10M,
+        # where glibc does not return sub-mmap-threshold blocks. tracemalloc,
+        # run against the pre-fix code itself (`0a21f35^`: the
+        # `np.concatenate(...).astype(np.int64)` line and the `widths` pair
+        # below it, not a paraphrase of them -- a paraphrase that keeps the
+        # per-chunk list alive across `offsets` measures 3R and disagrees),
+        # puts `old` at ratio 1.0000 of 12N + max(4N, 2R) at kbar = 1, 2, 3, 4,
+        # 5 and 8, with the crossover landing on kbar = 4 exactly. The two
+        # instruments agree once the 4N sources are counted on both sides:
+        # kbar = 1 is 28N/16N = 1.75 there against 5.238/2.980 = 1.758 here.
         #
         # The in-place `np.cumsum(offsets[1:], out=offsets[1:])` below aliases
         # input and output, and that is a documented contract, not tolerated

@@ -139,22 +139,39 @@ def _git_rev() -> str:
     A digest collision would silently mark stale rows fresh, so it is worth
     naming what carries that risk: 48 bits, compared for equality only against
     revs a campaign actually wrote.
+
+    "unknown" is the SENTINEL for git having failed -- not installed, timed
+    out, not a repository -- and it is not a revision. `_coverage` never counts
+    a row as fresh at it, on the row side or the `here` side, and `main`
+    refuses to start a campaign at it. It used to be compared by equality like
+    any other stamp: a run on which git failed throughout stamped every row
+    "unknown", found each equal to an "unknown" `here`, printed the tick and
+    exited 0. The failure behind it goes to stderr, so the sentinel can be
+    diagnosed rather than merely noticed.
     """
-    try:
-        sha = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=30, cwd=REPO
-        ).stdout.strip()
-        diff = subprocess.run(
-            ["git", "diff", "HEAD"],
-            capture_output=True, timeout=30, cwd=REPO,
-        ).stdout
-        if not sha:
-            return "unknown"
-        if not diff.strip():
-            return sha
-        return f"{sha}-dirty.{hashlib.blake2b(diff, digest_size=6).hexdigest()}"
-    except Exception:
+
+    def unknown(why: str) -> str:
+        print(
+            f"_git_rev: cannot determine the revision ({why}); stamping 'unknown', which never gates",
+            file=sys.stderr, flush=True,
+        )
         return "unknown"
+
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=30, cwd=REPO
+        )
+        diff = subprocess.run(["git", "diff", "HEAD"], capture_output=True, timeout=30, cwd=REPO)
+    except Exception as e:  # git not installed, or hung past the timeout
+        return unknown(repr(e))
+    sha = head.stdout.strip()
+    if head.returncode != 0 or not sha:
+        return unknown(head.stderr.strip() or f"git rev-parse exited {head.returncode} with no output")
+    if diff.returncode != 0:
+        return unknown(diff.stderr.decode(errors="replace").strip() or f"git diff exited {diff.returncode}")
+    if not diff.stdout.strip():
+        return sha
+    return f"{sha}-dirty.{hashlib.blake2b(diff.stdout, digest_size=6).hexdigest()}"
 
 
 def capture_environment(out_dir: Path) -> None:
@@ -180,8 +197,8 @@ def capture_environment(out_dir: Path) -> None:
         f.write("\n\n".join(blocks))
 
 
-def _campaign_out() -> Path:
-    """Per-revision results directory, keyed by `_git_rev()`.
+def _campaign_out(rev: str | None = None) -> Path:
+    """Per-revision results directory, keyed by `rev` (default: `_git_rev()`).
 
     Derived HERE and not in the shell scripts, which each computed it with a
     bare `git rev-parse --short HEAD`. That drops everything `_git_rev` adds to
@@ -190,11 +207,19 @@ def _campaign_out() -> Path:
     the exact confusion the rev stamp exists to prevent. One derivation, one
     definition of "this revision", used by the runner and the report alike.
 
-    Since the dirty suffix now carries a digest of the tracked diff, EDITING
-    THE TREE MID-CAMPAIGN starts a new directory rather than appending rows
-    under a name that no longer describes them. A resume after an edit is a
-    fresh campaign, which is the honest reading -- and the reason a campaign
-    should be run on a frozen tree.
+    Derived ONCE PER INVOCATION, from the revision the invocation starts at,
+    and never re-derived while it runs: `main` binds `out_dir` before the
+    first config and appends every row to it. Editing the tree mid-run does
+    NOT move the directory. What happens instead: `run_config` stamps each row
+    with `_git_rev()` as it finishes, so rows produced after the edit carry the
+    new rev, land beside the old ones, and are reported by the gate as
+    produced at a revision other than the invocation's; and `main` re-reads
+    the tree after the loop and refuses the tick when it has moved. The NEXT
+    invocation derives a new directory from the edited tree -- since the dirty
+    suffix carries a digest of the tracked diff, that is a different name --
+    so a resume after an edit is a fresh campaign. Either way the rows are
+    not pooled under one name, and the honest reading is still to run a
+    campaign on a frozen tree.
 
     The runner resumes from whatever is already in the directory, which is
     what a multi-hour campaign needs. Keyed by revision, a resume at the same
@@ -209,7 +234,7 @@ def _campaign_out() -> Path:
     Nested under `bench/results/campaign/` because that path is already
     gitignored, so per-revision dirs need no `.gitignore` change.
     """
-    return DEFAULT_OUT / _git_rev()
+    return DEFAULT_OUT / (rev or _git_rev())
 
 
 def run_config(cfg: dict, out_dir: Path) -> dict:
@@ -280,14 +305,24 @@ def _coverage(
     The four output lists partition `all_ids` only in the sense that
     `ok_here` and `missing | bad | stale` are complementary -- which is the
     property the printed count needs, and the only one it may assume.
+
+    A row is fresh when its rev equals `here` AND that rev is a revision:
+    "unknown" is `_git_rev`'s sentinel for git having failed, and two rows
+    stamped with it were never shown to come from the same code. Compared by
+    equality it gated green -- every row "unknown", `here` "unknown", tick
+    printed, exit 0 -- so the sentinel is stale on either side, always.
     """
+
+    def fresh(r: dict) -> bool:
+        rev = r.get("rev")
+        return rev == here and rev != "unknown"
+
     latest = {r["id"]: r for r in rows}
     missing = sorted(i for i in all_ids if i not in latest)
     bad = sorted(i for i in all_ids if i in latest and latest[i].get("status") != "ok")
-    stale = sorted(i for i in all_ids if i in latest and latest[i].get("rev") != here)
+    stale = sorted(i for i in all_ids if i in latest and not fresh(latest[i]))
     ok_here = sorted(
-        i for i in all_ids
-        if i in latest and latest[i].get("status") == "ok" and latest[i].get("rev") == here
+        i for i in all_ids if i in latest and latest[i].get("status") == "ok" and fresh(latest[i])
     )
     return latest, missing, bad, stale, ok_here
 
@@ -323,7 +358,18 @@ def main() -> int:
     ap.add_argument("--skip", default=None, help="skip configs whose id contains this")
     args = ap.parse_args()
 
-    out_dir = Path(args.out) if args.out else _campaign_out()
+    # The revision this invocation speaks for, read ONCE, before anything is
+    # written. `run_config` stamps each row as it finishes and the tree is read
+    # again after the loop, so an edit during the run is caught, not pooled.
+    here = _git_rev()
+    if here == "unknown":
+        print(
+            "cannot determine the revision (git failed -- see stderr). Every row would be stamped "
+            "'unknown', and no such row can gate anything; fix git and re-run."
+        )
+        return 2
+
+    out_dir = Path(args.out) if args.out else _campaign_out(here)
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"campaign dir: {out_dir}")
     capture_environment(out_dir)
@@ -369,7 +415,6 @@ def main() -> int:
     ]
     deadline = time.time() + args.max_hours * 3600 if args.max_hours else None
 
-    here = _git_rev()
     failed_here: list[str] = []
     for cfg in selected:
         if cfg["id"] in done_ids:
@@ -426,8 +471,19 @@ def main() -> int:
     # legitimate and failing it would break the resume this file exists to
     # support. What changes is that the line no longer says "consistent" about
     # a run that established nothing.
+    #
+    # `now` is the tree AFTER the last config. `here` was read before the
+    # first, and `out_dir` was derived from it; an edit in between leaves the
+    # rows in one directory stamped with two revs. `_coverage` lists the
+    # post-edit rows as stale, but only if a config ran after the edit -- an
+    # edit after the last config leaves every row at `here` while the tree the
+    # operator is looking at is `now`, and the tick would be read as being
+    # about it. So drift refuses the tick on its own. The two `!= "unknown"`
+    # terms are implied by `_coverage` and by the refusal at the top of this
+    # function; they are stated so the predicate reads as the claim it makes.
+    now = _git_rev()
     latest, missing, bad, stale, ok_here = _coverage(all_ids, rows, here)
-    covered = not missing and not bad and not stale
+    covered = not missing and not bad and not stale and here != "unknown" and now == here
 
     # An empty matrix cannot be gated, and `not missing and not bad and not
     # stale` is vacuously true over an empty `all_ids`. Selecting nothing is
@@ -445,6 +501,13 @@ def main() -> int:
         return 0
 
     print(f"\nequivalence groups: NOT GATED at {here} — no ✓ emitted.")
+    if now != here:
+        print(
+            f"  the tree changed during this invocation: it started at {here} and stands at {now}. "
+            f"Rows are stamped per config as each finishes, so any produced after the edit are at "
+            f"{now}; the rows at {here} came from code no longer in the tree. Nothing in {out_dir} "
+            "now describes one tree -- re-run on a frozen tree."
+        )
     print(f"  {len(ok_here)} of {len(all_ids)} configs are ok at {here}.")
     if missing:
         print(f"  {len(missing)} never ran: {', '.join(missing)}")
@@ -461,13 +524,14 @@ def main() -> int:
     print("  Re-run without filters, or with a fresh --out, to gate this revision.")
 
     # A row that FAILED in this invocation is a gate failure, not a partial
-    # campaign. `bench/run_smoke.sh` runs under `set -euo pipefail`, so exit 0
-    # IS the gate passing -- returning 0 from an all-crashed matrix made the
-    # gate pass on a run that established nothing, which is the same false
-    # claim the tick predicate above exists to stop, one level down. A replay
-    # or an interrupted resume still exits 0: those are legitimate and failing
-    # them would break the resume this file supports.
-    if failed_here:
+    # campaign, and so is a tree that moved under it. `bench/run_smoke.sh`
+    # runs under `set -euo pipefail`, so exit 0 IS the gate passing --
+    # returning 0 from an all-crashed matrix made the gate pass on a run that
+    # established nothing, which is the same false claim the tick predicate
+    # above exists to stop, one level down. A replay or an interrupted resume
+    # still exits 0: those are legitimate and failing them would break the
+    # resume this file supports.
+    if failed_here or now != here:
         return 1
     return 0
 

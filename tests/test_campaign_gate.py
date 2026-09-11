@@ -5,15 +5,20 @@ that gates successfully returns at the ✓ and never executes the branch that
 counts and names the failures. Every defect found there so far shipped
 unobserved for exactly that reason, and `bash bench/run_smoke.sh` exiting 0 is
 no evidence about it -- a fresh single-revision run has nothing missing, bad or
-stale to report. These tests drive `_coverage` and `_git_rev` directly.
+stale to report. These tests drive `_coverage` and `_git_rev` directly, and
+`main` end to end with git, the device count, the environment capture and the
+child process stubbed -- which is also the first time `main`'s green path has
+run without a GPU.
 
-CONTROL, both measured, not asserted. Replace `ok_here` with the old
+CONTROL, both measured, not asserted, re-measured after the tests below were
+added. Replace `ok_here` with the old
 `len(all_ids) - len(missing) - len(bad) - len(stale)` and FOUR tests go red --
-`test_ok_count_survives_a_bad_and_stale_overlap` at `assert (0 == 1)`, plus the
-complementarity, latest-row and outside-the-matrix cases, which the subtraction
-also gets wrong. Drop the digest from `_git_rev` and exactly ONE goes red,
+`test_ok_count_survives_a_bad_and_stale_overlap`, plus the complementarity,
+latest-row and outside-the-matrix cases, which the subtraction also gets wrong.
+Drop the digest from `_git_rev` and exactly ONE goes red,
 `test_two_distinct_dirty_trees_get_distinct_revs`, at
-`assert '13f486b-dirty' != '13f486b-dirty'`; the other five `_git_rev` tests
+`assert '97bb2c0-dirty' != '97bb2c0-dirty'` -- that sha is reproducible because
+`tiny_repo` commits at a fixed date -- while the other seven `_git_rev` tests
 still pass, because a bare `-dirty` suffix is right about everything except
 telling two dirty trees apart.
 """
@@ -21,7 +26,11 @@ telling two dirty trees apart.
 from __future__ import annotations
 
 import importlib.util
+import os
+import re
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -115,6 +124,25 @@ def test_rows_outside_the_matrix_are_ignored():
     assert ok_here == ["a"] and not (missing or bad or stale)
 
 
+def test_an_unknown_here_covers_nothing():
+    """The false green. `here` and every row's rev come from the same
+    function, so when git fails they are all "unknown" -- EQUAL -- and the
+    equality compare called every row fresh, printed the tick and exited 0.
+    The sentinel is not a revision and must be stale on both sides."""
+    rows = [_row("a", rev="unknown"), _row("b", rev="unknown")]
+    _, missing, bad, stale, ok_here = runner._coverage({"a", "b"}, rows, "unknown")
+
+    assert ok_here == [] and stale == ["a", "b"]
+    assert missing == [] and bad == [], "premise: the rows are present and ok; only the rev is wrong"
+
+
+def test_an_unknown_row_is_stale_at_a_real_rev():
+    """The other side: a row stamped "unknown" is stale whatever `here` is, so
+    a campaign that lost git for one config cannot count that config."""
+    _, _, _, stale, ok_here = runner._coverage({"a"}, [_row("a", rev="unknown")], "abc1234")
+    assert stale == ["a"] and ok_here == []
+
+
 # --------------------------------------------------------------------------
 # _git_rev: what the staleness compare above can actually separate
 # --------------------------------------------------------------------------
@@ -123,8 +151,18 @@ def test_rows_outside_the_matrix_are_ignored():
 @pytest.fixture
 def tiny_repo(tmp_path, monkeypatch):
     """A throwaway git repo with one committed file, with `runner.REPO` pointed
-    at it. `_git_rev` shells out with `cwd=REPO`, so this is the whole seam."""
-    if not subprocess.run(["git", "--version"], capture_output=True).returncode == 0:
+    at it. `_git_rev` shells out with `cwd=REPO`, so this is the whole seam.
+
+    The commit is made at a fixed author and committer date, so its sha is the
+    same on every box and every day and the module docstring can quote it. A
+    previous version set no date, and the literal it quoted was whatever the
+    clock said when it was measured.
+
+    `shutil.which`, not a `subprocess.run(["git", "--version"])`: with git
+    absent the latter raises `FileNotFoundError` before there is a returncode
+    to test, so the skip it guarded could never fire and the seven tests below
+    errored instead."""
+    if shutil.which("git") is None:
         pytest.skip("git not available")
     subprocess.run(["git", "init", "-q", "."], cwd=tmp_path, check=True)
     (tmp_path / "f.txt").write_text("a\n")
@@ -132,14 +170,30 @@ def tiny_repo(tmp_path, monkeypatch):
     subprocess.run(
         ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
         cwd=tmp_path, check=True,
+        env={**os.environ, "GIT_AUTHOR_DATE": "2000-01-01T00:00:00+0000",
+             "GIT_COMMITTER_DATE": "2000-01-01T00:00:00+0000"},
     )
     monkeypatch.setattr(runner, "REPO", tmp_path)
     return tmp_path
 
 
 def test_a_clean_tree_gets_the_bare_sha(tiny_repo):
+    """A hex abbreviation and nothing else. `len(rev) >= 7` was the previous
+    assertion, and `"unknown"` is seven characters long."""
     rev = runner._git_rev()
-    assert "-dirty" not in rev and len(rev) >= 7
+    assert re.fullmatch(r"[0-9a-f]{7,40}", rev), rev
+
+
+def test_git_failure_yields_the_sentinel_and_says_why(tmp_path, monkeypatch, capsys):
+    """Not a repository: `git rev-parse` exits 128. The sentinel comes back --
+    and the reason goes to stderr, because a bare "unknown" in a campaign
+    directory name was undiagnosable after the fact."""
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+    monkeypatch.setattr(runner, "REPO", tmp_path)
+    assert runner._git_rev() == "unknown"
+    err = capsys.readouterr().err
+    assert "_git_rev" in err and "not a git repository" in err
 
 
 def test_two_distinct_dirty_trees_get_distinct_revs(tiny_repo):
@@ -199,3 +253,75 @@ def test_the_rev_is_usable_as_a_directory_name(tiny_repo):
     rev = runner._git_rev()
     assert "/" not in rev and "\\" not in rev and rev == rev.strip()
     (tiny_repo / rev).mkdir()
+
+
+# --------------------------------------------------------------------------
+# main(): the sentinel refusal and the mid-run drift check, driven with stubs
+# --------------------------------------------------------------------------
+
+
+def _drive_main(monkeypatch, tmp_path, revs: list[str], *, row_rev: str = "A") -> int:
+    """Run `main --mode smoke --out tmp` with git, the device count, the
+    environment capture and the child process all stubbed. `revs` is what
+    successive `_git_rev()` calls return (the last value repeats); rows come
+    back ok, stamped `row_rev`, with one shared signature so
+    `check_equivalence` has nothing to say."""
+    it = iter(revs)
+    last = revs[-1]
+    monkeypatch.setattr(runner, "_git_rev", lambda: next(it, last))
+    monkeypatch.setattr(runner, "_gpu_count", lambda: 2)
+    monkeypatch.setattr(runner, "capture_environment", lambda out_dir: None)
+    monkeypatch.setattr(
+        runner, "run_config",
+        lambda cfg, out_dir: {"id": cfg["id"], "config": cfg, "status": "ok", "rev": row_rev,
+                              "n_itemsets": 1, "sum_counts": 1, "itemset_hash": "h"},
+    )
+    monkeypatch.setattr(sys, "argv", ["runner.py", "--mode", "smoke", "--out", str(tmp_path)])
+    return runner.main()
+
+
+def test_main_gates_a_fresh_run_on_a_frozen_tree(monkeypatch, tmp_path, capsys):
+    """Positive control for the two refusals below: same stubs, nothing
+    moves, the tick is emitted and the exit code is 0."""
+    rc = _drive_main(monkeypatch, tmp_path, ["A"])
+    out = capsys.readouterr().out
+    assert rc == 0 and "consistent ✓" in out and "every row at A" in out
+
+
+def test_main_refuses_to_start_at_an_unknown_rev(monkeypatch, tmp_path, capsys):
+    """Fail before the first config, not after the last: a matrix run at the
+    sentinel could never gate, and the smoke matrix is not free."""
+    monkeypatch.setattr(runner, "run_config", lambda cfg, out_dir: pytest.fail("a config ran"))
+    it = iter(["unknown"])
+    monkeypatch.setattr(runner, "_git_rev", lambda: next(it, "unknown"))
+    monkeypatch.setattr(runner, "_gpu_count", lambda: 2)
+    monkeypatch.setattr(runner, "capture_environment", lambda out_dir: None)
+    monkeypatch.setattr(sys, "argv", ["runner.py", "--mode", "smoke", "--out", str(tmp_path)])
+
+    rc = runner.main()
+    out = capsys.readouterr().out
+    assert rc == 2 and "cannot determine the revision" in out and "consistent ✓" not in out
+
+
+def test_main_refuses_the_tick_when_the_tree_moved_after_the_last_config(monkeypatch, tmp_path, capsys):
+    """The case `_coverage` cannot see: every row IS at `here`, because the
+    edit landed after the last config finished -- so nothing is stale, and by
+    the row predicate alone the tick would be printed about a tree that no
+    longer exists. `here` is read once before the loop, `now` once after."""
+    rc = _drive_main(monkeypatch, tmp_path, ["A", "B"], row_rev="A")
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "NOT GATED at A" in out and "started at A and stands at B" in out
+    assert "6 of 6 configs are ok at A" in out, "premise: no row is stale; only the tree moved"
+    assert "consistent ✓" not in out
+
+
+def test_main_lists_rows_produced_after_a_mid_run_edit_as_stale(monkeypatch, tmp_path, capsys):
+    """The case `_coverage` does see, still driven end to end: the tree moved
+    and the configs that ran afterwards carry the new rev."""
+    rc = _drive_main(monkeypatch, tmp_path, ["A", "B"], row_rev="B")
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "0 of 6 configs are ok at A" in out
+    assert "6 were produced at a revision other than A (B)" in out
+    assert "consistent ✓" not in out

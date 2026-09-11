@@ -13,9 +13,9 @@ module-level `importorskip("cupy")` and its device skip, beneath a comment
 saying they "run on a box with no device". Measured: `CUDA_VISIBLE_DEVICES=""
 pytest -q tests/test_kernel_input_guards.py` collected that file as ONE skip
 and all seven were hidden. Here they carry no marker and no gate.
-`test_the_modules_under_test_import_without_cupy` pins the premise -- the three
-modules read below import with cupy blocked -- so the premise stays measured
-rather than remembered.
+`test_the_modules_under_test_import_without_cupy` pins the premise -- the
+modules the tests below IMPORT load with cupy blocked -- so the premise stays
+measured rather than remembered.
 
 Two families of claim:
 
@@ -26,8 +26,11 @@ Two families of claim:
    guard. `_GUARDED_ENTRY_POINTS` and `_EXEMPT_ENTRY_POINTS` make the tuples
    the claim; the tests hold the tuples to the source in both directions, so a
    new export cannot join the family by being described as part of it. Call
-   sites are read off the AST (`_call_sites`), so a docstring that mentions
-   `_assert_home(` is not a caller and two calls on one line are two.
+   sites are read off the AST (`_call_sites`), keyed by line AND column, so a
+   docstring that mentions `_assert_home(` is not a caller and two calls on
+   one line are two (`test_two_calls_on_one_line_are_two_call_sites`). The
+   prose that points a reader at these tests by name is itself checked:
+   `test_the_tests_the_prose_names_exist_in_the_file_it_names`.
 
 2. THE K=1 SEED CAST. `cp.where(freq_mask)[0]` in `gpu/mining.py` returns
    int64 natively and is `.astype(cp.int32)`'d on the spot to build the K=1
@@ -43,10 +46,12 @@ Two families of claim:
    expression locally, never imported `gpu.mining`, and stayed green under
    the mutation.
 
-TALLY UNDER THAT MUTATION, re-measured after the split: this file goes
-1 failed, 7 passed; `test_kernel_input_guards.py` stays 8 passed, which is the
-point of its docstring's pointer here -- nothing in the device file sees the
-cast, and it says so.
+UNDER THAT MUTATION, re-measured after the split: this file goes red at
+`test_the_k1_seed_cast_is_still_in_mining` and nowhere else, and
+`test_kernel_input_guards.py` stays green, which is the point of its
+docstring's pointer here -- nothing in the device file sees the cast, and it
+says so. Stated as which test, not as a pass/fail count: a count in prose is
+stale the moment a test is added to either file.
 """
 
 from __future__ import annotations
@@ -63,13 +68,20 @@ _GUARD_CALLS = ("_assert_home", "_assert_rank", "_assert_dtype")
 
 def test_the_modules_under_test_import_without_cupy():
     """The premise of this file, held in a fresh interpreter: `None` in
-    `sys.modules` makes `import cupy` raise, and the three modules read below
-    must import anyway. If one grows a module-level cupy import, every test
-    here would start needing a device and the file's reason to exist is gone --
-    fail here, loudly, rather than hide seven tests behind a skip again."""
+    `sys.modules` makes `import cupy` raise, and the modules the tests below
+    IMPORT must load anyway -- `et_miner.gpu.mining`, the `et_miner.gpu.kernels`
+    package (`_exported_from_gpu_resident` reads its `__all__`) and
+    `et_miner.gpu.kernels.gpu_resident`. `et_miner.gpu.dispatch` is in the list
+    although nothing here imports it (`_call_sites` only parses it): the
+    exemption prose names it, so a cupy import at its top level is noticed
+    here first. If one of the imported ones grows a module-level cupy import,
+    every test here would start needing a device and the file's reason to
+    exist is gone -- fail here, loudly, rather than hide the tests behind a
+    skip again."""
     code = (
         "import sys; sys.modules['cupy'] = None\n"
-        "import et_miner.gpu.mining, et_miner.gpu.kernels.gpu_resident, et_miner.gpu.dispatch\n"
+        "import et_miner.gpu.mining, et_miner.gpu.kernels, et_miner.gpu.kernels.gpu_resident\n"
+        "import et_miner.gpu.dispatch\n"
     )
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, r.stderr[-2000:]
@@ -161,9 +173,10 @@ def test_the_k2_and_k3_families_are_both_represented():
     assert any(not n.endswith("_multi_gpu") for n in guarded)
 
 
-def _call_sites(symbol: str) -> set[tuple[str, int, str]]:
-    """`(path relative to the package, lineno, enclosing top-level def)` for
-    every call to `symbol` in every `.py` under `et_miner`, read off the AST.
+def _call_sites(symbol: str, root: Path | None = None) -> set[tuple[str, int, int, str]]:
+    """`(path relative to `root`, lineno, col_offset, enclosing top-level def)`
+    for every call to `symbol` in every `.py` under `root` -- the `et_miner`
+    package unless a test passes its own tree -- read off the AST.
 
     A call is an `ast.Call` whose callee is the bare name or an attribute of
     that name, so `symbol(...)` and `module.symbol(...)` both count and the
@@ -172,14 +185,18 @@ def _call_sites(symbol: str) -> set[tuple[str, int, str]]:
     `_assert_home(` turned the suite red, two calls on one line counted as one,
     and the test comparing it against `str.count` was counting lines on one
     side and occurrences on the other. `ast.Call` is the unit on both sides.
+    The column is in the key because the first AST version keyed on the line
+    alone and so collapsed two calls on one line into one site -- the regex's
+    defect, one level down -- while its docstring said the opposite.
 
     The enclosing name is the OUTERMOST `def` that contains the call, so a call
     made from a nested helper is attributed to the entry point that owns it --
     the question the exemption prose answers."""
-    import et_miner
+    if root is None:
+        import et_miner
 
-    root = Path(et_miner.__file__).parent
-    out: set[tuple[str, int, str]] = set()
+        root = Path(et_miner.__file__).parent
+    out: set[tuple[str, int, int, str]] = set()
 
     def visit(node: ast.AST, rel: str, owner: str) -> None:
         for child in ast.iter_child_nodes(node):
@@ -190,12 +207,22 @@ def _call_sites(symbol: str) -> set[tuple[str, int, str]]:
                 fn = child.func
                 name = fn.id if isinstance(fn, ast.Name) else fn.attr if isinstance(fn, ast.Attribute) else None
                 if name == symbol:
-                    out.add((rel, child.lineno, owner or "<module>"))
+                    out.add((rel, child.lineno, child.col_offset, owner or "<module>"))
             visit(child, rel, owner)
 
     for f in sorted(root.rglob("*.py")):
         visit(ast.parse(f.read_text(), filename=str(f)), str(f.relative_to(root)), "")
     return out
+
+
+def test_two_calls_on_one_line_are_two_call_sites(tmp_path):
+    """The module docstring says two calls on one line are two; this measures
+    it on a tree of one file rather than trusting the key's shape."""
+    (tmp_path / "m.py").write_text("def g():\n    f(); f()\n    f()\n\nf()\n")
+    sites = _call_sites("f", root=tmp_path)
+    assert len(sites) == 4, sorted(sites)
+    assert {owner for *_, owner in sites} == {"g", "<module>"}
+    assert sum(1 for _, line, _, _ in sites if line == 2) == 2, sorted(sites)
 
 
 def _names_quoted_in(prose: str, names: set[str]) -> set[str]:
@@ -213,7 +240,7 @@ def test_assert_home_is_called_only_from_the_guarded_entry_points():
     from et_miner.gpu.kernels import gpu_resident
 
     sites = _call_sites("_assert_home")
-    callers = {owner for _, _, owner in sites}
+    callers = {owner for *_, owner in sites}
 
     assert callers == set(gpu_resident._GUARDED_ENTRY_POINTS), (
         f"_assert_home is called from {sorted(callers)} but _GUARDED_ENTRY_POINTS is "
@@ -221,7 +248,7 @@ def test_assert_home_is_called_only_from_the_guarded_entry_points():
         "is legitimate, the 'callers are exactly _GUARDED_ENTRY_POINTS' sentence in loader.py "
         "is now false."
     )
-    assert {path for path, _, _ in sites} == {"gpu/kernels/gpu_resident.py"}, sorted(sites)
+    assert {path for path, *_ in sites} == {"gpu/kernels/gpu_resident.py"}, sorted(sites)
 
 
 def test_build_prefix_groups_gpu_call_sites_match_its_exemption():
@@ -238,9 +265,9 @@ def test_build_prefix_groups_gpu_call_sites_match_its_exemption():
 
     reason = gpu_resident._EXEMPT_ENTRY_POINTS["build_prefix_groups_gpu"]
     sites = _call_sites("build_prefix_groups_gpu")
-    owners = {owner for _, _, owner in sites}
+    owners = {owner for *_, owner in sites}
 
-    assert {path for path, _, _ in sites} == {"gpu/kernels/gpu_resident.py", "gpu/dispatch.py"}, sorted(sites)
+    assert {path for path, *_ in sites} == {"gpu/kernels/gpu_resident.py", "gpu/dispatch.py"}, sorted(sites)
     assert len(sites) == 3, (
         f"the exemption reason says THREE call sites; found {len(sites)}: {sorted(sites)}. "
         "Update _EXEMPT_ENTRY_POINTS['build_prefix_groups_gpu'] with it."
@@ -249,9 +276,51 @@ def test_build_prefix_groups_gpu_call_sites_match_its_exemption():
         f"call sites are owned by {sorted(owners)} but the exemption reason names only "
         f"{sorted(_names_quoted_in(reason, owners))}"
     )
-    dispatch_owner = {owner for path, _, owner in sites if path == "gpu/dispatch.py"}
+    dispatch_owner = {owner for path, *_, owner in sites if path == "gpu/dispatch.py"}
     assert dispatch_owner == {"dispatch_k3plus_gpu_resident"}, sorted(sites)
     assert "gpu/dispatch.py::dispatch_k3plus_gpu_resident" in reason
+
+
+def _top_level_defs(path: Path) -> set[str]:
+    """Top-level `def` names of a test file, read off its AST and never by
+    importing it: `test_kernel_input_guards.py` parses on any box and imports
+    only on one with a device, and importing it here would put this file back
+    behind the gate it was moved out from under."""
+    tree = ast.parse(path.read_text(), filename=str(path))
+    return {n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+
+_GUARD_TEST_FILES = ("test_kernel_guard_claims.py", "test_kernel_input_guards.py")
+
+
+def test_the_tests_the_prose_names_exist_in_the_file_it_names():
+    """`gpu_resident.py`'s module docstring and each exemption reason send the
+    reader to tests by name. Every `test_*` token in those blocks must be a
+    top-level `def` in exactly one of the two guard test files, and that file's
+    basename must appear in the same block. A citation is a claim about where
+    something lives, and the module docstring carried a stale one -- the tuple
+    assertions had moved here and the sentence still said
+    `test_kernel_input_guards.py` -- through the commit that moved them and
+    the three after it. A `test_*` token followed by `.py` is a file, not a
+    test, and is the only thing excluded."""
+    from et_miner.gpu.kernels import gpu_resident
+
+    here = Path(__file__).parent
+    defined = {name: _top_level_defs(here / name) for name in _GUARD_TEST_FILES}
+    blocks = {"gpu_resident module docstring": gpu_resident.__doc__ or ""}
+    blocks.update({f"_EXEMPT_ENTRY_POINTS[{n!r}]": r for n, r in gpu_resident._EXEMPT_ENTRY_POINTS.items()})
+
+    cited = {(label, tok) for label, prose in blocks.items() for tok in re.findall(r"\btest_[a-z0-9_]+\b(?!\.py)", prose)}
+    assert cited, "premise: the module docstring names at least one test"
+    for label, tok in sorted(cited):
+        holders = sorted(f for f, names in defined.items() if tok in names)
+        assert len(holders) == 1, (
+            f"{label} names `{tok}`, which is defined in {holders or 'neither guard test file'}; "
+            "a name in the prose must be one top-level test in exactly one of them."
+        )
+        assert holders[0] in blocks[label], (
+            f"{label} names `{tok}`, which lives in {holders[0]}, but that file is not named in the same block."
+        )
 
 
 # --------------------------------------------------------------------------

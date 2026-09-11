@@ -8,10 +8,16 @@ at K>=3. The K>=3 twins carry one further guard, the shared-memory k-cap, which
 has no K=2 counterpart because K=2 is always k=2.
 
 `_EXEMPT_ENTRY_POINTS` names the rest, with the reason each is exempt. Read the
-two tuples, not this sentence: `tests/test_kernel_input_guards.py` asserts that
-every name this package re-exports from this module is in exactly one of them,
-and that the source of each guarded one calls all three guards while the source
-of each exempt one calls none. Successive rewordings of an unqualified "every
+two tuples, not this sentence: `tests/test_kernel_guard_claims.py` asserts that
+every name this package re-exports from this module is in exactly one of them
+(`test_every_exported_entry_point_is_classified_exactly_once`), that the source
+of each guarded one calls all three guards
+(`test_the_guarded_entry_points_really_call_all_three_guards`) and that the
+source of each exempt one calls none
+(`test_the_exempt_entry_points_call_no_guard_and_say_why`). Those names are
+held to that file's definitions by a test there, because this sentence went on
+naming the device-gated file after the tests had left it. Successive rewordings
+of an unqualified "every
 gpu-resident entry point" were each false about `build_prefix_groups_gpu`,
 which is exported and calls no guard; a sentence cannot be the check, so it is
 not asked to be.

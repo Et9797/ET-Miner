@@ -24,7 +24,9 @@ source only and lives in `test_kernel_guard_claims.py`, which carries no
 marker. Those checks used to be here, under this marker, behind a comment
 saying they ran on a box with no device; they did not, and nothing in THIS
 file sees the seed cast: under the mutation that deletes it this file stays
-8 passed while that one goes 1 failed, 7 passed (re-measured after the split).
+green while that one goes red at its source check (re-measured after the
+split; stated as which test rather than as a count, which goes stale when a
+test is added to either file).
 
 CONTROL: drop the `_assert_dtype` call from an entry point and its dtype case
 returns a result instead of raising. Drop `_assert_rank` and the rank cases

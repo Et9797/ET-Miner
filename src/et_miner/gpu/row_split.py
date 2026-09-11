@@ -856,10 +856,17 @@ def _build_deferred_frame(
 
     # PyArrow path: O(1) Python overhead via Arrow ListArray from numpy.
     #
-    # The int64 cast is load-bearing, not cosmetic. This function has three
-    # return paths and they used to disagree on the itemset dtype: both
-    # _empty_result() calls above give List(Int64) (core/result.py), the
-    # list fallback below gives List(Int64) via Python ints, and this path gave
+    # The int64 cast is load-bearing, not cosmetic. FOUR places return a frame
+    # on this route and they used to disagree on the itemset dtype. Two are in
+    # THIS function -- this arrow path and the list fallback in its `except
+    # ImportError`; the other two are the `_empty_result()` calls in the CALLER,
+    # `_apriori_row_split_multi_gpu`, which were left there when this block was
+    # split out. The count said "three return paths" of "this function" while
+    # naming four sites across two, which is the defect this comment block keeps
+    # being rewritten for: say which set, then count that set.
+    #
+    # Both `_empty_result()` calls give List(Int64) (core/result.py), the list
+    # fallback gives List(Int64) via Python ints, and this path gave
     # List(Int32) -- because this file builds `col_to_item_arr` as np.int32
     # (guarded by the `_max_item < 2**31` assert beside it) and Arrow preserves
     # it. So the ONE path that normally runs was the odd one out, and
@@ -952,9 +959,31 @@ def _build_deferred_frame(
         #
         # which is strictly positive at every kbar: this change cannot regress
         # the peak, at any shape. Reading the saving as 4N - R holds only above
-        # the crossover. On the real K=1..6 lattice (kbar = 2.365, measured) it
-        # is 5.5x LOW, and below kbar = 2 it is SIGN-INVERTED -- it predicts a
-        # regression where the true saving is R.
+        # the crossover, and there is no single "the real lattice" to read it
+        # against -- the in-tree presets fall on BOTH sides of kbar = 4:
+        #
+        #   preset        itemsets    items      kbar     4N vs 2R
+        #   smoke              694     1,664   2.3977   2R > 4N  (below)
+        #   skewed_rows     10,350    44,900   4.3382   4N > 2R  (above)
+        #   deep_k           8,841    46,727   5.2853   4N > 2R  (above)
+        #
+        # Measured by mining each preset at its own min_support (smoke on the
+        # CPU tier, the other two with use_gpu=True); the k-histograms are in
+        # the session record and `smoke`'s is reproduced as `SMOKE_K_HIST` in
+        # tests/test_row_split_memory.py, which builds a fixture from it.
+        #
+        # ABOVE the crossover the naive reading is EXACT: at deep_k, 4N - R and
+        # max(4N, 2R) - R are both 116,172 B. BELOW it the naive reading
+        # understates -- at smoke the true saving is R = 5,560 B against a naive
+        # 4N - R = 1,096 B, so 5.07x low. Below kbar = 2 it is SIGN-INVERTED
+        # (4N < R), predicting a regression where the true saving is R; that is
+        # a property of the formula, asserted here about the formula and not
+        # about any preset.
+        #
+        # The figure this replaced was "kbar = 2.365, measured", with a "5.5x
+        # LOW" derived from it. Neither had an artifact anywhere in the tree,
+        # and 5.5x is exactly what 2.365 yields -- so the consequence could not
+        # corroborate the premise, it only restated it.
         #
         # ONE WORKED INSTANCE, above the crossover, so `old` = 16N in this
         # branch only. At the fixture shape N=200M items / k=5 / 8 equal chunks,

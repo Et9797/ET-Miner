@@ -24,61 +24,77 @@ per cell, inputs built before the pyarrow warm-up (the order `_excess` uses):
 
 Four orders of magnitude in N; the excess does not move, the ratio moves by
 12%. It is flat in the chunk count too (2,378 B at 1, 8 and 64 chunks of the
-4M shape). So the excess is an additive constant, and a RATIO band measures
+4M shape). So the excess is an additive constant, C, and a RATIO band measures
 the fixture, not the code -- the previous version of this file asserted
 `peak < 1.05 * identity`, which the real implementation FAILS at the real
-`smoke` lattice shape (1.1245). That band passed only because its fixture was
-N = 4M, where a 2.4 KB constant is 0.006%.
+`smoke` lattice shape. That band passed only because its fixture was N = 4M,
+where a 2.4 KB constant is 0.006%. The two invariances are what the tests hold
+(`test_the_excess_does_not_scale_with_n`,
+`test_the_excess_does_not_scale_with_chunk_count`); C's value is asserted
+nowhere, and the last paragraph below says why it cannot be.
 
-`SLACK_B` replaces it, and it is DERIVED, not fitted: the smallest regression
-this file exists to catch is one that doubles the identity, and at the
-production shape (`smoke`, identity 18,872 B) a doubling's excess IS the
-identity, so the slack sits under it at 16,384 B. The real build clears that
-by ~7x at every shape above. It is not "an order of magnitude above the
-constant" and is not meant to be -- a slack chosen as a multiple of the
-constant is fitted to the measurement, and the measurement is what moves.
+`SLACK_B` replaces the band, and it is DERIVED, not fitted: the smallest
+regression this file exists to catch is one that doubles the identity, and at
+the production shape (`smoke`, identity 18,872 B) a doubling's excess IS the
+identity. The slack sits under it, at 16,384 B, so a doubling is rejected
+there for ANY constant C >= 0 -- 18,872 + C > 16,384 needs no measurement --
+and `test_the_slack_rejects_a_doubling_at_the_smoke_shape` holds both that
+inequality and a doubling form measured through the same apparatus. It is not
+"an order of magnitude above the constant" and is not meant to be -- a slack
+chosen as a multiple of the constant is fitted to the measurement, and the
+measurement is what moves. Why 16,384 and not something tighter: headroom
+over the constant, ~7x. A tighter slack would reject a doubling too, and
+would also separate the two R-scale forms below from the real build at the
+smoke shape; this file separates them by differencing instead, and keeps the
+slack a statement about the doubling class alone.
 
-WHAT THE ABSOLUTE ROW CAN AND CANNOT SEE AT THE SMOKE SHAPE, measured. The
-three regressions below cost `max(4N - R, 0)` (the `.astype` on a
-concatenate), `R` (a non-in-place cumsum) and `2R` (the `widths` pair) over
-the identity, with N = total items and R = 8 * (total_rows + 1) as
-`gpu/row_split.py`'s identity comment defines them -- 4N is the byte size of
-the int32 concatenation, so these are bytes throughout. At the fixture (4M
-items, kbar = 5) they measure 9.6, 6.4 and 12.8 MB: 586x, 390x and 781x the
-slack, and `test_slack_rejects_the_known_regressions` holds that. At the
-`smoke` lattice (1,664 items, R = 5,560 B) the same three measure 2,724, 8,091
-and 14,460 B -- ALL inside 16,384 B, as they were inside the 65,536 B an
-earlier version used. Discrimination is a large-N property: at the production
-shape no absolute slack that also admits the real build (2,350 B, with ~100 B
-of run-to-run jitter) separates an R-scale regression from it by a margin
-worth asserting. So the smoke shape is checked by DIFFERENCING instead:
+WHAT THE ABSOLUTE ROW CAN AND CANNOT SEE AT THE SMOKE SHAPE. The three
+regressions below allocate `max(4N - R, 0)` (the `.astype` on a concatenate),
+`R` (a non-in-place cumsum) and `2R` (the `widths` pair) beyond the identity,
+with N = total items and R = 8 * (total_rows + 1) as `gpu/row_split.py`'s
+identity comment defines them -- 4N is the byte size of the int32
+concatenation, so these are bytes throughout, and they follow from the code,
+not from a measurement. At the fixture (4M items, kbar = 5) they are 9.6, 6.4
+and 12.8 MB: 586x, 390x and 781x the slack, and
+`test_slack_rejects_the_known_regressions` holds that. At the `smoke` lattice
+(1,664 items, 694 rows, R = 5,560 B) they are 1,096, 5,560 and 11,120 B --
+ALL inside 16,384 B, with C on top or not, as they were inside the 65,536 B an
+earlier version used. So the smoke shape is checked by DIFFERENCING:
 `test_the_excess_does_not_scale_with_n` subtracts the 40M-item excess from the
-smoke excess (28 B apart for the real build) and bounds the difference by half
-a page, which the constant drops out of and an extra R (5,560 B) does not;
-`test_the_smoke_difference_rejects_the_r_scale_regressions` holds that it
-discriminates. The absolute smoke row in `test_identity_holds_across_shapes`
-is the positive control the ratio band failed; its discrimination lives in the
+smoke excess and bounds the difference by `SMOKE_DIFF_B`, half a page, which
+C drops out of and an extra R (over twice that bound) does not;
+`test_the_smoke_difference_rejects_the_r_scale_regressions` holds that the
+cumsum and `widths` forms clear the real build by at least that bound at the
+smoke shape. Their margin over the real build is NOT their term: the real
+build's peak carries C and the cumsum form's does not (its temporary is freed
+before the arrow call), so the margin is at least R - 8 - C there, and
+`SMOKE_DIFF_B`'s docstring states the interval of C on which the bound is
+valid. The absolute smoke row in `test_identity_holds_across_shapes` is the
+positive control the ratio band failed; its discrimination lives in the
 differenced rows.
 
 THE `.astype` FORM IS BLIND AT LOW KBAR, and at the smoke shape too. With
 R = 8N/kbar (to within one element), `4N - R` is at or below zero for
 kbar <= 2, so at k = 1 and k = 2 the form allocates nothing beyond the identity
-and its peak is the same ~2.4 KB constant as the real build's: measured over
-2M items, 2,551 to 2,567 B against the real build's 2,378 B, same process,
-either order. At the `smoke` lattice (kbar = 2.3977) the formula predicts
-1,096 B of separation, but that peak occurs before pyarrow's constant is
-allocated and is smaller than it, so the measured excess is again the
-constant: 2,708 to 2,724 B against 2,350 B. No peak bound, absolute or
-differenced, separates the astype form at these shapes, and
-`test_no_peak_bound_separates_the_astype_form_at_low_kbar` asserts that rather
-than hiding it. It is caught at the fixture, where 4N - R is 9.6 MB.
+at its own peak; at the `smoke` lattice (kbar = 2.3977) its term is 1,096 B,
+under C. Measured in this file's own run order, the form's excess is BELOW the
+real build's at all three shapes -- by an amount that depends on the process
+and on the position in the run, which is why no figure is written here: the
+revision before this one quoted one, measured one fresh process per cell,
+with the wrong sign. `test_no_peak_bound_separates_the_astype_form_at_low_kbar`
+asserts the relation `astype <= real` and nothing numeric. The form is caught
+at the fixture, where 4N - R is 9.6 MB.
 
 pyarrow's FIRST `LargeListArray.from_arrays` call in a process allocates ~26 MB
 of one-time initialisation, which tracemalloc attributes to whatever traced
 region happens to run first. Every test here warms it before `reset_peak()`.
 Without that warmup this test fails at small N and silently passes at large N
 as the constant is amortised away -- flaky in the one direction that looks like
-success.
+success. The first traced call of any of the forms below carries a smaller
+cost of the same kind -- its own, and not its allocation -- so `_excess`
+calls the function it is about to measure once on a one-row input first, and
+that cost is paid outside the measured region for the real build and the
+regression forms alike.
 
 No exact byte count is asserted anywhere below. The constant depends on the
 ORDER of that warm-up relative to building the inputs, not on the shape:
@@ -115,25 +131,45 @@ SLACK_B = 16_384
 Derived from the regression class this file exists to catch, not from the
 constant: a build that doubles the identity costs the identity itself, which
 at the production shape (`smoke`, 18,872 B) is the smallest any in-tree preset
-produces, so the slack sits just under it. The real build's ~2.4 KB constant
-clears it by ~7x. The three known regressions clear it by 390x-781x at the
-fixture shape and are NOT separated by it at the smoke shape (module
+produces, so the slack sits just under it and rejects a doubling there for any
+constant C >= 0. `test_the_slack_rejects_a_doubling_at_the_smoke_shape` holds
+that inequality and a measured doubling. The real build's ~2.4 KB constant
+clears the slack by ~7x. The three known regressions clear it by 390x-781x at
+the fixture shape and are NOT separated by it at the smoke shape (module
 docstring), which is why that shape is also checked by differencing.
 """
 
 SMOKE_DIFF_B = 2_048
-"""Bound on |excess(smoke lattice) - excess(40M items)|, in bytes.
+"""The differenced bound at the smoke shape, in bytes -- half a page.
 
-Half a page: 20x the ~100 B of run-to-run jitter observed in the constant, and
-0.37 of the smallest regression the smoke shape can show -- one extra
-offsets-sized array, R = 5,560 B. The real build measures 28 B apart.
+Two rows hold it, and it means one thing in both: how far apart two excesses
+measured at, or against, the smoke lattice may be.
+
+`test_the_excess_does_not_scale_with_n` holds the real build's smoke excess
+within it of the real build's 40M excess. That is the check on the production
+shape: the constant C cancels in that difference, and an extra offsets-sized
+array there (R = 5,560 B) is over twice the bound and cannot fit.
+
+`test_the_smoke_difference_rejects_the_r_scale_regressions` holds the cumsum
+and `widths` forms at least this far ABOVE the real build at the smoke shape,
+so the bound cannot be widened past the smallest regression the differencing
+exists to catch. Against the real build at the smoke shape, not against a
+second 40M build: the first row already holds the two real-build excesses
+within this bound of each other, so a form this row puts `SMOKE_DIFF_B` over
+the smoke real build is, against the 40M reference the first row uses, over by
+that margin shifted by a gap the first row bounds and does not pin. C does NOT
+cancel in this second row -- the real build's peak carries it and the cumsum
+form's does not (module docstring) -- so the cumsum form clears the real build
+by at least R - 8 - C, and the row is valid while C < R - 8 - SMOKE_DIFF_B,
+3,504 B at this shape. C is ~2.4 KB in every context measured, and the row's
+failure message prints both figures.
 """
 
 # The k-histogram of the canonical `smoke` preset's real output: 694 itemsets,
 # 1,664 items, kbar = 2.3977. `deferred_itemsets_np` holds ONE ENTRY PER K
 # LEVEL, so the production shape is a strongly-peaked lattice with a tiny tail
 # -- not the equal-chunks/uniform-k fixture. The old ratio band could not hold
-# this case at all; the real build measures 2,350 B over the identity here,
+# this case at all; the real build's constant is 12% of the identity here,
 # inside the 16,384 B slack, and the shape is differenced against the 40M
 # shape in `test_the_excess_does_not_scale_with_n`.
 #
@@ -170,8 +206,12 @@ def _identity(arrs: list[np.ndarray]) -> int:
     return 8 * total_items + 8 * (total_rows + 1)
 
 
-def _warm() -> None:
-    _build_deferred_frame([np.array([[1, 2]], dtype=np.int32)], np.ones(1, dtype=np.int64))
+def _warm(fn=_build_deferred_frame) -> None:
+    """One call of `fn` on a one-row input: pyarrow's one-time initialisation
+    and `fn`'s own first-call cost both land here instead of in the measured
+    region. The default warms the real build; `_excess` also warms the
+    function it is about to measure."""
+    fn([np.array([[1, 2]], dtype=np.int32)], np.ones(1, dtype=np.int64))
 
 
 def _peak_of(fn, *args) -> tuple[int, object]:
@@ -187,6 +227,7 @@ def _peak_of(fn, *args) -> tuple[int, object]:
 
 def _excess(fn, arrs, supports) -> int:
     _warm()
+    _warm(fn)
     peak, _ = _peak_of(fn, arrs, supports)
     return peak - _identity(arrs)
 
@@ -228,8 +269,8 @@ def test_peak_is_flat_plus_offsets_and_nothing_else():
 def test_identity_holds_across_shapes(label, build):
     """Vary total_items and total_rows independently, and include one shape the
     code actually produces. The `smoke` lattice case is the one the previous
-    ratio band could not hold: the real implementation measures 1.1245x the
-    identity there, because 1,664 items make a 2.4 KB constant 12% of the
+    ratio band could not hold: the real implementation measures ~12% over the
+    identity there, because 1,664 items make a ~2.4 KB constant 12% of the
     total. It clears the absolute slack by ~7x. What that row establishes is
     that the real build PASSES at the production shape; its discrimination
     there is the differenced bound in `test_the_excess_does_not_scale_with_n`,
@@ -257,11 +298,10 @@ def test_the_excess_does_not_scale_with_n():
     The `smoke` lattice is differenced here too, against the 40M shape, and
     that difference is the CHECK on the production shape -- the absolute row
     in `test_identity_holds_across_shapes` only establishes that the real
-    build passes there. Real: 2,350 against 2,378, 28 B apart. The bound is
-    `SMOKE_DIFF_B`, half a page, because one extra offsets-sized array at this
-    shape is R = 5,560 B and must not fit; `_regress_cumsum_copy` measures
-    8,091 B here, 5.7 KB over the 40M excess, and
-    `test_the_smoke_difference_rejects_the_r_scale_regressions` holds that."""
+    build passes there. The bound is `SMOKE_DIFF_B`, half a page, because one
+    extra offsets-sized array at this shape is R = 5,560 B and must not fit;
+    `test_the_smoke_difference_rejects_the_r_scale_regressions` holds that the
+    two forms which add one clear the real build by that bound at this shape."""
     small_arrs, small_sup = _uniform(100_000, 5)
     large_arrs, large_sup = _uniform(40_000_000, 5)
     smoke_arrs, smoke_sup = _lattice(SMOKE_K_HIST)
@@ -292,7 +332,8 @@ def test_the_excess_does_not_scale_with_chunk_count():
 
 
 # --------------------------------------------------------------------------
-# The three forms this bound replaced, and the one it cannot separate
+# The three forms this bound replaced, the one it cannot separate, and the
+# doubling it is derived from
 # --------------------------------------------------------------------------
 
 
@@ -355,11 +396,24 @@ def _regress_widths(arrs, _sup):
     return pa.LargeListArray.from_arrays(offsets, flat)
 
 
+def _regress_double(arrs, _sup):
+    """The regression class `SLACK_B` is derived from: a build that costs the
+    identity twice. The two arrays are filled, both are copied, and arrow is
+    handed the copies while the originals are still live."""
+    import pyarrow as pa
+
+    flat, offsets = _fill(arrs)
+    np.cumsum(offsets[1:], out=offsets[1:])
+    flat_copy, offsets_copy = flat.copy(), offsets.copy()
+    out = pa.LargeListArray.from_arrays(offsets_copy, flat_copy)
+    return out, flat, offsets  # the originals outlive the arrow call
+
+
 def test_slack_rejects_the_known_regressions():
     """The slack is only worth asserting if it would fail on the forms it
-    replaced. Each of these builds the SAME frame and is rejected on memory
-    alone, so `SLACK_B` cannot be widened without this test noticing what it
-    stops catching.
+    replaced. Each of these builds the same arrow array the real build wraps
+    and is rejected on memory alone, so `SLACK_B` cannot be widened without
+    this test noticing what it stops catching.
 
     AT THE FIXTURE SHAPE, which is the scope of the claim: discrimination is a
     large-N property, and the astype form specifically is invisible to any peak
@@ -382,23 +436,51 @@ def test_slack_rejects_the_known_regressions():
         )
 
 
+def test_the_slack_rejects_a_doubling_at_the_smoke_shape():
+    """`SLACK_B` is derived from one regression class -- a build that costs the
+    identity twice -- at one shape, the smoke lattice. This is that derivation
+    held as two relations with no literal in either. The first pins the
+    constant: the slack sits under the smoke identity, so a second identity
+    exceeds it whatever the constant C >= 0 is. The second pins the apparatus:
+    a doubling form measured through `_excess` is over the slack. Raising
+    `SLACK_B` back to the 65,536 B an earlier revision used fails the first;
+    the second is what stops the first from being arithmetic with nothing
+    measured behind it."""
+    arrs, supports = _lattice(SMOKE_K_HIST)
+    identity = _identity(arrs)
+    assert SLACK_B < identity, (
+        f"SLACK_B = {SLACK_B:,} B is not under the smoke identity {identity:,} B: a build "
+        "that doubles the peak at the production shape would pass the slack."
+    )
+    excess = _excess(_regress_double, arrs, supports)
+    assert excess > SLACK_B, (
+        f"a doubling at the smoke lattice measured {excess:,} B over the identity, inside "
+        f"the {SLACK_B:,} B slack -- the apparatus is not seeing the second identity."
+    )
+
+
 def test_the_smoke_difference_rejects_the_r_scale_regressions():
     """The differenced smoke bound is only worth asserting if it fails on the
     forms the absolute slack admits at that shape. The cumsum copy (R) and the
-    `widths` pair (2R) measure 8,091 and 14,460 B at the smoke lattice --
-    inside `SLACK_B`, asserted as the premise -- and 5.7 and 12 KB over the
-    real build's 40M excess, outside `SMOKE_DIFF_B`. The astype form is not in
-    this list: it is inside the difference as well (2,724 against 2,350 B),
-    the blind spot the module docstring states and
-    `test_no_peak_bound_separates_the_astype_form_at_low_kbar` asserts."""
+    `widths` pair (2R) are inside `SLACK_B` at the smoke lattice -- asserted as
+    the premise -- and each must clear the REAL build at the same shape by
+    `SMOKE_DIFF_B`. Against the smoke real build rather than a second 40M one:
+    `test_the_excess_does_not_scale_with_n` holds the real build's smoke and
+    40M excesses within `SMOKE_DIFF_B` of each other, so the margin here is
+    the margin the differenced row would see, shifted by a gap that row bounds
+    and does not pin; and the 40M build was this file's costliest allocation,
+    in a test not marked slow. The astype form is not in this list: it is not
+    above the real build at all here, the blind spot the module docstring
+    states and `test_no_peak_bound_separates_the_astype_form_at_low_kbar`
+    asserts."""
     arrs, supports = _lattice(SMOKE_K_HIST)
-    large = _excess(_build_deferred_frame, *_uniform(40_000_000, 5))
+    real = _excess(_build_deferred_frame, arrs, supports)
     for name, fn in [("non-in-place cumsum", _regress_cumsum_copy), ("widths list + concatenation", _regress_widths)]:
         excess = _excess(fn, arrs, supports)
         assert excess < SLACK_B, f"premise: {name} measures {excess:,} B at the smoke lattice, inside SLACK_B"
-        assert excess - large >= SMOKE_DIFF_B, (
-            f"{name} at the smoke lattice is {excess:,} B over the identity, only {excess - large:,} B "
-            f"over the real build's 40M excess ({large:,} B) -- inside SMOKE_DIFF_B, so the differenced "
+        assert excess - real >= SMOKE_DIFF_B, (
+            f"{name} at the smoke lattice is {excess:,} B over the identity, only {excess - real:,} B "
+            f"over the real build's {real:,} B there -- inside SMOKE_DIFF_B, so the differenced "
             "row no longer discriminates at the production shape."
         )
 
@@ -414,20 +496,21 @@ def test_the_smoke_difference_rejects_the_r_scale_regressions():
 def test_no_peak_bound_separates_the_astype_form_at_low_kbar(label, build):
     """The blind spot, asserted so it cannot be quietly reclassified as covered.
 
-    The astype form costs `max(4N - R, 0)` over the identity, which is zero at
-    kbar <= 2 and, at the smoke lattice, a predicted 1,096 B that lands under
-    the ~2.4 KB constant. At these shapes its peak is the real build's within a
-    few hundred bytes -- measured 2,551 to 2,567 B against 2,378 B over 2M
-    items and 2,708 to 2,724 B against 2,350 B at the smoke lattice, same
-    process, either order. A previous revision justified a bound by claiming
-    it "closes the k=2 blind spot"; it does not, no peak-based bound does, and
-    this test fails if that ever becomes true so the claim can be revisited on
-    evidence."""
+    The astype form's term over the identity is `max(4N - R, 0)`: zero at
+    kbar <= 2 and, at the smoke lattice, 1,096 B, under the constant. So at
+    these shapes its peak is not above the real build's, and the assertion is
+    that relation, `astype <= real`, with no figure in it: how far below it
+    lands depends on the process and on where in the run it is measured, and
+    the revision before this one quoted a figure with the wrong sign. A
+    revision before that justified a bound by claiming it "closes the k=2
+    blind spot"; it does not, no peak-based bound does, and this test fails if
+    the form ever measures above the real build, so the claim can be revisited
+    on evidence."""
     arrs, supports = build()
     real = _excess(_build_deferred_frame, arrs, supports)
     astype = _excess(_regress_astype, arrs, supports)
 
-    assert astype <= real + SMOKE_DIFF_B, (
+    assert astype <= real, (
         f"{label}: the astype form now measures {astype:,} B over the identity against the "
         f"real build's {real:,} B. If that is a real separation, the docstring's "
         "'no peak bound distinguishes these at low kbar' is stale."
@@ -442,8 +525,9 @@ def test_the_other_two_regressions_are_still_caught_at_k2(k):
     items they are outside the slack at k = 1 and k = 2 alike (16 and 8 MB for
     the copy, twice that for the pair) -- which is why the fix is still worth a
     test at low kbar. The binding variable is N, not kbar: at the smoke
-    lattice's 1,664 items the same two forms measure 8,091 and 14,460 B,
-    INSIDE the slack, and are caught there only by the differenced bound in
+    lattice's 694 rows the same two forms add R = 5,560 and 2R = 11,120 B,
+    INSIDE the slack with the constant on top, and are caught there only by
+    the differenced bound in
     `test_the_smoke_difference_rejects_the_r_scale_regressions`."""
     arrs, supports = _uniform(2_000_000, k)
     for name, fn in [("non-in-place cumsum", _regress_cumsum_copy), ("widths", _regress_widths)]:

@@ -130,13 +130,15 @@ def _assert_home(context: str, **arrays) -> None:
 
     Two things depend on the inputs living together. The multi-GPU wrappers
     alias the caller's arrays on one device and upload copies to the others.
-    Every gpu-resident entry point calls THIS function, and each then pins
-    differently: the single-GPU bodies pin their whole launch to the home
-    device; the multi-GPU wrappers pin each worker to its own card and pin the
-    decode/merge tail back to home; and `build_prefix_groups_gpu`, which does
-    NOT call this function, pins to its own input's device instead. Stated as
-    clauses over those sets rather than as a count -- the count was wrong twice,
-    because the sentence quantifies over a different set than the one it names.
+    The callers are exactly `gpu_resident._GUARDED_ENTRY_POINTS`, and they pin
+    in two ways: the single-GPU bodies pin their whole launch to the home
+    device, and the multi-GPU wrappers pin each worker to its own card and the
+    decode/merge tail back to home. `build_prefix_groups_gpu` -- exported
+    alongside them, listed in `gpu_resident._EXEMPT_ENTRY_POINTS` -- does NOT
+    call this function and pins to its own input's device instead. Named
+    against a tuple the tests check rather than quantified in prose: the count
+    was wrong twice, and the replacement was wrong a third time by saying
+    "every" and then naming an exception in the same sentence.
     Mix the devices and the kernel is handed pointers from two cards --
     CUDA_ERROR_ILLEGAL_ADDRESS, which poisons the context process-wide rather
     than costing one level.

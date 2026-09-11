@@ -1,11 +1,20 @@
 """GPU-resident kernels: frequent itemsets stay on-device between levels
 (zero-transfer mining); k2 and k3+ variants plus prefix-group construction.
 
-Every gpu-resident entry point enforces the same preconditions on its device
-INPUTS -- co-residency, rank, dtype -- differing only in the rank each
-requires: 1-D `freq_cols_gpu` at K=2, 2-D `prev_freq_gpu` at K>=3. The K>=3
-twins carry one further guard, the shared-memory k-cap, which has no K=2
-counterpart because K=2 is always k=2.
+The entry points NAMED IN `_GUARDED_ENTRY_POINTS` below enforce the same
+preconditions on their device INPUTS -- co-residency, rank, dtype -- differing
+only in the rank each requires: 1-D `freq_cols_gpu` at K=2, 2-D `prev_freq_gpu`
+at K>=3. The K>=3 twins carry one further guard, the shared-memory k-cap, which
+has no K=2 counterpart because K=2 is always k=2.
+
+`_EXEMPT_ENTRY_POINTS` names the rest, with the reason each is exempt. Read the
+two tuples, not this sentence: `tests/test_kernel_input_guards.py` asserts that
+every name this package re-exports from this module is in exactly one of them,
+and that the source of each guarded one calls all three guards while the source
+of each exempt one calls none. Successive rewordings of an unqualified "every
+gpu-resident entry point" were each false about `build_prefix_groups_gpu`,
+which is exported and calls no guard; a sentence cannot be the check, so it is
+not asked to be.
 
 Stated over inputs and not over "device discipline", because the pinning
 genuinely differs between the two kinds of wrapper: the single-GPU bodies pin
@@ -28,6 +37,43 @@ from .loader import (
     _warn_result_truncation,
     get_cuda_kernel,
 )
+
+
+_GUARDED_ENTRY_POINTS = (
+    "count_pairs_fused_k2_gpu_resident",
+    "count_pairs_fused_k2_gpu_resident_multi_gpu",
+    "count_k3plus_gpu_resident",
+    "count_k3plus_gpu_resident_multi_gpu",
+)
+"""Entry points that call `_assert_home`, `_assert_rank` and `_assert_dtype`.
+
+Membership is checked against the SOURCE of each function, not merely declared:
+adding a name here without adding the guards fails the test, and so does adding
+a guarded entry point to `_EXEMPT_ENTRY_POINTS`.
+"""
+
+_EXEMPT_ENTRY_POINTS = {
+    "build_prefix_groups_gpu": (
+        "Takes ONE device array, so co-residency is vacuous -- there is no "
+        "second input to disagree with it. It pins to that input's device "
+        "rather than to a home device (N20), which is a different discipline "
+        "from the guarded four and is why it is not simply missing a guard. "
+        "Rank and dtype are unguarded, and that IS a gap rather than a "
+        "redundancy. Of its three call sites, two (`_count_k3plus_gpu_resident"
+        "_impl` and `count_k3plus_gpu_resident_multi_gpu`) run after their "
+        "entry point has asserted `prev_freq_gpu` is 2-D int32; the third, "
+        "`gpu/dispatch.py:224`, calls it BEFORE the guarded entry point it is "
+        "sizing the candidate count for, so on that route the array reaches "
+        "here unchecked. The name is exported at `kernels/__init__.py` too, so "
+        "a direct caller gets no check either."
+    ),
+}
+"""Exported names from this module that call NO input guard, and why.
+
+The value is the reason, kept beside the name so an exemption cannot be granted
+silently. A new export must be added to this dict or to
+`_GUARDED_ENTRY_POINTS`; the test fails on a name in neither or in both.
+"""
 
 
 def build_prefix_groups_gpu(prev_freq_gpu):

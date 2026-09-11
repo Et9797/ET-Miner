@@ -18,6 +18,7 @@ Usage: python bench/runner.py --mode smoke|full [--out DIR] [--max-hours H]
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import signal
@@ -111,22 +112,47 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
 
 
 def _git_rev() -> str:
-    """`<sha>` at HEAD, suffixed `-dirty` when the tree carries uncommitted edits.
+    """`<sha>` at HEAD; `<sha>-dirty.<h>` when tracked files differ from it.
 
     Stamped onto every row so a resumed campaign can say WHICH code produced
     each number. Without it a replayed run prints the same "consistent" line as
     a fresh one: the smoke gate did exactly that across seven commits, and the
     green line was recomputed from JSON predating all of them.
+
+    `<h>` is a 48-bit digest of `git diff HEAD` -- the CONTENT of the tracked
+    changes, not their file names. A plain `-dirty` suffix was one string for
+    every distinct tree at a commit, which is the same defect one level down:
+    the staleness compare at `check_equivalence` could not separate rows
+    produced by two different edits, and reported them consistent. Hashing the
+    porcelain status would not have fixed it either -- two different edits to
+    the same file share a status line.
+
+    WHAT THE DIGEST DOES NOT COVER, so a reader can size the residual risk. It
+    sees exactly what `git diff HEAD` prints, which excludes untracked files
+    (matching the `--untracked-files=no` this replaced), submodule contents,
+    files marked `assume-unchanged` or `skip-worktree`, and everything outside
+    the repo -- the installed dependency versions above all, which
+    `capture_environment` records separately. So two rows sharing a digest were
+    produced by the same COMMITTED code plus the same tracked diff; that is the
+    claim, and it is narrower than "the same code ran".
+
+    A digest collision would silently mark stale rows fresh, so it is worth
+    naming what carries that risk: 48 bits, compared for equality only against
+    revs a campaign actually wrote.
     """
     try:
         sha = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=30, cwd=REPO
         ).stdout.strip()
-        dirty = subprocess.run(
-            ["git", "status", "--porcelain", "--untracked-files=no"],
-            capture_output=True, text=True, timeout=30, cwd=REPO,
-        ).stdout.strip()
-        return f"{sha}-dirty" if dirty else sha or "unknown"
+        diff = subprocess.run(
+            ["git", "diff", "HEAD"],
+            capture_output=True, timeout=30, cwd=REPO,
+        ).stdout
+        if not sha:
+            return "unknown"
+        if not diff.strip():
+            return sha
+        return f"{sha}-dirty.{hashlib.blake2b(diff, digest_size=6).hexdigest()}"
     except Exception:
         return "unknown"
 
@@ -158,11 +184,17 @@ def _campaign_out() -> Path:
     """Per-revision results directory, keyed by `_git_rev()`.
 
     Derived HERE and not in the shell scripts, which each computed it with a
-    bare `git rev-parse --short HEAD`. That drops the `-dirty` suffix, so rows
-    stamped `<sha>-dirty` were filed under `<sha>` -- a directory named for a
-    revision that did not produce its contents, which is the exact confusion
-    the rev stamp exists to prevent. One derivation, one definition of "this
-    revision", used by the runner and the report alike.
+    bare `git rev-parse --short HEAD`. That drops everything `_git_rev` adds to
+    a dirty tree, so rows stamped `<sha>-dirty...` were filed under `<sha>` -- a
+    directory named for a revision that did not produce its contents, which is
+    the exact confusion the rev stamp exists to prevent. One derivation, one
+    definition of "this revision", used by the runner and the report alike.
+
+    Since the dirty suffix now carries a digest of the tracked diff, EDITING
+    THE TREE MID-CAMPAIGN starts a new directory rather than appending rows
+    under a name that no longer describes them. A resume after an edit is a
+    fresh campaign, which is the honest reading -- and the reason a campaign
+    should be run on a frozen tree.
 
     The runner resumes from whatever is already in the directory, which is
     what a multi-hour campaign needs. Keyed by revision, a resume at the same
@@ -216,6 +248,48 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
             except json.JSONDecodeError:
                 break
     return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})", "rev": rev}
+
+
+def _coverage(
+    all_ids: set[str], rows: list[dict], here: str
+) -> tuple[dict[str, dict], list[str], list[str], list[str], list[str]]:
+    """Classify every id in the matrix against the rows on disk.
+
+    Returns `(latest, missing, bad, stale, ok_here)`. Split out of `main` so
+    the NOT-GATED branch is reachable without a campaign: a green run never
+    executes it -- every row is fresh and ok by construction -- so every defect
+    in that branch has shipped unobserved. Pure in its three arguments;
+    `tests/test_campaign_gate.py` drives it directly.
+
+    Coverage is read off the rows themselves, not off a tally kept by the
+    loop. A tally only ever describes the configs this invocation visited; the
+    question the tick answers is about the whole matrix, however the rows got
+    there. `latest` takes the LAST row per id -- raw.jsonl is append-only and a
+    re-run appends, so the first row for an id is the oldest, which is what the
+    previous `next(...)` lookup returned.
+
+    `missing`, `bad` and `stale` are DIAGNOSTIC and deliberately overlapping:
+    each answers "what is wrong with this id" on its own, and a row can be both
+    non-ok and at another revision. `ok_here` is the complement, computed by
+    its own set membership rather than by subtracting the three -- subtracting
+    them double-counted the overlap and printed "0 of 2" where the truth was 1,
+    and with enough overlapping ids the count went negative. `missing` is
+    disjoint from the other two (an absent row has no status and no rev); `bad`
+    and `stale` are not disjoint from each other.
+
+    The four output lists partition `all_ids` only in the sense that
+    `ok_here` and `missing | bad | stale` are complementary -- which is the
+    property the printed count needs, and the only one it may assume.
+    """
+    latest = {r["id"]: r for r in rows}
+    missing = sorted(i for i in all_ids if i not in latest)
+    bad = sorted(i for i in all_ids if i in latest and latest[i].get("status") != "ok")
+    stale = sorted(i for i in all_ids if i in latest and latest[i].get("rev") != here)
+    ok_here = sorted(
+        i for i in all_ids
+        if i in latest and latest[i].get("status") == "ok" and latest[i].get("rev") == here
+    )
+    return latest, missing, bad, stale, ok_here
 
 
 def group_key(cfg: dict) -> tuple:
@@ -352,16 +426,7 @@ def main() -> int:
     # legitimate and failing it would break the resume this file exists to
     # support. What changes is that the line no longer says "consistent" about
     # a run that established nothing.
-    # Coverage is read off the rows themselves, not off a tally kept by the
-    # loop. A tally only ever describes the configs this invocation visited;
-    # the question the tick answers is about the whole matrix, however the
-    # rows got there. `latest` takes the LAST row per id -- raw.jsonl is
-    # append-only and a re-run appends, so the first row for an id is the
-    # oldest, which is what the previous `next(...)` lookup returned.
-    latest = {r["id"]: r for r in rows}
-    missing = sorted(i for i in all_ids if i not in latest)
-    bad = sorted(i for i in all_ids if i in latest and latest[i].get("status") != "ok")
-    stale = sorted(i for i in all_ids if i in latest and latest[i].get("rev") != here)
+    latest, missing, bad, stale, ok_here = _coverage(all_ids, rows, here)
     covered = not missing and not bad and not stale
 
     # An empty matrix cannot be gated, and `not missing and not bad and not
@@ -380,7 +445,7 @@ def main() -> int:
         return 0
 
     print(f"\nequivalence groups: NOT GATED at {here} — no ✓ emitted.")
-    print(f"  {len(all_ids) - len(missing) - len(bad) - len(stale)} of {len(all_ids)} configs are ok at {here}.")
+    print(f"  {len(ok_here)} of {len(all_ids)} configs are ok at {here}.")
     if missing:
         print(f"  {len(missing)} never ran: {', '.join(missing)}")
     if bad:

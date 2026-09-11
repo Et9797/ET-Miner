@@ -18,8 +18,9 @@ echo "== [3/3] Smoke benchmark matrix =="
 # The per-revision results directory is derived by the runner itself (see
 # runner.py::_campaign_out) and the report reads the same one. It used to be
 # computed here, in both scripts, with a bare `git rev-parse --short HEAD` --
-# which drops the `-dirty` suffix that `_git_rev()` stamps onto every row, so
-# rows landed in a directory named for a revision that did not produce them.
+# which drops the `-dirty.<digest>` suffix that `_git_rev()` stamps onto every
+# row, so rows landed in a directory named for a revision that did not produce
+# them.
 uv run python bench/runner.py --mode smoke
 uv run python bench/report.py
 

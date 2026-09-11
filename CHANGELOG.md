@@ -348,6 +348,17 @@ sentence with a check wherever one is possible.
   astype form is separated by no peak bound at that shape; a test asserts the
   relation, in place of figures a fresh-process measurement had given with the
   wrong sign (`c1e00a2`).
+- **The pinned MKL was never the one loaded.** `core/sparse.py` extended
+  `LD_LIBRARY_PATH` from inside the interpreter so `sparse_dot_mkl` could find
+  the venv's `libmkl_rt`; the dynamic loader reads that variable once, at
+  process start, so the edit reached child processes only. Measured: on the
+  dev box the copy that loaded was conda's `/opt/conda/lib/libmkl_rt.so.2`
+  whether or not the variable was preset, and on the CI runner, which has no
+  system MKL, `sparse_dot_mkl` failed to import and CI had been red on every
+  push of this PR. `MKL_RT` is now set to the venv's highest `libmkl_rt.so.N`
+  (kept if preset), which `sparse_dot_mkl` dlopens by absolute path; two tests
+  read `/proc/self/maps` to hold that the mapped copy is the one under
+  `sys.prefix`, in-process and in a fresh interpreter with no loader path.
 - **Narration.** Every figure and citation in PR 6 that was asserted rather
   than measured was re-measured or removed: "~35 s per level" was ~4x high
   (8.9 s measured); four of five line-number citations in one comment block

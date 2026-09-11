@@ -3,12 +3,19 @@
 These paths are only reachable when `sparse_dot_mkl` imports, and the same
 function is exact or catastrophically wrong depending on whether that optional
 import resolves -- so the tests that need MKL skip rather than pass vacuously
-when it is absent.
+when it is absent. Absent means not installed: `mkl` is a declared dependency,
+so an installed-but-unloadable MKL is a defect, and `importorskip` is left
+strict about it (an `ImportError` that is not a `ModuleNotFoundError` fails
+collection here rather than skipping). That is how the CI runner, which has no
+system MKL, showed that `_setup_mkl_library_path` was not making the venv's
+copy loadable: the import is what `TestThePinnedMklIsTheOneLoaded` pins.
 """
 
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -123,20 +130,41 @@ class TestMklPathDiscovery:
         empty.mkdir()
         monkeypatch.setattr(sp, "_mkl_search_dirs", lambda: [str(empty)])
         monkeypatch.setenv("LD_LIBRARY_PATH", "")
+        monkeypatch.delenv("MKL_RT", raising=False)
         out = self._capture(sp._setup_mkl_library_path)
         assert "no libmkl_rt.so*" in out, f"a miss must say so; got {out!r}"
+        assert "MKL_RT" not in os.environ, "a miss must not invent an MKL_RT"
 
-    def test_a_hit_is_logged_and_extends_the_path(self, monkeypatch, tmp_path):
+    def test_a_hit_is_logged_sets_mkl_rt_and_extends_the_path(self, monkeypatch, tmp_path):
         """And the .so.3 case the old probe could not see: it hardcoded
-        libmkl_rt.so.2, while a venv may ship .so.3."""
+        libmkl_rt.so.2, while a venv may ship .so.3. The highest version is the
+        one `MKL_RT` names when a directory holds more than one, and the
+        unversioned symlink ranks below every versioned file."""
+        libdir = tmp_path / "lib"
+        libdir.mkdir()
+        (libdir / "libmkl_rt.so.2").write_bytes(b"")
+        (libdir / "libmkl_rt.so.3").write_bytes(b"")
+        (libdir / "libmkl_rt.so").write_bytes(b"")
+        monkeypatch.setattr(sp, "_mkl_search_dirs", lambda: [str(libdir)])
+        monkeypatch.setenv("LD_LIBRARY_PATH", "/pre/existing")
+        monkeypatch.delenv("MKL_RT", raising=False)
+        out = self._capture(sp._setup_mkl_library_path)
+        assert "libmkl_rt.so.3" in out
+        assert os.environ["MKL_RT"] == str(libdir / "libmkl_rt.so.3")
+        assert os.environ["LD_LIBRARY_PATH"].split(os.pathsep) == [str(libdir), "/pre/existing"]
+
+    def test_a_preset_mkl_rt_is_kept(self, monkeypatch, tmp_path):
+        """`MKL_RT` is a default, not an override: a caller who pinned a
+        different MKL keeps it, and the log says so."""
         libdir = tmp_path / "lib"
         libdir.mkdir()
         (libdir / "libmkl_rt.so.3").write_bytes(b"")
         monkeypatch.setattr(sp, "_mkl_search_dirs", lambda: [str(libdir)])
-        monkeypatch.setenv("LD_LIBRARY_PATH", "/pre/existing")
+        monkeypatch.setenv("LD_LIBRARY_PATH", "")
+        monkeypatch.setenv("MKL_RT", "/their/own/libmkl_rt.so.2")
         out = self._capture(sp._setup_mkl_library_path)
-        assert "libmkl_rt.so.3" in out
-        assert os.environ["LD_LIBRARY_PATH"].split(os.pathsep) == [str(libdir), "/pre/existing"]
+        assert os.environ["MKL_RT"] == "/their/own/libmkl_rt.so.2"
+        assert "preset" in out and "/their/own/libmkl_rt.so.2" in out
 
     def test_an_already_present_dir_is_not_added_twice(self, monkeypatch, tmp_path):
         libdir = tmp_path / "lib"
@@ -144,8 +172,10 @@ class TestMklPathDiscovery:
         (libdir / "libmkl_rt.so.2").write_bytes(b"")
         monkeypatch.setattr(sp, "_mkl_search_dirs", lambda: [str(libdir)])
         monkeypatch.setenv("LD_LIBRARY_PATH", str(libdir))
+        monkeypatch.delenv("MKL_RT", raising=False)
         out = self._capture(sp._setup_mkl_library_path)
         assert "already on LD_LIBRARY_PATH" in out
+        assert os.environ["MKL_RT"] == str(libdir / "libmkl_rt.so.2"), "MKL_RT is set on this branch too"
         assert os.environ["LD_LIBRARY_PATH"] == str(libdir)
 
     def test_search_dirs_are_real_existing_directories(self):
@@ -153,6 +183,45 @@ class TestMklPathDiscovery:
         assert all(os.path.isdir(d) for d in dirs)
         assert len(dirs) == len(set(dirs)), "search dirs must be deduplicated"
 
+
+class TestThePinnedMklIsTheOneLoaded:
+    """The reason `MKL_RT` is set, measured rather than reasoned. The dynamic
+    loader reads LD_LIBRARY_PATH once at process start, so extending it from
+    inside the interpreter -- all `_setup_mkl_library_path` did before -- left
+    sparse_dot_mkl to find whatever MKL the loader could see: on the dev box,
+    conda's `/opt/conda/lib/libmkl_rt.so.2` rather than the venv's; on the CI
+    runner, nothing (`mkl_rt not found` at collection). Both read off
+    `/proc/self/maps`, which is the object the process mapped and not the path
+    a variable names."""
+
+    @staticmethod
+    def _mapped_libmkl_rt(maps_text: str) -> set[str]:
+        return {os.path.realpath(line.split()[-1]) for line in maps_text.splitlines() if "libmkl_rt" in line}
+
+    def test_this_process_mapped_the_copy_mkl_rt_names(self):
+        if not os.path.exists("/proc/self/maps"):
+            pytest.skip("needs /proc/self/maps")
+        assert "MKL_RT" in os.environ, "importing core.sparse before sparse_dot_mkl must have set it"
+        want = os.path.realpath(os.environ["MKL_RT"])
+        assert self._mapped_libmkl_rt(open("/proc/self/maps").read()) == {want}
+
+    def test_a_fresh_interpreter_with_no_loader_path_loads_the_venv_copy(self):
+        """The CI shape: no LD_LIBRARY_PATH, no MKL_RT, and the import order the
+        package relies on (core.sparse first). The copy that loads must be the
+        one under `sys.prefix` -- the pinned dependency -- and the only one."""
+        if not os.path.exists("/proc/self/maps"):
+            pytest.skip("needs /proc/self/maps")
+        src = (
+            "import os; import et_miner.core.sparse; import sparse_dot_mkl; "
+            "print(os.environ['MKL_RT']); print(open('/proc/self/maps').read())"
+        )
+        env = {k: v for k, v in os.environ.items() if k not in ("LD_LIBRARY_PATH", "MKL_RT")}
+        out = subprocess.run([sys.executable, "-c", src], capture_output=True, text=True, timeout=180, env=env)
+        assert out.returncode == 0, out.stderr[-800:]
+        mkl_rt, _, maps = out.stdout.partition("\n")
+        want = os.path.realpath(mkl_rt.strip())
+        assert want.startswith(os.path.realpath(sys.prefix) + os.sep), f"MKL_RT points outside the venv: {want}"
+        assert self._mapped_libmkl_rt(maps) == {want}
 
 class TestNJobsIsHonouredOnTheRustPath:
     def test_thread_budget_changes_wall_time_and_not_results(self):

@@ -4,8 +4,9 @@ Holds the sparse CSR counting paths (scipy matmul, threaded scipy, and the
 Rust SIMD/sparse fast paths), the polars-vs-sparse strategy chooser, and MKL
 setup.
 
-Importing this module extends LD_LIBRARY_PATH so sparse_dot_mkl can find a
-pip-installed MKL. It deliberately does **not** set MKL's thread count any
+Importing this module points sparse_dot_mkl at the pip-installed MKL
+(``MKL_RT``) and extends LD_LIBRARY_PATH for child processes, provided it is
+imported before sparse_dot_mkl is. It deliberately does **not** set MKL's thread count any
 more: this module is imported lazily from inside count_support_batched, so
 doing that at import fired mid-run and silently overrode a host application's
 own MKL configuration. Threads are configured only around the parallel
@@ -56,10 +57,30 @@ def _mkl_search_dirs() -> list[str]:
 
 
 def _setup_mkl_library_path() -> None:
-    """Add a discovered MKL library directory to LD_LIBRARY_PATH.
+    """Point sparse_dot_mkl at the pip-installed MKL, and put its directory on
+    LD_LIBRARY_PATH for child processes.
 
     pip installs MKL to ``{venv}/lib/``, which is not on the standard library
-    search path, so sparse_dot_mkl cannot dlopen it without help.
+    search path, so sparse_dot_mkl cannot dlopen it without help. Two variables
+    are set, and this function used to set only the second:
+
+    * ``MKL_RT`` -- the absolute path of the highest ``libmkl_rt.so.N`` found.
+      sparse_dot_mkl tries this variable first and dlopens the path directly,
+      and MKL's runtime then resolves its threading and kernel layers from the
+      same directory. Set as a default only: an ``MKL_RT`` already in the
+      environment is a deliberate choice and is kept.
+    * ``LD_LIBRARY_PATH`` -- extended with the directory. This reaches CHILD
+      processes only. The dynamic loader reads the variable once, at process
+      start, so an edit from inside a running interpreter changes nothing for
+      that interpreter's own dlopen. Measured on the dev box (2026-09-11):
+      with this edit alone, the MKL that loaded was
+      ``/opt/conda/lib/libmkl_rt.so.2`` -- the unpinned system copy -- whether
+      or not LD_LIBRARY_PATH was preset; on a CI runner with no system MKL,
+      sparse_dot_mkl did not import at all (``mkl_rt not found``). With
+      ``MKL_RT`` and no LD_LIBRARY_PATH, the venv's ``libmkl_rt.so.3`` and its
+      layers load and the matmul agrees with scipy exactly.
+      ``tests/test_sparse_mkl.py::TestThePinnedMklIsTheOneLoaded`` holds both
+      halves.
 
     This used to test exactly one filename at exactly one location --
     ``{sys.prefix}/lib/libmkl_rt.so.2`` -- and return silently when it missed.
@@ -74,11 +95,25 @@ def _setup_mkl_library_path() -> None:
     the outcome either way.
     """
     import glob
+    import re
+
+    def _soname_version(path: str) -> int:
+        # `libmkl_rt.so.3` ranks above `libmkl_rt.so.2`; the unversioned name,
+        # when present, is a symlink to one of them and ranks below both.
+        m = re.search(r"\.so\.(\d+)$", path)
+        return int(m.group(1)) if m else -1
 
     for lib_dir in _mkl_search_dirs():
         matches = sorted(glob.glob(os.path.join(lib_dir, "libmkl_rt.so*")))
         if not matches:
             continue
+
+        chosen = max(matches, key=_soname_version)
+        if "MKL_RT" in os.environ:
+            logger.debug(f"MKL: MKL_RT preset to {os.environ['MKL_RT']}; leaving it, not {chosen}")
+        else:
+            os.environ["MKL_RT"] = chosen
+            logger.debug(f"MKL: MKL_RT set to {chosen}")
 
         current = os.environ.get("LD_LIBRARY_PATH", "")
         if lib_dir in current.split(os.pathsep):

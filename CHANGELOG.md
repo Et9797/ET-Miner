@@ -281,8 +281,8 @@ defects in the remediation itself, all measured. Fixed here:
 
 *PR 8 — the council rounds on PR 6: the campaign gate, the input guards, the memory identity*
 
-Five adversarial reviews of PR 6 and of each remediation in turn. The last two
-rounds' nineteen blocking items had one shape — a sentence that quantified over
+Six adversarial reviews of PR 6 and of each remediation in turn. The blocking
+items of the last three rounds had one shape — a sentence that quantified over
 a different set than the one it named — and each fix below replaces such a
 sentence with a check wherever one is possible.
 
@@ -300,7 +300,9 @@ sentence with a check wherever one is possible.
   commit are two revisions (`f5163d1`); and a git failure — which stamped every
   row "unknown", found each equal to an "unknown" `here`, and ticked — now
   refuses to start, while a tree edited during the run refuses the tick even
-  when the edit lands after the last config (`8fcca70`).
+  when the edit lands after the last config (`8fcca70`); the two shell scripts
+  keep that exit code and still write the report, which `set -e` used to skip
+  (`64edf9d`).
   `tests/test_campaign_gate.py` drives the NOT-GATED branch, which a green
   campaign never reaches, and `main` itself with the child stubbed.
 - **Input guards on the gpu-resident entry points.** `_assert_home` checked
@@ -316,8 +318,12 @@ sentence with a check wherever one is possible.
   (`7d2b982`). The tests holding the tuples to the source sat under a device
   mark that hid all seven of them on a box with no device; they are in
   `tests/test_kernel_guard_claims.py` now, gate-free, reading call sites off
-  the AST (`fed0a8e`). Stated, not fixed: `dispatch_k3plus_gpu_resident`
-  reaches `build_prefix_groups_gpu` before any guard.
+  the AST (`fed0a8e`), keyed by line and column so two calls on one line are
+  two; the sentence in `gpu_resident.py` that sends a reader to those tests
+  went on naming the gated file after they had left it, and is now held to
+  the two files' definitions by a test (`9f736fd`). Stated, not fixed:
+  `dispatch_k3plus_gpu_resident` reaches `build_prefix_groups_gpu` before any
+  guard.
 - **Host-RAM peak of the deferred-frame build**, the `output_dir=None` route.
   #26's `.astype(np.int64, copy=False)` can never satisfy `copy=False` and
   doubled the peak, 8N -> 16N, undeclared; the `widths` list and its
@@ -329,11 +335,19 @@ sentence with a check wherever one is possible.
   not cancel under differencing; "kbar = 2.365, measured" had no artifact
   (`512c773`, `e70225e`, `543c29d`, `b758632`). The test pinning the identity
   replaced a ratio band that rejected correct code at the real `smoke` lattice
-  with an absolute slack; that slack was then 3.5x the smoke identity and
-  admitted every known regression there. It is 16,384 B now, derived from a
-  doubling at the production shape, and the smoke shape is differenced against
-  40M items so the constant cancels and an extra offsets-sized array does not
-  (`0ace189`, `de0b6db`).
+  with an absolute slack. That slack was 3.5x the smoke identity, so a build
+  that doubled the peak at the production shape passed it; it is 16,384 B now,
+  under the smoke identity, derived from that doubling and held by a test that
+  measures one (`0ace189`, `de0b6db`, `c1e00a2`). The three known regressions are
+  inside 16,384 B at the smoke shape as they were inside 65,536 B; what rejects
+  them there is the differencing, not the slack. The real build's smoke excess
+  is held within half a page of its 40M excess — a difference the constant
+  cancels in and an extra offsets-sized array does not — and the two R-scale
+  forms are held that far above the real build at the same shape, where the
+  constant does not cancel and the margin is the array minus the constant. The
+  astype form is separated by no peak bound at that shape; a test asserts the
+  relation, in place of figures a fresh-process measurement had given with the
+  wrong sign (`c1e00a2`).
 - **Narration.** Every figure and citation in PR 6 that was asserted rather
   than measured was re-measured or removed: "~35 s per level" was ~4x high
   (8.9 s measured); four of five line-number citations in one comment block

@@ -279,6 +279,69 @@ defects in the remediation itself, all measured. Fixed here:
   is ~4× high. Built now only where it is read, with the
   array-wins-over-set precedence written down and made build-independent.
 
+*PR 8 — the council rounds on PR 6: the campaign gate, the input guards, the memory identity*
+
+Five adversarial reviews of PR 6 and of each remediation in turn. The last two
+rounds' nineteen blocking items had one shape — a sentence that quantified over
+a different set than the one it named — and each fix below replaces such a
+sentence with a check wherever one is possible.
+
+- **The smoke gate's tick.** `bash bench/run_smoke.sh` printed "equivalence
+  groups consistent ✓" across all seven PR 6 commits while running nothing:
+  every row in `bench/results/campaign/` predated them and the check was
+  recomputed from a replay. Fixed in stages, each stage's review finding the
+  next defect: rows are stamped with the revision that produced them
+  (`d013333`); an all-crashed matrix no longer ticks and `--only <no match>` no
+  longer ticks over an empty selection (`ee23ebd`, `3d1e431`); the runner
+  derives one per-revision results directory itself instead of each shell
+  script deriving a different one (`3d1e431`); the ok-count no longer subtracts
+  overlapping failure lists — it printed "0 of 2" for 1 and went negative — and
+  `-dirty` carries a 48-bit digest of `git diff HEAD`, so two edits at one
+  commit are two revisions (`f5163d1`); and a git failure — which stamped every
+  row "unknown", found each equal to an "unknown" `here`, and ticked — now
+  refuses to start, while a tree edited during the run refuses the tick even
+  when the edit lands after the last config (`8fcca70`).
+  `tests/test_campaign_gate.py` drives the NOT-GATED branch, which a green
+  campaign never reaches, and `main` itself with the child stubbed.
+- **Input guards on the gpu-resident entry points.** `_assert_home` checked
+  only which device the inputs were on. A wrong-dtype `prev_freq_gpu` is read
+  through an `int*` cast and returned plausible garbage silently — measured,
+  `[[0, 0, 0]]` at the correct count, so a count-only check passes it.
+  `_assert_rank` and `_assert_dtype` now run at every guarded entry point,
+  ordered so the readable error is the one that fires (`8e38366`, `c00786d`),
+  and the K=2 single-GPU launch pins to its inputs' device like its K>=3
+  sibling (`4344be8`). Which entry points are guarded is carried by two tuples
+  in `gpu_resident.py`, not by a sentence — successive rewordings were each
+  false about `build_prefix_groups_gpu`, which is exported and calls no guard
+  (`7d2b982`). The tests holding the tuples to the source sat under a device
+  mark that hid all seven of them on a box with no device; they are in
+  `tests/test_kernel_guard_claims.py` now, gate-free, reading call sites off
+  the AST (`fed0a8e`). Stated, not fixed: `dispatch_k3plus_gpu_resident`
+  reaches `build_prefix_groups_gpu` before any guard.
+- **Host-RAM peak of the deferred-frame build**, the `output_dir=None` route.
+  #26's `.astype(np.int64, copy=False)` can never satisfy `copy=False` and
+  doubled the peak, 8N -> 16N, undeclared; the `widths` list and its
+  concatenation were both live beside it. Both temporaries are gone — measured
+  VmHWM at 200M items, 3.00 -> 2.56 GiB, output byte-identical (`0a21f35`).
+  What the peak IS was then wrong three times in the comment describing it:
+  `16N` was the fixture's value, not an identity (`old = 12N + max(4N, 2R)`,
+  crossover at kbar = 4, re-measured on a second instrument); `offsets` does
+  not cancel under differencing; "kbar = 2.365, measured" had no artifact
+  (`512c773`, `e70225e`, `543c29d`, `b758632`). The test pinning the identity
+  replaced a ratio band that rejected correct code at the real `smoke` lattice
+  with an absolute slack; that slack was then 3.5x the smoke identity and
+  admitted every known regression there. It is 16,384 B now, derived from a
+  doubling at the production shape, and the smoke shape is differenced against
+  40M items so the constant cancels and an extra offsets-sized array does not
+  (`0ace189`, `de0b6db`).
+- **Narration.** Every figure and citation in PR 6 that was asserted rather
+  than measured was re-measured or removed: "~35 s per level" was ~4x high
+  (8.9 s measured); four of five line-number citations in one comment block
+  were wrong, two went stale again within the same session, and the block now
+  names symbols; PR 6 was labelled "(no output change)" over a schema change;
+  `perf.md` said the baseline had never been re-recorded when git said
+  otherwise (`68e9a97`, `777287c`, `f25fee9`).
+
 ### Documentation
 
 - `docs/specs/et_miner_fix_spec.md` amended in place. All three of its items are

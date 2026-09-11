@@ -22,7 +22,15 @@ echo "== [3/3] Full benchmark matrix =="
 # which drops the `-dirty.<digest>` suffix that `_git_rev()` stamps onto every
 # row, so rows landed in a directory named for a revision that did not produce
 # them.
-uv run python bench/runner.py --mode full --max-hours 3.5
-uv run python bench/report.py
+# The runner's exit code is the campaign's verdict (2: refused to start, git
+# could not name the revision or there is no CUDA device; 1: a correctness
+# failure, an ungated matrix, a failed config, or a tree edited mid-run).
+# Under `set -e` a bare call would stop the script
+# there and leave no report for the rows that DID run, so the code is kept
+# and the report is written before it is returned.
+rc=0
+uv run python bench/runner.py --mode full --max-hours 3.5 || rc=$?
+uv run python bench/report.py || true
+[ "$rc" -eq 0 ] || exit "$rc"
 
 echo "== full campaign complete — copy bench/results/ back =="

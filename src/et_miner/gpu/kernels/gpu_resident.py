@@ -62,10 +62,13 @@ _EXEMPT_ENTRY_POINTS = {
         "redundancy. Of its three call sites, two (`_count_k3plus_gpu_resident"
         "_impl` and `count_k3plus_gpu_resident_multi_gpu`) run after their "
         "entry point has asserted `prev_freq_gpu` is 2-D int32; the third, "
-        "`gpu/dispatch.py:224`, calls it BEFORE the guarded entry point it is "
-        "sizing the candidate count for, so on that route the array reaches "
-        "here unchecked. The name is exported at `kernels/__init__.py` too, so "
-        "a direct caller gets no check either."
+        "`gpu/dispatch.py::dispatch_k3plus_gpu_resident`, calls it BEFORE the "
+        "guarded entry point it is sizing the candidate count for, so on that "
+        "route the array reaches here unchecked. The name is exported at "
+        "`kernels/__init__.py` too, so a direct caller gets no check either. "
+        "Named by enclosing function, not line, because "
+        "tests/test_kernel_guard_claims.py checks each name against the AST "
+        "and a line number would go stale on every edit above it."
     ),
 }
 """Exported names from this module that call NO input guard, and why.

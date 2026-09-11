@@ -19,12 +19,15 @@ gpu-marked and self-skip below the needed device count.
 """
 
 import inspect
+import math
 from itertools import chain, combinations
 
 import numpy as np
+import polars as pl
 import pytest
 
 from et_miner.core.apriori import apriori
+from et_miner.core.result import _min_count
 from et_miner.synthetic import PRESETS, generate_transactions
 
 ea_apriori = pytest.importorskip("efficient_apriori", reason="efficient_apriori not installed").apriori
@@ -43,6 +46,31 @@ def _result_to_counted_set(result_df) -> CountedSet:
     for itemset, sup in zip(result_df["itemset"].to_list(), result_df["support"].to_list()):
         out.add((tuple(sorted(int(i) for i in itemset)), round(sup * SPEC.n_rows)))
     return out
+
+
+def _assert_ascending(result_df, label: str) -> None:
+    """Every emitted itemset must be an ASCENDING tuple of item ids.
+
+    This is the property _result_to_counted_set launders away: it canonicalises
+    with sorted() before comparing, so a tier emitting [10, 2] compares equal to
+    one emitting [2, 10] and the gate passes 9/9 either way. The equivalence
+    assertions above are deliberately left alone (CLAUDE.md forbids weakening
+    them, and the canonicalisation also insulates the gate from efficient-apriori
+    emitting in an undocumented order); this is the ADDITIVE half that makes the
+    producer's own contract checkable.
+
+    It is also the only in-code guard on the row-split route, which is the one
+    route that already got the order right -- and therefore the one most worth
+    protecting from regression.
+    """
+    bad = [list(x) for x in result_df["itemset"].to_list() if list(x) != sorted(x)]
+    assert not bad, f"{label}: {len(bad)} itemsets not in ascending item-id order, e.g. {bad[:5]}"
+
+
+def _counted(result_df, label: str) -> CountedSet:
+    """Assert the emission-order contract, then reduce to the counted set."""
+    _assert_ascending(result_df, label)
+    return _result_to_counted_set(result_df)
 
 
 def _assert_counted_sets_equal(got: CountedSet, expected: CountedSet, label: str) -> None:
@@ -84,7 +112,7 @@ def oracle_set(smoke_dataset) -> CountedSet:
 @pytest.fixture(scope="session")
 def tier1_set(smoke_dataset) -> CountedSet:
     df, _ = smoke_dataset
-    return _result_to_counted_set(apriori(df, min_support=SPEC.min_support, item_col="items"))
+    return _counted(apriori(df, min_support=SPEC.min_support, item_col="items"), "Tier 1 Polars")
 
 
 def _gpu_count() -> int:
@@ -105,8 +133,43 @@ def test_tier1_polars_matches_oracle(tier1_set, oracle_set):
 
 def test_tier2_rust_matches_oracle(smoke_dataset, oracle_set):
     df, _ = smoke_dataset
-    got = _result_to_counted_set(apriori(df, min_support=SPEC.min_support, item_col="items", sparse=True))
+    got = _counted(apriori(df, min_support=SPEC.min_support, item_col="items", sparse=True), "Tier 2 Rust/sparse")
     _assert_counted_sets_equal(got, oracle_set, "Tier 2 Rust/sparse vs efficient-apriori")
+
+
+def test_boundary_count_is_kept_at_a_threshold_computed_independently():
+    """#14 -- the gate must not source its expected value from the code under test.
+
+    Every other test here calls the miners with SPEC.min_support and the oracle
+    with (SPEC.min_count - 0.5)/N, where SPEC.min_count is the *same expression*
+    the miners use, character for character. Any error in that expression moves
+    both thresholds by the same amount and the comparison still passes: the gate
+    cannot detect a min-count error by construction, which is what let #11 live.
+
+    The -0.5 convention is right for what it does and stays. What it cannot do
+    is probe the boundary itself, so this case does that directly, with the
+    threshold derived from the DECIMAL rather than from _min_count: an itemset
+    whose count is exactly ceil(Fraction(str(s)) * N) must be returned.
+
+    s = 0.07 is chosen because 0.07 has no exact binary64 form, so the naive
+    expression returns one too many and drops the boundary itemset -- and with
+    it the whole cone above it.
+    """
+    from fractions import Fraction
+
+    s, n_rows = 0.07, 10_000
+    threshold = math.ceil(Fraction(str(s)) * n_rows)  # 700, independently derived
+    assert threshold == 700
+
+    rows = [[0, 1, 2]] * threshold + [[1, 2]] * (n_rows - threshold)
+    got = {tuple(sorted(x)) for x in apriori(pl.DataFrame({"items": rows}), min_support=s)["itemset"].to_list()}
+
+    assert (0,) in got, (
+        f"an item with count exactly {threshold} = ceil({s} * {n_rows}) must be frequent; "
+        f"the miner's threshold is {_min_count(s, n_rows)}"
+    )
+    for cone in [(0, 1), (0, 2), (0, 1, 2)]:
+        assert cone in got, f"{cone} sits above the boundary itemset and was lost with it"
 
 
 def test_planted_motifs_recovered(tier1_set, smoke_dataset):
@@ -162,7 +225,7 @@ def test_fpgrowth_second_oracle_agrees(smoke_dataset):
 @pytest.mark.gpu
 def test_single_gpu_legacy_matches_oracle(smoke_dataset, oracle_set):
     df, _ = smoke_dataset
-    got = _result_to_counted_set(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True))
+    got = _counted(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True), "single-GPU legacy")
     _assert_counted_sets_equal(got, oracle_set, "single-GPU legacy vs efficient-apriori")
 
 
@@ -171,8 +234,9 @@ def test_multi_gpu_legacy_matches_oracle(smoke_dataset, oracle_set):
     if _gpu_count() < 2:
         pytest.skip("needs 2 CUDA devices")
     df, _ = smoke_dataset
-    got = _result_to_counted_set(
-        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2)
+    got = _counted(
+        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2),
+        "multi-GPU legacy",
     )
     _assert_counted_sets_equal(got, oracle_set, "multi-GPU legacy vs efficient-apriori")
 
@@ -187,8 +251,9 @@ def test_multi_gpu_shared_matches_oracle(smoke_dataset, oracle_set, monkeypatch)
         pytest.skip("shared kernel variant not wired yet")
     monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "shared")
     df, _ = smoke_dataset
-    got = _result_to_counted_set(
-        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2)
+    got = _counted(
+        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2),
+        "shared multi-GPU",
     )
     _assert_counted_sets_equal(got, oracle_set, "shared multi-GPU vs efficient-apriori")
 
@@ -198,8 +263,9 @@ def test_single_gpu_sparse_matches_oracle(smoke_dataset, oracle_set):
     """sparse_from_k=3 forces the dense→sparse CSR transition on the dense-shaped
     smoke preset, so every level from K=3 runs on the GPU-resident shard."""
     df, _ = smoke_dataset
-    got = _result_to_counted_set(
-        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, sparse_from_k=3)
+    got = _counted(
+        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, sparse_from_k=3),
+        "single-GPU sparse CSR (sparse_from_k=3)",
     )
     _assert_counted_sets_equal(got, oracle_set, "single-GPU sparse CSR (sparse_from_k=3) vs efficient-apriori")
 
@@ -209,7 +275,8 @@ def test_multi_gpu_sparse_matches_oracle(smoke_dataset, oracle_set):
     if _gpu_count() < 2:
         pytest.skip("needs 2 CUDA devices")
     df, _ = smoke_dataset
-    got = _result_to_counted_set(
-        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2, sparse_from_k=3)
+    got = _counted(
+        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2, sparse_from_k=3),
+        "multi-GPU sparse CSR (sparse_from_k=3)",
     )
     _assert_counted_sets_equal(got, oracle_set, "multi-GPU sparse CSR (sparse_from_k=3) vs efficient-apriori")

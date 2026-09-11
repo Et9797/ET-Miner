@@ -1,9 +1,16 @@
 """Scipy/Rust sparse support counting, strategy selection, and MKL setup.
 
 Holds the sparse CSR counting paths (scipy matmul, threaded scipy, and the
-Rust SIMD/sparse fast paths), the polars-vs-sparse strategy chooser, and the
-MKL library-path/thread configuration that runs at import time (importing
-this module configures MKL, exactly as the pre-split matrix module did).
+Rust SIMD/sparse fast paths), the polars-vs-sparse strategy chooser, and MKL
+setup.
+
+Importing this module points sparse_dot_mkl at the pip-installed MKL
+(``MKL_RT``) and extends LD_LIBRARY_PATH for child processes, provided it is
+imported before sparse_dot_mkl is. It deliberately does **not** set MKL's thread count any
+more: this module is imported lazily from inside count_support_batched, so
+doing that at import fired mid-run and silently overrode a host application's
+own MKL configuration. Threads are configured only around the parallel
+sections that need it, and restored afterwards.
 """
 
 from __future__ import annotations
@@ -31,29 +38,99 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
+#: Directories that may hold a pip- or conda-installed libmkl_rt.
+def _mkl_search_dirs() -> list[str]:
+    import site
+
+    dirs = [os.path.join(sys.prefix, "lib")]
+    try:
+        dirs += [os.path.join(p, "..", "..") for p in site.getsitepackages()]
+    except AttributeError:  # virtualenv without getsitepackages
+        pass
+    seen, out = set(), []
+    for d in dirs:
+        real = os.path.normpath(d)
+        if real not in seen and os.path.isdir(real):
+            seen.add(real)
+            out.append(real)
+    return out
+
+
 def _setup_mkl_library_path() -> None:
-    """Auto-discover and add MKL library path to LD_LIBRARY_PATH.
+    """Point sparse_dot_mkl at the pip-installed MKL, and put its directory on
+    LD_LIBRARY_PATH for child processes.
 
-    pip installs MKL libraries to {venv}/lib/ which is not in the standard
-    library search path. This function extends LD_LIBRARY_PATH at module
-    load time so sparse_dot_mkl can find libmkl_rt.so.2.
+    pip installs MKL to ``{venv}/lib/``, which is not on the standard library
+    search path, so sparse_dot_mkl cannot dlopen it without help. Two variables
+    are set, and this function used to set only the second:
 
-    Does nothing if MKL is not installed or path already set.
+    * ``MKL_RT`` -- the absolute path of the highest ``libmkl_rt.so.N`` found.
+      sparse_dot_mkl tries this variable first and dlopens the path directly,
+      and MKL's runtime then resolves its threading and kernel layers from the
+      same directory. Set as a default only: an ``MKL_RT`` already in the
+      environment is a deliberate choice and is kept.
+    * ``LD_LIBRARY_PATH`` -- extended with the directory. This reaches CHILD
+      processes only. The dynamic loader reads the variable once, at process
+      start, so an edit from inside a running interpreter changes nothing for
+      that interpreter's own dlopen. Measured on the dev box (2026-09-11):
+      with this edit alone, the MKL that loaded was
+      ``/opt/conda/lib/libmkl_rt.so.2`` -- the unpinned system copy -- whether
+      or not LD_LIBRARY_PATH was preset; on a CI runner with no system MKL,
+      sparse_dot_mkl did not import at all (``mkl_rt not found``). With
+      ``MKL_RT`` and no LD_LIBRARY_PATH, the venv's ``libmkl_rt.so.3`` and its
+      layers load and the matmul agrees with scipy exactly.
+      ``tests/test_sparse_mkl.py::TestThePinnedMklIsTheOneLoaded`` holds both
+      halves.
+
+    This used to test exactly one filename at exactly one location --
+    ``{sys.prefix}/lib/libmkl_rt.so.2`` -- and return silently when it missed.
+    It misses on both halves in a common layout: a venv can ship
+    ``libmkl_rt.so.3`` while the loadable MKL is a ``.so.2`` elsewhere entirely.
+    Because the miss was silent, nothing in the output distinguished "the path
+    was already fine" from "the probe found nothing", and the numerics then ran
+    against whichever unpinned system MKL happened to load -- which matters,
+    because _sparse_matmul's accuracy depends on it.
+
+    Now: glob every ``libmkl_rt.so*`` under each candidate directory, and log
+    the outcome either way.
     """
-    venv_lib = os.path.join(sys.prefix, "lib")
-    mkl_lib = os.path.join(venv_lib, "libmkl_rt.so.2")
+    import glob
+    import re
 
-    if not os.path.exists(mkl_lib):
+    def _soname_version(path: str) -> int:
+        # `libmkl_rt.so.3` ranks above `libmkl_rt.so.2`; the unversioned name,
+        # when present, is a symlink to one of them and ranks below both.
+        m = re.search(r"\.so\.(\d+)$", path)
+        return int(m.group(1)) if m else -1
+
+    for lib_dir in _mkl_search_dirs():
+        matches = sorted(glob.glob(os.path.join(lib_dir, "libmkl_rt.so*")))
+        if not matches:
+            continue
+
+        chosen = max(matches, key=_soname_version)
+        if "MKL_RT" in os.environ:
+            logger.debug(f"MKL: MKL_RT preset to {os.environ['MKL_RT']}; leaving it, not {chosen}")
+        else:
+            os.environ["MKL_RT"] = chosen
+            logger.debug(f"MKL: MKL_RT set to {chosen}")
+
+        current = os.environ.get("LD_LIBRARY_PATH", "")
+        if lib_dir in current.split(os.pathsep):
+            logger.debug(f"MKL: {lib_dir} already on LD_LIBRARY_PATH ({os.path.basename(matches[0])})")
+            return
+
+        os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}{os.pathsep}{current}" if current else lib_dir
+        logger.debug(f"MKL: added {lib_dir} to LD_LIBRARY_PATH for {[os.path.basename(m) for m in matches]}")
         return
 
-    current_ld_path = os.environ.get("LD_LIBRARY_PATH", "")
-    if venv_lib in current_ld_path:
-        return  # Already set
-
-    if current_ld_path:
-        os.environ["LD_LIBRARY_PATH"] = f"{venv_lib}:{current_ld_path}"
-    else:
-        os.environ["LD_LIBRARY_PATH"] = venv_lib
+    # loguru formats with str.format, not %-style: the old "%s" printed literally
+    # and the search-dir list never appeared in the diagnostic.
+    logger.debug(
+        "MKL: no libmkl_rt.so* found under {}; sparse_dot_mkl will import only if "
+        "MKL is already on the loader path, and _sparse_matmul falls back to scipy if not",
+        _mkl_search_dirs(),
+    )
 
 
 # Run at module load time
@@ -79,23 +156,57 @@ def _configure_mkl_threads(n_threads: int | None = None) -> int:
         return 1
 
 
+#: The host's MKL thread count, captured the first time ET-Miner changes it.
+#: None means "we have not touched it yet".
+_saved_mkl_threads: int | None = None
+
+
+def _current_mkl_threads() -> int | None:
+    try:
+        from sparse_dot_mkl import mkl_get_max_threads
+
+        return mkl_get_max_threads()
+    except ImportError:
+        return None
+
+
 def _configure_mkl_for_parallel(n_workers: int) -> int:
-    """Reduce MKL threads per worker to avoid oversubscription when using ThreadPoolExecutor."""
+    """Reduce MKL threads per worker to avoid oversubscription under ThreadPoolExecutor.
+
+    Records the host's setting on first use so _restore_mkl_threads can put back
+    the value we displaced rather than re-deriving one from the environment.
+    """
+    global _saved_mkl_threads
+    if _saved_mkl_threads is None:
+        _saved_mkl_threads = _current_mkl_threads()
+
     cpu_count = os.cpu_count() or 1
     mkl_threads_per_worker = max(1, cpu_count // n_workers)
     return _configure_mkl_threads(mkl_threads_per_worker)
 
 
 def _restore_mkl_threads() -> int:
-    return _configure_mkl_threads(None)
+    """Put back the thread count ET-Miner displaced.
+
+    This used to call _configure_mkl_threads(None), which re-derives a value
+    from MKL_NUM_THREADS / OMP_NUM_THREADS / cpu_count -- so a host application
+    that had called mkl_set_num_threads(2) programmatically got cpu_count back,
+    and the `finally` blocks that call this did not actually restore anything.
+    """
+    if _saved_mkl_threads is None:
+        return _current_mkl_threads() or 1
+    return _configure_mkl_threads(_saved_mkl_threads)
 
 
-def _init_mkl() -> None:
-    _configure_mkl_threads()
-
-
-# Configure MKL at module load
-_init_mkl()
+# NOTE: MKL's thread count is deliberately NOT configured at import.
+#
+# This module is imported lazily from inside count_support_batched
+# (core/matrix.py), so a module-scope mkl_set_num_threads() fired mid-run, at
+# first count, and silently overrode a host application's own MKL
+# configuration -- oversubscribing every other MKL consumer in the process
+# (measured: a host setting of 2 became 24 on import). Threads are now
+# configured only around the parallel sections that need it, and restored
+# afterwards.
 
 
 # =============================================================================
@@ -111,14 +222,36 @@ def _is_gil_disabled() -> bool:
 
 
 def _sparse_matmul(A: csr_matrix, B: csr_matrix) -> csr_matrix:
-    """A @ B via MKL if available, else scipy. MKL requires float dtype — non-float inputs get cast to float32."""
+    """A @ B via MKL if available, else scipy.
+
+    MKL requires a float dtype, so integer inputs are cast — to **float64**, not
+    float32. This product is a support COUNT, and float32 has a 24-bit
+    significand: once an accumulator reaches 2**24 = 16,777,216, ``acc + 1``
+    rounds back to ``acc`` and the sum sticks there. Measured on 20M rows with
+    two fully populated columns, the true count 20,000,000 came back as
+    16,777,216 — a 16.1% **under**-count, and since the level filter is
+    ``count >= min_count`` that silently drops genuinely frequent pairs and the
+    loss cascades into every higher K. Between 2**24 and 2**25 the representable
+    spacing is 2, so counts in that range are wrong by ±1 even without
+    saturating.
+
+    float64 is exact for every integer below 2**53, which is far above the
+    ``n_transactions < 2**31`` this engine guards. The cost is 2x the value-array
+    bytes inside the matmul; the alternative — skipping MKL for integer dtypes
+    and letting scipy evaluate ``A @ B`` in int32 — is equally exact but gives up
+    the MKL path this module exists for.
+
+    The scipy fallback below keeps int32 and was always exact, so before this
+    change the two branches of one function disagreed at scale depending purely
+    on whether an optional import resolved.
+    """
     try:
         from sparse_dot_mkl import dot_product_mkl
 
         if A.dtype not in (np.float32, np.float64):
-            A = A.astype(np.float32)
+            A = A.astype(np.float64)
         if B.dtype not in (np.float32, np.float64):
-            B = B.astype(np.float32)
+            B = B.astype(np.float64)
         return dot_product_mkl(A, B)
     except ImportError:
         return A @ B
@@ -263,10 +396,10 @@ def _count_support_sparse_k_gt_2(
 
     # Strategy 1: Try Rust extension (fastest path)
     if use_rust is True:
-        return _count_support_sparse_k_gt_2_rust(csr, col_to_idx, itemsets, show_progress)
+        return _count_support_sparse_k_gt_2_rust(csr, col_to_idx, itemsets, show_progress, n_jobs=n_jobs)
     elif use_rust is None and _should_use_rust(len(itemsets), n_items):
         logger.debug(f"[k>2] Using Rust extension ({len(itemsets)} itemsets, {n_items} items)")
-        return _count_support_sparse_k_gt_2_rust(csr, col_to_idx, itemsets, show_progress)
+        return _count_support_sparse_k_gt_2_rust(csr, col_to_idx, itemsets, show_progress, n_jobs=n_jobs)
 
     # Strategy 2/3: Python parallel or sequential
     n_workers = _get_effective_workers(n_jobs)
@@ -378,12 +511,30 @@ def _count_support_sparse_k_gt_2_parallel(
 # =============================================================================
 
 
+def _call_with_budget(fn, args: tuple, n_threads: int):
+    """Call a Rust counting function with a thread budget, tolerating an old wheel.
+
+    ``n_threads`` was added to count_itemsets_simd / count_itemsets_sparse in
+    et_miner_rust 0.3.1. A wheel built before that raises TypeError on the extra
+    argument; falling back keeps the previous (unbudgeted) behaviour rather than
+    failing the count, which mirrors the stale-wheel handling in gpu/mining.py.
+    """
+    if n_threads == 0:
+        return fn(*args)
+    try:
+        return fn(*args, n_threads)
+    except TypeError:
+        logger.debug("Rust extension predates the n_threads parameter; using the global pool")
+        return fn(*args)
+
+
 def _count_support_sparse_k_gt_2_rust(
     csr: "CSRMatrix",
     col_to_idx: dict[str, int],
     itemsets: list[tuple[str, ...]],
     show_progress: bool = False,
     use_simd: bool = True,
+    n_jobs: int = 1,
 ) -> dict[tuple[str, ...], int]:
     """Count support for k>2 itemsets using the Rust extension.
 
@@ -427,6 +578,12 @@ def _count_support_sparse_k_gt_2_rust(
     n_rows = csr.shape[0]
     n_cols = csr.shape[1]
 
+    # Honour the caller's n_jobs on the Rust path. rayon otherwise takes every
+    # core regardless, so n_jobs=1 -- documented as "sequential execution" --
+    # silently oversubscribed a shared box. 0 means "no budget" (the global
+    # pool), which is what n_jobs=-1 asks for.
+    n_threads = 0 if n_jobs == -1 else max(1, n_jobs)
+
     # Use SIMD bitvec implementation if available and requested
     _use_simd = use_simd and hasattr(rust, "count_itemsets_simd")
 
@@ -435,28 +592,41 @@ def _count_support_sparse_k_gt_2_rust(
             f"[k>2 RUST SIMD] {len(itemsets)} itemsets, "
             f"{n_rows:,} transactions, "
             f"{n_cols} items, "
-            f"{rust.get_num_threads()} threads"
+            f"n_jobs={n_jobs} -> thread budget {n_threads or 'unbounded'} "
+            f"(global pool has {rust.get_num_threads()})"
         )
-        counts = rust.count_itemsets_simd(indptr, indices, n_rows, n_cols, itemsets_indices)
+        counts = _call_with_budget(
+            rust.count_itemsets_simd, (indptr, indices, n_rows, n_cols, itemsets_indices), n_threads
+        )
     else:
         logger.debug(
             f"[k>2 RUST SPARSE] {len(itemsets)} itemsets, "
             f"{n_rows:,} transactions, "
             f"{n_cols} items, "
-            f"{rust.get_num_threads()} threads"
+            f"n_jobs={n_jobs} -> thread budget {n_threads or 'unbounded'} "
+            f"(global pool has {rust.get_num_threads()})"
         )
-        counts = rust.count_itemsets_sparse(indptr, indices, n_rows, itemsets_indices)
+        counts = _call_with_budget(
+            rust.count_itemsets_sparse, (indptr, indices, n_rows, itemsets_indices), n_threads
+        )
 
     # Build result dict
     return {itemset: int(count) for itemset, count in zip(itemsets, counts)}
 
 
-# Minimum itemsets to use Rust (below this, Python overhead ~same as Rust call overhead)
-_RUST_MIN_ITEMSETS = 1  # Rust is now ALWAYS faster due to zero conversion overhead
-
-
 def _should_use_rust(n_itemsets: int, n_items: int) -> bool:
-    # v0.2.0+: Rust sparse CSR has zero conversion overhead, always faster when available
+    """Take the Rust path whenever the extension is built.
+
+    Both arguments are deliberately unused: since v0.2.0 the Rust sparse CSR
+    path has zero conversion overhead and is faster at every size, so there is
+    no crossover to model. They are kept because the signature is the natural
+    place for one to reappear. (The `_RUST_MIN_ITEMSETS = 1` constant that used
+    to gate this was declared and never read; it is gone.)
+
+    Note this returns True before `n_jobs` is resolved into workers, which is
+    why the Rust path has to honour `n_jobs` itself -- see _call_with_budget.
+    """
+    del n_itemsets, n_items  # see docstring
     return RUST_INSTALLED
 
 

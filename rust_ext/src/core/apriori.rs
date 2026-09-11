@@ -7,6 +7,59 @@ use rayon::prelude::*;
 use super::matrix::CscMatrix;
 use super::candidates::{generate_candidates_k2, generate_candidates_kplus1};
 
+/// Exact `ceil(min_support * n_rows)` under the shortest-round-tripping-decimal
+/// contract, mirroring Python's `math.ceil(Fraction(str(s)) * n)`.
+///
+/// `min_support` denotes the shortest decimal that round-trips to the given
+/// `f64`, **not** the exact binary value of that `f64`. That is a contract, not
+/// a law, and it is shared with `core.result._min_count` and
+/// `synthetic.SynthSpec.min_count`; all three are checked against the single
+/// table in `tests/fixtures/min_count_cases.json`, because two hand-maintained
+/// tables drift -- which is precisely how defect #11 arose.
+///
+/// The naive `(min_support * n_rows as f64).ceil()` is wrong on the boundary:
+/// 0.07 has no exact binary64 form, so `0.07 * 10000.0` is 700.0000000000001
+/// and ceils to 701 where the exact ceiling is 700, dropping every itemset at
+/// exactly that count and the whole cone above it.
+///
+/// Rust's `Display` for `f64` emits the shortest round-tripping decimal and
+/// never uses exponent form, so a tiny value prints as a long run of zeros
+/// followed by at most 17 significant digits. Splitting the *significand* from
+/// the *scale* -- rather than building a `10^len` denominator from the whole
+/// fractional part -- is what keeps this inside `u128`: `digits <= 10^17` and
+/// `n_rows <= 2^63` give `digits * n_rows <= 9.2e35`, comfortably under
+/// `u128::MAX` (~3.4e38).
+pub fn exact_min_count(min_support: f64, n_rows: usize) -> u64 {
+    if !min_support.is_finite() || min_support <= 0.0 {
+        return 0;
+    }
+    let s = format!("{}", min_support);
+    let (int_part, frac_part) = match s.split_once('.') {
+        Some((a, b)) => (a, b),
+        None => (s.as_str(), ""),
+    };
+    let joined = format!("{}{}", int_part, frac_part);
+    let sig = joined.trim_start_matches('0');
+    if sig.is_empty() {
+        return 0;
+    }
+    let digits: u128 = sig
+        .parse()
+        .expect("shortest round-tripping decimal has <= 17 significant digits");
+    let d = frac_part.len() as u32;
+    let n = n_rows as u128;
+    if d > 38 {
+        // 10^d > 1e38 > digits * n for any representable n_rows, so the exact
+        // quotient lies in (0, 1) and the ceiling of a positive value is 1.
+        return 1;
+    }
+    let den = 10u128.pow(d);
+    let num = digits
+        .checked_mul(n)
+        .expect("digits * n_rows overflows u128");
+    ((num + den - 1) / den) as u64
+}
+
 /// Result of Apriori algorithm execution.
 #[derive(Debug, Clone)]
 pub struct AprioriResult {
@@ -70,7 +123,14 @@ pub fn apriori_from_csr(
     min_support: f64,
     max_length: usize,
 ) -> AprioriResult {
-    let min_count = (min_support * n_rows as f64).ceil() as u32;
+    // .min() before the cast: `as u32` TRUNCATES where the old
+    // `(f64).ceil() as u32` SATURATED. At n_rows=5e9, min_support=0.9 the exact
+    // 4,500,000,000 wrapped to 205,032,704 -- a threshold far too LOW, i.e. the
+    // wrong-answer direction, where saturating gives "nothing is frequent".
+    // Unreachable in practice (it needs a >32 GB indptr and CLAUDE.md guards
+    // n_transactions < 2**31), but the direction of the failure should not get
+    // worse for free.
+    let min_count = exact_min_count(min_support, n_rows).min(u32::MAX as u64) as u32;
     let max_k = if max_length == 0 { n_cols } else { max_length };
 
     // Convert CSR to CSC for efficient column access
@@ -307,6 +367,57 @@ pub fn build_csr_from_transactions(
 
 #[cfg(test)]
 mod tests {
+
+    /// The min-count rule has three implementations (here,
+    /// `core.result._min_count`, `synthetic.SynthSpec.min_count`) and ONE
+    /// table. Defect #11 existed because all three carried the same wrong
+    /// expression and therefore agreed with each other; a second
+    /// hand-maintained table here would reproduce exactly that failure mode,
+    /// so this reads the file `tests/test_min_count.py` reads.
+    #[test]
+    fn exact_min_count_matches_the_shared_fixture() {
+        const FIXTURE: &str = include_str!("../../../tests/fixtures/min_count_cases.json");
+        let doc: serde_json::Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let cases = doc["cases"].as_array().expect("cases array");
+        assert!(cases.len() >= 15, "fixture shrank: {} cases", cases.len());
+
+        let mut failures = Vec::new();
+        for case in cases {
+            let s = case["min_support"].as_f64().expect("min_support");
+            let n = case["n_rows"].as_u64().expect("n_rows") as usize;
+            let want = case["expected"].as_u64().expect("expected");
+            let got = exact_min_count(s, n);
+            if got != want {
+                failures.push(format!(
+                    "min_support={} n_rows={} expected={} got={} ({})",
+                    s, n, want, got,
+                    case["why"].as_str().unwrap_or("")
+                ));
+            }
+        }
+        assert!(failures.is_empty(), "min-count disagreements:\n  {}", failures.join("\n  "));
+    }
+
+    /// The naive `(s * n as f64).ceil()` must actually be wrong on some fixture
+    /// case, or the test above proves nothing about what was fixed.
+    #[test]
+    fn the_fixture_discriminates_against_the_float_expression() {
+        const FIXTURE: &str = include_str!("../../../tests/fixtures/min_count_cases.json");
+        let doc: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+        let n_diff = doc["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|c| {
+                let s = c["min_support"].as_f64().unwrap();
+                let n = c["n_rows"].as_u64().unwrap() as usize;
+                let naive = (s * n as f64).ceil() as u64;
+                naive != c["expected"].as_u64().unwrap()
+            })
+            .count();
+        assert!(n_diff >= 3, "fixture no longer discriminates: only {} cases differ", n_diff);
+    }
+
     use super::*;
 
     fn create_test_csr() -> (Vec<i64>, Vec<i64>, usize, usize) {

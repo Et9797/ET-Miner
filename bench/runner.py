@@ -18,6 +18,7 @@ Usage: python bench/runner.py --mode smoke|full [--out DIR] [--max-hours H]
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import signal
@@ -110,10 +111,75 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
     return cfgs
 
 
+def _git_rev() -> str:
+    """`<sha>` at HEAD; `<sha>-dirty.<h>` when tracked files differ from it.
+
+    Stamped onto every row so a resumed campaign can say WHICH code produced
+    each number. Without it a replayed run prints the same "consistent" line as
+    a fresh one: the smoke gate did exactly that across seven commits, and the
+    green line was recomputed from JSON predating all of them.
+
+    `<h>` is a 48-bit digest of `git diff HEAD` -- the CONTENT of the tracked
+    changes, not their file names. A plain `-dirty` suffix was one string for
+    every distinct tree at a commit, which is the same defect one level down:
+    the staleness compare at `check_equivalence` could not separate rows
+    produced by two different edits, and reported them consistent. Hashing the
+    porcelain status would not have fixed it either -- two different edits to
+    the same file share a status line.
+
+    WHAT THE DIGEST DOES NOT COVER, so a reader can size the residual risk. It
+    sees exactly what `git diff HEAD` prints, which excludes untracked files
+    (matching the `--untracked-files=no` this replaced), submodule contents,
+    files marked `assume-unchanged` or `skip-worktree`, and everything outside
+    the repo -- the installed dependency versions above all, which
+    `capture_environment` records separately. So two rows sharing a digest were
+    produced by the same COMMITTED code plus the same tracked diff; that is the
+    claim, and it is narrower than "the same code ran".
+
+    A digest collision would silently mark stale rows fresh, so it is worth
+    naming what carries that risk: 48 bits, compared for equality only against
+    revs a campaign actually wrote.
+
+    "unknown" is the SENTINEL for git having failed -- not installed, timed
+    out, not a repository -- and it is not a revision. `_coverage` never counts
+    a row as fresh at it, on the row side or the `here` side, and `main`
+    refuses to start a campaign at it. It used to be compared by equality like
+    any other stamp: a run on which git failed throughout stamped every row
+    "unknown", found each equal to an "unknown" `here`, printed the tick and
+    exited 0. The failure behind it goes to stderr, so the sentinel can be
+    diagnosed rather than merely noticed.
+    """
+
+    def unknown(why: str) -> str:
+        print(
+            f"_git_rev: cannot determine the revision ({why}); stamping 'unknown', which never gates",
+            file=sys.stderr, flush=True,
+        )
+        return "unknown"
+
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=30, cwd=REPO
+        )
+        diff = subprocess.run(["git", "diff", "HEAD"], capture_output=True, timeout=30, cwd=REPO)
+    except Exception as e:  # git not installed, or hung past the timeout
+        return unknown(repr(e))
+    sha = head.stdout.strip()
+    if head.returncode != 0 or not sha:
+        return unknown(head.stderr.strip() or f"git rev-parse exited {head.returncode} with no output")
+    if diff.returncode != 0:
+        return unknown(diff.stderr.decode(errors="replace").strip() or f"git diff exited {diff.returncode}")
+    if not diff.stdout.strip():
+        return sha
+    return f"{sha}-dirty.{hashlib.blake2b(diff.stdout, digest_size=6).hexdigest()}"
+
+
 def capture_environment(out_dir: Path) -> None:
+    # Re-captured per invocation, not once per directory: a resumed campaign
+    # runs on a different revision than the one that started it, and the old
+    # behaviour (return early if the file exists) froze env.txt at the first
+    # run's HEAD forever.
     env_file = out_dir / "env.txt"
-    if env_file.exists():
-        return
     blocks = []
     for cmd in (
         ["git", "rev-parse", "HEAD"],
@@ -126,7 +192,49 @@ def capture_environment(out_dir: Path) -> None:
             ).stdout)
         except Exception as e:
             blocks.append(f"$ {' '.join(cmd)} FAILED: {e}")
-    env_file.write_text("\n\n".join(blocks))
+    with env_file.open("a") as f:
+        f.write(f"\n\n===== captured {time.strftime('%Y-%m-%dT%H:%M:%S')} rev={_git_rev()} =====\n")
+        f.write("\n\n".join(blocks))
+
+
+def _campaign_out(rev: str | None = None) -> Path:
+    """Per-revision results directory, keyed by `rev` (default: `_git_rev()`).
+
+    Derived HERE and not in the shell scripts, which each computed it with a
+    bare `git rev-parse --short HEAD`. That drops everything `_git_rev` adds to
+    a dirty tree, so rows stamped `<sha>-dirty...` were filed under `<sha>` -- a
+    directory named for a revision that did not produce its contents, which is
+    the exact confusion the rev stamp exists to prevent. One derivation, one
+    definition of "this revision", used by the runner and the report alike.
+
+    Derived ONCE PER INVOCATION, from the revision the invocation starts at,
+    and never re-derived while it runs: `main` binds `out_dir` before the
+    first config and appends every row to it. Editing the tree mid-run does
+    NOT move the directory. What happens instead: `run_config` stamps each row
+    with `_git_rev()` as it finishes, so rows produced after the edit carry the
+    new rev, land beside the old ones, and are reported by the gate as
+    produced at a revision other than the invocation's; and `main` re-reads
+    the tree after the loop and refuses the tick when it has moved. The NEXT
+    invocation derives a new directory from the edited tree -- since the dirty
+    suffix carries a digest of the tracked diff, that is a different name --
+    so a resume after an edit is a fresh campaign. Either way the rows are
+    not pooled under one name, and the honest reading is still to run a
+    campaign on a frozen tree.
+
+    The runner resumes from whatever is already in the directory, which is
+    what a multi-hour campaign needs. Keyed by revision, a resume at the same
+    commit still resumes and a new commit starts clean, so the distinction is
+    structural rather than something a reader has to notice after the fact.
+
+    BOTH modes share one directory, deliberately: `check_equivalence` compares
+    smoke and full rows in the same equivalence groups, and splitting the
+    directory by mode would silence the campaign's only cross-mode refutation.
+    See the comment on that call.
+
+    Nested under `bench/results/campaign/` because that path is already
+    gitignored, so per-revision dirs need no `.gitignore` change.
+    """
+    return DEFAULT_OUT / (rev or _git_rev())
 
 
 def run_config(cfg: dict, out_dir: Path) -> dict:
@@ -149,21 +257,74 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
-            return {"id": cfg["id"], "config": cfg, "status": "timeout"}
+            return {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev()}
     # Result file first (immune to NCCL's raw fd-1 writes splicing the
     # child's stdout); stdout scan as debug fallback.
+    rev = _git_rev()
     if result_path.exists():
         try:
-            return json.loads(result_path.read_text())
+            return {**json.loads(result_path.read_text()), "rev": rev}
         except json.JSONDecodeError:
             pass
     for line in reversed(stdout.strip().splitlines() or [""]):
         if line.startswith("{"):
             try:
-                return json.loads(line)
+                return {**json.loads(line), "rev": rev}
             except json.JSONDecodeError:
                 break
-    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})"}
+    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})", "rev": rev}
+
+
+def _coverage(
+    all_ids: set[str], rows: list[dict], here: str
+) -> tuple[dict[str, dict], list[str], list[str], list[str], list[str]]:
+    """Classify every id in the matrix against the rows on disk.
+
+    Returns `(latest, missing, bad, stale, ok_here)`. Split out of `main` so
+    the NOT-GATED branch is reachable without a campaign: a green run never
+    executes it -- every row is fresh and ok by construction -- so every defect
+    in that branch has shipped unobserved. Pure in its three arguments;
+    `tests/test_campaign_gate.py` drives it directly.
+
+    Coverage is read off the rows themselves, not off a tally kept by the
+    loop. A tally only ever describes the configs this invocation visited; the
+    question the tick answers is about the whole matrix, however the rows got
+    there. `latest` takes the LAST row per id -- raw.jsonl is append-only and a
+    re-run appends, so the first row for an id is the oldest, which is what the
+    previous `next(...)` lookup returned.
+
+    `missing`, `bad` and `stale` are DIAGNOSTIC and deliberately overlapping:
+    each answers "what is wrong with this id" on its own, and a row can be both
+    non-ok and at another revision. `ok_here` is the complement, computed by
+    its own set membership rather than by subtracting the three -- subtracting
+    them double-counted the overlap and printed "0 of 2" where the truth was 1,
+    and with enough overlapping ids the count went negative. `missing` is
+    disjoint from the other two (an absent row has no status and no rev); `bad`
+    and `stale` are not disjoint from each other.
+
+    The four output lists partition `all_ids` only in the sense that
+    `ok_here` and `missing | bad | stale` are complementary -- which is the
+    property the printed count needs, and the only one it may assume.
+
+    A row is fresh when its rev equals `here` AND that rev is a revision:
+    "unknown" is `_git_rev`'s sentinel for git having failed, and two rows
+    stamped with it were never shown to come from the same code. Compared by
+    equality it gated green -- every row "unknown", `here` "unknown", tick
+    printed, exit 0 -- so the sentinel is stale on either side, always.
+    """
+
+    def fresh(r: dict) -> bool:
+        rev = r.get("rev")
+        return rev == here and rev != "unknown"
+
+    latest = {r["id"]: r for r in rows}
+    missing = sorted(i for i in all_ids if i not in latest)
+    bad = sorted(i for i in all_ids if i in latest and latest[i].get("status") != "ok")
+    stale = sorted(i for i in all_ids if i in latest and not fresh(latest[i]))
+    ok_here = sorted(
+        i for i in all_ids if i in latest and latest[i].get("status") == "ok" and fresh(latest[i])
+    )
+    return latest, missing, bad, stale, ok_here
 
 
 def group_key(cfg: dict) -> tuple:
@@ -191,14 +352,26 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["smoke", "full"], required=True)
-    ap.add_argument("--out", default=str(DEFAULT_OUT))
+    ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--only", default=None, help="run only configs whose id contains this")
     ap.add_argument("--skip", default=None, help="skip configs whose id contains this")
     args = ap.parse_args()
 
-    out_dir = Path(args.out)
+    # The revision this invocation speaks for, read ONCE, before anything is
+    # written. `run_config` stamps each row as it finishes and the tree is read
+    # again after the loop, so an edit during the run is caught, not pooled.
+    here = _git_rev()
+    if here == "unknown":
+        print(
+            "cannot determine the revision (git failed -- see stderr). Every row would be stamped "
+            "'unknown', and no such row can gate anything; fix git and re-run."
+        )
+        return 2
+
+    out_dir = Path(args.out) if args.out else _campaign_out(here)
     out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"campaign dir: {out_dir}")
     capture_environment(out_dir)
     raw = out_dir / "raw.jsonl"
 
@@ -219,32 +392,147 @@ def main() -> int:
         print("no CUDA devices — nothing to run")
         return 2
     matrix = build_matrix(args.mode, n_dev)
+
+    # ONE view of the config set, derived twice from the same matrix.
+    #
+    # There used to be three that disagreed: `matrix_ids` (filtered), the loop
+    # body (filtered again, separately), and `check_equivalence(rows)`
+    # (unfiltered). `--only` therefore gated a subset while the tick spoke for
+    # the whole matrix.
+    #
+    # `all_ids` is deliberately the UNFILTERED matrix. The tick is a claim
+    # about this revision, and `--only` narrows what this invocation RUNS, not
+    # what the claim covers -- a run that executed one config has not gated the
+    # matrix no matter how well that config did.
+    all_ids = {c["id"] for c in matrix}
+    # Filters BEFORE the done check: reversed, a `--only smoke-gpu1` run
+    # counted every other already-done config as replayed and warned about
+    # configs it was never asked to run.
+    selected = [
+        c
+        for c in matrix
+        if not (args.only and args.only not in c["id"]) and not (args.skip and args.skip in c["id"])
+    ]
     deadline = time.time() + args.max_hours * 3600 if args.max_hours else None
 
-    for cfg in matrix:
+    failed_here: list[str] = []
+    for cfg in selected:
         if cfg["id"] in done_ids:
-            print(f"skip (done): {cfg['id']}")
-            continue
-        if args.only and args.only not in cfg["id"]:
-            continue
-        if args.skip and args.skip in cfg["id"]:
+            print(f"skip (done): {cfg['id']}  [replayed from raw.jsonl]")
             continue
         if deadline and time.time() > deadline:
             print("max-hours reached — stopping (resume with the same command)")
             break
         result = run_config(cfg, out_dir)
+        if result.get("status") != "ok":
+            failed_here.append(f"{cfg['id']} ({result.get('status')})")
         rows.append(result)
         with raw.open("a") as f:
             f.write(json.dumps(result) + "\n")
         print(f"   {result.get('status')} wall={result.get('wall_s')}s peak={result.get('peak_vram_mb')}")
 
+    # UNSCOPED on purpose -- every row in raw.jsonl, not just this selection.
+    #
+    # Refute wide, claim narrow. Scoping this to `all_ids` (or to `selected`)
+    # would suppress the campaign's only cross-mode refutation: smoke's
+    # `stressk2ml2-{legacy,shared}-2g` and full's
+    # `stressk2-filter-{compact,cupy,cpu}` all share
+    # `group_key == ('stress_k2', 2, None, False)`, and that group is the sole
+    # place KERNEL_VARIANT and FILTER_IMPL results ever meet. Both modes write
+    # to one campaign directory so that they do meet.
+    #
+    # A divergence found in a row outside this selection is still a real
+    # divergence. Narrowing the COVERAGE predicate below is what makes the tick
+    # honest; narrowing this would just make it quiet.
     problems = check_equivalence(rows)
     if problems:
         print("\nCAMPAIGN CORRECTNESS FAILURES:")
         for p in problems:
             print(f"  {p}")
         return 1
-    print("\nequivalence groups consistent ✓")
+
+    # The tick is emitted ONLY when it is a statement about this revision.
+    #
+    # `check_equivalence` skips every row whose status is not "ok", so a matrix
+    # in which every config crashed compares nothing and reports no problems.
+    # Stamping such a run with the current revision made it read
+    # character-for-character like an honest fresh pass -- a stronger false
+    # claim than the stale-replay case this reporting was written to fix, and
+    # `bench/run_smoke.sh` runs under `set -euo pipefail`, so exit 0 IS the
+    # gate passing. Hence: the tick requires that every config in the MATRIX
+    # -- not merely every config this invocation chose to run -- has an ok row
+    # stamped with this revision. WHETHER this invocation produced that row or
+    # replayed it from raw.jsonl is not the question; WHICH REVISION produced
+    # it is. An earlier version of this sentence said "every config in this
+    # invocation", which quantified over the selection while the predicate
+    # below quantified over the matrix.
+    #
+    # Exit code stays 0 for a replay -- resuming a multi-hour campaign is
+    # legitimate and failing it would break the resume this file exists to
+    # support. What changes is that the line no longer says "consistent" about
+    # a run that established nothing.
+    #
+    # `now` is the tree AFTER the last config. `here` was read before the
+    # first, and `out_dir` was derived from it; an edit in between leaves the
+    # rows in one directory stamped with two revs. `_coverage` lists the
+    # post-edit rows as stale, but only if a config ran after the edit -- an
+    # edit after the last config leaves every row at `here` while the tree the
+    # operator is looking at is `now`, and the tick would be read as being
+    # about it. So drift refuses the tick on its own. The two `!= "unknown"`
+    # terms are implied by `_coverage` and by the refusal at the top of this
+    # function; they are stated so the predicate reads as the claim it makes.
+    now = _git_rev()
+    latest, missing, bad, stale, ok_here = _coverage(all_ids, rows, here)
+    covered = not missing and not bad and not stale and here != "unknown" and now == here
+
+    # An empty matrix cannot be gated, and `not missing and not bad and not
+    # stale` is vacuously true over an empty `all_ids`. Selecting nothing is
+    # not gating everything.
+    if not all_ids:
+        print("\nequivalence groups: NOT GATED — the matrix is empty.")
+        return 1
+
+    if covered:
+        n_groups = len({group_key(latest[i]["config"]) for i in all_ids})
+        print(
+            f"\nequivalence groups consistent ✓  ({len(all_ids)} configs in "
+            f"{n_groups} groups, every row at {here})"
+        )
+        return 0
+
+    print(f"\nequivalence groups: NOT GATED at {here} — no ✓ emitted.")
+    if now != here:
+        print(
+            f"  the tree changed during this invocation: it started at {here} and stands at {now}. "
+            f"Rows are stamped per config as each finishes, so any produced after the edit are at "
+            f"{now}; the rows at {here} came from code no longer in the tree. Nothing in {out_dir} "
+            "now describes one tree -- re-run on a frozen tree."
+        )
+    print(f"  {len(ok_here)} of {len(all_ids)} configs are ok at {here}.")
+    if missing:
+        print(f"  {len(missing)} never ran: {', '.join(missing)}")
+    if bad:
+        print(f"  {len(bad)} did not return ok: {', '.join(bad)}")
+    if stale:
+        revs = sorted({str(latest[i].get("rev", "unrecorded")) for i in stale})
+        print(
+            f"  {len(stale)} were produced at a revision other than {here} "
+            f"({', '.join(revs)}) and say nothing about the current tree."
+        )
+    if args.only or args.skip:
+        print("  (--only/--skip narrow what RUNS; the tick still speaks for the whole matrix.)")
+    print("  Re-run without filters, or with a fresh --out, to gate this revision.")
+
+    # A row that FAILED in this invocation is a gate failure, not a partial
+    # campaign, and so is a tree that moved under it. `bench/run_smoke.sh`
+    # runs under `set -euo pipefail`, so exit 0 IS the gate passing --
+    # returning 0 from an all-crashed matrix made the gate pass on a run that
+    # established nothing, which is the same false claim the tick predicate
+    # above exists to stop, one level down. A replay or an interrupted resume
+    # still exits 0: those are legitimate and failing them would break the
+    # resume this file supports.
+    if failed_here or now != here:
+        return 1
     return 0
 
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import time
+from typing import TYPE_CHECKING
 
 import polars as pl
 from loguru import logger
@@ -23,7 +24,6 @@ from et_miner.core.result import (
 from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse
 from et_miner.gpu.mining import (
     _anchor_keep_mask,
-    _apply_anchor_filter,
     _prune_groups_apriori,
     _prune_non_free_mask,
     _rows_sorted,
@@ -50,6 +50,44 @@ from et_miner.io.gcs import (
     is_upload_enabled,
     polars_storage_options,
 )
+
+if TYPE_CHECKING:
+    # numpy is imported inside the functions that use it, alongside the
+    # optional cupy import; this binds the name for annotations only.
+    import numpy as np
+
+
+def _release_level_state(groups_gpu, sparse_state) -> None:
+    """Release both level-scoped GPU allocations, independently.
+
+    These are two unrelated allocations -- the current level's group arrays
+    (tens of GB on a dense K>=3 level) and the resident CSR shards -- and they
+    used to share one `try` with a bare `except Exception: pass`. Any failure in
+    `free_groups` therefore skipped `sparse_state.release()` entirely, leaking
+    the shards, and the `pass` meant nothing recorded that it had happened.
+
+    The bare catch itself is deliberate and stays: this runs from a `finally`,
+    frequently while an exception is already propagating, and a cleanup failure
+    must never replace the original error. What changes is that a failure in one
+    cannot cancel the other, and that both are logged instead of swallowed.
+
+    Extracted to module scope so the isolation is testable directly, rather than
+    by driving a whole mining run to failure at the right moment.
+    """
+    # Both limbs are lambdas. `sparse_state.release` as a bare bound method
+    # would be looked up while this tuple is BUILT -- before the loop, before
+    # any `try` -- so a None or part-built `sparse_state` would raise there and
+    # skip `free_groups` entirely: the exact "one failure cancels the other"
+    # coupling this function exists to remove, reintroduced by an attribute
+    # access. Deferring it puts the lookup inside the try that guards it.
+    for label, release in (
+        ("group arrays", lambda: free_groups(groups_gpu)),
+        ("CSR shards", lambda: sparse_state.release()),
+    ):
+        try:
+            release()
+        except Exception as exc:  # noqa: BLE001 -- see docstring
+            logger.warning(f"    Cleanup failed while releasing {label}: {exc!r}")
 
 
 def _apriori_row_split_multi_gpu(
@@ -143,7 +181,14 @@ def _apriori_row_split_multi_gpu(
         f"  Row-split multi-GPU: {n_gpus} GPUs, min_count={min_count_threshold:,} (GPU-resident dense counting)"
     )
 
-    # Phase 0: Build row-split bitvecs across GPUs
+    # Phase 0: Build row-split bitvecs across GPUs.
+    #
+    # Ownership is recorded BEFORE the branch, because the density transition
+    # below has to know whether the arrays are ours to free. They are not, on
+    # the route core/apriori.py takes where it passes `bitvecs_list=` built
+    # from the caller's own `bitvecs=` array (unpacked and validated a few
+    # lines above it), which happens when `_route_for_pruning` holds.
+    _owns_bitvecs = bitvecs_list is None
     if bitvecs_list is None:
         t0 = time.perf_counter()
         bitvecs_list = build_bitvecs_row_split(csr, n_gpus)
@@ -195,7 +240,7 @@ def _apriori_row_split_multi_gpu(
     # Deferred results: accumulate numpy arrays per level,
     # build Polars DataFrame at the end via PyArrow. No .tolist() overhead.
     # When output_dir is set, arrays flush to Parquet per K and are NOT accumulated.
-    deferred_itemsets_np: list[np.ndarray] = []  # (n, k) int64 arrays
+    deferred_itemsets_np: list[np.ndarray] = []  # (n, k) int32 arrays (col_to_item_arr dtype)
     deferred_supports: list[np.ndarray] = []
 
     # GCSUploader: single instance for the whole K-loop.
@@ -355,9 +400,20 @@ def _apriori_row_split_multi_gpu(
                 )
 
         if len(prev_frequent_flat) > 0:
-            _flush_or_defer(
-                col_to_item_arr[prev_frequent_flat], prev_counts_flat / n_transactions, 1
-            )
+            # K=1 is emit-filtered too. _anchor_keep_mask used to return None
+            # for k<2, so a two-phase run emitted every frequent item at K=1 --
+            # a separate inconsistency that disappears once anchoring is purely
+            # an output selector. It is free: generation reads
+            # prev_frequent_flat, not the emitted array.
+            _k1_flat, _k1_counts = prev_frequent_flat, prev_counts_flat
+            _k1_keep = _anchor_keep_mask(prev_frequent_flat, anchor_col_arr, 1)
+            if _k1_keep is not None:
+                _k1_flat = prev_frequent_flat[_k1_keep]
+                _k1_counts = prev_counts_flat[_k1_keep]
+            if len(_k1_flat) > 0:
+                _flush_or_defer(
+                    col_to_item_arr[_k1_flat], _k1_counts / n_transactions, 1
+                )
 
         k1_time = time.perf_counter() - _k1_start
         if level_callback:
@@ -414,13 +470,42 @@ def _apriori_row_split_multi_gpu(
                     # against the dense counts of the previous level exactly.
                     sparse_state.shards = convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat)
 
-                    # Free ALL bitvec VRAM across all GPUs
-                    for bv, did, _ in bitvecs_list:
-                        with cp.cuda.Device(did):
-                            del bv
+                    # Release the dense bitvecs -- but only claim it when the
+                    # arrays are actually ours. #30.
+                    #
+                    # What was here freed nothing and said it had. `del bv`
+                    # unbinds a loop name while bitvecs_list[i][0] still holds
+                    # the array; free_all_blocks() then ran BEFORE .clear()
+                    # dropped those references, so the blocks were still in use;
+                    # and .clear() mutates a list the caller may own. On the
+                    # borrowed route the caller holds the array regardless, so
+                    # no ordering makes the old message true.
+                    #
+                    # Note that dropping `del bv` and leaning on .clear() alone
+                    # would not fix it either: a `for` target outlives its loop,
+                    # so `bv` would still pin the LAST device's bitvecs. Hence
+                    # the comprehension -- its scope does not leak in Python 3,
+                    # so no array is ever bound to a surviving name.
+                    _bv_devices = [did for _, did, _ in bitvecs_list]
+                    if _owns_bitvecs:
+                        bitvecs_list.clear()
+                    else:
+                        # Never mutate a caller-supplied container.
+                        bitvecs_list = []
+                    for _did in _bv_devices:
+                        with cp.cuda.Device(_did):
                             cp.get_default_memory_pool().free_all_blocks()
-                    bitvecs_list.clear()
-                    logger.debug("    Freed bitvec VRAM across all GPUs")
+                    if _owns_bitvecs:
+                        logger.debug("    Freed bitvec VRAM across all GPUs")
+                    else:
+                        # The pool call stays on both branches: it is not scoped
+                        # to this function's allocations, and the sibling
+                        # try/finally around the K>=3 group arrays relies on it.
+                        # Only the claim changes.
+                        logger.debug(
+                            "    Bitvecs are caller-owned and were not released; "
+                            "returned this route's pool blocks across all GPUs"
+                        )
 
                 # Build groups from prev_frequent, with the suffix-slot → row
                 # permutation the CSR kernels enumerate candidates from.
@@ -433,8 +518,12 @@ def _apriori_row_split_multi_gpu(
                 # frequent, so it is lossless.
                 if prune_apriori and groups_info is not None:
                     tc_before = groups_info.total_candidates
-                    prev_freq_set = set(map(tuple, prev_full_flat.tolist()))
-                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_full_flat)
+                    # None, not a prebuilt set: prev_full_flat is authoritative
+                    # and the Rust path never reads the set. See #29 --
+                    # materialising it here cost ~9 s/level at 10M itemsets
+                    # (measured, k=5) for an argument that was then discarded.
+                    # gpu/mining.py::_prune_groups_apriori carries the numbers.
+                    groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
                         logger.debug(
@@ -468,18 +557,6 @@ def _apriori_row_split_multi_gpu(
                         current_flat = decode_k3plus_flat(_surv, groups_info, k)
                         current_counts_raw = current_counts_raw.astype(np.int64)
 
-                        # V3 B6: Anchor filter (sparse CSR path) — survivors in lockstep
-                        _keep = _anchor_keep_mask(current_flat, anchor_col_arr, k)
-                        if _keep is not None:
-                            _n_before = n_freq
-                            current_flat = current_flat[_keep]
-                            current_counts_raw = current_counts_raw[_keep]
-                            _surv = _surv[_keep]
-                            n_freq = len(_surv)
-                            if n_freq < _n_before:
-                                logger.debug(
-                                    f"    Anchor filter K={k}: {_n_before:,} → {n_freq:,} ({100 * (1 - n_freq / _n_before):.1f}% filtered)"
-                                )
 
             elif k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
@@ -525,10 +602,6 @@ def _apriori_row_split_multi_gpu(
                     current_flat = decode_k2_pairs_flat(freq_pair_indices, freq_cols)
                     current_counts_raw = freq_pair_counts  # already int64
 
-                    # V3 B6: Anchor filter (K=2 dense path)
-                    current_flat, current_counts_raw, n_freq = _apply_anchor_filter(
-                        current_flat, current_counts_raw, anchor_col_arr, k
-                    )
 
                     # Pair cache disabled — not yet wired to K>=3 kernels (saves ~13.6 GB VRAM)
                 else:
@@ -543,8 +616,12 @@ def _apriori_row_split_multi_gpu(
                 # level (see the sparse branch above for why that matters).
                 if prune_apriori and groups_info is not None:
                     tc_before = groups_info.total_candidates
-                    prev_freq_set = set(map(tuple, prev_full_flat.tolist()))
-                    groups_info = _prune_groups_apriori(groups_info, prev_freq_set, k, prev_flat_np=prev_full_flat)
+                    # None, not a prebuilt set: prev_full_flat is authoritative
+                    # and the Rust path never reads the set. See #29 --
+                    # materialising it here cost ~9 s/level at 10M itemsets
+                    # (measured, k=5) for an argument that was then discarded.
+                    # gpu/mining.py::_prune_groups_apriori carries the numbers.
+                    groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
                     tc_after = groups_info.total_candidates if groups_info is not None else 0
                     if tc_before > tc_after:
                         logger.debug(
@@ -598,22 +675,30 @@ def _apriori_row_split_multi_gpu(
                                 variant="legacy" if chunk.use_legacy else None,
                             )
 
-                    freq_cand_indices, freq_cand_counts = run_chunked_dense_level(
-                        bitvecs_list,
-                        k3_chunks,
-                        _k3plus_chunk_on_gpu,
-                        min_count_threshold,
-                        nccl_comms,
-                        _use_nccl,
-                        level_label=f"K={k}",
-                    )
-
-                    # Free group data from all GPUs
-                    for did in list(all_groups_gpu):
-                        with cp.cuda.Device(did):
-                            del all_groups_gpu[did]
-                            cp.get_default_memory_pool().free_all_blocks()
-                    del all_groups_gpu
+                    # try/finally, because this is ~40 GB on a wide level and
+                    # run_chunked_dense_level can raise -- most obviously
+                    # through the result-truncation RuntimeError, which is
+                    # exactly the case where the process continues afterwards.
+                    # Without it the group arrays stayed resident on every
+                    # device for the rest of the run. The sparse twin in
+                    # gpu/mining.py already had this shape (upload / try /
+                    # finally: free_groups); this branch did not. #31
+                    try:
+                        freq_cand_indices, freq_cand_counts = run_chunked_dense_level(
+                            bitvecs_list,
+                            k3_chunks,
+                            _k3plus_chunk_on_gpu,
+                            min_count_threshold,
+                            nccl_comms,
+                            _use_nccl,
+                            level_label=f"K={k}",
+                        )
+                    finally:
+                        # Free group data from all GPUs
+                        for did in list(all_groups_gpu):
+                            with cp.cuda.Device(did):
+                                del all_groups_gpu[did]
+                                cp.get_default_memory_pool().free_all_blocks()
 
                     n_freq = len(freq_cand_indices)
                     if n_freq > 0:
@@ -624,10 +709,6 @@ def _apriori_row_split_multi_gpu(
                         )
                         current_counts_raw = freq_cand_counts  # already int64
 
-                        # V3 B6: Anchor filter (K>=3 dense path)
-                        current_flat, current_counts_raw, n_freq = _apply_anchor_filter(
-                            current_flat, current_counts_raw, anchor_col_arr, k
-                        )
 
             # ── Level end: sort, split the two populations, emit ─────────
             # The lexsort runs BEFORE the free-set prune so that the COMPLETE
@@ -668,8 +749,39 @@ def _apriori_row_split_multi_gpu(
                 n_freq = len(current_flat)
 
             if n_freq > 0:
-                items_flat = col_to_item_arr[current_flat]  # (n, k) int32
-                _flush_or_defer(items_flat, current_counts_raw / n_transactions, k)
+                # V3 B6: anchoring is an OUTPUT SELECTOR, applied here and
+                # nowhere else. It used to filter `current_flat`, and that one
+                # array then became BOTH downstream populations: full_flat (the
+                # subset oracle every K+1 apriori test resolves against) and
+                # prev_frequent_flat (the generation base). That is unsound in
+                # two independent ways at once -- the oracle needs the
+                # (k-1)-subsets that DROP the anchor, which are unanchored by
+                # construction, and the prefix-join needs the family closed
+                # under its two prefix-parents, which an anchored candidate's
+                # parents need not be. Measured loss: 95-99% of the anchored
+                # itemsets, in every configuration the public API can produce.
+                #
+                # This is the same defect class the free-set prune documents as
+                # fixed above; the difference in outcome is one property.
+                # Freeness is anti-monotone. Anchoredness is not.
+                #
+                # A pruning-preserving variant does not exist: hoist+remap was
+                # implemented and measured to lose 129 of 321, because it can
+                # only repair the level immediately below the first filtered
+                # one. The candidate-space reduction and the apriori prune are
+                # mutually exclusive. See mine_two_phase's docstring.
+                _emit_flat, _emit_counts = current_flat, current_counts_raw
+                _keep = _anchor_keep_mask(current_flat, anchor_col_arr, k)
+                if _keep is not None:
+                    _emit_flat = current_flat[_keep]
+                    _emit_counts = current_counts_raw[_keep]
+                    logger.debug(
+                        f"    Anchor filter K={k}: emitting {len(_emit_flat):,} of "
+                        f"{n_freq:,} (generation base left intact)"
+                    )
+                if len(_emit_flat) > 0:
+                    items_flat = col_to_item_arr[_emit_flat]  # (n, k) int32
+                    _flush_or_defer(items_flat, _emit_counts / n_transactions, k)
 
             k_time = time.perf_counter() - _k_start
             if level_callback:
@@ -700,12 +812,9 @@ def _apriori_row_split_multi_gpu(
             prev_full_counts = full_counts
             k += 1
     finally:
-        # Release the resident CSR shards and any group arrays of an aborted level.
-        try:
-            free_groups(_sparse_groups_gpu)
-            sparse_state.release()
-        except Exception:
-            pass
+        # Release the resident CSR shards and any group arrays of an aborted
+        # level -- independently, so one failure cannot leak the other.
+        _release_level_state(_sparse_groups_gpu, sparse_state)
         # Emergency uploader shutdown (happy path does ordered drain below)
         try:
             uploader.close(wait=False)
@@ -725,16 +834,222 @@ def _apriori_row_split_multi_gpu(
         return _empty_result()
 
     all_supports = np.concatenate(deferred_supports)
+    return _build_deferred_frame(deferred_itemsets_np, all_supports)
 
-    # PyArrow path: O(1) Python overhead via Arrow ListArray from numpy
+
+def _build_deferred_frame(
+    deferred_itemsets_np: list[np.ndarray],
+    all_supports: np.ndarray,
+) -> pl.DataFrame:
+    """Build the result frame from the deferred per-level itemset arrays.
+
+    Split out of `_apriori_row_split_multi_gpu` for one reason: the host-RAM
+    peak of this block is what decides whether a campaign survives its last
+    level, and inside that function it is unreachable without a GPU. Here it is
+    a pure function of its two arguments.
+
+    `all_supports` is built by the CALLER and passed in, so a peak measured
+    across this call is this block's own allocation and nothing else's. The
+    identity below, and the test that pins it, both depend on that split.
+    """
+    import numpy as np
+
+    # PyArrow path: O(1) Python overhead via Arrow ListArray from numpy.
+    #
+    # The int64 cast is load-bearing, not cosmetic. FOUR places return a frame
+    # on this route and they used to disagree on the itemset dtype. Two are in
+    # THIS function -- this arrow path and the list fallback in its `except
+    # ImportError`; the other two are the `_empty_result()` calls in the CALLER,
+    # `_apriori_row_split_multi_gpu`, which were left there when this block was
+    # split out. The count said "three return paths" of "this function" while
+    # naming four sites across two, which is the defect this comment block keeps
+    # being rewritten for: say which set, then count that set.
+    #
+    # Both `_empty_result()` calls give List(Int64) (core/result.py), the list
+    # fallback gives List(Int64) via Python ints, and this path gave
+    # List(Int32) -- because this file builds `col_to_item_arr` as np.int32
+    # (guarded by the `_max_item < 2**31` assert beside it) and Arrow preserves
+    # it. So the ONE path that normally runs was the odd one out, and
+    # gpu/mining.py::_apriori_from_bitvecs builds the same lookup as np.int64,
+    # so the two GPU routes disagreed with each other as well.
+    #
+    # Deliberately asymmetric with the flushed parquet, which stays
+    # large_list<int32> (io/flush.py builds its own list array from the same
+    # int32 items_flat): widening it would double the itemset bytes of every
+    # artifact already on disk, and nothing reads it in a dtype-sensitive way --
+    # the resume reader indexes `item_to_col[flat_item_ids]`, the mine_two_phase
+    # anchor read goes through `df["itemset"].to_list()`, and both core/rules.py
+    # consumers are parquet-to-parquet so their join keys are int32 on both
+    # sides. Widening those would cost ~84 GB on a K=7 K-1 frame -- an
+    # order-of-magnitude estimate, not a measurement: the arithmetic is
+    # rows x 6 items x 4 extra bytes, so it stands on a K=6 frame of ~3.5e9
+    # rows, and that row count is recorded nowhere in this tree. The only
+    # scale figure that is written down is core/rules.py's "K=8: 12B rows,
+    # 67 GB". Quoted with its basis so the next reader can reject it.
+    # tests/test_row_split_dtypes.py pins each of those boundaries.
+    #
+    # These references name symbols, not line numbers. Four of the five numbers
+    # this block used to carry were wrong; corrected, two went stale again
+    # inside the same session, because any edit above them moves them and
+    # nothing checks. Scoped to this block deliberately: it is what was fixed
+    # here, not a project-wide convention -- there is no check that would make
+    # it one, and stating it as a rule while the rest of the tree keeps its
+    # line numbers is the kind of claim this block exists to stop making.
     try:
         import pyarrow as pa
 
-        flat_values = np.concatenate([a.ravel() for a in deferred_itemsets_np])
-        widths = np.concatenate([np.full(a.shape[0], a.shape[1], dtype=np.int64) for a in deferred_itemsets_np])
-        offsets = np.empty(len(widths) + 1, dtype=np.int64)
+        # Both arrays are preallocated and filled chunk by chunk. This is the
+        # `output_dir=None` route -- the one that keeps every level in host RAM
+        # instead of flushing it -- so it is the route where N is largest, and
+        # the peak is what decides whether a campaign survives its last level.
+        #
+        # `np.concatenate(...).astype(np.int64, copy=False)` read as two cheap
+        # steps and was not: int32 -> int64 can never satisfy copy=False, so the
+        # concatenated int32 buffer (4N) and the int64 result (8N) were both
+        # live across the cast, on top of the int32 sources (4N) that stay alive
+        # to the end of this block. #26 (17d8574) added that cast for dtype
+        # consistency and doubled the peak, 8N -> 16N, without saying so. The
+        # dtype fix stands; the undeclared cost is what is fixed here.
+        #
+        # `widths` had the same shape one line down -- a list of per-chunk
+        # arrays plus the concatenated copy, both live -- and it is dropped
+        # entirely: it existed only to be cumsum'd into `offsets`, so the widths
+        # are written straight into `offsets[1:]` and summed in place. A scalar
+        # broadcast into a slice needs no temporary at all.
+        #
+        # WHAT THE FIGURES BELOW ARE CONDITIONAL ON. `deferred_itemsets_np`
+        # holds ONE ENTRY PER K LEVEL -- appended once per level (see the
+        # `_flush_or_defer` calls for K=1 and for the level loop), so entry j
+        # has shape (n_j, j): both the row count and k vary, and an apriori
+        # lattice is strongly peaked with a tiny tail. The measurements below
+        # use a FIXTURE -- equal chunks, uniform k -- which is a property of
+        # the harness, not of this code. Five successive measurements in the
+        # review of this comment each corrected the one before by varying a
+        # dimension it had held fixed (shape, then distribution, then k); a
+        # harness only varies what its author knows is a variable. So the
+        # totals are stated as an identity, and anything distribution-
+        # dependent is stated as a condition rather than a constant.
+        #
+        # IDENTITY, item arrays only. N = total items, R = |offsets| =
+        # (rows+1)*8B, kbar = N/rows the mean itemset length -- so R = 8N/kbar
+        # to within the one extra element, and N and R are one variable, not
+        # two:
+        #   floor     = 4N                 sources only; offsets does not exist yet
+        #   old       = 12N + max(4N, 2R)  TWO candidate peaks, whichever is
+        #                                  higher: the int32->int64 cast (4N
+        #                                  sources + 4N concat + 8N result) or
+        #                                  the `widths` pair (12N + 2R)
+        #   flat-only = 12N + 2R           fixing the cast alone leaves `widths`
+        #                                  -- the per-chunk list AND its
+        #                                  concatenation, R each
+        #   new       = 12N + R            4N sources + 8N flat + offsets
+        #
+        # CROSSOVER at kbar = 4, where 4N = 2R. ABOVE it the cast sets the old
+        # peak and `old` collapses to 16N; BELOW it the `widths` pair already
+        # set the peak, and 16N under-states it. So "fixing the cast relocates
+        # the peak to `widths`" is true only above the crossover -- below it the
+        # peak was never at the cast to be moved from.
+        #
+        # The transition is `old` -> 12N + R, NOT 16N -> 12N: `offsets` is
+        # absent from the cast peak (which precedes `widths`/`offsets` existing
+        # at all) and present once here, so it does not cancel under
+        # differencing. Hence
+        #
+        #   saving = max(4N, 2R) - R = max(4N - R, R) >= R > 0
+        #
+        # which is strictly positive at every kbar: this change cannot regress
+        # the peak, at any shape. Reading the saving as 4N - R holds only above
+        # the crossover, and there is no single "the real lattice" to read it
+        # against -- the in-tree presets fall on BOTH sides of kbar = 4:
+        #
+        #   preset        itemsets    items      kbar     4N vs 2R
+        #   smoke              694     1,664   2.3977   2R > 4N  (below)
+        #   skewed_rows     10,350    44,900   4.3382   4N > 2R  (above)
+        #   deep_k           8,841    46,727   5.2853   4N > 2R  (above)
+        #
+        # Measured by mining each preset at its own min_support (smoke on the
+        # CPU tier, the other two with use_gpu=True); the k-histograms are in
+        # the session record and `smoke`'s is reproduced as `SMOKE_K_HIST` in
+        # tests/test_row_split_memory.py, which builds a fixture from it.
+        #
+        # ABOVE the crossover the naive reading is EXACT: at deep_k, 4N - R and
+        # max(4N, 2R) - R are both 116,172 B. BELOW it the naive reading
+        # understates -- at smoke the true saving is R = 5,560 B against a naive
+        # 4N - R = 1,096 B, so 5.07x low. Below kbar = 2 it is SIGN-INVERTED
+        # (4N < R), predicting a regression where the true saving is R; that is
+        # a property of the formula, asserted here about the formula and not
+        # about any preset.
+        #
+        # The figure this replaced was "kbar = 2.365, measured", with a "5.5x
+        # LOW" derived from it. Neither had an artifact anywhere in the tree,
+        # and 5.5x is exactly what 2.365 yields -- so the consequence could not
+        # corroborate the premise, it only restated it.
+        #
+        # ONE WORKED INSTANCE, above the crossover, so `old` = 16N in this
+        # branch only. At the fixture shape N=200M items / k=5 / 8 equal chunks,
+        # VmHWM: 4N = 0.745, R = 0.298, interpreter floor ~0.02 ->
+        # 0.77 / 3.00 / 2.85 / 2.56 GiB, a measured saving of 0.447 GiB.
+        # Reproduced independently at 0.767 / 3.003 / 2.853 / 2.555. Below the
+        # crossover, same N: kbar = 3 measures old = 3.251 against the 16N form
+        # 2.980, and kbar = 1 measures 5.238 -- the form that collapses to 16N
+        # is the one that fails here, not the max().
+        #
+        # RE-MEASURED on a SECOND instrument, because everything above is VmHWM
+        # and VmHWM stops being true -- not merely noisy -- below N ~= 10M,
+        # where glibc does not return sub-mmap-threshold blocks. tracemalloc,
+        # run against the pre-fix code itself (`0a21f35^`: the
+        # `np.concatenate(...).astype(np.int64)` line and the `widths` pair
+        # below it, not a paraphrase of them -- a paraphrase that keeps the
+        # per-chunk list alive across `offsets` measures 3R and disagrees),
+        # puts `old` at ratio 1.0000 of 12N + max(4N, 2R) at kbar = 1, 2, 3, 4,
+        # 5 and 8, with the crossover landing on kbar = 4 exactly. The two
+        # instruments agree once the 4N sources are counted on both sides:
+        # kbar = 1 is 28N/16N = 1.75 there against 5.238/2.980 = 1.758 here.
+        #
+        # The in-place `np.cumsum(offsets[1:], out=offsets[1:])` below aliases
+        # input and output, and that is a documented contract, not tolerated
+        # behaviour: NumPy >= 1.13 defines an overlapping ufunc operation to
+        # give the non-overlapping result, and `accumulate` participates --
+        # `np.add.accumulate(x[:-1], out=x[1:])` returns the no-overlap answer,
+        # which a naive in-place loop cannot.
+        #
+        # The PEAK, separately, rides on a narrower property than that. The
+        # copy-on-overlap path is not a future risk; it exists and runs today,
+        # and it materialises a FULL-SIZE temporary as soon as two operands
+        # overlap without being identical. Measured on a 1.49 GiB int64 array,
+        # identical on 1.26.4 and 2.2.6:
+        #   np.cumsum(x, out=x)            0.000 GiB   exact alias
+        #   np.cumsum(x[1:], out=x[1:])    0.000 GiB   <- the form used here
+        #   np.cumsum(x[1:], out=x[:-1])   1.490 GiB   <- one element of shift
+        #   np.cumsum(x[:n/2], out=y)      0.745 GiB   disjoint: output only
+        # The line below evaluates `offsets[1:]` twice, producing two DISTINCT
+        # view objects sharing base, offset, shape and strides. Both cost
+        # nothing, so NumPy classifies on what the views describe rather than
+        # on object identity -- and the saving depends on that classification
+        # continuing to treat two identical views as identical rather than
+        # merely overlapping. One decision wide, not one feature.
+        #
+        # Nothing pins that. The equivalence to the old concatenate/cumsum
+        # form was verified ad hoc over randomised chunk shapes and holds, but
+        # that form is no longer in the tree for a test to compare against, so
+        # a future defensive copy would keep the RESULT right and revert the
+        # peak with nothing red. Same status as the note at the top of this
+        # block: verified, not pinned.
+        total_rows = sum(a.shape[0] for a in deferred_itemsets_np)
+        total_items = sum(a.size for a in deferred_itemsets_np)
+
+        flat_values = np.empty(total_items, dtype=np.int64)
+        offsets = np.empty(total_rows + 1, dtype=np.int64)
         offsets[0] = 0
-        np.cumsum(widths, out=offsets[1:])
+        _item_pos = 0
+        _row_pos = 1
+        for _a in deferred_itemsets_np:
+            _nr, _k = _a.shape
+            flat_values[_item_pos : _item_pos + _a.size] = _a.ravel()  # int32 -> int64, one chunk
+            _item_pos += _a.size
+            offsets[_row_pos : _row_pos + _nr] = _k  # scalar broadcast, no temporary
+            _row_pos += _nr
+        np.cumsum(offsets[1:], out=offsets[1:])
         arrow_list = pa.LargeListArray.from_arrays(offsets, flat_values)
         return pl.DataFrame(
             {
@@ -742,8 +1057,12 @@ def _apriori_row_split_multi_gpu(
                 "support": all_supports,
             }
         )
-    except (ImportError, Exception):
-        # Fallback: single-pass list construction
+    except ImportError:
+        # Fallback: single-pass list construction.
+        # Narrowed from `except (ImportError, Exception)`, which collapses to
+        # Exception and swallowed every PyArrow failure -- silently taking a
+        # path with a different dtype and different memory behaviour. A missing
+        # pyarrow is a fallback; a broken one is a bug and must surface.
         all_itemsets = []
         for arr in deferred_itemsets_np:
             for i in range(arr.shape[0]):
@@ -759,7 +1078,7 @@ def _apriori_row_split_multi_gpu(
 def mine_two_phase(
     transactions,
     phase1_support: float = 0.001,
-    phase2_support: float = 0.00001,
+    phase2_support: float = 0.0005,
     max_length: int | None = None,
     item_col: str = "items",
     n_gpus: int = 1,
@@ -767,20 +1086,50 @@ def mine_two_phase(
     sparse_from_k: int | str | None = SPARSE_AUTO,
     level_callback=None,
 ) -> tuple:
-    """Two-phase mining: anchor discovery + neighborhood zoom.
+    """Two-phase mining: anchor discovery, then an anchor-restricted REPORT.
 
     Phase 1 mines at phase1_support to find anchor items — the items that
     participate in frequent patterns at reasonable support thresholds.
 
-    Phase 2 mines at phase2_support (much lower), restricting candidates to
-    those containing >=1 anchor item from Phase 1. This reduces candidate
-    explosion from billions to a tractable search space focused on the
-    neighborhoods of known-interesting items.
+    Phase 2 mines at phase2_support (lower) and **reports only the itemsets
+    containing at least one anchor**.
+
+    .. warning::
+       **Phase 2 mines the full lattice at phase2_support and post-filters. It
+       does not reduce the candidate space, and it cannot.**
+
+       An earlier version applied the anchor mask to the mining state, which
+       did shrink the next level's generation base — and was unsound, losing
+       95-99% of the anchored itemsets in every configuration this function can
+       produce. Two independent reasons: the apriori oracle must test the
+       (k-1)-subsets that DROP the anchor, and those are unanchored by
+       construction; and the prefix-join needs the surviving family closed
+       under its two prefix-parents, which an anchored candidate's parents need
+       not be. Anchoredness is not anti-monotone, which is exactly why the same
+       code shape is sound for the free-set prune and catastrophic here.
+
+       A pruning-preserving variant was sought and does not exist. hoist+remap
+       was implemented and measured to lose 129 of 321: it repairs only the
+       level immediately below the first filtered one, because level k-1 was
+       itself generated from a restricted base. No column ordering repairs it —
+       ordering changes which subsets go missing, never whether they do.
+
+       So budget Phase 2 as a full run at phase2_support. The default was
+       0.00001, chosen when the filter was believed to cut the search space;
+       at that threshold a post-filtering Phase 2 is likely intractable, so it
+       is now 0.0005. Set it lower deliberately, having sized the full lattice.
+
+       If genuine candidate reduction is needed, the one sound shape is
+       per-anchor conditional databases: for each anchor `a`, mine the
+       projection onto transactions containing `a` — downward-closed within
+       itself — then union and dedupe. One run per anchor is the cost.
 
     Args:
         transactions: Transaction data (DataFrame or LazyFrame).
         phase1_support: Support threshold for anchor discovery (higher).
-        phase2_support: Support threshold for neighborhood zoom (lower).
+        phase2_support: Support threshold for phase 2 (lower). Phase 2 mines the
+            FULL lattice at this threshold and then reports the anchored subset,
+            so this is the cost driver — see the warning above.
         max_length: Maximum itemset length (None = unlimited).
         item_col: Column name containing item lists.
         n_gpus: Number of GPUs to use.

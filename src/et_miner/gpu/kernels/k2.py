@@ -128,6 +128,14 @@ def count_pairs_fused_k2_multi_gpu(bitvecs_gpu, freq_item_cols, n_u64s, min_coun
 
     # Get bitvecs as numpy for replication to other GPUs
     bitvecs_np = bitvecs_gpu.get()
+    # The device the caller's arrays actually live on. Every one of these
+    # wrappers hardcoded `if device_id == 0`, i.e. "the caller's bitvecs are on
+    # GPU 0". When they are not, device 0 aliases a foreign array -- the
+    # "device where the array resides (0) is different from the current device
+    # (1)" fault -- and the real home device re-uploads a copy of what it
+    # already holds. Latent while every in-tree route builds on device 0;
+    # gpu/dispatch reaches these from callers that need not. N10
+    _home = int(bitvecs_gpu.device.id)
 
     def _run_on_gpu(device_id):
         """Run pair subset on a single GPU (thread-safe for free-threading)."""
@@ -144,8 +152,8 @@ def count_pairs_fused_k2_multi_gpu(bitvecs_gpu, freq_item_cols, n_u64s, min_coun
                 stream = cp.cuda.Stream(non_blocking=True)
                 with stream:
                     # Replicate data to this GPU
-                    if device_id == 0:
-                        bv_gpu = bitvecs_gpu  # already on GPU 0
+                    if device_id == _home:
+                        bv_gpu = bitvecs_gpu  # already on the home device
                     else:
                         bv_gpu = cp.array(bitvecs_np, dtype=cp.uint64)
 

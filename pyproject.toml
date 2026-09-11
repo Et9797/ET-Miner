@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "et-miner"
-version = "0.1.0"
+version = "0.2.0"
 description = "ET-Miner: Efficient Transaction Miner - a blazing fast Apriori / frequent-itemset miner with a Rust backend and multi-GPU support."
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -66,6 +66,16 @@ gcs = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+    # bench/repro/d63_spec_defect_a_row_split_drop.py counts set bits with
+    # np.bitwise_count, which is NumPy 2.0+. Without this floor the standing
+    # gate the CHANGELOG calls standing dies on AttributeError under every
+    # lowest-direct resolution -- measured py3.10 -> 1.22.4, 3.11 -> 1.23.2,
+    # 3.12/3.13 -> 1.26.0, all of them 1.x. The runtime floor deliberately
+    # stays at numpy>=1.20: src/ uses nothing 2.0-only and nothing 2.0 removed
+    # (both greps clean), so this is the bench surface's requirement, not the
+    # library's, and it does not belong in [project].dependencies.
+    # uv.lock hid this -- a plain `pip install .[dev]` does not have it.
+    "numpy>=2.0",
     "maturin>=1.7",
     "efficient-apriori>=2.0",
     "matplotlib>=3.7",
@@ -94,6 +104,13 @@ testpaths = ["tests"]
 markers = [
     "gpu: requires a physical CUDA device (auto-skipped when none is present)",
     "slow: long-running test (deselect with -m 'not slow')",
+    # Applied PER TEST, never to a whole file. A file-wide marker on
+    # test_tier_equivalence.py would put the mandated tier chain -- including
+    # the Polars, Rust and efficient-apriori tiers, which need no GPU at all --
+    # behind a two-device gate, and make it vanish under any
+    # -m "not multigpu" selection. That is the same failure as a module-scope
+    # importorskip: the gate exits 0 having checked nothing.
+    "multigpu: requires two or more CUDA devices (see the note above)",
 ]
 
 [tool.ruff]

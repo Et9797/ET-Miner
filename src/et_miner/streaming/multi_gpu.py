@@ -43,6 +43,7 @@ from et_miner._compat import HAS_TQDM, tqdm
 # SON-specific helpers live in streaming.py; generic ones in matrix.py (foundation layer)
 from et_miner.streaming.son import (
     _build_matrix_for_items,
+    _estimate_chunk_size_from_memory,
     _get_memory_gb,
     _mine_chunk_frequent,
 )
@@ -117,6 +118,7 @@ def apriori_streaming_multi_gpu(
     item_col: str = "items",
     n_gpus: int = 8,
     chunk_size: int = 10_000_000,
+    memory_budget_gb: float | None = None,
     local_support_factor: float = 0.9,
     batch_size: int | None = 10_000,
     show_progress: bool = True,
@@ -212,6 +214,20 @@ def apriori_streaming_multi_gpu(
 
     if n_total == 0:
         return _empty_result()
+
+    # memory_budget_gb overrides chunk_size, in streaming/son.py's ORDER: resolve
+    # the effective chunk size first, THEN test whether the data fits in one.
+    #
+    # Placed after the single-chunk shortcut instead, the parameter was still
+    # dropped on every dataset below the 10M default -- which is exactly the
+    # small-budget case, on the one path whose reason to exist is not exceeding
+    # memory. A budget of 0.25 GB derives a ~1M-row chunk, so a 5M-row dataset
+    # must run as five chunks and previously ran as one.
+    if memory_budget_gb is not None:
+        chunk_size = _estimate_chunk_size_from_memory(memory_budget_gb)
+        logger.info(
+            "Memory budget {:.3f} GB -> chunk size {}", memory_budget_gb, chunk_size
+        )
 
     # Single chunk optimization: use standard apriori if data fits
     if n_total <= chunk_size:

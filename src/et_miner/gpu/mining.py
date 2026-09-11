@@ -217,10 +217,17 @@ def _prune_non_free_mask(current_flat, current_counts, prev_flat, prev_counts):
 
 def _anchor_keep_mask(current_flat, anchor_col_arr, k):
     """Boolean keep-mask for itemsets containing >= 1 anchor column, or None
-    when no filtering applies (no anchors, K < 2, or nothing to filter)."""
+    when no filtering applies (no anchors, or nothing to filter).
+
+    K=1 is masked like any other level. The `k < 2` early return this used to
+    carry made a two-phase run emit every frequent item at K=1 while filtering
+    every deeper level -- an inconsistency that only made sense while anchoring
+    was a mining gate. As an output selector it is uniform, and free: the
+    generation base is a different array.
+    """
     import numpy as np
 
-    if anchor_col_arr is None or k < 2 or len(current_flat) == 0:
+    if anchor_col_arr is None or len(current_flat) == 0:
         return None
     anchor_mask = np.zeros(len(current_flat), dtype=bool)
     for col in range(k):
@@ -228,44 +235,28 @@ def _anchor_keep_mask(current_flat, anchor_col_arr, k):
     return anchor_mask
 
 
-def _apply_anchor_filter(current_flat, current_counts_raw, anchor_col_arr, k):
-    """Filter itemsets to keep only those containing >=1 anchor item (by column index).
-
-    Used by two-phase mining (V3 B6): Phase 2 restricts candidates to neighborhoods
-    of anchor items discovered in Phase 1, reducing candidate explosion at ultra-low
-    support thresholds.
-
-    Args:
-        current_flat: numpy int32 (n, k) — itemset column indices.
-        current_counts_raw: numpy int64 (n,) — raw support counts.
-        anchor_col_arr: numpy int32 — sorted array of anchor column indices.
-            None means no filtering (pass-through).
-        k: current itemset length.
-
-    Returns:
-        Tuple of (filtered_flat, filtered_counts, n_after).
-    """
-    anchor_mask = _anchor_keep_mask(current_flat, anchor_col_arr, k)
-    if anchor_mask is None:
-        return current_flat, current_counts_raw, len(current_flat)
-    n_before = len(current_flat)
-    filtered_flat = current_flat[anchor_mask]
-    filtered_counts = current_counts_raw[anchor_mask]
-    n_after = len(filtered_flat)
-    if n_before > n_after:
-        logger.debug(
-            f"    Anchor filter K={k}: {n_before:,} → {n_after:,} ({100 * (1 - n_after / n_before):.1f}% filtered)"
-        )
-    return filtered_flat, filtered_counts, n_after
-
-
 def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     """Prune prefix groups by removing suffix pairs whose (k-1)-subsets are not all frequent.
 
-    At K=3 this is exact: check if (suffix_i, suffix_j) is a frequent K=2 pair.
-    At K>=4 this is also exact: for each suffix, checks all k-2 prefix-drop subsets
-    plus the two suffix-drop subsets. A suffix is only kept if ALL its (k-1)-subsets
-    are in prev_frequent_set. (Verified by Auditor: 16/16 math checks pass, 2026-03-25.)
+    Validity is tested per PAIR and then recorded per SUFFIX SLOT: for a
+    candidate prefix + [s_i, s_j] the k-2 prefix-drop subsets are checked (the
+    two suffix-drop subsets are rows of the level the group was built from, so
+    they are frequent by construction), and a valid pair marks BOTH of its
+    suffixes as keepers. The group is then rebuilt from every surviving suffix
+    with total_candidates recomputed over all C(m,2) pairs among them, which
+    re-admits pairs just found invalid.
+
+    So this **over-approximates**: a suffix kept for one valid pair drags every
+    other pair in its group along. It is not the per-suffix all-subsets test an
+    earlier version of this docstring described — that claim carried a
+    verification badge and was wrong about both implementations (this one and
+    rust_ext/src/core/groups.rs, which is identical in shape).
+
+    The behaviour is sound, and the surplus is provably one-sided: by
+    anti-monotonicity a re-admitted pair cannot reach min_count, so the cost is
+    wasted counting and never a wrong output. Fuzzed over 300 random previous
+    levels against a brute-force enumeration: 0/300 lost a valid candidate,
+    83/300 carried extra ones.
 
     The GPU dense kernel counts ALL pairs within a group. By removing invalid
     suffixes, we reduce the group sizes and thus the candidate count.
@@ -273,17 +264,75 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     Rust fast path: HashSet + Rayon parallel, GIL-free. Falls back to Python if
     the Rust extension is not available.
 
+    Which argument is authoritative, and why it matters
+    ---------------------------------------------------
+    `prev_flat_np` wins whenever it is not None; `prev_frequent_set` is then
+    never read. That is not a new rule -- it is what the Rust fast path below
+    has always done, since it takes the flat array and returns without touching
+    the set. Writing it down turns a silent asymmetry into a contract.
+
+    The consequence is that `prev_frequent_set` may be None. It used to be built
+    eagerly by both callers in gpu/row_split.py, at `set(map(tuple,
+    prev_full_flat.tolist()))`, and then handed to a Rust call that never looked
+    at it. On any build with the extension present it was pure cost. Now the
+    Python fallback derives it from `prev_flat_np` at the one place that reads
+    it.
+
+    MEASURED, 10M itemsets at k=5, VmHWM delta: **~9 s and ~370 B per itemset**,
+    i.e. ~3.7 GB of host RAM for a set nothing reads (370 B x 1e7; decimal GB,
+    matching the convention BUGS_FOUND.md uses for the same quantity). Time
+    scales with k: ~7 s at k=3, ~12 s at k=7. An earlier revision of this
+    docstring claimed ~35 s per level; that number was never measured and is
+    ~4x high, and an earlier one said ~3.5 GB, stale from a 350 B/row regime.
+
+    Two significant figures on the BYTES, because the figure is regime- rather
+    than run-dependent: three consecutive runs agreed to 0.1 B, so the
+    allocator moves it by nothing. An independent re-measurement read 388 B,
+    and the 20 B/itemset gap is deterministic, not noise -- it is the 10M x 5
+    int32 input (2.0e8 B / 1e7) sitting inside one measurement's baseline and
+    outside the other's. What genuinely varies is the ID distribution, and it
+    varies by 160 B rather than by a last digit: see the regime note below.
+
+    One significant figure on the TIME, because that one is noisy -- 8.3 to
+    10.8 s across runs on the same box.
+
+    The byte figure is quoted with its regime because it is not a constant.
+    Item IDs below 257 are CPython singletons, so the tuples share them and the
+    same measurement gives ~210 B/itemset. ~370 B is the no-sharing case, which
+    is the one this line exists for -- a vocabulary small enough to intern is
+    also small enough that the set never gets big.
+
+    No cross-check is performed when both are supplied and disagree: comparing
+    them would cost exactly the set this change removes. `prev_flat_np` wins,
+    and that is the documented behaviour rather than an accident.
+
     Args:
         groups_info: K3PlusGroups namedtuple.
-        prev_frequent_set: set of tuples of frequent (k-1)-itemsets.
+        prev_frequent_set: set of tuples of frequent (k-1)-itemsets, or None to
+            derive it from `prev_flat_np` if and when the Python fallback runs.
+            Ignored entirely when `prev_flat_np` is not None.
         k: current itemset size.
-        prev_flat_np: optional numpy int32 (n_prev, k-1) array for Rust fast path.
+        prev_flat_np: numpy int32 (n_prev, k-1) array. Authoritative when given;
+            drives the Rust fast path and, failing that, the fallback's set.
+
+    Raises:
+        ValueError: if both `prev_frequent_set` and `prev_flat_np` are None --
+            there is then no previous level to resolve subsets against, and
+            pruning nothing silently would look like a level with no invalid
+            candidates.
 
     Returns:
         Pruned K3PlusGroups or None if all candidates pruned.
     """
     import numpy as np
     from et_miner.gpu.kernels import K3PlusGroups
+
+    if prev_frequent_set is None and prev_flat_np is None:
+        raise ValueError(
+            "_prune_groups_apriori needs a previous level: pass prev_flat_np "
+            "(preferred) or prev_frequent_set. Both None would prune nothing "
+            "and be indistinguishable from a level with no invalid candidates."
+        )
 
     # --- Rust fast path: HashSet + Rayon parallel, GIL-free ---
     if prev_flat_np is not None:
@@ -329,6 +378,19 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
             _warn_stale_rust_once("prune_groups_apriori has no suffix_src_rows")
 
     # --- Python fallback ---
+    # The only reader of prev_frequent_set. Derive it here rather than at the
+    # call sites, so the Rust path above never pays for a set it does not read.
+    #
+    # Derived whenever prev_flat_np is given, NOT only when the set is None:
+    # the precedence documented above has to hold on a build without the Rust
+    # extension too. Honouring a passed-in set here would make the answer
+    # depend on whether the wheel happened to be present -- the exact
+    # two-paths-to-one-answer shape this change is meant to remove. Every
+    # in-tree caller that passes both derives the set from the same array, so
+    # this is a no-op for them.
+    if prev_flat_np is not None:
+        prev_frequent_set = set(map(tuple, prev_flat_np.tolist()))
+
     prefix_items = groups_info.prefix_items
     prefix_offsets = groups_info.prefix_offsets
     suffixes = groups_info.suffixes
@@ -408,7 +470,7 @@ def _apriori_from_bitvecs(
     batch_size: int | None,
     profile: bool,
     level_callback: Callable[[int, int, int, float], None] | None,
-    n_gpus: int = 1,
+    n_gpus: int = 1,  # honoured: forwarded to dispatch as a cap, see gpu/dispatch._resolve_gpus
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
     sparse_from_k: int | str | None = None,
@@ -487,8 +549,11 @@ def _apriori_from_bitvecs(
         try:
             pool = cp.get_default_memory_pool()
             vram_gb = pool.used_bytes() / (1024**3)
-        except Exception:
-            pass
+        except Exception as e:  # noqa: BLE001 — reported, never swallowed
+            # This used to be a bare `pass`, leaving vram_gb at 0.0, so the VRAM
+            # half of the guard below could never fire at all. A guard that
+            # cannot trip is worse than no guard: it reads as protection.
+            logger.warning(f"    VRAM usage unavailable ({e}); the VRAM memory guard is inactive")
         return ram_gb, vram_gb
 
     def _log_level(k, n_cand, n_freq, elapsed_s, cumulative_itemsets):
@@ -501,23 +566,38 @@ def _apriori_from_bitvecs(
         logger.info(msg)
 
     def _check_memory_guard(k, cumulative_itemsets):
-        """Return True if memory guard triggered (should stop)."""
+        """Raise if a memory guard has tripped.
+
+        This used to return True and let the caller `break` out of the level
+        loop with only a logger.warning, falling straight through to
+        _build_result_df -- so the caller received a DataFrame that stopped at
+        some K, with nothing on it to say so. Measured: max_ram_gb=0.0 returned
+        249 itemsets where the complete answer is 31,160, a 99.2% loss, with no
+        exception and a perfectly ordinary-looking frame.
+
+        It needs the user to set a low guard, so it is not silent by default --
+        but the guard's whole purpose is to be set, and when it fires the
+        contract break is total. A miner whose contract is exactness must raise
+        or return an explicit partial signal, never a bare truncated result.
+        This is the same failure mode as the result-buffer clamps: an
+        incomplete lattice handed back through a value-returning API.
+        """
         ram_gb, vram_gb = _get_memory_gb()
-        if ram_gb > max_ram_gb:
-            msg = (
-                f"  MEMORY GUARD: RAM={ram_gb:.1f}GB > {max_ram_gb}GB limit at K={k} "
-                f"({cumulative_itemsets:,} itemsets). Stopping to prevent OOM."
-            )
-            logger.warning(msg)
-            return True
-        if vram_gb > max_vram_gb:
-            msg = (
-                f"  MEMORY GUARD: VRAM={vram_gb:.1f}GB > {max_vram_gb}GB limit at K={k} "
-                f"({cumulative_itemsets:,} itemsets). Stopping to prevent OOM."
-            )
-            logger.warning(msg)
-            return True
-        return False
+        for used, limit, what in ((ram_gb, max_ram_gb, "RAM"), (vram_gb, max_vram_gb, "VRAM")):
+            if used > limit:
+                # Only remedies reachable on THIS route. output_dir is refused
+                # here by _validate_route_support -- the per-K flush belongs to
+                # the row-split miner -- so advising it unqualified sent the
+                # user to a ValueError after an hours-long run.
+                raise MemoryError(
+                    f"Memory guard tripped at K={k}: {what}={used:.1f}GB exceeds the "
+                    f"max_{what.lower()}_gb={limit}GB limit after {cumulative_itemsets:,} "
+                    f"itemsets. The lattice is INCOMPLETE at this point, so it is not "
+                    f"returned. Raise max_{what.lower()}_gb, lower max_length, or "
+                    f"re-run on the row-split miner (n_gpus>1 or "
+                    f"prune_equal_support=True), which accepts output_dir and "
+                    f"flushes each level as it completes."
+                )
 
     _t_total_start = time.perf_counter()
     _cumulative_itemsets = 0
@@ -619,9 +699,18 @@ def _apriori_from_bitvecs(
             sparse_state.shards = convert_shards_to_csr(
                 [(bitvecs_gpu, int(bitvecs_gpu.device.id), n_transactions)], prev_frequent_flat, prev_counts_flat
             )
+            # `bitvecs_gpu` is this function's PARAMETER -- the caller still
+            # holds the array, so `del` drops one reference of two and frees
+            # nothing. The old message claimed the VRAM was freed. #30.
+            #
+            # The pool call stays (it is not scoped to allocations made here,
+            # and the CSR conversion above did allocate); only the claim goes.
             del bitvecs_gpu
             cp.get_default_memory_pool().free_all_blocks()
-            logger.debug(f"    Freed bitvec VRAM, {sparse_state.shards[0].nnz:,} tid entries in the CSR shard")
+            logger.debug(
+                f"    CSR shard built with {sparse_state.shards[0].nnz:,} tid entries; "
+                "the bitvecs are the caller's and were not released"
+            )
 
         if sparse_state.active:
             # ═══ SPARSE CSR LEVEL (GPU-resident shard, see gpu.sparse_csr) ═══
@@ -682,7 +771,9 @@ def _apriori_from_bitvecs(
 
             from et_miner.gpu.dispatch import dispatch_k2
 
-            pairs, counts = dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count_threshold)
+            pairs, counts = dispatch_k2(
+                bitvecs_gpu, freq_cols, n_u64s, min_count_threshold, n_gpus=n_gpus
+            )
 
             if session:
                 session.end_phase(n_candidates=n_pairs, n_frequent=len(pairs))
@@ -726,7 +817,9 @@ def _apriori_from_bitvecs(
                 _prefix_groups[_p] = _prefix_groups.get(_p, 0) + 1
             _est_cands = sum(g * (g - 1) // 2 for g in _prefix_groups.values())
 
-            frequent_candidates, counts = dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold)
+            frequent_candidates, counts = dispatch_k3plus_fused(
+                bitvecs_gpu, prev_frequent, k, n_u64s, min_count_threshold, n_gpus=n_gpus
+            )
 
             # Build results from frequent candidates (already filtered by kernel)
             current_frequent = []
@@ -755,10 +848,9 @@ def _apriori_from_bitvecs(
             )
             break
 
-        # Memory guard: check BEFORE starting next level
-        if _check_memory_guard(k, _cumulative_itemsets):
-            logger.warning(f"  Mining stopped at K={k} by memory guard. Total: {_cumulative_itemsets:,} itemsets")
-            break
+        # Memory guard: check BEFORE starting the next level. Raises rather
+        # than breaking -- see _check_memory_guard.
+        _check_memory_guard(k, _cumulative_itemsets)
 
         prev_frequent = current_frequent
         prev_counts = current_counts
@@ -827,6 +919,7 @@ def _apriori_from_bitvecs_gpu_resident(
     max_length: int | None,
     profile: bool,
     level_callback: Callable[[int, int, int, float], None] | None,
+    n_gpus: int = 1,
 ) -> "pl.DataFrame | tuple[pl.DataFrame, ProfilingSession]":
     """Fully GPU-resident Apriori: all frequent itemsets stay in VRAM.
 
@@ -914,7 +1007,7 @@ def _apriori_from_bitvecs_gpu_resident(
             n_pairs = n_frequent_k1 * (n_frequent_k1 - 1) // 2
 
             pair_itemsets, pair_counts = dispatch_k2_gpu_resident(
-                bitvecs_gpu, freq_col_indices, n_u64s, min_count_threshold
+                bitvecs_gpu, freq_col_indices, n_u64s, min_count_threshold, n_gpus=n_gpus
             )
 
             if pair_itemsets is not None:
@@ -940,7 +1033,7 @@ def _apriori_from_bitvecs_gpu_resident(
                 session.start_phase(f"k{k}_gpu_resident")
 
             freq_itemsets, freq_counts = dispatch_k3plus_gpu_resident(
-                bitvecs_gpu, prev_freq_gpu, n_u64s, min_count_threshold
+                bitvecs_gpu, prev_freq_gpu, n_u64s, min_count_threshold, n_gpus=n_gpus
             )
 
             if freq_itemsets is not None:

@@ -132,37 +132,63 @@ class TestStreamingBugRegression:
 
 
 class TestMixedLengthFilterRegression:
-    """Regression tests for the SON Pass-2 mixed-length-filter undercount.
+    """The transaction-length filter must be exact for every itemset in a batch.
 
-    count_support_batched auto-detects the length filter as k=len(itemsets[0]).
-    In SON Pass 2 the candidates are pooled across all K, so a longer itemset
-    landing first would drop shorter transactions and undercount shorter
-    itemsets — a non-deterministic false-negative source (set-iteration order).
+    count_support_batched auto-detected the filter as k=len(itemsets[0]).
+    Whichever itemset happened to be first set the row filter for the whole
+    call, so a longer itemset landing first dropped shorter transactions and
+    undercounted the shorter itemsets — and a caller building the list from a
+    set got a different answer per run (set-iteration order).
+
+    It now uses the batch MINIMUM: a transaction shorter than k cannot contain
+    any k-itemset, so filtering at the minimum is exact for every itemset in the
+    batch.
+
+    Historical note, because this test used to assert the opposite. Its body and
+    its name pinned the undercount as expected behaviour (`assert
+    buggy[("i_0",)] < fixed[("i_0",)]`) while its own summary line asked for the
+    correct behaviour — and it was green, so anyone auditing the suite found a
+    passing test that appeared to sanction the defect. Fixing the filter turned
+    it red, and that was the fix working.
     """
 
-    def test_length_filter_undercounts_mixed_length_batch(self):
+    def test_length_filter_is_exact_on_a_mixed_length_batch(self):
         """A mixed-length batch with a long itemset first must not undercount.
 
         Six transactions: 'a' appears in 5, 'b' in 4, {a,b,c} in 2. With a
-        3-itemset first, the length filter drops every transaction shorter than
-        3 items, undercounting 'a' and 'b'. Disabling the filter is exact.
+        3-itemset first, the old filter dropped every transaction shorter than
+        3 items and returned 1 for 'a' — a 75% undercount.
         """
         df = pl.DataFrame(
             {"items": [["a"], ["a"], ["a", "b", "c"], ["a", "b", "c"], ["a", "b"], ["b", "c"]]}
         )
         matrix, _, _ = build_boolean_matrix(df.lazy(), min_support=0.0)
-        # i_0=a, i_1=b, i_2=c; longest itemset first triggers k=3 auto-detect
+        # i_0=a, i_1=b, i_2=c; longest itemset first is what used to trigger k=3
         itemsets = [("i_0", "i_1", "i_2"), ("i_0",), ("i_1",)]
 
-        buggy = count_support_batched(matrix, itemsets, 6, enable_length_filter=True)
-        fixed = count_support_batched(matrix, itemsets, 6, enable_length_filter=False)
+        filtered = count_support_batched(matrix, itemsets, 6, enable_length_filter=True)
+        unfiltered = count_support_batched(matrix, itemsets, 6, enable_length_filter=False)
 
         # Ground truth: a in 5 transactions, b in 4, {a,b,c} in 2.
-        assert fixed[("i_0",)] == 5
-        assert fixed[("i_1",)] == 4
-        assert fixed[("i_0", "i_1", "i_2")] == 2
-        # The length filter demonstrably undercounts the shorter itemsets.
-        assert buggy[("i_0",)] < fixed[("i_0",)]
+        assert unfiltered[("i_0",)] == 5
+        assert unfiltered[("i_1",)] == 4
+        assert unfiltered[("i_0", "i_1", "i_2")] == 2
+        # The filter is an optimisation, so it must not change any answer.
+        assert filtered == unfiltered
+
+    def test_result_is_independent_of_batch_order(self):
+        """The defect's sharpest edge: the same batch, permuted, counted
+        differently — so a caller passing a set got a different answer per run."""
+        df = pl.DataFrame(
+            {"items": [["a"], ["a"], ["a", "b", "c"], ["a", "b", "c"], ["a", "b"], ["b", "c"]]}
+        )
+        matrix, _, _ = build_boolean_matrix(df.lazy(), min_support=0.0)
+        long_first = [("i_0", "i_1", "i_2"), ("i_0",), ("i_1",)]
+        short_first = [("i_0",), ("i_1",), ("i_0", "i_1", "i_2")]
+
+        assert count_support_batched(matrix, long_first, 6) == count_support_batched(
+            matrix, short_first, 6
+        )
 
     def test_son_streaming_matches_direct_on_mixed_length_data(self):
         """SON (streaming) must reproduce direct apriori on mixed-length data."""

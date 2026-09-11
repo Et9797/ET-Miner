@@ -1,0 +1,844 @@
+[
+  {
+    "id": "smoke-gpu1",
+    "config": {
+      "id": "smoke-gpu1",
+      "preset": "smoke",
+      "n_gpus": 1,
+      "result_path": "/tmp/tmpv_rs_erc/result.json"
+    },
+    "status": "ok",
+    "wall_s": 0.201,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 118,
+        "n_frequent": 118,
+        "ms": 18.397095962427557
+      },
+      {
+        "k": 2,
+        "n_candidates": 6903,
+        "n_frequent": 290,
+        "ms": 2.3018880165182054
+      },
+      {
+        "k": 3,
+        "n_candidates": 202,
+        "n_frequent": 202,
+        "ms": 1.8646999960765243
+      },
+      {
+        "k": 4,
+        "n_candidates": 63,
+        "n_frequent": 63,
+        "ms": 1.020404975861311
+      },
+      {
+        "k": 5,
+        "n_candidates": 18,
+        "n_frequent": 18,
+        "ms": 0.7747960044071078
+      },
+      {
+        "k": 6,
+        "n_candidates": 3,
+        "n_frequent": 3,
+        "ms": 0.6410570349544287
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 3,
+      "1": 3
+    },
+    "peak_rss_mb": 444.1,
+    "throttle_reasons": [
+      "0x0000000000000001"
+    ],
+    "motifs_ok": true,
+    "n_itemsets": 694,
+    "sum_counts": 1109810,
+    "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
+    "parent_wall_s": 1.209,
+    "wall_samples": [
+      0.216,
+      0.201,
+      0.204
+    ],
+    "wall_spread_pct": 7.5
+  },
+  {
+    "id": "smoke-gpu2",
+    "config": {
+      "id": "smoke-gpu2",
+      "preset": "smoke",
+      "n_gpus": 2,
+      "result_path": "/tmp/tmpla04xm4q/result.json"
+    },
+    "status": "ok",
+    "wall_s": 1.069,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 118,
+        "n_frequent": 118,
+        "ms": 43.47084800247103
+      },
+      {
+        "k": 2,
+        "n_candidates": 6903,
+        "n_frequent": 290,
+        "ms": 93.66155101452023
+      },
+      {
+        "k": 3,
+        "n_candidates": 7045,
+        "n_frequent": 202,
+        "ms": 9.568300971295685
+      },
+      {
+        "k": 4,
+        "n_candidates": 1240,
+        "n_frequent": 63,
+        "ms": 10.142579034436494
+      },
+      {
+        "k": 5,
+        "n_candidates": 66,
+        "n_frequent": 18,
+        "ms": 4.118299053516239
+      },
+      {
+        "k": 6,
+        "n_candidates": 3,
+        "n_frequent": 3,
+        "ms": 4.18632902437821
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 391,
+      "1": 391
+    },
+    "peak_rss_mb": 1044.6,
+    "throttle_reasons": [],
+    "motifs_ok": true,
+    "n_itemsets": 694,
+    "sum_counts": 1109810,
+    "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
+    "parent_wall_s": 2.269,
+    "wall_samples": [
+      1.581,
+      1.592,
+      1.069
+    ],
+    "wall_spread_pct": 48.9
+  },
+  {
+    "id": "deepk-gpu2",
+    "config": {
+      "id": "deepk-gpu2",
+      "preset": "deep_k",
+      "n_gpus": 2,
+      "result_path": "/tmp/tmpn8rwgf16/result.json"
+    },
+    "status": "ok",
+    "wall_s": 2.038,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 112,
+        "n_frequent": 112,
+        "ms": 54.0168039733544
+      },
+      {
+        "k": 2,
+        "n_candidates": 6216,
+        "n_frequent": 471,
+        "ms": 102.31030802242458
+      },
+      {
+        "k": 3,
+        "n_candidates": 9174,
+        "n_frequent": 901,
+        "ms": 12.815154972486198
+      },
+      {
+        "k": 4,
+        "n_candidates": 3659,
+        "n_frequent": 1407,
+        "ms": 15.756949956994504
+      },
+      {
+        "k": 5,
+        "n_candidates": 2251,
+        "n_frequent": 1854,
+        "ms": 9.986429009586573
+      },
+      {
+        "k": 6,
+        "n_candidates": 1855,
+        "n_frequent": 1848,
+        "ms": 5.8223409578204155
+      },
+      {
+        "k": 7,
+        "n_candidates": 1320,
+        "n_frequent": 1320,
+        "ms": 5.7439510128460824
+      },
+      {
+        "k": 8,
+        "n_candidates": 660,
+        "n_frequent": 660,
+        "ms": 5.4794420138932765
+      },
+      {
+        "k": 9,
+        "n_candidates": 220,
+        "n_frequent": 220,
+        "ms": 5.155583960004151
+      },
+      {
+        "k": 10,
+        "n_candidates": 44,
+        "n_frequent": 44,
+        "ms": 5.017993971705437
+      },
+      {
+        "k": 11,
+        "n_candidates": 4,
+        "n_frequent": 4,
+        "ms": 4.992364963982254
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 425,
+      "1": 425
+    },
+    "peak_rss_mb": 1312.3,
+    "throttle_reasons": [],
+    "motifs_ok": true,
+    "n_itemsets": 8841,
+    "sum_counts": 266261275,
+    "itemset_hash": "4d2c8d28bcd33cd61f763915e42cb60c0f60f16e1ffec2af32a887faabf47567",
+    "parent_wall_s": 3.273,
+    "wall_samples": [
+      2.052,
+      2.067,
+      2.038
+    ],
+    "wall_spread_pct": 1.4
+  },
+  {
+    "id": "deepk-gpu2-sparse",
+    "config": {
+      "id": "deepk-gpu2-sparse",
+      "preset": "deep_k",
+      "n_gpus": 2,
+      "sparse_from_k": 3,
+      "result_path": "/tmp/tmpyuxprnm9/result.json"
+    },
+    "status": "ok",
+    "wall_s": 2.019,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 112,
+        "n_frequent": 112,
+        "ms": 50.15168501995504
+      },
+      {
+        "k": 2,
+        "n_candidates": 6216,
+        "n_frequent": 471,
+        "ms": 101.43827297724783
+      },
+      {
+        "k": 3,
+        "n_candidates": 9174,
+        "n_frequent": 901,
+        "ms": 85.11170599376783
+      },
+      {
+        "k": 4,
+        "n_candidates": 3659,
+        "n_frequent": 1407,
+        "ms": 14.683776011224836
+      },
+      {
+        "k": 5,
+        "n_candidates": 2251,
+        "n_frequent": 1854,
+        "ms": 8.175478025805205
+      },
+      {
+        "k": 6,
+        "n_candidates": 1855,
+        "n_frequent": 1848,
+        "ms": 6.108609028160572
+      },
+      {
+        "k": 7,
+        "n_candidates": 1320,
+        "n_frequent": 1320,
+        "ms": 5.859799974132329
+      },
+      {
+        "k": 8,
+        "n_candidates": 660,
+        "n_frequent": 660,
+        "ms": 5.630111962091178
+      },
+      {
+        "k": 9,
+        "n_candidates": 220,
+        "n_frequent": 220,
+        "ms": 5.15679398085922
+      },
+      {
+        "k": 10,
+        "n_candidates": 44,
+        "n_frequent": 44,
+        "ms": 5.162713991012424
+      },
+      {
+        "k": 11,
+        "n_candidates": 4,
+        "n_frequent": 4,
+        "ms": 4.563947033602744
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 495,
+      "1": 551
+    },
+    "peak_rss_mb": 1333.1,
+    "throttle_reasons": [],
+    "motifs_ok": true,
+    "n_itemsets": 8841,
+    "sum_counts": 266261275,
+    "itemset_hash": "4d2c8d28bcd33cd61f763915e42cb60c0f60f16e1ffec2af32a887faabf47567",
+    "parent_wall_s": 3.255,
+    "wall_samples": [
+      2.019,
+      2.068,
+      2.031
+    ],
+    "wall_spread_pct": 2.4
+  },
+  {
+    "id": "deepk-gpu2-low",
+    "config": {
+      "id": "deepk-gpu2-low",
+      "preset": "deep_k",
+      "n_gpus": 2,
+      "min_support": 0.005,
+      "result_path": "/tmp/tmp8jbii51h/result.json"
+    },
+    "status": "ok",
+    "wall_s": 2.153,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 294,
+        "n_frequent": 294,
+        "ms": 38.854393002111465
+      },
+      {
+        "k": 2,
+        "n_candidates": 43071,
+        "n_frequent": 1737,
+        "ms": 99.95388198876753
+      },
+      {
+        "k": 3,
+        "n_candidates": 115051,
+        "n_frequent": 4447,
+        "ms": 10.484086989890784
+      },
+      {
+        "k": 4,
+        "n_candidates": 101536,
+        "n_frequent": 8810,
+        "ms": 29.515770031139255
+      },
+      {
+        "k": 5,
+        "n_candidates": 42141,
+        "n_frequent": 15674,
+        "ms": 40.05043703364208
+      },
+      {
+        "k": 6,
+        "n_candidates": 23779,
+        "n_frequent": 22307,
+        "ms": 22.43448601802811
+      },
+      {
+        "k": 7,
+        "n_candidates": 23724,
+        "n_frequent": 23706,
+        "ms": 14.391945966053754
+      },
+      {
+        "k": 8,
+        "n_candidates": 18600,
+        "n_frequent": 18600,
+        "ms": 13.34738195873797
+      },
+      {
+        "k": 9,
+        "n_candidates": 10660,
+        "n_frequent": 10660,
+        "ms": 9.892898960970342
+      },
+      {
+        "k": 10,
+        "n_candidates": 4344,
+        "n_frequent": 4344,
+        "ms": 7.674421009141952
+      },
+      {
+        "k": 11,
+        "n_candidates": 1193,
+        "n_frequent": 1193,
+        "ms": 4.861595982220024
+      },
+      {
+        "k": 12,
+        "n_candidates": 198,
+        "n_frequent": 198,
+        "ms": 3.316464019007981
+      },
+      {
+        "k": 13,
+        "n_candidates": 15,
+        "n_frequent": 15,
+        "ms": 4.07672900473699
+      },
+      {
+        "k": 14,
+        "n_candidates": 0,
+        "n_frequent": 0,
+        "ms": 0.029500050004571676
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 437,
+      "1": 437
+    },
+    "peak_rss_mb": 1370.4,
+    "throttle_reasons": [],
+    "motifs_ok": true,
+    "n_itemsets": 111985,
+    "sum_counts": 1165999029,
+    "itemset_hash": "185054fb0488aa1366f54593d21af399bb6573920ebc8118d926be5cad54d74b",
+    "parent_wall_s": 4.142,
+    "wall_samples": [
+      2.156,
+      2.161,
+      2.153
+    ],
+    "wall_spread_pct": 0.4
+  },
+  {
+    "id": "twophase-deepk",
+    "config": {
+      "id": "twophase-deepk",
+      "preset": "deep_k",
+      "two_phase": true,
+      "n_gpus": 2,
+      "min_support": 0.02,
+      "phase2_support": 0.005,
+      "max_length": 5,
+      "result_path": "/tmp/tmp7z4n3p5h/result.json"
+    },
+    "status": "ok",
+    "wall_s": 3.232,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 112,
+        "n_frequent": 112,
+        "ms": 349.7404460213147
+      },
+      {
+        "k": 2,
+        "n_candidates": 6216,
+        "n_frequent": 471,
+        "ms": 90.12625296600163
+      },
+      {
+        "k": 3,
+        "n_candidates": 6437,
+        "n_frequent": 509,
+        "ms": 10.66650595748797
+      },
+      {
+        "k": 4,
+        "n_candidates": 969,
+        "n_frequent": 159,
+        "ms": 13.870269001927227
+      },
+      {
+        "k": 5,
+        "n_candidates": 73,
+        "n_frequent": 6,
+        "ms": 49.93375699268654
+      },
+      {
+        "k": 1,
+        "n_candidates": 294,
+        "n_frequent": 294,
+        "ms": 2.0622690208256245
+      },
+      {
+        "k": 2,
+        "n_candidates": 43071,
+        "n_frequent": 1737,
+        "ms": 60.76116202166304
+      },
+      {
+        "k": 3,
+        "n_candidates": 81903,
+        "n_frequent": 4055,
+        "ms": 66.7670409893617
+      },
+      {
+        "k": 4,
+        "n_candidates": 38531,
+        "n_frequent": 3607,
+        "ms": 29.17610196163878
+      },
+      {
+        "k": 5,
+        "n_candidates": 13373,
+        "n_frequent": 1059,
+        "ms": 18.518146011047065
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 433,
+      "1": 433
+    },
+    "peak_rss_mb": 1790.9,
+    "throttle_reasons": [],
+    "motifs_ok": true,
+    "n_itemsets": 10752,
+    "sum_counts": 134590111,
+    "itemset_hash": "4753bce84b7b1a7e7d5fdc46060b25be86bce755ad353354213c75be2c99ea3d",
+    "parent_wall_s": 4.508,
+    "wall_samples": [
+      3.232,
+      3.244,
+      3.273
+    ],
+    "wall_spread_pct": 1.3
+  },
+  {
+    "id": "smoke-cpu-polars",
+    "config": {
+      "id": "smoke-cpu-polars",
+      "preset": "smoke",
+      "route": "cpu",
+      "sparse": false,
+      "result_path": "/tmp/tmpm45yfl7r/result.json"
+    },
+    "status": "ok",
+    "wall_s": 0.306,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 118,
+        "n_frequent": 118,
+        "ms": 2.227598975878209
+      },
+      {
+        "k": 2,
+        "n_candidates": 6903,
+        "n_frequent": 290,
+        "ms": 174.08351897029206
+      },
+      {
+        "k": 3,
+        "n_candidates": 560,
+        "n_frequent": 202,
+        "ms": 30.602484999690205
+      },
+      {
+        "k": 4,
+        "n_candidates": 95,
+        "n_frequent": 63,
+        "ms": 13.677199953235686
+      },
+      {
+        "k": 5,
+        "n_candidates": 18,
+        "n_frequent": 18,
+        "ms": 6.1415189993567765
+      },
+      {
+        "k": 6,
+        "n_candidates": 3,
+        "n_frequent": 3,
+        "ms": 4.783746029715985
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 3,
+      "1": 3
+    },
+    "peak_rss_mb": 347.7,
+    "throttle_reasons": [],
+    "motifs_ok": true,
+    "n_itemsets": 694,
+    "sum_counts": 1109810,
+    "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
+    "parent_wall_s": 1.075,
+    "wall_samples": [
+      0.306,
+      0.322,
+      0.333
+    ],
+    "wall_spread_pct": 8.8
+  },
+  {
+    "id": "deepk-cpu-sparse-j1",
+    "config": {
+      "id": "deepk-cpu-sparse-j1",
+      "preset": "deep_k",
+      "route": "cpu",
+      "sparse": true,
+      "n_jobs": 1,
+      "max_length": 4,
+      "result_path": "/tmp/tmpbvc94asc/result.json"
+    },
+    "status": "ok",
+    "wall_s": 6.217,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 112,
+        "n_frequent": 112,
+        "ms": 4.25530900247395
+      },
+      {
+        "k": 2,
+        "n_candidates": 6216,
+        "n_frequent": 471,
+        "ms": 1663.2100010174327
+      },
+      {
+        "k": 3,
+        "n_candidates": 1262,
+        "n_frequent": 901,
+        "ms": 1348.3219249756075
+      },
+      {
+        "k": 4,
+        "n_candidates": 1456,
+        "n_frequent": 1407,
+        "ms": 1977.4097569752485
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 3,
+      "1": 3
+    },
+    "peak_rss_mb": 915.3,
+    "throttle_reasons": [
+      "0x0000000000000001",
+      "0x0000000000000004"
+    ],
+    "motifs_ok": true,
+    "n_itemsets": 2891,
+    "sum_counts": 98601926,
+    "itemset_hash": "4869a4352b20d08284d2197c17ba6ca39149fbfae2c7263652ca5209d854a15a",
+    "parent_wall_s": 7.351,
+    "wall_samples": [
+      6.217,
+      6.264,
+      6.218
+    ],
+    "wall_spread_pct": 0.8
+  },
+  {
+    "id": "smoke-cpu-sparse",
+    "config": {
+      "id": "smoke-cpu-sparse",
+      "preset": "smoke",
+      "route": "cpu",
+      "sparse": true,
+      "n_jobs": 8,
+      "result_path": "/tmp/tmpf8cgnuff/result.json"
+    },
+    "status": "ok",
+    "wall_s": 0.811,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 118,
+        "n_frequent": 118,
+        "ms": 2.204948978032917
+      },
+      {
+        "k": 2,
+        "n_candidates": 6903,
+        "n_frequent": 290,
+        "ms": 527.6072840206325
+      },
+      {
+        "k": 3,
+        "n_candidates": 560,
+        "n_frequent": 202,
+        "ms": 76.5646540094167
+      },
+      {
+        "k": 4,
+        "n_candidates": 95,
+        "n_frequent": 63,
+        "ms": 42.33440704410896
+      },
+      {
+        "k": 5,
+        "n_candidates": 18,
+        "n_frequent": 18,
+        "ms": 35.728069953620434
+      },
+      {
+        "k": 6,
+        "n_candidates": 3,
+        "n_frequent": 3,
+        "ms": 29.6218300354667
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 3,
+      "1": 3
+    },
+    "peak_rss_mb": 393.0,
+    "throttle_reasons": [
+      "0x0000000000000001"
+    ],
+    "motifs_ok": true,
+    "n_itemsets": 694,
+    "sum_counts": 1109810,
+    "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74",
+    "parent_wall_s": 1.803,
+    "wall_samples": [
+      0.814,
+      0.916,
+      0.811
+    ],
+    "wall_spread_pct": 12.9
+  },
+  {
+    "id": "deepk-cpu-sparse-j8",
+    "config": {
+      "id": "deepk-cpu-sparse-j8",
+      "preset": "deep_k",
+      "route": "cpu",
+      "sparse": true,
+      "n_jobs": 8,
+      "max_length": 4,
+      "result_path": "/tmp/tmp1iel1zh_/result.json"
+    },
+    "status": "ok",
+    "wall_s": 5.278,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 112,
+        "n_frequent": 112,
+        "ms": 4.0889589581638575
+      },
+      {
+        "k": 2,
+        "n_candidates": 6216,
+        "n_frequent": 471,
+        "ms": 2651.052739005536
+      },
+      {
+        "k": 3,
+        "n_candidates": 1262,
+        "n_frequent": 901,
+        "ms": 662.1022300096229
+      },
+      {
+        "k": 4,
+        "n_candidates": 1456,
+        "n_frequent": 1407,
+        "ms": 732.3224959545769
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 3,
+      "1": 3
+    },
+    "peak_rss_mb": 1790.9,
+    "throttle_reasons": [
+      "0x0000000000000001",
+      "0x0000000000000004"
+    ],
+    "motifs_ok": true,
+    "n_itemsets": 2891,
+    "sum_counts": 98601926,
+    "itemset_hash": "4869a4352b20d08284d2197c17ba6ca39149fbfae2c7263652ca5209d854a15a",
+    "parent_wall_s": 6.366,
+    "wall_samples": [
+      5.278,
+      5.324,
+      5.446
+    ],
+    "wall_spread_pct": 3.2
+  },
+  {
+    "id": "stressk2-cpu-sparse",
+    "config": {
+      "id": "stressk2-cpu-sparse",
+      "preset": "stress_k2",
+      "route": "cpu",
+      "sparse": true,
+      "n_jobs": 8,
+      "max_length": 2,
+      "min_support": 0.002,
+      "result_path": "/tmp/tmpcr18rndd/result.json"
+    },
+    "status": "ok",
+    "wall_s": 75.861,
+    "levels": [
+      {
+        "k": 1,
+        "n_candidates": 1443,
+        "n_frequent": 1443,
+        "ms": 54.62013796204701
+      },
+      {
+        "k": 2,
+        "n_candidates": 1040403,
+        "n_frequent": 1383,
+        "ms": 24344.785569002852
+      }
+    ],
+    "peak_vram_mb": {
+      "0": 3,
+      "1": 3
+    },
+    "peak_rss_mb": 4793.3,
+    "throttle_reasons": [
+      "0x0000000000000001",
+      "0x0000000000000004"
+    ],
+    "motifs_ok": true,
+    "n_itemsets": 2826,
+    "sum_counts": 32277154,
+    "itemset_hash": "695c285da2ba7e3711ea1eb58f8a676d33e4681ef59df8b662c0690f57611d9b",
+    "parent_wall_s": 77.189,
+    "wall_samples": [
+      75.861,
+      75.929,
+      77.617
+    ],
+    "wall_spread_pct": 2.3
+  }
+]

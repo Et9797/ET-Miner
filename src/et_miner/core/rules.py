@@ -38,9 +38,21 @@ def _powerset_nonempty(iterable: Iterable[int]) -> Iterator[tuple[int, ...]]:
 
 
 def _build_support_lookup(frequent_itemsets: pl.DataFrame) -> dict[tuple[int, ...], float]:
-    """Dict of itemset tuple -> support for O(1) subset lookups during rule generation."""
+    """Dict of sorted itemset tuple -> support for O(1) subset lookups.
+
+    Keyed on ``tuple(sorted(...))`` because that is how both callers query it
+    (``generate_rules`` at the lhs and rhs lookups). Keying on the stored order
+    instead made the map disagree with its own callers whenever a producer
+    emitted a non-ascending tuple: an lhs miss dropped the rule silently, an rhs
+    miss emitted ``lift = 0.0``. Producers now emit ascending tuples, so this is
+    belt-and-braces -- but a lookup helper should not depend on its producer's
+    tuple ordering, and the next producer need not know that.
+    """
     # iter_rows() is 3x faster than to_dicts() at 100K itemsets (benched 2026-01-18)
-    return {tuple(row["itemset"]): row["support"] for row in frequent_itemsets.iter_rows(named=True)}
+    return {
+        tuple(sorted(row["itemset"])): row["support"]
+        for row in frequent_itemsets.iter_rows(named=True)
+    }
 
 
 def generate_rules(
@@ -170,8 +182,10 @@ def _explode_drop1(chunk: pl.DataFrame, k: int) -> pl.DataFrame:
     This is the core of the "drop-1" approach: each row becomes a rule
     antecedent -> dropped_item with the original itemset's support.
 
-    The antecedent list is already sorted because the input itemsets are
-    sorted and we remove one element while preserving order.
+    The antecedent list is ascending because apriori() emits ascending itemsets
+    (see its Returns block) and removing one element preserves order. That is a
+    producer contract now; it used to be an assumption stated only here, and it
+    was false on the CPU route.
 
     Args:
         chunk: DataFrame with columns "itemset" (list[i32]) and "support" (f64).
@@ -260,8 +274,12 @@ def generate_rules_drop1(
     that exceed Polars' u32 row limit. It uses PyArrow row-group iteration
     and processes chunks independently to keep memory bounded.
 
-    The K and K-1 parquets must be sorted lexicographically (which is the default
-    output of et-miner's apriori pipeline).
+    Both parquets must carry itemsets as ascending tuples of item ids, which is
+    what every apriori() route emits (see its Returns block). The join below is
+    positional -- _list_to_scalar_cols unpacks the list column into scalar keys
+    by index -- so a K level and a K-1 level written by producers that disagree
+    on element order will simply miss, and a miss is indistinguishable from a
+    genuinely absent subset.
 
     Join strategy:
         The K-1 parquet is loaded once and its itemset list is unpacked into
@@ -456,8 +474,8 @@ def compute_self_sufficiency(
     """Compute self-sufficiency ratio for K-itemsets vs their (K-1)-subsets.
 
     For each K-itemset, computes:
-        max_k_minus1_support = max(support of all K-1 subsets)
-        self_sufficiency_ratio = support_K / max_k_minus1_support
+        min_k_minus1_support = min(support of all K-1 subsets)
+        self_sufficiency_ratio = support_K / min_k_minus1_support
 
     A ratio close to 1.0 means the K-th item adds almost no information
     beyond what the (K-1)-subset already captures -- the itemset is
@@ -466,6 +484,24 @@ def compute_self_sufficiency(
     Ratios well below 1.0 indicate genuine combinatorial signal: the
     K-itemset's co-occurrence is notably less frequent than any of its
     subsets, meaning the combination is informative.
+
+    The aggregate is **min**, and that is load-bearing. Since
+    ``support_K <= support(W)`` for every (K-1)-subset ``W``, requiring
+    ``support_K == max(subset supports)`` would force ALL subsets to share a
+    support -- a degenerate corner, not the near-closed family described above.
+    Under ``max``, a maximally redundant itemset ({1,2,3} at 0.30 with subsets
+    {1,2}=0.30, {1,3}=0.90, {2,3}=0.95, i.e. item 3 fully implied by {1,2})
+    scored 0.32 and read as "genuine combinatorial signal" -- exactly backwards,
+    so anyone filtering on the ratio kept the redundancy and discarded the
+    signal.
+
+    Recalibrating a cutoff was not an available fix: under ``max`` the ratio is
+    not monotone in the property described, so two itemsets that are EQUALLY
+    redundant by the engine's own predicate scored 0.9375 and 0.3158. It was the
+    wrong *kind* of aggregation, not a mis-scaled one. The package already
+    implements the correct predicate twice, both as the min test --
+    ``core/apriori.py::_prune_equal_support`` and ``groups.rs`` -- so this was a
+    third copy of one rule that had drifted to the other aggregate.
 
     Processes K parquet in chunks via PyArrow row-group iteration to
     handle billion-row files without exceeding memory or u32 limits.
@@ -481,8 +517,8 @@ def compute_self_sufficiency(
         pl.DataFrame with columns:
             - itemset: the K-itemset (list[i32])
             - support: K-itemset support (f64)
-            - max_k_minus1_support: max support across all (K-1)-subsets (f64)
-            - self_sufficiency_ratio: support / max_k_minus1_support (f64)
+            - min_k_minus1_support: min support across all (K-1)-subsets (f64)
+            - self_sufficiency_ratio: support / min_k_minus1_support (f64)
     """
     # ── Detect K ──
     k = _detect_k(k_parquet)
@@ -537,15 +573,22 @@ def compute_self_sufficiency(
         joined = joined.drop(join_cols)
         del exploded
 
-        # Group by _row_idx (= original itemset) and take max K-1 support
-        grouped = joined.group_by("_row_idx").agg(pl.col("km1_support").max().alias("max_k_minus1_support"))
+        # Group by _row_idx (= original itemset) and take the MINIMUM K-1 support
+        grouped = joined.group_by("_row_idx").agg(pl.col("km1_support").min().alias("min_k_minus1_support"))
         del joined
 
         # Re-attach original itemset and support from the chunk
-        result = chunk.join(grouped, on="_row_idx", how="inner").select("itemset", "support", "max_k_minus1_support")
+        result = chunk.join(grouped, on="_row_idx", how="inner").select("itemset", "support", "min_k_minus1_support")
         del grouped, chunk
 
-        result_chunks.append(result)
+        # Guarded exactly as generate_rules_drop1 guards its own append. Without
+        # this, result_chunks is never empty once any chunk has been read, the
+        # documented empty-result path below is dead code, `combined`'s ratio
+        # column .min() returns None, and the logging f-string raises TypeError
+        # -- an unhandled crash from inside a log statement, after all the
+        # mining work is done.
+        if result.height > 0:
+            result_chunks.append(result)
 
     del km1_df
 
@@ -555,7 +598,7 @@ def compute_self_sufficiency(
             schema={
                 "itemset": pl.List(pl.Int32),
                 "support": pl.Float64,
-                "max_k_minus1_support": pl.Float64,
+                "min_k_minus1_support": pl.Float64,
                 "self_sufficiency_ratio": pl.Float64,
             }
         )
@@ -564,7 +607,7 @@ def compute_self_sufficiency(
 
     # Compute ratio
     combined = combined.with_columns(
-        (pl.col("support") / pl.col("max_k_minus1_support")).alias("self_sufficiency_ratio"),
+        (pl.col("support") / pl.col("min_k_minus1_support")).alias("self_sufficiency_ratio"),
     )
 
     logger.info(

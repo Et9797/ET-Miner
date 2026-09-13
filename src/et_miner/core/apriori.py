@@ -225,6 +225,7 @@ def _validate_route_support(
     gpu_resident: bool,
     prune_equal_support: bool,
     use_generator_pruning: bool,
+    prune_apriori: bool,
     anchor_items: set | None,
     output_dir: str | None,
     resume_from_k: int | None,
@@ -344,6 +345,26 @@ def _validate_route_support(
                 "and resume_from_k would silently re-mine from K=1."
             )
 
+    # prune_apriori is the row-split miner's K>=3 subset test. The CPU route
+    # applies that test unconditionally and the single-GPU bitvec miner has no
+    # such step, so switching it OFF can only be honoured where the switch
+    # exists. (bitvecs= reaches the row-split miner through pruning alone: with
+    # the gate off it is served by the single-GPU bitvec miner whatever n_gpus
+    # says.)
+    if not prune_apriori:
+        reaches_row_split = _routes_to_row_split or (
+            use_gpu and not streaming and not has_bitvecs and (n_gpus > 1 or anchor_items is not None)
+        )
+        if not reaches_row_split:
+            raise ValueError(
+                "prune_apriori=False requires the row-split miner, reached with "
+                "use_gpu=True and one of n_gpus>1, anchor_items, or "
+                "prune_equal_support (or with bitvecs= and prune_equal_support). "
+                "The CPU route applies the Apriori subset test unconditionally "
+                "and the single-GPU bitvec miner has no such step, so on this "
+                "route the flag would be silently ignored."
+            )
+
     # A persisted K-level is a valid resume artifact IFF it is the complete
     # frequent level at that K -- resume reloads it as BOTH the generation base
     # and the subset oracle for every level above.
@@ -394,6 +415,7 @@ def apriori(
     warn_complexity: bool = True,
     prune_equal_support: bool = False,
     use_generator_pruning: bool = False,
+    prune_apriori: bool = True,
     sparse: bool | None = None,
     n_jobs: int = 1,
     enable_length_filter: bool = True,
@@ -450,6 +472,17 @@ def apriori(
             is itself non-free and its support is exactly the minimum of its
             (k-1)-subset supports, so it never has to be counted. Exact, no
             impact on results. CPU path only.
+        prune_apriori: Row-split miner only (reached with use_gpu=True and one
+            of n_gpus>1, anchor_items or prune_equal_support, or with bitvecs=
+            and prune_equal_support): run the exact Apriori subset test over
+            every K>=3 candidate group before counting, dropping the candidates
+            with an infrequent (k-1)-subset. Exact, so it changes candidate
+            counts and time, never the mined itemsets. Default True. It used to
+            follow prune_equal_support at the dispatch site, so a
+            complete-lattice run on that route mined with no downward closure
+            at all. The CPU route applies the subset test unconditionally and
+            the single-GPU bitvec miner has no such step, so False is refused
+            off the row-split miner rather than silently ignored.
         sparse: Scipy CSR matrix usage. True = force, False = Polars, None = auto
             (switches at >100K k=2 candidates or >500 items <10% density).
         n_jobs: Parallel workers for sparse k>2 counting. 1=sequential, -1=all CPUs.
@@ -533,6 +566,7 @@ def apriori(
         gpu_resident=gpu_resident,
         prune_equal_support=prune_equal_support,
         use_generator_pruning=use_generator_pruning,
+        prune_apriori=prune_apriori,
         anchor_items=anchor_items,
         output_dir=output_dir,
         resume_from_k=resume_from_k,
@@ -599,7 +633,7 @@ def apriori(
                 level_callback,
                 bitvecs_list=[(bitvecs_gpu, int(bitvecs_gpu.device.id), n_trans)],
                 prune_non_free=True,
-                prune_apriori=True,
+                prune_apriori=prune_apriori,
                 sparse_from_k=sparse_from_k,
                 # The sibling call below passes both; this one dropped them, so
                 # output_dir produced no flush and resume_from_k silently
@@ -718,7 +752,7 @@ def apriori(
                 output_dir=output_dir,
                 resume_from_k=resume_from_k,
                 prune_non_free=prune_equal_support,  # free-sets: emit == generate
-                prune_apriori=prune_equal_support,  # Apriori subset pruning
+                prune_apriori=prune_apriori,  # exact subset test, its own switch
                 sparse_from_k=sparse_from_k,  # V3: density transition K-level
                 anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
             )

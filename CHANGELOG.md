@@ -367,6 +367,31 @@ sentence with a check wherever one is possible.
   `perf.md` said the baseline had never been re-recorded when git said
   otherwise (`68e9a97`, `777287c`, `f25fee9`).
 
+*PR 9 — downward closure decoupled from the free-set gate*
+
+- **`prune_apriori`** is a parameter of `apriori()` in its own right, default
+  `True`. The row-split miner's K>=3 Apriori subset test was wired to the
+  free-set gate at the dispatch site (`prune_apriori=prune_equal_support`), so
+  a complete-lattice run on that route — `n_gpus>1` or `anchor_items` with
+  `prune_equal_support=False` — counted every suffix extension of every
+  frequent group with no downward closure at all. The test is exact (it only
+  removes candidates with an infrequent (k-1)-subset), so **no mined output
+  changes**; what moves is the K>=3 candidate count. Measured on 2× RTX 3090,
+  50,000 rows, 80 items, `min_support=0.004`, `max_length=6`: identical 5,135
+  itemsets either way; the test removed 0 of 82,160 candidates at K=3, 15,804
+  of 46,338 at K=4 (34%), 10,804 of 13,526 at K=5 (80%) and 2,628 of 2,635 at
+  K=6 (99.7%). Wall time at that size went the other way (1.41 s with the test,
+  0.60 s without) because the measuring box has no Rust extension and
+  `_prune_groups_apriori` ran its Python fallback; the campaign-scale figure is
+  not measured here. Every existing `prune_equal_support=True` caller already
+  resolved the flag to `True`, so those runs are byte-identical.
+  `prune_apriori=False` off the row-split miner is refused in
+  `_validate_route_support` rather than silently ignored: the CPU route applies
+  the subset test unconditionally and the single-GPU bitvec miner has no such
+  step. Tests: `tests/test_prune_apriori_decoupled.py` (exactness on both
+  settings, the subset test observed engaging or not, the refusals);
+  reproduction: `bench/repro/d64_prune_apriori_welded_to_free_set_gate.py`.
+
 ### Documentation
 
 - `docs/specs/et_miner_fix_spec.md` amended in place. All three of its items are

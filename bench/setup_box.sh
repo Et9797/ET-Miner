@@ -17,14 +17,20 @@ fi
 # Python env (dev group included by default) + GPU extra
 uv sync --locked --extra gpu
 
-# Rust toolchain + extension. NOTE: build from inside rust_ext — running
-# maturin with -m rust_ext/Cargo.toml from the root makes it adopt the ROOT
-# pyproject and clobber the editable et-miner install.
+# Rust toolchain + extension. Build from the repo root: rust_ext carries its own
+# pyproject, so maturin reads that rather than walking up to the root one, and a
+# cwd inside rust_ext would make uv treat it as a separate project and build a
+# second venv there. The env -u is not decoration — uv exports VIRTUAL_ENV, and
+# maturin refuses outright when CONDA_PREFIX is also set, which under the
+# set -euo pipefail above would abort provisioning before the CUDA probe. This
+# script runs in whatever shell an operator has, so it cannot assume. Unsetting
+# is required: CONDA_PREFIX= still reads as set. Scoped to this one command --
+# the sync above and the CUDA probe below run fine with conda ambient.
 if ! command -v cargo >/dev/null && [ ! -x "$HOME/.cargo/bin/cargo" ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 fi
 export PATH="$HOME/.cargo/bin:$PATH"
-(cd rust_ext && uv run maturin develop --release)
+env -u CONDA_PREFIX uv run maturin develop --release -m rust_ext/Cargo.toml
 
 # NVRTC needs CUDA toolkit headers at JIT time. Runtime/driver-only images
 # ship none: point CUDA_PATH at a toolkit when one exists, then probe with a

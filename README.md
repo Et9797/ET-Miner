@@ -47,18 +47,51 @@ Requires a Rust toolchain (`rustup`) and [maturin](https://maturin.rs)
 ```bash
 git clone https://github.com/Et9797/et-miner.git
 cd et-miner
-uv venv && source .venv/bin/activate
+uv venv
 uv sync                                 # installs package + dev group (incl. maturin)
-cd rust_ext && maturin develop --release
+uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
+
+Build from the repo root, not from inside `rust_ext`. `rust_ext` carries its
+own `pyproject.toml`, so maturin reads that; a cwd inside it would make `uv`
+discover it as a separate project and build a second virtualenv there. In a
+conda-ambient shell prefix the build with `env -u CONDA_PREFIX` — `uv` exports
+`VIRTUAL_ENV` and maturin refuses when both are set (`CONDA_PREFIX=` still
+counts as set).
 
 When the extension is installed, ET-Miner automatically uses it for k>2
 support counting. The default build is portable; for a machine-tuned build
 (AVX-512 etc.) opt in with:
 
 ```bash
-RUSTFLAGS="-C target-cpu=native" maturin develop --release
+RUSTFLAGS="-C target-cpu=native" uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
+
+"Optional" means the results are identical without it, not that the cost is.
+`prune_groups_apriori` and `build_k3plus_groups_from_flat` back candidate
+generation on the downward-closure row-split path, so a pipeline that mines
+there pays for its absence on every level. Measured on an 11.3M x 8 level
+with ~1.88M prefix groups and identical candidate counts either way:
+
+| | without | with |
+|---|---|---|
+| `build_k3plus_groups_from_flat` | 6.1 s | 0.3 s |
+| `prune_groups_apriori` | 32.8 s | 3.9 s |
+
+On a nine-level run (K=2..K=10) at that scale candidate generation was 93% of mining time,
+so the extension is worth about 5.9x on the whole mine.
+
+To depend on it from another project rather than building it by hand, install
+it from this repository's `rust_ext` subdirectory, pinned to the same revision
+as the engine:
+
+```bash
+uv add "et_miner_rust @ git+https://github.com/Et9797/et-miner.git@<rev>#subdirectory=rust_ext"
+```
+
+A consumer has to declare this itself: `uv` honours `[tool.uv.sources]` only
+in the root project, never in a dependency's own metadata, so ET-Miner cannot
+pull the extension in on a consumer's behalf.
 
 ### Tier 3 — GPU
 
@@ -301,9 +334,9 @@ Returns a list of `Rule` objects with `lhs`, `rhs`, `support`, `confidence`, and
 ```bash
 git clone https://github.com/Et9797/et-miner.git
 cd et-miner
-uv venv && source .venv/bin/activate
+uv venv
 uv sync                                    # package + dev group
-cd rust_ext && maturin develop --release && cd ..   # optional: Tier 2
+uv run maturin develop --release -m rust_ext/Cargo.toml   # optional: Tier 2
 
 # Tests (Python >= 3.10; CI-tested on 3.10-3.12)
 pytest tests/

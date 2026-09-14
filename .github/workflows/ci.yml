@@ -29,11 +29,20 @@ jobs:
           workspaces: rust_ext -> target
 
       - name: Build Rust extension
-        # NOTE: run from inside rust_ext — `-m rust_ext/Cargo.toml` from the
-        # repo root makes maturin adopt the ROOT pyproject and clobber the
-        # editable et-miner install (verified the hard way).
-        working-directory: rust_ext
-        run: uv run maturin develop --release
+        # From the repo root, not from inside rust_ext. The note this step used
+        # to carry — that `-m rust_ext/Cargo.toml` from the root makes maturin
+        # adopt the ROOT pyproject and clobber the editable et-miner install —
+        # described a tree where rust_ext had only a Cargo.toml, so maturin
+        # walked up for want of adjacent metadata. rust_ext now carries its own
+        # pyproject, and maturin reads that: verified by building from here and
+        # checking the installed distributions, which are et_miner 0.2.0 editable
+        # at the root and et_miner_rust 0.3.0 editable at rust_ext, with no third.
+        #
+        # Staying out of rust_ext is also what makes the environment unambiguous.
+        # uv discovers a project by walking up from the cwd, so a cwd inside
+        # rust_ext would find rust_ext's own pyproject, build a second venv there
+        # and fail to find maturin in it.
+        run: uv run maturin develop --release -m rust_ext/Cargo.toml
 
       - name: Ruff
         run: uv run ruff check src tests

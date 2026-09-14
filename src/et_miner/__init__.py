@@ -72,9 +72,11 @@ else:
 
     def apriori_from_csr(*args, **kwargs):
         """Stub raised when the Rust extension is not built."""
+        from et_miner.backends import BUILD_COMMAND
+
         raise MiningError(
-            "apriori_from_csr requires the Rust extension. Build it with: "
-            "cd rust_ext && maturin develop --release (see README, Tier 2)"
+            f"apriori_from_csr requires the Rust extension. Build it with: "
+            f"{BUILD_COMMAND} (see README, Tier 2)"
         )
 
 

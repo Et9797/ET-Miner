@@ -14,6 +14,22 @@ lookup).
 
 from __future__ import annotations
 
+# The one place the extension's build recipe is written in source. It was a
+# literal string at each warning site, and that is how a spelling change reached
+# five call sites and missed bench/setup_box.sh entirely.
+#
+# `-m rust_ext/Cargo.toml` from the repo root rather than `cd rust_ext`: with a
+# pyproject beside its Cargo.toml maturin reads rust_ext's own metadata, while a
+# cwd inside rust_ext makes uv discover it as a separate project and build a
+# second venv there. Running from the root is what removes that failure rather
+# than documenting against it.
+#
+# In a conda-ambient shell prefix this with `env -u CONDA_PREFIX`: uv exports
+# VIRTUAL_ENV and maturin refuses when both are set. Unsetting is required --
+# `CONDA_PREFIX=` still reads as set. bench/setup_box.sh carries the prefix
+# because it runs unattended in whatever shell an operator has.
+BUILD_COMMAND = "uv run maturin develop --release -m rust_ext/Cargo.toml"
+
 try:
     import cupy as _cp
 
@@ -86,6 +102,7 @@ def rust_has(attr: str) -> bool:
 
 
 __all__ = [
+    "BUILD_COMMAND",
     "CUPY_INSTALLED",
     "RUST_INSTALLED",
     "has_cupy",

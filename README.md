@@ -47,25 +47,24 @@ Requires a Rust toolchain (`rustup`) and [maturin](https://maturin.rs)
 ```bash
 git clone https://github.com/Et9797/et-miner.git
 cd et-miner
-uv venv && source .venv/bin/activate
+uv venv
 uv sync                                 # installs package + dev group (incl. maturin)
-cd rust_ext && maturin develop --release
+uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
 
-Without an activated venv, name the environment explicitly — `rust_ext` is a
-project in its own right, so a bare `uv run` inside it would build a second
-one:
-
-```bash
-cd rust_ext && uv run --project .. maturin develop --release
-```
+Build from the repo root, not from inside `rust_ext`. `rust_ext` carries its
+own `pyproject.toml`, so maturin reads that; a cwd inside it would make `uv`
+discover it as a separate project and build a second virtualenv there. In a
+conda-ambient shell prefix the build with `env -u CONDA_PREFIX` — `uv` exports
+`VIRTUAL_ENV` and maturin refuses when both are set (`CONDA_PREFIX=` still
+counts as set).
 
 When the extension is installed, ET-Miner automatically uses it for k>2
 support counting. The default build is portable; for a machine-tuned build
 (AVX-512 etc.) opt in with:
 
 ```bash
-RUSTFLAGS="-C target-cpu=native" maturin develop --release
+RUSTFLAGS="-C target-cpu=native" uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
 
 "Optional" means the results are identical without it, not that the cost is.
@@ -79,7 +78,7 @@ with ~1.88M prefix groups and identical candidate counts either way:
 | `build_k3plus_groups_from_flat` | 6.1 s | 0.3 s |
 | `prune_groups_apriori` | 32.8 s | 3.9 s |
 
-On a 16-level run at that scale candidate generation was 93% of mining time,
+On a nine-level run (K=2..K=10) at that scale candidate generation was 93% of mining time,
 so the extension is worth about 5.9x on the whole mine.
 
 To depend on it from another project rather than building it by hand, install
@@ -335,9 +334,9 @@ Returns a list of `Rule` objects with `lhs`, `rhs`, `support`, `confidence`, and
 ```bash
 git clone https://github.com/Et9797/et-miner.git
 cd et-miner
-uv venv && source .venv/bin/activate
+uv venv
 uv sync                                    # package + dev group
-cd rust_ext && maturin develop --release && cd ..   # optional: Tier 2
+uv run maturin develop --release -m rust_ext/Cargo.toml   # optional: Tier 2
 
 # Tests (Python >= 3.10; CI-tested on 3.10-3.12)
 pytest tests/

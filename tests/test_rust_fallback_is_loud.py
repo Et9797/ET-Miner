@@ -4,7 +4,7 @@
 without it, not in the sense that the run is: ``prune_groups_apriori`` and
 ``build_k3plus_groups_from_flat`` back candidate generation on the
 downward-closure row-split path, which was measured at 93% of mining time
-over a 16-level run. A routine ``uv sync`` in a consumer project prunes the
+over a nine-level run (K=2..K=10). A routine ``uv sync`` in a consumer project prunes the
 extension, the import fails, and before these warnings nothing in any log
 said the run had changed cost.
 """
@@ -18,6 +18,7 @@ import pytest
 from loguru import logger
 
 import et_miner.backends as backends
+from et_miner.backends import BUILD_COMMAND
 import et_miner.gpu.kernels.k3plus as k3plus
 from et_miner.gpu.kernels.k3plus import build_k3plus_groups_from_flat
 from et_miner.gpu.mining import _prune_groups_apriori
@@ -54,7 +55,7 @@ def test_absent_extension_warns_in_the_group_builder(monkeypatch, warnings_captu
     assert groups is not None, "the numpy fallback must still answer"
     assert len(warnings_captured) == 1
     assert "et_miner_rust is not installed" in warnings_captured[0]
-    assert "maturin develop --release" in warnings_captured[0]
+    assert BUILD_COMMAND in warnings_captured[0], "the warning must quote the one recipe in backends.py"
 
 
 def test_absent_extension_warns_in_the_apriori_prune(monkeypatch, warnings_captured):

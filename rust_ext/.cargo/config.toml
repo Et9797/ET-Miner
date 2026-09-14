@@ -6,7 +6,8 @@
 # For a machine-tuned local build (AVX2/AVX-512 SIMD on modern CPUs), opt in
 # at build time instead:
 #
-#     RUSTFLAGS="-C target-cpu=native" maturin develop --release
+#     RUSTFLAGS="-C target-cpu=native" uv run maturin develop --release -m rust_ext/Cargo.toml
+#     (from the repo root; see README, Tier 2)
 #
 # NOTE: Binaries built with target-cpu=native won't run on older CPUs.
 

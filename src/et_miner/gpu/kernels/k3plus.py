@@ -557,9 +557,11 @@ def _warn_stale_rust_once(what: str) -> None:
     global _STALE_RUST_WARNED
     if not _STALE_RUST_WARNED:
         _STALE_RUST_WARNED = True
+        from et_miner.backends import BUILD_COMMAND
+
         logger.warning(
-            f"et_miner_rust is stale ({what}) — rebuild with "
-            "`cd rust_ext && uv run --project .. maturin develop --release`; using numpy/Python fallbacks meanwhile"
+            f"et_miner_rust is stale ({what}) — rebuild with `{BUILD_COMMAND}`; "
+            "using numpy/Python fallbacks meanwhile"
         )
 
 
@@ -572,7 +574,7 @@ def _warn_missing_rust_once(what: str) -> None:
 
     The itemsets are identical on the fallback; the cost is not. Both callers
     sit on the downward-closure row-split path, where candidate generation is
-    the dominant term -- measured at 93% of mining time over a 16-level run,
+    the dominant term -- measured at 93% of mining time over a nine-level run (K=2..K=10),
     with the two Rust entry points 9.3x apart from their fallbacks. Without
     this line the whole difference is invisible: the extension is pruned by a
     routine `uv sync`, the import fails, and the run is simply slower.
@@ -580,10 +582,11 @@ def _warn_missing_rust_once(what: str) -> None:
     global _MISSING_RUST_WARNED
     if not _MISSING_RUST_WARNED:
         _MISSING_RUST_WARNED = True
+        from et_miner.backends import BUILD_COMMAND
+
         logger.warning(
             f"et_miner_rust is not installed — {what} is taking the Python fallback. "
-            "Same itemsets, ~9x the candidate-generation time. Build it with "
-            "`cd rust_ext && uv run --project .. maturin develop --release`"
+            f"Same itemsets, ~9x the candidate-generation time. Build it with `{BUILD_COMMAND}`"
         )
 
 

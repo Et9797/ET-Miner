@@ -203,6 +203,54 @@ class TestPlanGroupChunks:
             ChunkPlan(410, 5, use_legacy=True),
         ]
 
+    def test_alternating_classes_do_not_become_one_chunk_per_group(self):
+        """The routing is dropped when it costs more launches than it saves.
+
+        Groups straddling the threshold flip class almost every group, and a
+        class change ends a chunk. Observed on a real K=10 level: 59,481
+        chunks where one would do.
+        """
+        sizes = [5, 200] * 400
+        plans = plan_group_chunks(_cum(sizes), 10**9, tiled_min_group_pairs=64)
+        assert plans == [ChunkPlan(0, sum(sizes), use_legacy=False)]
+
+    def test_routing_survives_when_tiny_groups_arrive_in_runs(self):
+        """Long runs of one class merge, so the routing costs nothing."""
+        sizes = [5] * 200 + [200] * 200
+        plans = plan_group_chunks(_cum(sizes), 10**9, tiled_min_group_pairs=64)
+        assert plans == [
+            ChunkPlan(0, 1000, use_legacy=True),
+            ChunkPlan(1000, 40_000, use_legacy=False),
+        ]
+
+    def test_a_small_plan_keeps_its_classes(self):
+        """Below FRAGMENTATION_FLOOR the comparison never runs.
+
+        A handful of extra launches cannot pay for a second planning pass,
+        and the tiny groups still get the kernel that suits them.
+        """
+        sizes = [5, 200] * 8
+        plans = plan_group_chunks(_cum(sizes), 10**9, tiled_min_group_pairs=64)
+        assert len(plans) == len(sizes)
+        assert [p.use_legacy for p in plans] == [True, False] * 8
+
+    def test_fragmented_plan_still_covers_the_space_exactly(self):
+        rng = np.random.default_rng(11)
+        sizes = rng.integers(1, 128, size=5_000)
+        cum = _cum(sizes)
+        plans = plan_group_chunks(cum, 777, tiled_min_group_pairs=64)
+        assert plans[0].start == 0
+        assert all(a.start + a.size == b.start for a, b in zip(plans, plans[1:]))
+        assert sum(p.size for p in plans) == int(cum[-1])
+        assert plan_group_chunks(cum, 777, tiled_min_group_pairs=64) == plans
+
+    def test_mega_groups_are_untouched_by_the_fragmentation_check(self):
+        """Mega-groups must stay legacy sub-chunks however the plan is judged."""
+        sizes = [5, 250] * 100
+        plans = plan_group_chunks(_cum(sizes), 100, tiled_min_group_pairs=64)
+        assert all(p.use_legacy for p in plans if p.size > 5)
+        assert sum(p.size for p in plans) == sum(sizes)
+
     def test_k2_synthetic_single_group(self):
         """The K=2 pair space is planned as one synthetic group: tiled when
         whole-in-one-chunk, legacy sub-chunks when it exceeds the budget,

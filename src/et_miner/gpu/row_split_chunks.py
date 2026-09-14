@@ -36,6 +36,21 @@ from et_miner import _env
 #: int32 dense counts — one per candidate per GPU.
 CHUNK_BYTES_PER_CANDIDATE = 4
 
+#: Chunk-count blow-up above which the tiny-group routing is abandoned for
+#: this level. Routing tiny groups to the legacy kernel saves a little
+#: occupancy per launch; fragmenting the plan costs a whole launch per group.
+#: Measured on a 720,811-transaction lattice (1,444 items, min_count 25) whose
+#: median K=10 prefix group held 91 pairs against the default threshold of 64:
+#: the classes alternated nearly every group, giving 59,481 chunks and 1136.7 s
+#: at K=10 against 1 chunk and 11.6 s once the routing was dropped, for
+#: identical itemsets on all 16 levels. The levels that were already one chunk
+#: ran ~7% slower without the routing, which bounds what it is worth.
+FRAGMENTATION_FACTOR = 4
+
+#: Plans smaller than this never trip the check: at a handful of launches the
+#: difference cannot pay for the second planning pass.
+FRAGMENTATION_FLOOR = 64
+
 #: Floor/fraction for the safety margin: max(1 GiB, 4% of device VRAM).
 #: Replaces the old hardcoded 6 GiB, which was 25% of an RTX 3090.
 MARGIN_FLOOR_BYTES = 1 << 30
@@ -176,6 +191,14 @@ def plan_group_chunks(
       the legacy kernel wholesale. ``tiled_min_group_pairs=0`` disables
       the routing.
 
+    Groups merge only within a run of one class, so the tiny routing pays
+    off only when tiny groups arrive in runs. A level whose groups straddle
+    the threshold alternates class almost every group, and then every group
+    becomes its own chunk — the routing saves a little occupancy per launch
+    and buys thousands of launches to do it. ``_fragments`` detects that by
+    planning the same level without the tiny class and comparing chunk
+    counts; the routing is dropped when it multiplies them.
+
     The plan is a deterministic function of its inputs, so every GPU in a
     row-split run derives the identical plan — a requirement for the
     collective reduce. Chunks are emitted in ascending candidate order and
@@ -191,14 +214,35 @@ def plan_group_chunks(
     max_cands = max(1, max_cands)
 
     sizes = np.diff(cp_arr)
+    mega = sizes > max_cands
     # class 2 = mega (legacy sub-chunks), 1 = tiny (legacy), 0 = tiled
-    klass = np.where(sizes > max_cands, 2, np.where(sizes < tiled_min_group_pairs, 1, 0))
+    klass = np.where(mega, 2, np.where(sizes < tiled_min_group_pairs, 1, 0))
+    plans = _plans_for_classes(cp_arr, klass, n_groups, max_cands)
+    if _fragments(len(plans)):
+        aligned = _plans_for_classes(
+            cp_arr, np.where(mega, 2, 0), n_groups, max_cands
+        )
+        if len(plans) > FRAGMENTATION_FACTOR * len(aligned):
+            logger.debug(
+                f"  Tiny-group routing would fragment the plan into {len(plans):,} chunks "
+                f"against {len(aligned):,} without it; dropping it for this level"
+            )
+            return aligned
+    return plans
+
+
+def _fragments(n_plans: int) -> bool:
+    """Whether a plan is big enough for launch count to be worth checking.
+
+    Below the floor the two plans differ by a handful of launches and the
+    second planning pass would cost more than it saves.
+    """
+    return n_plans > FRAGMENTATION_FLOOR
+
+
+def _plans_for_classes(cp_arr, klass, n_groups: int, max_cands: int) -> list[ChunkPlan]:
+    """Merge contiguous groups of one class into budget-bounded chunks."""
     change = np.nonzero(np.diff(klass))[0] + 1
-    if len(change) > 100_000:
-        # Pathological tiny/tiled alternation would fragment the plan;
-        # fall back to alignment-only classification (mega vs tiled).
-        klass = np.where(sizes > max_cands, 2, 0)
-        change = np.nonzero(np.diff(klass))[0] + 1
     run_bounds = np.concatenate([[0], change, [n_groups]])
 
     plans: list[ChunkPlan] = []

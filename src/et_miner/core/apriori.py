@@ -249,6 +249,12 @@ def _validate_route_support(
                                                of itemsets and a column of floats
       gpu_resident + prune_equal_support    -> the row-split result, because
                                                _route_for_pruning is tested first
+      gpu_resident + n_gpus>1 (or anchors)  -> the same row-split result, by the
+                                               same test, with no pruning asked
+                                               for anywhere in the call
+      gpu_resident + streaming + n_gpus>1   -> the multi-GPU streaming result;
+                                               the single-GPU sibling is handed
+                                               the flag and this one is not
 
     The file already raised for one such combination (profile + pruning on a GPU
     path); this generalises that to every one of them. Raising is the right
@@ -276,15 +282,47 @@ def _validate_route_support(
 
     _routes_to_row_split = prune_equal_support and (use_gpu or has_bitvecs)
 
-    # gpu_resident is not implemented by the row-split miner, and pruning wins
-    # the routing decision, so the combination silently ignores gpu_resident.
-    if gpu_resident and _routes_to_row_split:
-        raise ValueError(
-            "gpu_resident=True cannot be combined with prune_equal_support: the "
-            "pruning gates are implemented by the row-split miner, which has no "
-            "GPU-resident mode, so gpu_resident would be silently ignored. Drop "
-            "one of the two."
-        )
+    # gpu_resident exists on the single-GPU bitvec miner and on single-GPU /
+    # CPU streaming. Every other route drops it without a word.
+    #
+    # This guard used to be keyed on prune_equal_support alone, which caught
+    # one of the three doors into that. apriori() tests
+    # `n_gpus > 1 or anchor_items is not None or _route_for_pruning` BEFORE the
+    # `if gpu_resident:` branch, so an ordinary multi-GPU call --
+    # apriori(use_gpu=True, n_gpus=4, gpu_resident=True) with no pruning at all
+    # -- passed validation and landed on row-split. Multi-GPU streaming takes
+    # the third door: apriori_streaming_multi_gpu has no such parameter, while
+    # its single-GPU sibling is handed one.
+    if gpu_resident:
+        if _routes_to_row_split or (
+            use_gpu and not streaming and not has_bitvecs and (n_gpus > 1 or anchor_items is not None)
+        ):
+            raise ValueError(
+                "gpu_resident=True cannot be combined with a row-split GPU run "
+                "(n_gpus>1, anchor_items, or prune_equal_support): the row-split "
+                "miner has no GPU-resident mode, and its routing is decided "
+                "before the gpu_resident branch, so gpu_resident would be "
+                "silently ignored. Drop one of the two, or mine single-GPU."
+            )
+        # `not has_bitvecs` because the bitvecs branch returns before the
+        # `if streaming:` test is ever read, and it honours gpu_resident. Without
+        # the conjunct this clause refused apriori(bitvecs=..., streaming=True,
+        # n_gpus=2, gpu_resident=True) -- a call that works today -- naming a
+        # route it never reaches. A guard whose contract is exactness cannot
+        # refuse a working call, whatever the clause above it happens to do.
+        if streaming and n_gpus > 1 and not has_bitvecs:
+            raise ValueError(
+                "gpu_resident=True cannot be combined with streaming=True and "
+                "n_gpus>1: apriori_streaming_multi_gpu has no GPU-resident mode "
+                "and is not handed the flag, so it would be silently ignored. "
+                "Drop one of the two, or stream on one GPU."
+            )
+        if not use_gpu and not streaming and not has_bitvecs:
+            raise ValueError(
+                "gpu_resident=True requires a GPU route: without use_gpu, "
+                "bitvecs= or streaming= the call is served by the CPU miner, "
+                "which never sees the flag. Pass use_gpu=True."
+            )
 
     # anchor_items is implemented by the row-split miner alone, so the test has
     # to be "does this call RESOLVE to row-split", not "did the caller pass

@@ -1,6 +1,6 @@
-"""#6-#10, N1 -- parameters accepted by apriori() and silently dropped by the route.
+"""#6-#10, N1-N4 -- parameters accepted by apriori() and silently dropped by the route.
 
-One failure shape, six instances. `apriori()` takes the parameter, picks a
+One failure shape, nine instances. `apriori()` takes the parameter, picks a
 route, and the route either does not accept it or never reaches the code that
 reads it. Nothing in the return value or the logs says so.
 
@@ -19,6 +19,15 @@ reads it. Nothing in the return value or the logs says so.
   N1  gpu_resident is dropped whenever prune_equal_support is set, because
       _route_for_pruning is tested before the `if gpu_resident:` branch.
       Not in the 62; found while planning the remediation.
+  N2  gpu_resident is dropped on ANY row-split run, not only a pruning one:
+      the same test reads `n_gpus > 1 or anchor_items is not None or
+      _route_for_pruning`, so a plain multi-GPU call with no pruning anywhere
+      in it lands on row-split too. The N1 guard keyed on prune_equal_support
+      and missed both other doors.
+  N3  gpu_resident is dropped on multi-GPU streaming: apriori_streaming_multi_gpu
+      has no such parameter, while the single-GPU sibling one branch below is
+      handed one.
+  N4  gpu_resident is dropped on the CPU route, which never reads the flag.
 
 The file already demonstrates the right pattern: an explicit ValueError for the
 same class of unsupported combination.
@@ -126,6 +135,63 @@ def reproduce() -> tuple[bool, str]:
             f"#10 memory_budget_gb: callee accepts={accepts}, "
             f"forwarded={forwarded!r} (expected 0.25)"
         )
+
+    # N2-N4 need the #10 spy, not a height comparison. Every route here is
+    # obliged by the tier-equivalence chain to return the SAME itemsets, so
+    # comparing heights compares two numbers that are equal by contract and
+    # cannot see a dropped flag. Written that way first, N2 measured 214 against
+    # a plain_resident of 214 and reported itself FIXED on a tree where the
+    # defect was live -- the headline case, clearing its own test. What does
+    # differ is which miner ran, so capture that instead.
+    from et_miner.gpu import mining as gm
+    from et_miner.gpu import row_split as rs
+
+    _ROUTES = [(rs, "_apriori_row_split_multi_gpu", "row_split"),
+               (gm, "_apriori_from_bitvecs_gpu_resident", "gpu_resident"),
+               (gm, "_apriori_from_bitvecs", "bitvecs"),
+               (mg, "apriori_streaming_multi_gpu", "streaming_multi_gpu")]
+
+    def _route_taken(**kw):
+        """The label of the miner apriori() actually dispatched to, or "cpu".
+
+        Patching the module attribute works because apriori() imports each
+        route function lazily inside its branch, which is the same reason the
+        #10 spy above works.
+        """
+        taken: list[str] = []
+        saved = [(m, n, getattr(m, n)) for m, n, _ in _ROUTES]
+        for m, n, label in _ROUTES:
+            def stop(*a, _l=label, **k):
+                taken.append(_l)
+                raise RuntimeError("stop after capturing the route")
+            setattr(m, n, stop)
+        try:
+            apriori(df, min_support=0.05, gpu_resident=True, **kw)
+        except RuntimeError:
+            pass  # the spy's own stop signal, raised once the route is known
+        finally:
+            for m, n, orig in saved:
+                setattr(m, n, orig)
+        # ValueError deliberately propagates: a guard refusing the call is the
+        # FIXED state, and check() reads it as such. Swallowing it here would
+        # leave `taken` empty and report the refusal as a dispatch to the CPU
+        # miner -- the defect, on the tree that fixed it.
+        return taken[0] if taken else "cpu"
+
+    def _not_resident(route):
+        return f"ran {route}, not the GPU-resident miner" if route != "gpu_resident" else None
+
+    check("N2 gpu_resident+multi-GPU",
+          lambda: _route_taken(use_gpu=True, n_gpus=2), _not_resident)
+
+    check("N2b gpu_resident+anchor_items",
+          lambda: _route_taken(use_gpu=True, anchor_items={0, 1}), _not_resident)
+
+    check("N3 gpu_resident+multi-GPU streaming",
+          lambda: _route_taken(streaming=True, chunk_size=100, n_gpus=2), _not_resident)
+
+    check("N4 gpu_resident on the CPU route",
+          lambda: _route_taken(), _not_resident)
 
     check("N1 gpu_resident+prune",
           lambda: apriori(df, min_support=0.05, use_gpu=True, prune_equal_support=True,

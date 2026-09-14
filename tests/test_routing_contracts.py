@@ -20,6 +20,7 @@ import polars as pl
 import pytest
 
 from et_miner import apriori
+from et_miner.core.apriori import _validate_route_support
 
 
 def _gpu_count() -> int:
@@ -95,7 +96,6 @@ class TestUnsupportedCombinationsRaise:
         with pytest.raises(ValueError, match="profile"):
             apriori(df, min_support=0.05, use_gpu=True, n_gpus=2, profile=True)
 
-    @pytest.mark.gpu
     def test_gpu_resident_with_pruning(self, df):
         """N1, not in the reviewed 62. _route_for_pruning is evaluated before
         the `if gpu_resident:` branch, so the call landed on row-split and
@@ -106,17 +106,21 @@ class TestUnsupportedCombinationsRaise:
                     gpu_resident=True)
 
 
-    @pytest.mark.gpu
     def test_gpu_resident_on_a_multi_gpu_run(self, df):
         """N2. Same defect as N1 through a different door, and the one that
         matters in practice: no pruning is asked for anywhere in this call.
         `n_gpus > 1 or anchor_items is not None or _route_for_pruning` is
         tested before the `if gpu_resident:` branch, so a plain multi-GPU
-        gpu_resident call landed on row-split with the flag dropped."""
+        gpu_resident call landed on row-split with the flag dropped.
+
+        Unmarked deliberately: the refusal happens in _validate_route_support,
+        which is a pure function raising long before any CUDA touch, so a
+        `gpu` marker kept this PR's headline case out of CI for no benefit.
+        test_profile_on_a_row_split_run above has the same shape and has always
+        been unmarked."""
         with pytest.raises(ValueError, match="gpu_resident"):
             apriori(df, min_support=0.05, use_gpu=True, n_gpus=2, gpu_resident=True)
 
-    @pytest.mark.gpu
     def test_gpu_resident_with_anchor_items(self, df):
         """N2, third route into row-split."""
         with pytest.raises(ValueError, match="gpu_resident"):
@@ -356,3 +360,136 @@ class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
         from et_miner.streaming import son
 
         assert mg._estimate_chunk_size_from_memory is son._estimate_chunk_size_from_memory
+
+
+class TestGpuResidentGuardIsExactOverTheWholeRouteSpace:
+    """The gpu_resident guard against every combination that reaches it.
+
+    Three reviewers derived the same missing conjunct from three starting
+    points, and the case that exposed it -- bitvecs= with streaming= -- is one
+    nothing in the tree writes. Spot checks were never going to find it, so the
+    contract is pinned exhaustively instead: for all 2^6 combinations the guard
+    must refuse exactly the calls apriori() would drop the flag on.
+
+    `_validate_route_support` is a pure function that raises long before any
+    CUDA touch, so this runs on a CPU box.
+    """
+
+    @staticmethod
+    def _drops_gpu_resident(*, has_bitvecs, streaming, use_gpu, multi_gpu, anchored, pruning):
+        """Whether apriori()'s dispatch would drop gpu_resident.
+
+        Read off the branch order in apriori() itself: the bitvecs branch
+        returns first and honours the flag unless pruning routes it to
+        row-split; then streaming, whose multi-GPU callee has no such
+        parameter; then the GPU direct path, which resolves to row-split on
+        multi-GPU, anchors or pruning; then the CPU miner, which never sees it.
+        """
+        if has_bitvecs:
+            return pruning
+        if streaming:
+            return multi_gpu
+        if use_gpu:
+            return multi_gpu or anchored or pruning
+        return True
+
+    @pytest.mark.parametrize("bits", range(64))
+    def test_the_guard_refuses_exactly_what_the_dispatch_drops(self, bits):
+        has_bitvecs, streaming, use_gpu, multi_gpu, anchored, pruning = (bool(bits >> i & 1) for i in range(6))
+
+        kwargs = dict(
+            streaming=streaming,
+            use_gpu=use_gpu,
+            has_bitvecs=has_bitvecs,
+            n_gpus=2 if multi_gpu else 1,
+            profile=False,
+            gpu_resident=True,
+            prune_equal_support=pruning,
+            use_generator_pruning=False,
+            prune_apriori=True,
+            anchor_items={0, 1} if anchored else None,
+            output_dir=None,
+            resume_from_k=None,
+            memory_budget_gb=None,
+        )
+        try:
+            _validate_route_support(**kwargs)
+        except ValueError as exc:
+            raised, message = True, str(exc)
+        else:
+            raised, message = False, ""
+
+        expected = self._drops_gpu_resident(
+            has_bitvecs=has_bitvecs,
+            streaming=streaming,
+            use_gpu=use_gpu,
+            multi_gpu=multi_gpu,
+            anchored=anchored,
+            pruning=pruning,
+        )
+        if expected:
+            assert raised, f"gpu_resident is dropped here and the guard let it through: {kwargs}"
+        elif raised:
+            # An earlier guard may legitimately refuse the call for another
+            # reason; only a gpu_resident refusal is wrong.
+            assert "gpu_resident" not in message, f"the route honours gpu_resident but the guard refused: {kwargs}"
+
+    def test_bitvecs_with_streaming_is_not_refused(self):
+        """The regression the conjunct closes, stated on its own.
+
+        apriori() returns from the bitvecs branch before `if streaming:` is
+        read, so this call reaches the GPU-resident miner and streaming is
+        ignored entirely. It works on main; the first version of this guard
+        refused it, naming apriori_streaming_multi_gpu -- a route it never
+        reaches. Pruning is off here because with it on the streaming guard
+        above refuses the call first, for a different and correct reason.
+        """
+        _validate_route_support(
+            streaming=True,
+            use_gpu=True,
+            has_bitvecs=True,
+            n_gpus=2,
+            profile=False,
+            gpu_resident=True,
+            prune_equal_support=False,
+            use_generator_pruning=False,
+            prune_apriori=True,
+            anchor_items=None,
+            output_dir=None,
+            resume_from_k=None,
+            memory_budget_gb=None,
+        )
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="pre-existing: the output_dir guard omits `not has_bitvecs`, so this "
+        "call clears validation and routes to _apriori_from_bitvecs, which is never "
+        "handed output_dir. Present identically on main; closes when the route "
+        "resolution is extracted into one predicate. strict, so it fails as XPASS "
+        "the moment that lands rather than passing quietly and leaving a dead marker.",
+    )
+    def test_output_dir_is_refused_on_the_bitvecs_route(self, tmp_path):
+        """The twin of the bug this PR fixes, in the other direction.
+
+        The gpu_resident clause above was over-broad by a missing
+        `not has_bitvecs`; this one is under-broad by the same missing token.
+        Two of the four route predicates in _validate_route_support carry it and
+        two do not, which is why extracting a single resolver is the follow-up:
+        a fourth hand-written copy is a fourth chance to drift.
+        """
+        with pytest.raises(ValueError, match="output_dir"):
+            _validate_route_support(
+                streaming=False,
+                use_gpu=True,
+                has_bitvecs=True,
+                n_gpus=2,
+                profile=False,
+                gpu_resident=False,
+                prune_equal_support=False,
+                use_generator_pruning=False,
+                prune_apriori=True,
+                anchor_items=None,
+                output_dir=str(tmp_path),
+                resume_from_k=None,
+                memory_budget_gb=None,
+            )

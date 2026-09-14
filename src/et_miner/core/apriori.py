@@ -304,7 +304,13 @@ def _validate_route_support(
                 "before the gpu_resident branch, so gpu_resident would be "
                 "silently ignored. Drop one of the two, or mine single-GPU."
             )
-        if streaming and n_gpus > 1:
+        # `not has_bitvecs` because the bitvecs branch returns before the
+        # `if streaming:` test is ever read, and it honours gpu_resident. Without
+        # the conjunct this clause refused apriori(bitvecs=..., streaming=True,
+        # n_gpus=2, gpu_resident=True) -- a call that works today -- naming a
+        # route it never reaches. A guard whose contract is exactness cannot
+        # refuse a working call, whatever the clause above it happens to do.
+        if streaming and n_gpus > 1 and not has_bitvecs:
             raise ValueError(
                 "gpu_resident=True cannot be combined with streaming=True and "
                 "n_gpus>1: apriori_streaming_multi_gpu has no GPU-resident mode "

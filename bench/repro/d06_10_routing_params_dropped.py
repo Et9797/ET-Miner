@@ -136,27 +136,62 @@ def reproduce() -> tuple[bool, str]:
             f"forwarded={forwarded!r} (expected 0.25)"
         )
 
-    def _resident_height(**kw):
-        return apriori(df, min_support=0.05, gpu_resident=True, **kw).height
+    # N2-N4 need the #10 spy, not a height comparison. Every route here is
+    # obliged by the tier-equivalence chain to return the SAME itemsets, so
+    # comparing heights compares two numbers that are equal by contract and
+    # cannot see a dropped flag. Written that way first, N2 measured 214 against
+    # a plain_resident of 214 and reported itself FIXED on a tree where the
+    # defect was live -- the headline case, clearing its own test. What does
+    # differ is which miner ran, so capture that instead.
+    from et_miner.gpu import mining as gm
+    from et_miner.gpu import row_split as rs
+
+    _ROUTES = [(rs, "_apriori_row_split_multi_gpu", "row_split"),
+               (gm, "_apriori_from_bitvecs_gpu_resident", "gpu_resident"),
+               (gm, "_apriori_from_bitvecs", "bitvecs"),
+               (mg, "apriori_streaming_multi_gpu", "streaming_multi_gpu")]
+
+    def _route_taken(**kw):
+        """The label of the miner apriori() actually dispatched to, or "cpu".
+
+        Patching the module attribute works because apriori() imports each
+        route function lazily inside its branch, which is the same reason the
+        #10 spy above works.
+        """
+        taken: list[str] = []
+        saved = [(m, n, getattr(m, n)) for m, n, _ in _ROUTES]
+        for m, n, label in _ROUTES:
+            def stop(*a, _l=label, **k):
+                taken.append(_l)
+                raise RuntimeError("stop after capturing the route")
+            setattr(m, n, stop)
+        try:
+            apriori(df, min_support=0.05, gpu_resident=True, **kw)
+        except RuntimeError:
+            pass  # the spy's own stop signal, raised once the route is known
+        finally:
+            for m, n, orig in saved:
+                setattr(m, n, orig)
+        # ValueError deliberately propagates: a guard refusing the call is the
+        # FIXED state, and check() reads it as such. Swallowing it here would
+        # leave `taken` empty and report the refusal as a dispatch to the CPU
+        # miner -- the defect, on the tree that fixed it.
+        return taken[0] if taken else "cpu"
+
+    def _not_resident(route):
+        return f"ran {route}, not the GPU-resident miner" if route != "gpu_resident" else None
 
     check("N2 gpu_resident+multi-GPU",
-          lambda: _resident_height(use_gpu=True, n_gpus=2),
-          lambda h: (f"{h} rows = the row-split result, not gpu_resident's "
-                     f"{plain_resident.height}"
-                     if h != plain_resident.height else None))
+          lambda: _route_taken(use_gpu=True, n_gpus=2), _not_resident)
 
     check("N2b gpu_resident+anchor_items",
-          lambda: _resident_height(use_gpu=True, anchor_items={0, 1}),
-          lambda h: f"{h} rows from row-split; gpu_resident never ran" if h else None)
+          lambda: _route_taken(use_gpu=True, anchor_items={0, 1}), _not_resident)
 
     check("N3 gpu_resident+multi-GPU streaming",
-          lambda: _resident_height(streaming=True, chunk_size=100, n_gpus=2),
-          lambda h: f"{h} rows from the streaming route, which has no such parameter" if h else None)
+          lambda: _route_taken(streaming=True, chunk_size=100, n_gpus=2), _not_resident)
 
     check("N4 gpu_resident on the CPU route",
-          lambda: _resident_height(),
-          lambda h: (f"{h} rows, identical to the plain CPU run"
-                     if h == full.height else None))
+          lambda: _route_taken(), _not_resident)
 
     check("N1 gpu_resident+prune",
           lambda: apriori(df, min_support=0.05, use_gpu=True, prune_equal_support=True,

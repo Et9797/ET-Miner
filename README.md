@@ -60,6 +60,32 @@ support counting. The default build is portable; for a machine-tuned build
 RUSTFLAGS="-C target-cpu=native" maturin develop --release
 ```
 
+"Optional" means the results are identical without it, not that the cost is.
+`prune_groups_apriori` and `build_k3plus_groups_from_flat` back candidate
+generation on the downward-closure row-split path, so a pipeline that mines
+there pays for its absence on every level. Measured on an 11.3M x 8 level
+with ~1.88M prefix groups and identical candidate counts either way:
+
+| | without | with |
+|---|---|---|
+| `build_k3plus_groups_from_flat` | 6.1 s | 0.3 s |
+| `prune_groups_apriori` | 32.8 s | 3.9 s |
+
+On a 16-level run at that scale candidate generation was 93% of mining time,
+so the extension is worth about 5.9x on the whole mine.
+
+To depend on it from another project rather than building it by hand, install
+it from this repository's `rust_ext` subdirectory, pinned to the same revision
+as the engine:
+
+```bash
+uv add "et_miner_rust @ git+https://github.com/Et9797/et-miner.git@<rev>#subdirectory=rust_ext"
+```
+
+A consumer has to declare this itself: `uv` honours `[tool.uv.sources]` only
+in the root project, never in a dependency's own metadata, so ET-Miner cannot
+pull the extension in on a consumer's behalf.
+
 ### Tier 3 — GPU
 
 ```bash

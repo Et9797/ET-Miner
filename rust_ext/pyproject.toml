@@ -1,0 +1,30 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "et_miner_rust"
+description = "High-performance Rust extension for ET-Miner support counting."
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+authors = [
+    {name = "E. Ahmic", email = "etet1997@hotmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+]
+# Cargo.toml stays the single source of the version: it is what the crate,
+# the wheel and the stale-wheel checks in gpu/ all read.
+dynamic = ["version"]
+
+[tool.maturin]
+module-name = "et_miner_rust"

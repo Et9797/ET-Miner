@@ -563,6 +563,40 @@ def _warn_stale_rust_once(what: str) -> None:
         )
 
 
+_MISSING_RUST_WARNED = False
+
+
+def _warn_missing_rust_once(what: str) -> None:
+    """One-time warning when a Rust fast path falls back for want of the
+    extension.
+
+    The itemsets are identical on the fallback; the cost is not. Both callers
+    sit on the downward-closure row-split path, where candidate generation is
+    the dominant term -- measured at 93% of mining time over a 16-level run,
+    with the two Rust entry points 9.3x apart from their fallbacks. Without
+    this line the whole difference is invisible: the extension is pruned by a
+    routine `uv sync`, the import fails, and the run is simply slower.
+    """
+    global _MISSING_RUST_WARNED
+    if not _MISSING_RUST_WARNED:
+        _MISSING_RUST_WARNED = True
+        logger.warning(
+            f"et_miner_rust is not installed — {what} is taking the Python fallback. "
+            "Same itemsets, ~9x the candidate-generation time. Build it with "
+            "`cd rust_ext && uv run maturin develop --release`"
+        )
+
+
+def _warn_rust_failed(what: str, exc: BaseException) -> None:
+    """Warn when a Rust call raised and the caller degraded to the fallback.
+
+    Not rate-limited and not once-only: this is a malfunction rather than a
+    build state, every occurrence is worth seeing, and the fallback makes it
+    otherwise indistinguishable from success.
+    """
+    logger.warning(f"et_miner_rust.{what} raised {type(exc).__name__}: {exc} — using the Python fallback")
+
+
 def build_k3plus_groups(prev_frequent):
     """Build prefix group arrays from prev_frequent (k-1)-itemsets.
 
@@ -768,6 +802,8 @@ def build_k3plus_groups_from_flat(freq_flat, *, with_src_rows: bool = False):
         from et_miner.backends import get_rust_ext
 
         et_miner_rust = get_rust_ext()
+        if et_miner_rust is None:
+            _warn_missing_rust_once("build_k3plus_groups_from_flat")
         if hasattr(et_miner_rust, "build_k3plus_groups_from_flat"):
             arr = np.ascontiguousarray(freq_flat, dtype=np.int32)
             try:
@@ -793,8 +829,12 @@ def build_k3plus_groups_from_flat(freq_flat, *, with_src_rows: bool = False):
                     groups=None,
                     suffix_src_rows=np.asarray(src_rows, dtype=np.int64) if with_src_rows else None,
                 )
-    except (ImportError, Exception):
-        pass  # Fall through to numpy
+    except Exception as exc:
+        # (ImportError, Exception) was the same blanket catch written twice.
+        # The catch stays -- the numpy fallback gives the same answer, so a
+        # failing extension should not take a campaign down -- but it no
+        # longer hides the failure that made it necessary.
+        _warn_rust_failed("build_k3plus_groups_from_flat", exc)
 
     return _build_k3plus_groups_numpy(freq_flat, with_src_rows=with_src_rows)
 

@@ -370,8 +370,13 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
                 groups=groups_info.groups,
                 suffix_src_rows=None if src_rows is None else np.asarray(sr, dtype=np.int64),
             )
-        except (ImportError, AttributeError):
-            pass
+        except (ImportError, AttributeError) as exc:
+            # Raised above for a missing extension, and by getattr on a wheel
+            # too old to carry the symbol. Both leave the answer intact and
+            # both cost ~9x on this level, so neither may be silent.
+            from et_miner.gpu.kernels.k3plus import _warn_missing_rust_once
+
+            _warn_missing_rust_once(f"_prune_groups_apriori ({exc})")
         except TypeError:  # stale wheel: no suffix_src_rows parameter / 6-tuple result
             from et_miner.gpu.kernels.k3plus import _warn_stale_rust_once
 

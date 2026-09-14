@@ -106,6 +106,35 @@ class TestUnsupportedCombinationsRaise:
                     gpu_resident=True)
 
 
+    @pytest.mark.gpu
+    def test_gpu_resident_on_a_multi_gpu_run(self, df):
+        """N2. Same defect as N1 through a different door, and the one that
+        matters in practice: no pruning is asked for anywhere in this call.
+        `n_gpus > 1 or anchor_items is not None or _route_for_pruning` is
+        tested before the `if gpu_resident:` branch, so a plain multi-GPU
+        gpu_resident call landed on row-split with the flag dropped."""
+        with pytest.raises(ValueError, match="gpu_resident"):
+            apriori(df, min_support=0.05, use_gpu=True, n_gpus=2, gpu_resident=True)
+
+    @pytest.mark.gpu
+    def test_gpu_resident_with_anchor_items(self, df):
+        """N2, third route into row-split."""
+        with pytest.raises(ValueError, match="gpu_resident"):
+            apriori(df, min_support=0.05, use_gpu=True, anchor_items={0, 1}, gpu_resident=True)
+
+    def test_gpu_resident_on_multi_gpu_streaming(self, df):
+        """N3. apriori_streaming_multi_gpu has no gpu_resident parameter; the
+        single-GPU sibling one branch below is handed one."""
+        with pytest.raises(ValueError, match="gpu_resident"):
+            apriori(df, min_support=0.05, streaming=True, chunk_size=100,
+                    n_gpus=2, gpu_resident=True)
+
+    def test_gpu_resident_on_the_cpu_route(self, df):
+        """N4. No GPU route at all, so nothing ever reads the flag."""
+        with pytest.raises(ValueError, match="gpu_resident"):
+            apriori(df, min_support=0.05, gpu_resident=True)
+
+
 class TestSupportedCombinationsStillWork:
     """The guard must reject only what a route genuinely cannot do."""
 
@@ -120,6 +149,19 @@ class TestSupportedCombinationsStillWork:
                                   profile=True)
         assert isinstance(result, pl.DataFrame)
         assert session is not None
+
+    @pytest.mark.gpu
+    def test_gpu_resident_on_a_single_gpu_run(self, df):
+        """The route that does implement it must stay reachable -- the guard
+        above lists three refusals and this is what they are carved out of."""
+        result = apriori(df, min_support=0.05, use_gpu=True, gpu_resident=True)
+        assert isinstance(result, pl.DataFrame) and result.height > 0
+
+    def test_gpu_resident_on_single_gpu_streaming(self, df):
+        """Forwarded, not refused: apriori_streaming takes the parameter."""
+        result = apriori(df, min_support=0.05, streaming=True, chunk_size=100,
+                         gpu_resident=True)
+        assert isinstance(result, pl.DataFrame)
 
     def test_memory_budget_reaches_the_multi_gpu_streaming_route(self, df):
         """#10 -- forwarded, not rejected. The callee had no such parameter and

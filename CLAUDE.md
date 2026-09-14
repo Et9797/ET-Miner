@@ -58,7 +58,9 @@ Guidance for Claude Code when working in this repository.
 ## Dev commands
 
 - Environment: `uv venv && uv sync` (dev group included).
-- Rust extension: `cd rust_ext && maturin develop --release`.
+- Rust extension: `cd rust_ext && uv run --project .. maturin develop --release`.
+  `--project ..` names the environment to install into: rust_ext has a
+  pyproject of its own, so a bare `uv run` there builds a second venv.
 - Tests: `uv run pytest -q` — gpu-marked tests auto-skip without a CUDA
   device; `-m "not slow"` skips long ones.
 - Lint: `uv run ruff check src tests` (rule set pinned in pyproject).

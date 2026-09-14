@@ -52,6 +52,14 @@ uv sync                                 # installs package + dev group (incl. ma
 cd rust_ext && maturin develop --release
 ```
 
+Without an activated venv, name the environment explicitly — `rust_ext` is a
+project in its own right, so a bare `uv run` inside it would build a second
+one:
+
+```bash
+cd rust_ext && uv run --project .. maturin develop --release
+```
+
 When the extension is installed, ET-Miner automatically uses it for k>2
 support counting. The default build is portable; for a machine-tuned build
 (AVX-512 etc.) opt in with:

@@ -29,11 +29,16 @@ jobs:
           workspaces: rust_ext -> target
 
       - name: Build Rust extension
-        # NOTE: run from inside rust_ext — `-m rust_ext/Cargo.toml` from the
-        # repo root makes maturin adopt the ROOT pyproject and clobber the
-        # editable et-miner install (verified the hard way).
+        # Run from inside rust_ext so maturin reads rust_ext/{Cargo,pyproject}.toml
+        # — `-m rust_ext/Cargo.toml` from the repo root makes it adopt the ROOT
+        # pyproject and clobber the editable et-miner install (verified the hard
+        # way). `--project ..` then says which ENVIRONMENT to build into: uv
+        # discovers the project by walking up from the cwd, and rust_ext now has
+        # a pyproject of its own, so a bare `uv run` would treat it as a separate
+        # project, create rust_ext/.venv, and fail to find maturin there. The old
+        # spelling worked only because there was no project file to find.
         working-directory: rust_ext
-        run: uv run maturin develop --release
+        run: uv run --project .. maturin develop --release
 
       - name: Ruff
         run: uv run ruff check src tests

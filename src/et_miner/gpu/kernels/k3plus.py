@@ -559,7 +559,7 @@ def _warn_stale_rust_once(what: str) -> None:
         _STALE_RUST_WARNED = True
         logger.warning(
             f"et_miner_rust is stale ({what}) — rebuild with "
-            "`cd rust_ext && uv run maturin develop --release`; using numpy/Python fallbacks meanwhile"
+            "`cd rust_ext && uv run --project .. maturin develop --release`; using numpy/Python fallbacks meanwhile"
         )
 
 
@@ -583,7 +583,7 @@ def _warn_missing_rust_once(what: str) -> None:
         logger.warning(
             f"et_miner_rust is not installed — {what} is taking the Python fallback. "
             "Same itemsets, ~9x the candidate-generation time. Build it with "
-            "`cd rust_ext && uv run maturin develop --release`"
+            "`cd rust_ext && uv run --project .. maturin develop --release`"
         )
 
 

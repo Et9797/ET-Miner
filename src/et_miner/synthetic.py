@@ -55,11 +55,11 @@ class SynthSpec:
     row_len_mean: float
     row_len_min: int = 1
     row_len_max: int = 64
-    #: Contiguous cluster: the first ``skew_frac`` of rows get their length
+    #: Contiguous cluster -- the first ``skew_frac`` of rows get their length
     #: multiplied by ``skew_mult`` (drives the skewed-rows balance A/B).
     skew_frac: float = 0.0
     skew_mult: float = 1.0
-    #: Planted motifs: ``motif_count`` disjoint itemsets of ``motif_size``
+    #: Planted motifs -- ``motif_count`` disjoint itemsets of ``motif_size``
     #: items, each force-added to ``motif_penetration`` of all rows.
     motif_count: int = 0
     motif_size: int = 0

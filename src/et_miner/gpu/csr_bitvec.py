@@ -11,6 +11,7 @@ column-oriented bitvector format on the GPU, enabling massive parallelism
 for the conversion.
 
 Memory layout:
+
 - Input CSR:
   - indptr: [n_rows + 1] row pointers
   - indices: [nnz] column indices

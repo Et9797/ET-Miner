@@ -1,0 +1,75 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "src/et_miner/**"
+      - "rust_ext/src/lib.rs"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "CLAUDE.md"
+      - "bench/README.md"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".readthedocs.yaml"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "src/et_miner/**"
+      - "rust_ext/src/lib.rs"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "CLAUDE.md"
+      - "bench/README.md"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".readthedocs.yaml"
+      - ".github/workflows/docs.yml"
+  schedule:
+    # Weekly external-link check; external links are flaky, so it never blocks a PR.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          python-version: "3.13"
+
+      - name: Install docs dependencies (same lock as Read the Docs)
+        run: uv sync --locked --no-dev --group docs
+
+      - name: Build HTML (warnings are errors)
+        run: uv run --no-sync sphinx-build -W --keep-going -b html docs docs/_build/html
+
+  linkcheck:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          python-version: "3.13"
+
+      - name: Install docs dependencies
+        run: uv sync --locked --no-dev --group docs
+
+      - name: Check external links
+        run: uv run --no-sync sphinx-build -b linkcheck docs docs/_build/linkcheck

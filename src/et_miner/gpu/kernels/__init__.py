@@ -1,4 +1,4 @@
-"""CUDA kernel wrappers, split by family; sources live in _src/*.cu.
+"""CUDA kernel wrappers, split by family; sources live in ``_src/*.cu``.
 
 Re-exports the full public surface so `from et_miner.gpu.kernels import X`
 works for every kernel wrapper regardless of which family module holds it.

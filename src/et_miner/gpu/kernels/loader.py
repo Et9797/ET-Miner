@@ -315,7 +315,7 @@ def _read_src(cu_name: str) -> str:
 
 
 def get_kernel_source(cu_name: str) -> str:
-    """CUDA C source of a _src/*.cu file as compiled: its preludes
+    """CUDA C source of a ``_src/*.cu`` file as compiled: its preludes
     (``_KERNEL_PRELUDES``) followed by the file itself (cached)."""
     if cu_name not in _source_cache:
         parts = [_read_src(p) for p in _KERNEL_PRELUDES.get(cu_name, [])]

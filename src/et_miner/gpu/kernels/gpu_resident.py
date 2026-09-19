@@ -173,6 +173,7 @@ def count_k3plus_gpu_resident(bitvecs_gpu, prev_freq_gpu, n_u64s, min_count, max
         Tuple of (freq_itemsets_gpu, counts_gpu) where:
           freq_itemsets_gpu: CuPy array (n_results, k) of frequent k-itemsets in VRAM
           counts_gpu: CuPy array (n_results,) of support counts in VRAM
+
         Returns (None, None) if no frequent itemsets found.
 
     Device: every allocation and launch follows `bitvecs_gpu`, not the ambient
@@ -318,6 +319,7 @@ def count_pairs_fused_k2_gpu_resident(bitvecs_gpu, freq_cols_gpu, n_u64s, min_co
         Tuple of (pair_itemsets_gpu, counts_gpu) where:
           pair_itemsets_gpu: CuPy array (n_results, 2) of column index pairs in VRAM
           counts_gpu: CuPy array (n_results,) of support counts in VRAM
+
         Returns (None, None) if no frequent pairs found.
 
     Device: every allocation and launch follows `bitvecs_gpu`, not the ambient

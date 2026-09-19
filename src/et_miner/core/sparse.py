@@ -794,7 +794,7 @@ def count_support_sparse(
 
     For k=2 itemsets: Uses batch M.T @ M matrix multiplication (O(1) operation)
     For k>2 itemsets: Checks row sums of subset columns == k (per-itemset),
-        with optional parallelization via ThreadPoolExecutor.
+    with optional parallelization via ThreadPoolExecutor.
 
     Args:
         matrix: Boolean DataFrame from build_boolean_matrix().

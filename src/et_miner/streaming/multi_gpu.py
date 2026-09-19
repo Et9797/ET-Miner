@@ -1,23 +1,23 @@
 """Multi-GPU Streaming Apriori implementation using SON algorithm.
 
 This module extends the single-GPU streaming implementation to leverage multiple
-GPUs for parallel chunk processing. The architecture follows a wave-based approach:
+GPUs for parallel chunk processing. The architecture follows a wave-based approach::
 
-Pass 1 (Local Mining):
-┌─────────────┬─────────────┬─────────────┬─────────────┐
-│  Chunk 0    │  Chunk 1    │  Chunk 2    │  Chunk 3    │
-│  GPU 0      │  GPU 1      │  GPU 2      │  GPU 3      │
-└─────────────┴─────────────┴─────────────┴─────────────┘
-       ↓              ↓              ↓              ↓
-                 [Merge candidate_itemsets]
-                        ↓
-Pass 2 (Global Counting):
-┌─────────────┬─────────────┬─────────────┬─────────────┐
-│  Chunk 0    │  Chunk 1    │  Chunk 2    │  Chunk 3    │
-│  GPU 0      │  GPU 1      │  GPU 2      │  GPU 3      │
-└─────────────┴─────────────┴─────────────┴─────────────┘
-       ↓              ↓              ↓              ↓
-                    [Sum global_counts]
+    Pass 1 (Local Mining):
+    ┌─────────────┬─────────────┬─────────────┬─────────────┐
+    │  Chunk 0    │  Chunk 1    │  Chunk 2    │  Chunk 3    │
+    │  GPU 0      │  GPU 1      │  GPU 2      │  GPU 3      │
+    └─────────────┴─────────────┴─────────────┴─────────────┘
+           ↓              ↓              ↓              ↓
+                     [Merge candidate_itemsets]
+                            ↓
+    Pass 2 (Global Counting):
+    ┌─────────────┬─────────────┬─────────────┬─────────────┐
+    │  Chunk 0    │  Chunk 1    │  Chunk 2    │  Chunk 3    │
+    │  GPU 0      │  GPU 1      │  GPU 2      │  GPU 3      │
+    └─────────────┴─────────────┴─────────────┴─────────────┘
+           ↓              ↓              ↓              ↓
+                        [Sum global_counts]
 
 Each wave processes n_gpus chunks simultaneously using ThreadPoolExecutor.
 GPU memory is cleaned after each chunk to prevent accumulation.

@@ -1,5 +1,7 @@
 # ET-Miner
 
+[![Documentation](https://readthedocs.org/projects/et-miner/badge/?version=latest)](https://et-miner.readthedocs.io/en/latest/)
+
 **Efficient Transaction Miner** — High-performance frequent itemset mining with a Python/Polars frontend, Rust backend, and multi-GPU CUDA acceleration. Designed for billion-scale datasets with bounded memory via streaming.
 
 
@@ -357,6 +359,24 @@ python datasets/prepare_online_retail.py
 
 This downloads the source zip from the UCI archive on first run and writes
 `datasets/online_retail_ii/transactions.parquet`.
+
+## Documentation
+
+The documentation (guides, configuration and the generated API reference) is
+published at <https://et-miner.readthedocs.io/>
+<!-- TODO: confirm the Read the Docs project slug once the project is imported -->.
+
+Build it locally with warnings treated as errors:
+
+```bash
+uv run --group docs sphinx-build -W --keep-going -b html docs docs/_build/html
+```
+
+Live preview that rebuilds on save:
+
+```bash
+uv run --group docs sphinx-autobuild docs docs/_build/html
+```
 
 ## License
 

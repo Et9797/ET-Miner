@@ -85,6 +85,15 @@ dev = [
     "mkl>=2021.1.1",
     "mlxtend>=0.23.4",
 ]
+docs = [
+    "sphinx>=9.1",
+    "myst-parser>=5.1",
+    "furo>=2025.12.19",
+    "sphinx-copybutton>=0.5.2",
+    "sphinx-autobuild>=2025.8.25",
+    "sphinx-argparse>=0.6.1",
+    "sphinx-llm>=1.0",
+]
 
 [project.scripts]
 et-miner = "et_miner.cli:main"
@@ -93,6 +102,10 @@ et-miner = "et_miner.cli:main"
 Homepage = "https://github.com/Et9797/et-miner"
 Repository = "https://github.com/Et9797/et-miner"
 Issues = "https://github.com/Et9797/et-miner/issues"
+
+[tool.uv.dependency-groups]
+# Sphinx >= 9.1 needs Python >= 3.12; the library itself stays at >= 3.10.
+docs = { requires-python = ">=3.12" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/et_miner"]

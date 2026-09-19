@@ -47,11 +47,11 @@ CHUNK_BYTES_PER_CANDIDATE = 4
 #: ran ~7% slower without the routing, which bounds what it is worth.
 FRAGMENTATION_FACTOR = 4
 
-#: Plans smaller than this never trip the check: at a handful of launches the
+#: Plans smaller than this never trip the check; at a handful of launches the
 #: difference cannot pay for the second planning pass.
 FRAGMENTATION_FLOOR = 64
 
-#: Floor/fraction for the safety margin: max(1 GiB, 4% of device VRAM).
+#: Floor/fraction for the safety margin, max(1 GiB, 4% of device VRAM).
 #: Replaces the old hardcoded 6 GiB, which was 25% of an RTX 3090.
 MARGIN_FLOOR_BYTES = 1 << 30
 MARGIN_VRAM_FRACTION = 0.04

@@ -282,7 +282,7 @@ def count_support_batched(
     maximum throughput (~130M+ rows/sec on H200).
     CPU mode: Batched processing to control memory, with optional sparse mode.
     Sparse mode: Uses scipy CSR for extreme sparse workloads (auto-detected),
-        with optional parallelization for k>2 itemsets.
+    with optional parallelization for k>2 itemsets.
 
     For extreme sparse workloads (>500 items, <10% density, or >1GB estimated size),
     the function automatically switches to scipy sparse matrices which can reduce

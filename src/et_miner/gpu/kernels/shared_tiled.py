@@ -7,6 +7,7 @@ bit-identical to the legacy kernels (same triangular candidate indexing),
 which the equivalence tests assert.
 
 Constraints the callers must honor:
+
 - the DENSE variant requires group-aligned candidate chunks (a tile-pair's
   candidates scatter across its whole group, so a partial group cannot be
   served); `plan_group_chunks` guarantees this and routes oversized groups

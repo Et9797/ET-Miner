@@ -15,7 +15,8 @@ Each GPU has TWO streams:
 - gen_stream: Data generation (CSR creation, bitvec construction)
 - compute_stream: Apriori algorithm computation
 
-Timeline with ThreadPoolExecutor (TRUE PARALLEL):
+Timeline with ThreadPoolExecutor (TRUE PARALLEL)::
+
   Thread A (gen):     [GEN_W2----][  GEN_W4  ][  GEN_W6  ]
   Thread B (compute): [COMP_W0---][COMP_W2---][COMP_W4---]
                       ↑
@@ -83,7 +84,8 @@ def suppress_null_sync():
     suppress simultaneously. Null sync is only restored when ALL threads
     have exited the suppress context.
 
-    Usage:
+    Usage::
+
         with stream_a:
             with suppress_null_sync():
                 result = generate_csr_gpu(...)  # null sync inside is now a no-op
@@ -636,8 +638,7 @@ def run_streams_benchmark_sequential(
     This is for comparison with the CUDA streams version to measure
     the actual speedup from overlapping.
 
-    Args:
-        Same as run_streams_benchmark
+    Args: same as ``run_streams_benchmark``.
 
     Returns:
         Dictionary with benchmark metrics

@@ -11,7 +11,8 @@ Wave Architecture:
 - Storage: Binary format for minimal disk footprint
 - Persistence: Ramdisk tmpfs for speed, auto-cleanup on unmount
 
-Usage:
+Usage::
+
     # Setup ramdisk (1400GB for 8x H200)
     ramdisk_path = setup_ramdisk(size_gb=1400)
 

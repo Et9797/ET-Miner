@@ -3,7 +3,8 @@ logs/
 *.log
 
 # Docs
-docs/
+docs/_build/
+docs/reference/api/generated/
 papers/
 
 # Python-generated files

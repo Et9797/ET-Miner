@@ -1,0 +1,18 @@
+{
+  "name": "smoke",
+  "n_rows": 60000,
+  "vocab_size": 2000,
+  "zipf_a": 1.05,
+  "row_len_mean": 9,
+  "row_len_min": 1,
+  "row_len_max": 40,
+  "skew_frac": 0.0,
+  "skew_mult": 1.0,
+  "motif_count": 3,
+  "motif_size": 5,
+  "motif_penetration": 0.02,
+  "min_support": 0.01,
+  "seed": 42,
+  "min_count": 600,
+  "n_cols": 2000
+}

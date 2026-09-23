@@ -33,15 +33,15 @@ Tier 3 times are for the CPU parts only; on a GPU machine the GPU cells add to t
 | `data/toy_8x6.parquet` | the 8-row, 6-item table of tier 1 | | |
 | `data/smoke.parquet`, `data/smoke.json` | the shared sample: preset `smoke` of `src/et_miner/synthetic.py`, 60,000 rows, seed 42, and its parameters | | |
 | [tier1-polars/01-the-problem-and-the-data.ipynb](tier1-polars/01-the-problem-and-the-data.ipynb) | transactions, itemsets, support, input format, the boolean matrix | 2 s | CPU |
-| [tier1-polars/02-apriori-step-by-step.ipynb](tier1-polars/02-apriori-step-by-step.ipynb) | the level loop by hand: join, prune, count, frontier; reading the result | 3 s | CPU |
-| [tier1-polars/03-mining-a-realistic-sample.ipynb](tier1-polars/03-mining-a-realistic-sample.ipynb) | parameters and their effect; cost per level; two data sizes; limits of Polars | 22 s | CPU |
+| [tier1-polars/02-apriori-step-by-step.ipynb](tier1-polars/02-apriori-step-by-step.ipynb) | the level loop by hand: join, prune, count, frontier; reading the result | 2 s | CPU |
+| [tier1-polars/03-mining-a-realistic-sample.ipynb](tier1-polars/03-mining-a-realistic-sample.ipynb) | parameters and their effect; cost per level; two data sizes; limits of Polars | 24 s | CPU |
 | [tier2-rust-pyo3/01-build-and-install.md](tier2-rust-pyo3/01-build-and-install.md) | toolchain, build command, checks, common errors | build: 32 s | CPU |
 | [tier2-rust-pyo3/02-inside-the-rust-core.ipynb](tier2-rust-pyo3/02-inside-the-rust-core.ipynb) | the PyO3 boundary, bit vectors, counting, candidate generation, threads | 3 s | CPU |
 | [tier2-rust-pyo3/03-same-results-and-speed.ipynb](tier2-rust-pyo3/03-same-results-and-speed.ipynb) | tier 1 = tier 2 = efficient-apriori; speed of each route at three sizes; limits | 35 s | CPU |
 | [tier3-gpu/01-gpu-setup-and-first-run.ipynb](tier3-gpu/01-gpu-setup-and-first-run.ipynb) | requirements, device detection, kernel self-check, first GPU run | 3 s | CPU; GPU cells need 1 GPU |
-| [tier3-gpu/02-gpu-resident-mining.ipynb](tier3-gpu/02-gpu-resident-mining.ipynb) | what stays on the GPU, footprint estimate, device memory | 2 s | CPU; GPU cells need 1 GPU |
+| [tier3-gpu/02-gpu-resident-mining.ipynb](tier3-gpu/02-gpu-resident-mining.ipynb) | what stays on the GPU, footprint estimate, device memory | 3 s | CPU; GPU cells need 1 GPU |
 | [tier3-gpu/03-shared-memory-and-tiled-routes.ipynb](tier3-gpu/03-shared-memory-and-tiled-routes.ipynb) | prefix groups, the tiled kernel, kernel variants, chunk planning | 2 s | CPU; GPU cells need 1 GPU, one cell 2 |
-| [tier3-gpu/04-sparse-dense-crossover.ipynb](tier3-gpu/04-sparse-dense-crossover.ipynb) | bit vectors versus tidsets, the crossover rule, observing the switch | 3 s | CPU; GPU cells need 1 GPU |
+| [tier3-gpu/04-sparse-dense-crossover.ipynb](tier3-gpu/04-sparse-dense-crossover.ipynb) | bit vectors versus tidsets, the crossover rule, observing the switch | 2 s | CPU; GPU cells need 1 GPU |
 | [tier3-gpu/05-son-streaming.ipynb](tier3-gpu/05-son-streaming.ipynb) | SON: both passes, exactness proof, chunk size, memory | 7 s | CPU; one GPU cell |
 | [tier3-gpu/06-multi-gpu.ipynb](tier3-gpu/06-multi-gpu.ipynb) | row split, partial counts, global pruning, running on N GPUs, fallbacks | 3 s | CPU; multi-GPU cells need 2+ GPUs |
 

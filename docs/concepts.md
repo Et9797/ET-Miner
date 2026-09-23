@@ -8,7 +8,9 @@ repository. Paths are relative to the repository root.
 
 - A **transaction** (or **row**) is one set of **items**, such as the products in one basket.
 - The input is a Polars `DataFrame` or `LazyFrame` with one list column, `items` by default (`item_col=` selects another).
-  Items are integers or strings. Every row counts toward the row total `N`, including rows with an empty list.
+  Items are integers or strings on the CPU routes. The GPU routes need integer items: they map columns back to items
+  through an integer array (`src/et_miner/gpu/mining.py:_build_results_from_gpu`).
+  Every row counts toward the row total `N`, including rows with an empty list.
 - The library never counts on the lists directly. Each route first builds its own representation:
 
 | Representation | Built by | Used by |
@@ -36,8 +38,9 @@ Worked example: [tier 1, notebook 1](tier1-polars/01-the-problem-and-the-data.ip
   Rust: `rust_ext/src/core/candidates.rs:generate_candidates_kplus1`.
 - A **prefix group** is the set of candidates of one level that share their first K-1 items. The GPU kernels
   enumerate candidates group by group from their index (`src/et_miner/gpu/kernels/k3plus.py:build_k3plus_groups`).
-- The GPU group routes prune at group granularity, so their per-level candidate count, as reported through
-  `level_callback`, can be larger than the CPU route's for the same level. The emitted itemsets are the same.
+- The per-level candidate count reported through `level_callback` depends on the route. The GPU group routes prune
+  at group granularity and can report more candidates than the CPU route for the same level; the GPU-resident
+  route reports 0 for K >= 3. The emitted itemsets are the same on every route.
 
 Worked example: [tier 1, notebook 2](tier1-polars/02-apriori-step-by-step.ipynb).
 
@@ -76,13 +79,14 @@ Options that change only the work, never the result:
 
 | Option | Effect | Where it works |
 |---|---|---|
-| `use_generator_pruning=True` | infers the count of a candidate with a non-free subset instead of counting it (Pascal rule) | CPU route only; refused with `streaming=True` |
+| `use_generator_pruning=True` | infers the count of a candidate with a non-free subset instead of counting it (Pascal rule) | CPU route only; refused with `streaming=True`, accepted but not used on the GPU routes |
 | `prune_apriori` (default `True`) | the subset prune on the row-split miner; `False` skips it there | `False` is refused on every other route |
 | `sparse`, `n_jobs`, `batch_size`, `enable_length_filter` | how the CPU route counts | CPU routes |
-| `sparse_from_k` | when the GPU switches from bit vectors to tidsets | GPU routes |
+| `sparse_from_k` | when the GPU switches from bit vectors to tidsets | single-GPU default route and row-split; accepted but not used on the CPU and GPU-resident routes |
 
-`src/et_miner/core/apriori.py:_validate_route_support` rejects every combination a route cannot honor instead of
-ignoring a parameter. Worked examples: [tier 1, notebook 3](tier1-polars/03-mining-a-realistic-sample.ipynb), sections 3 to 5.
+`src/et_miner/core/apriori.py:_validate_route_support` rejects many combinations a route cannot honor, with an error
+that names the reason. It does not catch all of them: `use_generator_pruning` and `sparse_from_k` are accepted and
+not used where the table above says so, and `level_callback` is not used with `streaming=True`. Worked examples: [tier 1, notebook 3](tier1-polars/03-mining-a-realistic-sample.ipynb), sections 3 to 5.
 
 ## 5. The result frame
 
@@ -145,7 +149,7 @@ routes, "row-split" the GPU row-split miner, "SON" the streaming routes.
 | `show_progress` | `False` | progress bars (needs `tqdm`) | CPU, SON |
 | `warn_complexity` | `True` | warn when the level-2 candidate count is large | CPU |
 | `prune_equal_support` | `False` | return free-sets instead of the full lattice (section 4) | CPU, row-split; refused with streaming |
-| `use_generator_pruning` | `False` | infer some counts instead of counting them; same result | CPU; refused with streaming |
+| `use_generator_pruning` | `False` | infer some counts instead of counting them; same result | CPU; refused with streaming; not used on GPU routes |
 | `prune_apriori` | `True` | subset prune on the row-split miner; `False` only allowed there | row-split |
 | `sparse` | `None` | CPU counting: `False` Polars, `True` SciPy + Rust, `None` automatic | CPU, SON |
 | `n_jobs` | `1` | worker threads for SciPy/Rust counting; `-1` means all cores | CPU with SciPy/Rust counting, SON |
@@ -155,14 +159,14 @@ routes, "row-split" the GPU row-split miner, "SON" the streaming routes.
 | `n_gpus` | `1` | GPUs to use; >1 selects the row-split miner (or multi-GPU SON with `streaming=True`) | row-split, multi-GPU SON, single-GPU fan-out with `bitvecs=` |
 | `memory_budget_gb` | `None` | derive `chunk_size` from a memory budget; only with `streaming=True` | SON |
 | `progress_callback` | `None` | `(phase, chunk_idx, n_chunks, metrics)` per SON chunk and pass | SON |
-| `level_callback` | `None` | `(k, n_candidates, n_frequent, duration_ms)` per level; `n_candidates` is route-dependent | CPU, GPU, row-split |
-| `gpu_resident` | `False` | keep all levels in GPU memory | single GPU, single-GPU SON; refused elsewhere |
+| `level_callback` | `None` | `(k, n_candidates, n_frequent, duration_ms)` per level; `n_candidates` is route-dependent | CPU, GPU, row-split; not SON |
+| `gpu_resident` | `False` | keep all levels in GPU memory | bit-vector miner, single-GPU SON when the input spans more than one chunk; refused on row-split and multi-GPU SON |
 | `bitvecs` | `None` | pre-built GPU bit vectors `(cupy_array, col_to_item, n_rows)` instead of `transactions` | GPU |
 | `output_dir` | `None` | write each level to Parquet as it finishes | row-split only |
 | `resume_from_k` | `None` | resume from a level written by `output_dir` | row-split only |
 | `max_ram_gb` | `800.0` | host-memory guard between levels | single-GPU bit-vector miner |
 | `max_vram_gb` | `70.0` | GPU-memory guard between levels | single-GPU bit-vector miner |
-| `sparse_from_k` | `None` | GPU switch to CSR tidsets: `None`, an int K (>= 3), or `"auto"` (section 6) | GPU, row-split |
+| `sparse_from_k` | `None` | GPU switch to CSR tidsets: `None`, an int K (values below 3 act as 3), or `"auto"` (section 6) | single-GPU default route, row-split |
 | `anchor_items` | `None` | report only itemsets containing an anchor item | row-split only |
 
 ### 7.2 Other entry points

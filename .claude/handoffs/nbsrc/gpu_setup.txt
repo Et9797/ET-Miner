@@ -1,0 +1,52 @@
+# %%
+import os
+import warnings
+
+os.environ.setdefault("LOGURU_LEVEL", "WARNING")
+warnings.filterwarnings("ignore", message="IProgress not found")
+
+import datetime
+import platform
+import re
+from pathlib import Path
+
+import polars as pl
+
+import et_miner
+from et_miner import apriori
+
+DATA = Path("../data")
+REPO = Path("../..").resolve()
+N_GPUS = et_miner.get_gpu_count()
+SKIP_GPU = not et_miner.has_cupy()  # CuPy installed and at least one CUDA device usable
+SKIP_MULTI = N_GPUS < 2
+
+
+def hardware() -> str:
+    cpu = platform.processor() or platform.machine()
+    label = f"{cpu}, {os.cpu_count()} logical CPUs, Python {platform.python_version()}, {datetime.date.today()}"
+    if not SKIP_GPU:
+        import cupy as cp
+
+        names = []
+        for d in range(N_GPUS):
+            name = cp.cuda.runtime.getDeviceProperties(d)["name"]
+            names.append(name.decode() if isinstance(name, bytes) else name)
+        label += f" | {N_GPUS} GPU(s): {', '.join(names)} | CUDA runtime {cp.cuda.runtime.runtimeGetVersion()}"
+    return label
+
+
+def show(rel_path: str, pattern: str, n_lines: int) -> None:
+    """Print n_lines of a repository file, starting at the first line matching pattern."""
+    lines = (REPO / rel_path).read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if re.search(pattern, line))
+    print(f"{rel_path}:{start + 1}")
+    for i in range(start, min(start + n_lines, len(lines))):
+        print(f"{i + 1:5d}  {lines[i]}")
+
+
+print(hardware())
+if SKIP_GPU:
+    print("No usable CUDA device: GPU cells print a skip line instead of running.")
+elif SKIP_MULTI:
+    print("One CUDA device: multi-GPU cells print a skip line instead of running.")

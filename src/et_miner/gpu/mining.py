@@ -443,7 +443,7 @@ def _apriori_from_bitvecs(
             f"n_transactions={n_transactions:,} exceeds int32 max. CSR tidset indices require int64 upgrade."
         )
 
-    from et_miner.gpu.kernels import build_k3plus_groups_from_flat, decode_k3plus_flat, get_popcount_kernel
+    from et_miner.gpu.kernels import build_k3plus_groups_from_flat, column_popcounts, decode_k3plus_flat
     from et_miner.gpu.sparse_csr import (
         SparseMiningState,
         convert_shards_to_csr,
@@ -547,10 +547,7 @@ def _apriori_from_bitvecs(
     prev_frequent: list[tuple[int, ...]] = []  # Use int indices, not str column names
     prev_counts: dict[tuple[int, ...], int] = {}
 
-    # GPU popcount using __popcll hardware intrinsic (183x faster than Python)
-    popcount_kernel = get_popcount_kernel()
-    popcounts = popcount_kernel(bitvecs_gpu.view(cp.uint64))
-    col_counts = cp.sum(popcounts.reshape(n_cols, -1), axis=1, dtype=cp.int64).get()
+    col_counts = column_popcounts(bitvecs_gpu).get()
 
     # Filter frequent 1-itemsets
     for col_idx in range(n_cols):
@@ -873,7 +870,7 @@ def _apriori_from_bitvecs_gpu_resident(
     except ImportError:
         raise ImportError("CuPy required for gpu_resident mode")
 
-    from et_miner.gpu.kernels import get_popcount_kernel
+    from et_miner.gpu.kernels import column_popcounts
     from et_miner.gpu.dispatch import dispatch_k2_gpu_resident, dispatch_k3plus_gpu_resident
 
     session = ProfilingSession() if profile else None
@@ -894,9 +891,7 @@ def _apriori_from_bitvecs_gpu_resident(
     if session:
         session.start_phase("k1_support_gpu_resident")
 
-    popcount_kernel = get_popcount_kernel()
-    popcounts = popcount_kernel(bitvecs_gpu.view(cp.uint64))
-    col_counts_gpu = cp.sum(popcounts.reshape(n_cols, -1), axis=1, dtype=cp.int64)
+    col_counts_gpu = column_popcounts(bitvecs_gpu)
 
     # Filter frequent on GPU
     freq_mask = col_counts_gpu >= min_count_threshold

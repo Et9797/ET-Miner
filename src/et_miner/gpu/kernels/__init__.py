@@ -39,6 +39,7 @@ from .k3plus import (
 )
 from .loader import (
     clear_kernel_cache,
+    column_popcounts,
     get_cuda_kernel,
     get_kernel_source,
     get_popcount_kernel,
@@ -50,6 +51,7 @@ __all__ = [
     "get_kernel_source",
     "clear_kernel_cache",
     "get_popcount_kernel",
+    "column_popcounts",
     "count_pairs_fused_k2",
     "count_pairs_fused_k2_multi_gpu",
     "count_k3plus_fully_fused",

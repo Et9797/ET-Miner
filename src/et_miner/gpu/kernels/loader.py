@@ -349,3 +349,21 @@ def get_popcount_kernel():
             )
     return _kernel_cache["popcount_u64"]
 
+
+def column_popcounts(bitvecs_gpu, max_temp_bytes: int = 1 << 28):
+    """Per-column set-bit counts of an (n_cols, n_u64s) bitvec matrix (device int64).
+
+    Popcounts a block of columns at a time, so the uint64 temporary stays
+    within ``max_temp_bytes`` (at least one column) instead of matching the
+    whole matrix. Allocates on the current device.
+    """
+    import cupy as cp
+
+    n_cols, n_u64s = bitvecs_gpu.shape
+    kernel = get_popcount_kernel()
+    cols_per_block = max(1, max_temp_bytes // max(1, n_u64s * 8))
+    out = cp.empty(n_cols, dtype=cp.int64)
+    for start in range(0, n_cols, cols_per_block):
+        end = min(start + cols_per_block, n_cols)
+        out[start:end] = kernel(bitvecs_gpu[start:end].view(cp.uint64)).sum(axis=1, dtype=cp.int64)
+    return out

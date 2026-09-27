@@ -2,8 +2,7 @@
 
 Packs each item column into a u64 bitvector on the GPU, then counts itemset
 support with fused AND + hardware popcount. Import-safe without CuPy; the
-functions raise RuntimeError at call time when CuPy or the Rust extension
-is missing.
+functions raise RuntimeError at call time when CuPy is missing.
 """
 
 from __future__ import annotations
@@ -31,7 +30,7 @@ def _build_gpu_bitvec_matrix(
     csr: "CSRMatrix",
     use_cuda_kernel: bool = True,
 ) -> "cp.ndarray":
-    """Build column bitvecs and transfer to GPU.
+    """Build column bitvecs on the current CUDA device.
 
     Two paths available:
     1. CUDA kernel (default): Transfer CSR to GPU, build bitvecs on GPU
@@ -62,7 +61,7 @@ def _build_gpu_bitvec_matrix(
         try:
             from et_miner.gpu.csr_bitvec import build_bitvecs_gpu_from_scipy
 
-            return build_bitvecs_gpu_from_scipy(csr)
+            return build_bitvecs_gpu_from_scipy(csr, device_id=cp.cuda.Device().id)
         except ImportError:
             logger.debug("CUDA CSR→bitvec kernel not available, using Rust path")
         except Exception as e:
@@ -166,9 +165,8 @@ def count_support_gpu_bitvec(
 ) -> dict[tuple[str, ...], int]:
     """Count itemset support using GPU-accelerated bitvec operations.
 
-    This is the fastest counting method available, using:
-    1. Rust for fast CSR→bitvec conversion (5x faster than scipy)
-    2. GPU for massively parallel AND + popcount operations
+    Builds the bitvecs with the CUDA CSR→bitvec kernel (the Rust builder only
+    when that kernel fails), then counts each itemset with GPU AND + popcount.
 
     Expected throughput: ~500K itemsets/sec on H200 GPU
     (vs ~50K/s Rust SIMD CPU, ~10K/s Python)
@@ -182,15 +180,14 @@ def count_support_gpu_bitvec(
         Dictionary mapping itemsets to support counts.
 
     Raises:
-        RuntimeError: If CuPy or Rust extension not available.
+        RuntimeError: If CuPy is not available, or the CUDA bitvec build fails
+            and the Rust extension is not available.
 
     Example:
         >>> counts = count_support_gpu_bitvec(matrix, [("i_0", "i_1"), ("i_1", "i_2")])
     """
     if not CUPY_INSTALLED:
         raise RuntimeError("CuPy not available - install with: pip install cupy-cuda12x")
-    if not RUST_INSTALLED:
-        raise RuntimeError("Rust extension not available")
     if not itemsets:
         return {}
 

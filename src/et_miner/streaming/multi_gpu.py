@@ -298,15 +298,11 @@ def apriori_streaming_multi_gpu(
                     return set(), set()
 
                 # Build boolean matrix for this chunk with LOCAL support threshold
-                try:
-                    matrix, col_to_item, _ = build_boolean_matrix(
-                        chunk_lf,
-                        local_min_support,
-                        item_col,
-                    )
-                except Exception as e:
-                    logger.warning("GPU {} chunk {} failed: {}", gpu_id, chunk_idx, e)
-                    return set(), set()
+                matrix, col_to_item, _ = build_boolean_matrix(
+                    chunk_lf,
+                    local_min_support,
+                    item_col,
+                )
 
                 if not col_to_item:
                     return set(), set()
@@ -361,30 +357,29 @@ def apriori_streaming_multi_gpu(
                 future = executor.submit(process_chunk_pass1, chunk_idx, gpu_id)
                 futures[future] = (chunk_idx, gpu_id)
 
+            # A failed chunk propagates: a dropped chunk contributes no
+            # candidates, and an itemset frequent only there would be lost.
             for future in as_completed(futures):
                 chunk_idx, gpu_id = futures[future]
-                try:
-                    local_itemsets, local_items = future.result()
+                local_itemsets, local_items = future.result()
 
-                    with candidates_lock:
-                        candidate_itemsets.update(local_itemsets)
-                        all_items.update(local_items)
+                with candidates_lock:
+                    candidate_itemsets.update(local_itemsets)
+                    all_items.update(local_items)
 
-                    # Progress callback
-                    if progress_callback:
-                        progress_callback(
-                            "pass1",
-                            chunk_idx,
-                            n_chunks,
-                            {
-                                "candidates": len(candidate_itemsets),
-                                "items": len(all_items),
-                                "memory_gb": _get_memory_gb(),
-                                "gpu_id": gpu_id,
-                            },
-                        )
-                except Exception as e:
-                    logger.error("Chunk {} on GPU {} failed: {}", chunk_idx, gpu_id, e)
+                # Progress callback
+                if progress_callback:
+                    progress_callback(
+                        "pass1",
+                        chunk_idx,
+                        n_chunks,
+                        {
+                            "candidates": len(candidate_itemsets),
+                            "items": len(all_items),
+                            "memory_gb": _get_memory_gb(),
+                            "gpu_id": gpu_id,
+                        },
+                    )
 
         if show_progress and HAS_TQDM:
             wave_iter.set_postfix(  # type: ignore
@@ -518,30 +513,29 @@ def apriori_streaming_multi_gpu(
                 future = executor.submit(process_chunk_pass2, chunk_idx, gpu_id)
                 futures[future] = (chunk_idx, gpu_id)
 
+            # A failed chunk propagates: its counts would be missing while
+            # support is still divided by the full row count.
             for future in as_completed(futures):
                 chunk_idx, gpu_id = futures[future]
-                try:
-                    chunk_counts = future.result()
+                chunk_counts = future.result()
 
-                    # Thread-safe accumulation
-                    with counts_lock:
-                        for itemset, count in chunk_counts.items():
-                            global_counts[itemset] += count
+                # Thread-safe accumulation
+                with counts_lock:
+                    for itemset, count in chunk_counts.items():
+                        global_counts[itemset] += count
 
-                    # Progress callback
-                    if progress_callback:
-                        progress_callback(
-                            "pass2",
-                            chunk_idx,
-                            n_chunks,
-                            {
-                                "counted": chunk_idx + 1,
-                                "memory_gb": _get_memory_gb(),
-                                "gpu_id": gpu_id,
-                            },
-                        )
-                except Exception as e:
-                    logger.error("Chunk {} on GPU {} failed: {}", chunk_idx, gpu_id, e)
+                # Progress callback
+                if progress_callback:
+                    progress_callback(
+                        "pass2",
+                        chunk_idx,
+                        n_chunks,
+                        {
+                            "counted": chunk_idx + 1,
+                            "memory_gb": _get_memory_gb(),
+                            "gpu_id": gpu_id,
+                        },
+                    )
 
     # =========================================================================
     # Filter to globally frequent itemsets

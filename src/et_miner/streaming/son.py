@@ -247,16 +247,14 @@ def apriori_streaming(
         if chunk_n == 0:
             continue
 
-        # Build boolean matrix for this chunk with LOCAL support threshold
-        try:
-            matrix, col_to_item, _ = build_boolean_matrix(
-                chunk_lf,
-                local_min_support,
-                item_col,
-            )
-        except Exception as e:
-            logger.warning("Chunk {} failed: {}", chunk_idx, e)
-            continue
+        # Build boolean matrix for this chunk with LOCAL support threshold.
+        # A failure propagates: a skipped chunk contributes no candidates, and
+        # an itemset frequent only there would be missing from the result.
+        matrix, col_to_item, _ = build_boolean_matrix(
+            chunk_lf,
+            local_min_support,
+            item_col,
+        )
 
         if not col_to_item:
             continue

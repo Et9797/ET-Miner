@@ -39,6 +39,7 @@ WORKLOADS = {
     "or005": ("online_retail", 0.005, None),
     "or003": ("online_retail", 0.003, None),
     "or002": ("online_retail", 0.002, None),
+    "oom2ml3": ("oom_regression", 0.00003, 3),
 }
 
 DEEP = ("smoke", "deepk", "skew", "dsl", "or003", "or002")
@@ -176,3 +177,21 @@ def build_consolidation_matrix(n_dev: int) -> list[dict]:
                 continue
             cfgs.append({**c, "id": f"{c['base_id']}#r{rep}", "rep": rep})
     return cfgs
+
+
+def build_supplement_matrix(n_dev: int) -> list[dict]:
+    """Configs run after the campaign and reported apart from it (`--mode supplement`).
+
+    The campaign left no regime with wide K>=3 groups in which both K>=3
+    kernels ran on the row-split miner: the max_length=3 gate skipped
+    C1-shared on stress_k2, whose K=2 falls back to the per-candidate kernel
+    once the pair counts need more than one chunk, and the 2-GPU configs were
+    lost with a device. oom_regression to K=3 is such a regime on one GPU.
+    """
+    base = [
+        _cfg("A1-shared", "oom2ml3", "A", variant="shared"),
+        _cfg("C1-shared", "oom2ml3", "C", variant="shared"),
+        _cfg("C1-shared-noprune", "oom2ml3", "C", variant="shared", prune_apriori=False),
+        _cfg("C1-legacy", "oom2ml3", "C", variant="legacy"),
+    ]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]

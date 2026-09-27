@@ -18,7 +18,8 @@ import statistics
 from collections import defaultdict
 from pathlib import Path
 
-GPU_WORKLOADS = ("smoke", "deepk", "skew", "oom2", "sk2ml2", "sk2ml3", "dsl", "wide", "or005", "or003", "or002")
+GPU_WORKLOADS = ("smoke", "deepk", "skew", "oom2", "sk2ml2", "sk2ml3", "oom2ml3", "dsl", "wide", "or005", "or003",
+                 "or002")
 
 
 def _load(path: Path) -> list[dict]:
@@ -82,6 +83,8 @@ class Cell:
             return f"{self.med:.2f} [{self.lo:.2f}, {self.hi:.2f}]{reps}"
         if self.lower_bound is not None:
             return f">{self.lower_bound} (timeout)"
+        if self.ok:
+            return "n/a"
         return "—" if not self.rows else "FAIL: " + "; ".join(s[:60] for s in self.statuses)
 
 
@@ -125,6 +128,8 @@ def render(out: Path) -> str:
 
     def cell(base: str, metric: str = "wall") -> Cell:
         return Cell(by_base.get(base, []), metric)
+
+    regs = [w for w in GPU_WORKLOADS if any(b.startswith(f"{w}-") for b in by_base)]
 
     lines = ["# Consolidation campaign report", ""]
     ok = sum(1 for r in latest.values() if r.get("status") == "ok")
@@ -178,36 +183,36 @@ def render(out: Path) -> str:
             best[miner] = min(usable, key=lambda c: c.med) if usable else next((c for c in cands if c.rows), Cell([], "wall"))
         return best
 
-    lines += _table("DP1 — in-core miner (fastest variant per miner, wall s)", list(GPU_WORKLOADS), ["A", "B", "C"],
+    lines += _table("DP1 — in-core miner (fastest variant per miner, wall s)", regs, ["A", "B", "C"],
                     miners)
     for miner, bases in (("A1", ["A1-shared", "A1-legacy"]), ("C1", ["C1-shared", "C1-legacy"]),
                          ("C2", ["C2-shared", "C2-legacy"])):
-        lines += _table(f"DP2 — K=2 kernel within {miner} (K=2 level s)", list(GPU_WORKLOADS), bases,
+        lines += _table(f"DP2 — K=2 kernel within {miner} (K=2 level s)", regs, bases,
                         lambda reg, bases=bases: {b: cell(f"{reg}-{b}", "k2") for b in bases})
     k3 = ["A1-shared", "A1-legacy", "B1", "C1-shared", "C1-legacy", "C1-tiny0"]
-    lines += _table("DP3 — K≥3 counting (Σ K≥3 level s; B = count_k3plus_gpu_resident)", list(GPU_WORKLOADS), k3,
+    lines += _table("DP3 — K≥3 counting (Σ K≥3 level s; B = count_k3plus_gpu_resident)", regs, k3,
                     lambda reg: {b: cell(f"{reg}-{b}", "k3plus") for b in k3})
     for miner, bases in (("A1", ["A1-shared", "A1-legacy"]), ("C1", ["C1-shared", "C1-legacy", "C1-tiny0"])):
-        lines += _table(f"DP3 — K≥3 counting within {miner}", list(GPU_WORKLOADS), bases,
+        lines += _table(f"DP3 — K≥3 counting within {miner}", regs, bases,
                         lambda reg, bases=bases: {b: cell(f"{reg}-{b}", "k3plus") for b in bases})
     dp4 = ["C1-shared", "C1-tiny0", "C1-legacy"]
-    lines += _table("DP4 — what tiled cannot serve (wall s)", list(GPU_WORKLOADS), dp4,
+    lines += _table("DP4 — what tiled cannot serve (wall s)", regs, dp4,
                     lambda reg: {b: cell(f"{reg}-{b}") for b in dp4},
                     "C1-shared: tiny groups, mega-groups and multi-chunk K=2 on the per-candidate kernel; "
                     "C1-tiny0: tiny groups tiled too; C1-legacy: everything per-candidate.")
     for v in ("shared", "legacy"):
         bases = [f"C1-{v}", f"C1-{v}-auto", f"C1-{v}-k3"]
-        lines += _table(f"DP5 — layout on C1-{v} (wall s)", list(GPU_WORKLOADS), bases,
+        lines += _table(f"DP5 — layout on C1-{v} (wall s)", regs, bases,
                         lambda reg, bases=bases: {b: cell(f"{reg}-{b}") for b in bases})
         bases = [f"A1-{v}", f"A1-{v}-auto"]
-        lines += _table(f"DP5 — layout on A1-{v} (wall s)", list(GPU_WORKLOADS), bases,
+        lines += _table(f"DP5 — layout on A1-{v} (wall s)", regs, bases,
                         lambda reg, bases=bases: {b: cell(f"{reg}-{b}") for b in bases})
     dp6 = ["C2-shared", "C2-legacy", "Asplit2-shared", "Bsplit2"]
-    lines += _table("DP6 — multi-GPU (Σ K≥2 level s)", list(GPU_WORKLOADS), dp6,
+    lines += _table("DP6 — multi-GPU (Σ K≥2 level s)", regs, dp6,
                     lambda reg: {b: cell(f"{reg}-{b}", "levels") for b in dp6})
     scale = ["C1-shared", "C2-shared", "C1-legacy", "C2-legacy"]
     lines += ["C1 vs C2 (wall s), for scaling:", ""]
-    lines += _table("DP6 — row-split scaling", list(GPU_WORKLOADS), scale,
+    lines += _table("DP6 — row-split scaling", regs, scale,
                     lambda reg: {b: cell(f"{reg}-{b}") for b in scale})
 
     lines += ["### DP7 — SON (wall s; per-pass s from the rep with the median wall)", "",
@@ -225,23 +230,23 @@ def render(out: Path) -> str:
                          f"{t.get('n_chunks', '—')} |")
     lines.append("")
     dp8 = ["F-polars", "F-sparse", "F-sparse-norust", "F-auto"]
-    lines += _table("DP8 — CPU tier (wall s)", list(GPU_WORKLOADS), dp8,
+    lines += _table("DP8 — CPU tier (wall s)", regs, dp8,
                     lambda reg: {b: cell(f"{reg}-{b}") for b in dp8})
-    lines += _table("DP8 — R1: CPU K>2 counting (Σ K≥3 level s)", list(GPU_WORKLOADS), ["F-sparse", "F-sparse-norust"],
+    lines += _table("DP8 — R1: CPU K>2 counting (Σ K≥3 level s)", regs, ["F-sparse", "F-sparse-norust"],
                     lambda reg: {b: cell(f"{reg}-{b}", "k3plus") for b in ("F-sparse", "F-sparse-norust")})
     for v in ("shared", "legacy"):
         bases = [f"C1-{v}", f"C1-{v}-norust", f"C1-{v}-noprune"]
-        lines += _table(f"DP9 — host roles on C1-{v} (wall s)", list(GPU_WORKLOADS), bases,
+        lines += _table(f"DP9 — host roles on C1-{v} (wall s)", regs, bases,
                         lambda reg, bases=bases: {b: cell(f"{reg}-{b}") for b in bases})
     bases = ["C1-legacy-free", "C1-legacy-free-norust"]
-    lines += _table("DP9 — free-set runs (R4) (wall s)", list(GPU_WORKLOADS), bases,
+    lines += _table("DP9 — free-set runs (R4) (wall s)", regs, bases,
                     lambda reg: {b: cell(f"{reg}-{b}") for b in bases})
     for v in ("shared", "legacy"):
         bases = [f"C2-{v}", f"C2-{v}-filter-cupy", f"C2-{v}-filter-cpu"]
-        lines += _table(f"DP10 — survivor filter on C2-{v} (wall s)", list(GPU_WORKLOADS), bases,
+        lines += _table(f"DP10 — survivor filter on C2-{v} (wall s)", regs, bases,
                         lambda reg, bases=bases: {b: cell(f"{reg}-{b}") for b in bases})
     bases = ["C2-legacy", "C2-legacy-balance-nnz"]
-    lines += _table("DP10 — row balance (wall s)", list(GPU_WORKLOADS), bases,
+    lines += _table("DP10 — row balance (wall s)", regs, bases,
                     lambda reg: {b: cell(f"{reg}-{b}") for b in bases})
 
     mb = out / "microbench.jsonl"

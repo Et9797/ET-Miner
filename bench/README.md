@@ -55,6 +55,44 @@ number is worth recording from a miner that disagrees with the oracle.
 | `ET_MINER_ROW_BALANCE` | `rows`/`nnz` | multi-GPU row split A/B |
 | `ET_MINER_DISABLE_NCCL` | `1` | force the staged D2D reduce |
 | `ET_MINER_MAX_CHUNK_CANDS` | int | force multi-chunk runs |
+| `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | groups below this many pairs use the per-candidate kernel (0 disables) |
+| `ET_MINER_DISABLE_RUST` | `1` | every Rust role takes its fallback (read once, at import) |
+
+## Consolidation campaign
+
+`bench/runner.py --mode consolidation` runs the GPU-layer consolidation matrix
+(`bench/consolidation_matrix.py`; protocol and decision rule in
+`bench/consolidation/PROTOCOL.md`). Each config names its route (A, A-split, B,
+B-split, C, D, E, F — see `bench/consolidation_run.py`), pins every thread pool
+and kernel knob it depends on, warms up on every device it uses, and records
+per-level (per-pass for SON) times, per-device peak VRAM, peak RSS, throttle
+reasons, the result signature and any logged fallback (which fails the
+config). Every config of one (dataset, min_support, max_length, free-sets)
+group must produce the same signature.
+
+```bash
+uv run python -m et_miner.synthetic --preset all --out datasets/synth
+uv run python datasets/prepare_online_retail.py
+OUT=bench/results/$(date +%F)-consolidation
+uv run python bench/runner.py --mode consolidation --out $OUT --max-hours 6.5
+uv run python bench/consolidation_report.py --out $OUT
+```
+
+The Rust host roles are also timed per call on real level arrays:
+
+```bash
+export RAYON_NUM_THREADS=6
+MB=$(mktemp -d)   # level arrays; tens of MB, not committed
+uv run python bench/microbench_rust.py dump deep_sparse_large $MB
+uv run python bench/microbench_rust.py dump deep_sparse_large $MB --free-sets
+uv run python bench/microbench_rust.py dump stress_k2 $MB --max-length 2 --then-k3 --n-gpus 2
+uv run python bench/microbench_rust.py dump stress_k2 $MB --max-length 2 --free-sets --n-gpus 2
+uv run python bench/microbench_rust.py time $MB > $OUT/microbench.jsonl
+```
+
+`ET_BENCH_ALPHAFOLD=/path/to/base214m.parquet` (a parquet with an `items`
+list column) makes the dataset name `alphafold` available to consolidation
+configs; nothing in the matrix uses it unless a config names it.
 
 ## Troubleshooting
 

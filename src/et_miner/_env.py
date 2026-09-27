@@ -2,8 +2,9 @@
 
 All ad-hoc environment reads in the package go through this module so the
 full knob surface is documented in one place. Getters read the environment
-at call time (never at import time) so `monkeypatch.setenv` in tests and
-late exports in job scripts both behave as expected.
+at call time so `monkeypatch.setenv` in tests and late exports in job scripts
+both behave as expected. One exception: ET_MINER_DISABLE_RUST is read once,
+when et_miner.backends is imported.
 
 Variables:
     ET_MINER_FLUSH_PARALLEL_THRESHOLD  int, rows above which parquet flush
@@ -40,6 +41,11 @@ Variables:
     ET_MINER_TILED_MIN_GROUP_PAIRS     groups with fewer candidate pairs
                                        route to the legacy kernel even
                                        under the shared variant (default 64)
+    ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
+                                       not built: every Rust role takes its
+                                       fallback. Read once, at import of
+                                       et_miner.backends, so set it before
+                                       importing et_miner.
 """
 
 from __future__ import annotations
@@ -136,3 +142,7 @@ def log_dir() -> Path:
     if configured:
         return Path(configured)
     return Path.home() / ".cache" / "et-miner" / "logs"
+
+
+def disable_rust() -> bool:
+    return os.environ.get("ET_MINER_DISABLE_RUST", "").strip() == "1"

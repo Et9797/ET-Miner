@@ -3,6 +3,11 @@
 Invoked by bench/runner.py with a JSON config as argv[1]. Mining logs go to
 stderr (loguru default); the single RESULT json line goes to stdout.
 Exit codes: 0 ok, 3 correctness failure (motif recovery), other = crash.
+
+Configs with ``"mode": "consolidation"`` name their route explicitly (A, A-split,
+B, B-split, C, D, E, F; see ``run_consolidation``), warm up on every device they
+use, and record per-level (or per-pass) times, per-device peak VRAM, peak RSS,
+throttle reasons, the result signature, and any fallback the run logged.
 """
 
 from __future__ import annotations
@@ -19,8 +24,15 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 
+#: NVML clock-event reasons that slow a running kernel (SW power cap, HW
+#: slowdown, SW/HW thermal, HW power brake). GpuIdle (0x1) and the
+#: application/display clock settings are not throttling.
+THROTTLE_MASK = 0x4 | 0x8 | 0x20 | 0x40 | 0x80
+
+
 class VramSampler(threading.Thread):
-    """Polls nvidia-smi (context-free — sees true device peaks) every 0.5 s."""
+    """Polls nvidia-smi (context-free — sees true device peaks) every 0.5 s,
+    and this process's RSS alongside it."""
 
     #: Field name for active throttle reasons differs across nvidia-smi
     #: versions; probe from newest to oldest, fall back to memory-only.
@@ -34,8 +46,16 @@ class VramSampler(threading.Thread):
         super().__init__(daemon=True)
         self.peak_mb: dict[int, int] = {}
         self.throttle_reasons: set[str] = set()
+        self.reason_mask: dict[int, int] = {}
+        self.peak_rss_mb = 0.0
         self._halt = threading.Event()
         self._query_idx = 0
+        try:
+            import psutil
+
+            self._proc = psutil.Process()
+        except ImportError:
+            self._proc = None
 
     def _poll_once(self) -> bool:
         proc = subprocess.run(
@@ -53,6 +73,10 @@ class VramSampler(threading.Thread):
                 self.peak_mb[idx] = max(self.peak_mb.get(idx, 0), used)
                 if len(parts) > 2 and parts[2] not in ("0x0000000000000000", "[N/A]", "", "[Not Supported]"):
                     self.throttle_reasons.add(parts[2])
+                    try:
+                        self.reason_mask[idx] = self.reason_mask.get(idx, 0) | int(parts[2], 16)
+                    except ValueError:
+                        pass
         return True
 
     def run(self):
@@ -62,7 +86,15 @@ class VramSampler(threading.Thread):
                     self._query_idx += 1  # field unsupported — degrade the query
             except Exception:
                 pass
+            if self._proc is not None:
+                try:
+                    self.peak_rss_mb = max(self.peak_rss_mb, self._proc.memory_info().rss / 2**20)
+                except Exception:
+                    pass
             self._halt.wait(0.5)
+
+    def throttled_devices(self) -> list[int]:
+        return sorted(d for d, m in self.reason_mask.items() if m & THROTTLE_MASK)
 
     def stop(self):
         self._halt.set()
@@ -92,6 +124,10 @@ def main() -> int:
 
     for k, v in cfg.get("env", {}).items():
         os.environ[k] = str(v)
+    if cfg.get("mode") == "consolidation":
+        from consolidation_run import run_consolidation
+
+        return run_consolidation(cfg)
 
     import polars as pl
 

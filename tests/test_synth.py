@@ -132,6 +132,26 @@ class TestPresets:
         with pytest.raises(AssertionError, match="vacuously"):
             check_preset_purpose(bad)
 
+    def test_motif_tiers_plant_their_prefixes(self):
+        spec = _small_spec(motif_count=2, motif_size=6, motif_penetration=0.03, motif_tiers=((3, 0.2),))
+        data = generate_csr(spec)
+        assert [len(items) for items, _ in data.planted] == [6, 6, 3, 3]
+        rows = [set(r.tolist()) for r in np.split(data.indices, data.indptr[1:-1])]
+        for (full, _), (prefix, count) in zip(data.planted[:2], data.planted[2:]):
+            assert prefix == full[:3]
+            assert sum(1 for r in rows if set(prefix) <= r) >= count
+
+    def test_tiers_leave_an_untiered_spec_unchanged(self):
+        spec = _small_spec(motif_count=2, motif_size=5, motif_penetration=0.03)
+        tiered = generate_csr(_small_spec(motif_count=2, motif_size=5, motif_penetration=0.03, motif_tiers=()))
+        plain = generate_csr(spec)
+        assert np.array_equal(plain.indices, tiered.indices) and np.array_equal(plain.indptr, tiered.indptr)
+
+    def test_a_vacuous_tier_is_rejected(self):
+        bad = _small_spec(motif_count=1, motif_size=4, motif_penetration=0.05, motif_tiers=((2, 0.001),))
+        with pytest.raises(AssertionError, match="tier planted support"):
+            check_preset_purpose(bad)
+
 
 class TestCLI:
     def test_writes_parquet_and_sidecar(self, tmp_path):

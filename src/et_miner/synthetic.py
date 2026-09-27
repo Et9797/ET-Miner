@@ -64,6 +64,11 @@ class SynthSpec:
     motif_count: int = 0
     motif_size: int = 0
     motif_penetration: float = 0.0
+    #: Nested motif tiers ``((prefix_len, penetration), ...)``: the first
+    #: ``prefix_len`` items of every motif are additionally force-added to
+    #: ``penetration`` of all rows (rows drawn independently per tier and
+    #: motif). Short, high-penetration prefixes make support fall with K.
+    motif_tiers: tuple[tuple[int, float], ...] = ()
     #: The support threshold benchmarks/tests mine this preset at.
     min_support: float = 0.01
     seed: int = 42
@@ -133,13 +138,23 @@ def generate_csr(spec: SynthSpec) -> GeneratedData:
     planted: list[tuple[tuple[int, ...], int]] = []
     extra_rows: list[np.ndarray] = []
     extra_items: list[np.ndarray] = []
-    for m_idx, motif in enumerate(_motif_items(spec)):
+    motifs = _motif_items(spec)
+    for m_idx, motif in enumerate(motifs):
         n_planted = int(round(spec.motif_penetration * spec.n_rows))
         m_rng = np.random.default_rng(spec.seed + 100 + m_idx)
         rows = m_rng.choice(spec.n_rows, size=n_planted, replace=False).astype(np.int64)
         extra_rows.append(np.repeat(rows, len(motif)))
         extra_items.append(np.tile(motif, n_planted))
         planted.append((tuple(int(x) for x in motif), n_planted))
+    for t_idx, (prefix_len, penetration) in enumerate(spec.motif_tiers):
+        for m_idx, motif in enumerate(motifs):
+            prefix = motif[:prefix_len]
+            n_planted = int(round(penetration * spec.n_rows))
+            t_rng = np.random.default_rng(spec.seed + 1000 + 100 * t_idx + m_idx)
+            rows = t_rng.choice(spec.n_rows, size=n_planted, replace=False).astype(np.int64)
+            extra_rows.append(np.repeat(rows, len(prefix)))
+            extra_items.append(np.tile(prefix, n_planted))
+            planted.append((tuple(int(x) for x in prefix), n_planted))
     if extra_rows:
         row_ids = np.concatenate([row_ids] + extra_rows)
         draws = np.concatenate([draws] + extra_items)
@@ -179,8 +194,10 @@ def estimate_level_sizes(spec: SynthSpec) -> dict:
     mean_len = float(np.clip(spec.row_len_mean, spec.row_len_min, spec.row_len_max))
     p_item = 1.0 - np.power(1.0 - weights, mean_len)
     exp_counts = spec.n_rows * p_item
-    for motif, n_planted in [(m, int(round(spec.motif_penetration * spec.n_rows))) for m in _motif_items(spec)]:
-        exp_counts[motif] += n_planted
+    for motif in _motif_items(spec):
+        exp_counts[motif] += int(round(spec.motif_penetration * spec.n_rows))
+        for prefix_len, penetration in spec.motif_tiers:
+            exp_counts[motif[:prefix_len]] += int(round(penetration * spec.n_rows))
     n1 = int((exp_counts >= spec.min_count).sum())
     return {
         "expected_k1_survivors": n1,
@@ -191,6 +208,8 @@ def estimate_level_sizes(spec: SynthSpec) -> dict:
 
 def check_preset_purpose(spec: SynthSpec) -> None:
     """Assert a preset still exercises what it exists for. Raises on drift."""
+    from et_miner.gpu.density import DENSITY_CROSSOVER
+
     est = estimate_level_sizes(spec)
     if spec.name == "stress_k2":
         if est["expected_k2_candidates"] <= 100_000_000:
@@ -198,6 +217,30 @@ def check_preset_purpose(spec: SynthSpec) -> None:
                 f"stress_k2 expects >100M K=2 candidates to exercise the large-filter path, "
                 f"got ~{est['expected_k2_candidates']:,}"
             )
+    if spec.name == "deep_sparse_large":
+        if not 20_000_000 <= spec.n_rows <= 50_000_000:
+            raise AssertionError(f"deep_sparse_large must hold 20-50M rows, got {spec.n_rows:,}")
+        if spec.motif_size < 10:
+            raise AssertionError(f"deep_sparse_large must mine to K>=10; motif_size is {spec.motif_size}")
+        penetrations = [p for _, p in spec.motif_tiers]
+        if not (penetrations and max(penetrations) > DENSITY_CROSSOVER > spec.motif_penetration):
+            raise AssertionError(
+                "deep_sparse_large needs a motif tier above the n/32 density crossover and the full "
+                "motif below it, so the mean support of a level crosses n/32 mid-lattice"
+            )
+        dense_bytes = est["expected_k1_survivors"] * math.ceil(spec.n_rows / 64) * 8
+        if dense_bytes > 6 * 2**30:
+            raise AssertionError(
+                f"deep_sparse_large's dense bitvecs must fit one 12 GB card: ~{dense_bytes / 2**30:.1f} GiB"
+            )
+    if spec.name == "wide_vocab":
+        if est["expected_k1_survivors"] < 1_000:
+            raise AssertionError(
+                f"wide_vocab needs >= 1,000 frequent items so the CPU tier picks sparse counting, "
+                f"got ~{est['expected_k1_survivors']:,}"
+            )
+        if spec.n_rows > 500_000:
+            raise AssertionError(f"wide_vocab must stay small enough for the CPU tiers: {spec.n_rows:,} rows")
     if spec.motif_count > 0:
         planted_count = int(round(spec.motif_penetration * spec.n_rows))
         if planted_count < spec.min_count:
@@ -205,6 +248,11 @@ def check_preset_purpose(spec: SynthSpec) -> None:
                 f"{spec.name}: planted support {planted_count} < min_count {spec.min_count} — "
                 f"motif recovery would pass vacuously"
             )
+        for prefix_len, penetration in spec.motif_tiers:
+            if not 2 <= prefix_len <= spec.motif_size:
+                raise AssertionError(f"{spec.name}: tier prefix {prefix_len} outside [2, {spec.motif_size}]")
+            if int(round(penetration * spec.n_rows)) < spec.min_count:
+                raise AssertionError(f"{spec.name}: tier planted support below min_count {spec.min_count}")
 
 
 # ── Presets ────────────────────────────────────────────────────────────────
@@ -215,6 +263,11 @@ def check_preset_purpose(spec: SynthSpec) -> None:
 # the measured-density transition mid-run). skewed_rows clusters nnz for
 # the balance A/B. oom_regression is sized so its dense counts exceed a
 # test-set memory-pool limit, proving budget-driven chunking.
+# deep_sparse_large is an AlphaFold-shaped lattice at scale: 20M rows, a
+# 1,000-item vocabulary, nested motif tiers so that a level's mean support
+# falls below the n/32 crossover around K=5-6, and mining to K=16.
+# wide_vocab has >1,000 frequent items, so the CPU tier's auto strategy picks
+# sparse counting, and is small enough for the CPU tiers to finish in minutes.
 
 PRESETS: dict[str, SynthSpec] = {
     "smoke": SynthSpec(
@@ -277,6 +330,30 @@ PRESETS: dict[str, SynthSpec] = {
         row_len_max=64,
         min_support=0.00003,
         seed=99,
+    ),
+    "deep_sparse_large": SynthSpec(
+        name="deep_sparse_large",
+        n_rows=20_000_000,
+        vocab_size=1_000,
+        zipf_a=1.3,
+        row_len_mean=6,
+        row_len_max=48,
+        motif_count=4,
+        motif_size=12,
+        motif_penetration=0.018,
+        motif_tiers=((5, 0.22), (8, 0.09)),
+        min_support=0.015,
+        seed=4242,
+    ),
+    "wide_vocab": SynthSpec(
+        name="wide_vocab",
+        n_rows=100_000,
+        vocab_size=3_000,
+        zipf_a=0.6,
+        row_len_mean=25,
+        row_len_max=80,
+        min_support=0.004,
+        seed=31,
     ),
 }
 

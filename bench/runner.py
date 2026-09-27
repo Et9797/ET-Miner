@@ -11,8 +11,13 @@ signatures — kernel variant, filter impl, GPU count, NCCL mode, row
 balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
-Usage: python bench/runner.py --mode smoke|full [--out DIR] [--max-hours H]
-       [--only SUBSTR] [--skip SUBSTR]
+Usage: python bench/runner.py --mode smoke|full|consolidation [--out DIR]
+       [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
+
+`consolidation` runs the GPU-layer consolidation matrix
+(bench/consolidation_matrix.py): every config names its route explicitly,
+and every (dataset, min_support, max_length, prune_equal_support) group must
+agree on its signature across GPU, SON and CPU routes alike.
 """
 
 from __future__ import annotations
@@ -70,6 +75,10 @@ def _cfg(id_, preset, *, variant="legacy", filter_impl=None, n_gpus=2, balance=N
 
 
 def build_matrix(mode: str, n_dev: int) -> list[dict]:
+    if mode == "consolidation":
+        from consolidation_matrix import build_consolidation_matrix
+
+        return build_consolidation_matrix(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -237,12 +246,48 @@ def _campaign_out(rev: str | None = None) -> Path:
     return DEFAULT_OUT / (rev or _git_rev())
 
 
+def _within(cfg: dict, rows: list[dict]) -> str | None:
+    """None when a conditional consolidation config qualifies, else why it does not.
+
+    `requires_within = {"twin", "factor", "level"}`: the twin's median time at
+    `level` must be within `factor` of the fastest median at that level among
+    configs of the twin's workload that use the same number of GPUs, over the
+    ok rows recorded so far.
+    """
+    import statistics
+
+    req = cfg.get("requires_within")
+    if not req:
+        return None
+    workload = req["twin"].split("-", 1)[0]
+    by_base: dict[str, list[float]] = {}
+    for r in rows:
+        c = r.get("config", {})
+        if r.get("status") != "ok" or c.get("n_gpus") != cfg["n_gpus"]:
+            continue
+        if not str(c.get("base_id", "")).startswith(workload + "-"):
+            continue
+        ms = next((lv["ms"] for lv in r.get("levels", []) if lv["k"] == req["level"]), None)
+        if ms is not None:
+            by_base.setdefault(c["base_id"], []).append(ms)
+    if req["twin"] not in by_base:
+        return f"skipped: {req['twin']} has no ok K={req['level']} time"
+    medians = {b: statistics.median(v) for b, v in by_base.items()}
+    best = min(medians.values())
+    twin = medians[req["twin"]]
+    if twin > req["factor"] * best:
+        return (f"skipped: {req['twin']} K={req['level']} median {twin / 1000:.1f}s is more than "
+                f"{req['factor']}x the {cfg['n_gpus']}-GPU best {best / 1000:.1f}s")
+    return None
+
+
 def run_config(cfg: dict, out_dir: Path) -> dict:
     print(f"→ {cfg['id']} (timeout {cfg['timeout_s']}s) env={cfg['env']}", flush=True)
     safe_id = cfg["id"].replace("#", "_")
     log_path = out_dir / f"{safe_id}.log"
     result_path = out_dir / f"{safe_id}.result.json"
     cfg = {**cfg, "result_path": str(result_path)}
+    t_proc = time.time()
     with log_path.open("w") as log_f:
         proc = subprocess.Popen(
             [sys.executable, str(CHILD), json.dumps(cfg)],
@@ -257,22 +302,25 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
-            return {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev()}
+            return {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev(),
+                    "proc_s": round(time.time() - t_proc, 1)}
+    proc_s = round(time.time() - t_proc, 1)
     # Result file first (immune to NCCL's raw fd-1 writes splicing the
     # child's stdout); stdout scan as debug fallback.
     rev = _git_rev()
     if result_path.exists():
         try:
-            return {**json.loads(result_path.read_text()), "rev": rev}
+            return {**json.loads(result_path.read_text()), "rev": rev, "proc_s": proc_s}
         except json.JSONDecodeError:
             pass
     for line in reversed(stdout.strip().splitlines() or [""]):
         if line.startswith("{"):
             try:
-                return {**json.loads(line), "rev": rev}
+                return {**json.loads(line), "rev": rev, "proc_s": proc_s}
             except json.JSONDecodeError:
                 break
-    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})", "rev": rev}
+    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})", "rev": rev,
+            "proc_s": proc_s}
 
 
 def _coverage(
@@ -328,7 +376,13 @@ def _coverage(
 
 
 def group_key(cfg: dict) -> tuple:
-    return (cfg["preset"], cfg.get("max_length"), cfg.get("min_support"), bool(cfg.get("two_phase")))
+    return (
+        cfg["preset"],
+        cfg.get("max_length"),
+        cfg.get("min_support"),
+        bool(cfg.get("two_phase")),
+        bool(cfg.get("prune_equal_support")),
+    )
 
 
 def check_equivalence(rows: list[dict]) -> list[str]:
@@ -351,7 +405,7 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["smoke", "full"], required=True)
+    ap.add_argument("--mode", choices=["smoke", "full", "consolidation"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--only", default=None, help="run only configs whose id contains this")
@@ -423,6 +477,14 @@ def main() -> int:
         if deadline and time.time() > deadline:
             print("max-hours reached — stopping (resume with the same command)")
             break
+        skip_reason = _within(cfg, rows)
+        if skip_reason:
+            print(f"{skip_reason}: {cfg['id']}")
+            result = {"id": cfg["id"], "config": cfg, "status": skip_reason, "rev": _git_rev()}
+            rows.append(result)
+            with raw.open("a") as f:
+                f.write(json.dumps(result) + "\n")
+            continue
         result = run_config(cfg, out_dir)
         if result.get("status") != "ok":
             failed_here.append(f"{cfg['id']} ({result.get('status')})")
@@ -437,7 +499,7 @@ def main() -> int:
     # would suppress the campaign's only cross-mode refutation: smoke's
     # `stressk2ml2-{legacy,shared}-2g` and full's
     # `stressk2-filter-{compact,cupy,cpu}` all share
-    # `group_key == ('stress_k2', 2, None, False)`, and that group is the sole
+    # `group_key == ('stress_k2', 2, None, False, False)`, and that group is the sole
     # place KERNEL_VARIANT and FILTER_IMPL results ever meet. Both modes write
     # to one campaign directory so that they do meet.
     #

@@ -359,8 +359,13 @@ def _warn_missing_rust_once(what: str) -> None:
     global _MISSING_RUST_WARNED
     if not _MISSING_RUST_WARNED:
         _MISSING_RUST_WARNED = True
-        from et_miner.backends import BUILD_COMMAND
+        from et_miner.backends import BUILD_COMMAND, RUST_DISABLED
 
+        if RUST_DISABLED:
+            logger.warning(
+                f"et_miner_rust is disabled by ET_MINER_DISABLE_RUST=1 — {what} is taking the Python fallback."
+            )
+            return
         logger.warning(
             f"et_miner_rust is not installed — {what} is taking the Python fallback. "
             f"Same itemsets, ~9x the candidate-generation time. Build it with `{BUILD_COMMAND}`"

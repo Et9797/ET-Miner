@@ -71,9 +71,13 @@ if HAS_RUST:
 else:
 
     def apriori_from_csr(*args, **kwargs):
-        """Stub raised when the Rust extension is not built."""
+        """Stub raised when the Rust extension is not built or is disabled."""
         from et_miner.backends import BUILD_COMMAND
 
+        if backends.RUST_DISABLED:
+            raise MiningError(
+                "apriori_from_csr requires the Rust extension, which ET_MINER_DISABLE_RUST=1 disables."
+            )
         raise MiningError(
             f"apriori_from_csr requires the Rust extension. Build it with: "
             f"{BUILD_COMMAND} (see README, Tier 2)"

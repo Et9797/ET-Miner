@@ -1,4 +1,4 @@
-"""N10 -- five multi-GPU wrappers assumed the caller's bitvecs were on device 0.
+"""N10 -- four multi-GPU wrappers assumed the caller's bitvecs were on device 0.
 
 Each fan-out wrapper aliases the caller's array on one device and uploads a
 copy to the others, and each chose that device with a literal:
@@ -107,23 +107,6 @@ class TestFanOutHonoursTheCallersDevice:
 
         bv1, _ = _bitvecs_on(1)
         g_items, g_counts = count_k3plus_fully_fused_multi_gpu(bv1, prev, 3, n_u64s, MIN_COUNT, 2)
-        assert _sorted_pairs(g_items, g_counts) == want
-
-    @pytest.mark.gpu
-    @pytest.mark.multigpu
-    def test_k3plus_candidate_list(self):
-        from et_miner.gpu.kernels import count_itemsets_fused_k3plus, count_itemsets_fused_k3plus_multi_gpu
-
-        _assert_two_devices()
-        cands = [(i, j, k) for i in range(6) for j in range(i + 1, 7) for k in range(j + 1, 8)]
-
-        bv0, n_u64s = _bitvecs_on(0)
-        with cp.cuda.Device(0):
-            w_items, w_counts = count_itemsets_fused_k3plus(bv0, cands, n_u64s, MIN_COUNT)
-        want = _sorted_pairs(w_items, w_counts)
-
-        bv1, _ = _bitvecs_on(1)
-        g_items, g_counts = count_itemsets_fused_k3plus_multi_gpu(bv1, cands, n_u64s, MIN_COUNT, 2)
         assert _sorted_pairs(g_items, g_counts) == want
 
     @pytest.mark.gpu

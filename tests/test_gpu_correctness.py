@@ -178,9 +178,8 @@ class TestResultTruncationRaises:
 class TestKernelKCap:
     """#25 -- the K>=3 kernels cache the candidate in a fixed 64-slot shared
     array. Beyond the cap they read an uninitialised slot AS A COLUMN INDEX and
-    write one past the array into the block reduction. Only the shared/tiled
-    wrapper enforced anything; the legacy, fully-fused and gpu-resident
-    wrappers passed the shape straight through."""
+    write one past the array into the block reduction, so every K>=3 wrapper
+    checks the one host-side cap before launching."""
 
     def test_the_cap_is_a_single_constant(self):
         from et_miner.gpu.kernels.loader import MAX_SUPPORTED_K, _assert_k_supported
@@ -192,16 +191,19 @@ class TestKernelKCap:
 
     @pytest.mark.gpu
     def test_an_oversized_candidate_raises_instead_of_miscounting(self):
-        """Before this, K=63 returned 640 where the true count is 0."""
+        """At the cap the fully-fused kernel counts exactly; one past it raises."""
         import cupy as cp
 
-        from et_miner.gpu.kernels import count_itemsets_fused_k3plus
+        from et_miner.gpu.kernels import count_k3plus_fully_fused
 
         n_rows, n_cols, n_u64s = 640, 80, 10
         bv = cp.asarray(np.full((n_cols, n_u64s), 0xFFFFFFFFFFFFFFFF, dtype=np.uint64))
-        count_itemsets_fused_k3plus(bv, [tuple(range(62))], n_u64s, 1)  # at the cap: fine
+        at_cap = [tuple(range(60)) + (60,), tuple(range(60)) + (61,)]
+        cands, counts = count_k3plus_fully_fused(bv, at_cap, 62, n_u64s, 1)
+        assert cands == [tuple(range(62))] and counts.tolist() == [n_rows]
+        past_cap = [tuple(range(61)) + (61,), tuple(range(61)) + (62,)]
         with pytest.raises(ValueError, match="exceeds the kernel cap"):
-            count_itemsets_fused_k3plus(bv, [tuple(range(63))], n_u64s, 1)
+            count_k3plus_fully_fused(bv, past_cap, 63, n_u64s, 1)
 
 
 @pytest.mark.gpu

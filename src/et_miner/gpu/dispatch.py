@@ -65,11 +65,6 @@ def resolved_kernel_variant() -> str:
 PAIR_COUNT_THRESHOLD = 15_000_000
 
 
-def should_use_multi_gpu(n_frequent_items: int, n_gpus: int | None = None) -> bool:
-    n_pairs = comb(n_frequent_items, 2)
-    return _resolve_gpus(n_gpus, n_pairs, PAIR_COUNT_THRESHOLD, "k=2") > 1
-
-
 def dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count, n_gpus=None):
     """Dispatch k=2 pair counting to single or multi-GPU automatically.
 
@@ -102,35 +97,6 @@ def dispatch_k2(bitvecs_gpu, freq_cols, n_u64s, min_count, n_gpus=None):
 # RTX 3090: overhead ~2ms per GPU. Break-even at ~50K candidates.
 # UPDATE after Phase 4 benchmark data.
 CANDIDATE_COUNT_THRESHOLD_K3 = 500_000
-
-
-def should_use_multi_gpu_k3(n_candidates: int, n_gpus: int | None = None) -> bool:
-    return _resolve_gpus(n_gpus, n_candidates, CANDIDATE_COUNT_THRESHOLD_K3, "k>=3") > 1
-
-
-def dispatch_k3plus(bitvecs_gpu, candidates, n_u64s, min_count, n_gpus=None):
-    """Dispatch k>=3 candidate counting to single or multi-GPU automatically.
-
-    Drop-in replacement for count_itemsets_cuda() + Python filtering.
-
-    Args:
-        bitvecs_gpu: CuPy array of shape (n_cols, n_u64s) with packed bitvectors.
-        candidates: list of tuples of int column indices, e.g. [(0,1,3), (0,2,4)].
-        n_u64s: Number of uint64 words per bitvector.
-        min_count: Minimum support count threshold.
-
-    Returns:
-        Tuple of (frequent_candidates, counts) — only candidates meeting min_count.
-    """
-    from .kernels import (
-        count_itemsets_fused_k3plus,
-        count_itemsets_fused_k3plus_multi_gpu,
-    )
-
-    _n = _resolve_gpus(n_gpus, len(candidates), CANDIDATE_COUNT_THRESHOLD_K3, "k>=3")
-    if _n > 1:
-        return count_itemsets_fused_k3plus_multi_gpu(bitvecs_gpu, candidates, n_u64s, min_count, _n)
-    return count_itemsets_fused_k3plus(bitvecs_gpu, candidates, n_u64s, min_count)
 
 
 def dispatch_k3plus_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, n_gpus=None):

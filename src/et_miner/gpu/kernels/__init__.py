@@ -7,7 +7,7 @@ Import-safe without CuPy.
 
 from .batch import count_itemsets_cuda
 from .csr_warp import CANDS_PER_BLOCK, count_csr_gather, count_csr_range, write_csr_gather
-from .decode import decode_k2_pairs_flat, decode_k3plus_candidates, decode_k3plus_flat
+from .decode import decode_k2_pairs_flat, decode_k3plus_flat
 from .filter import compact_threshold_filter
 from .shared_tiled import (
     compute_cumulative_tilepairs,
@@ -32,8 +32,6 @@ from .k3plus import (
     K3PlusGroups,
     build_k3plus_groups,
     build_k3plus_groups_from_flat,
-    count_itemsets_fused_k3plus,
-    count_itemsets_fused_k3plus_multi_gpu,
     count_k3plus_allcounts,
     count_k3plus_fully_fused,
     count_k3plus_fully_fused_multi_gpu,
@@ -54,8 +52,6 @@ __all__ = [
     "get_popcount_kernel",
     "count_pairs_fused_k2",
     "count_pairs_fused_k2_multi_gpu",
-    "count_itemsets_fused_k3plus",
-    "count_itemsets_fused_k3plus_multi_gpu",
     "count_k3plus_fully_fused",
     "count_k3plus_fully_fused_multi_gpu",
     "count_pairs_fused_k2_gpu_resident",
@@ -74,7 +70,6 @@ __all__ = [
     "build_k3plus_groups_from_flat",
     "K3PlusGroups",
     "decode_k2_pairs_flat",
-    "decode_k3plus_candidates",
     "decode_k3plus_flat",
     "compact_threshold_filter",
     "compute_cumulative_tilepairs",

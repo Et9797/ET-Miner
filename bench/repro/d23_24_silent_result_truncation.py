@@ -32,7 +32,7 @@ def reproduce() -> tuple[bool, str]:
 
     import numpy as np
 
-    from et_miner.gpu.kernels import count_itemsets_fused_k3plus
+    from et_miner.gpu.kernels import count_k3plus_fully_fused
     from et_miner.gpu.kernels.loader import _warn_result_truncation
 
     findings = []
@@ -55,15 +55,14 @@ def reproduce() -> tuple[bool, str]:
             bits[c, r // 64] |= np.uint64(1) << np.uint64(r % 64)
     bv = cp.asarray(bits)
 
-    cands = [(a, b, c) for a in range(n_cols) for b in range(a + 1, n_cols)
-             for c in range(b + 1, n_cols)][:4000]
-    full, _ = count_itemsets_fused_k3plus(bv, cands, n_u64s, 1)
+    prev_pairs = [(a, b) for a in range(n_cols) for b in range(a + 1, n_cols)]
+    full, _ = count_k3plus_fully_fused(bv, prev_pairs, 3, n_u64s, 1)
     n_true = len(full)
     if n_true < 10:
         return False, f"fixture produced only {n_true} survivors; cannot overflow a buffer"
 
     try:
-        got, _ = count_itemsets_fused_k3plus(bv, cands, n_u64s, 1, max_results=n_true - 1)
+        got, _ = count_k3plus_fully_fused(bv, prev_pairs, 3, n_u64s, 1, max_results=n_true - 1)
         findings.append(
             f"kernel returned {len(got):,} of {n_true:,} survivors with no error "
             f"({n_true - len(got)} lost silently)"

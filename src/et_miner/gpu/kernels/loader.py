@@ -83,27 +83,16 @@ def _warn_result_truncation(
     )
 
 
-#: Every K>=3 kernel caches the candidate in `__shared__ int s_items[64]`,
-#: immediately followed by `__shared__ unsigned long long warp_sums[8]`.
-#:
-#: The three GROUP kernels fill s_items under `threadIdx.x < prefix_len &&
-#: threadIdx.x < 62`, and thread 0 then separately writes s_items[prefix_len]
-#: and s_items[prefix_len+1] -- which at prefix_len == 62 land exactly on slots
-#: 62 and 63. So they are correct to K=64 and break at K=65, where slot 62 is
-#: never written but IS read as a column index, and s_items[prefix_len+1]
-#: writes index 64: one past the array, into warp_sums, corrupting the block
-#: reduction too.
-#:
-#: count_itemsets_fused_k3plus caches the whole itemset with no separate suffix
-#: write, and its guard `threadIdx.x < k && threadIdx.x < 62` leaves slots 62-63
-#: unwritten while the AND loop reads s_items[0..k-1] -- so it is correct only
-#: to K=62, as its own comment says.
-#:
-#: 62 is therefore the uniform host-side cap. It costs nothing: reaching K=63
-#: requires a frequent 62-itemset, i.e. all 2**62 of its subsets frequent, which
-#: no run completes. Enforcing it on the host is the whole fix -- do NOT widen
-#: the device guards, which buys unreachable capacity and leaves K>=65 silently
-#: corrupt while making the code look repaired.
+#: Host-side cap on K for every K>=3 kernel. The group kernels cache the
+#: candidate in `__shared__ int s_items[64]` (prefix under
+#: `threadIdx.x < prefix_len && threadIdx.x < 62`, then the two suffixes at
+#: s_items[prefix_len] and s_items[prefix_len+1]) and `shared_tiled.cu` stages
+#: the prefix in `s_pref[62]`, so every kernel is exact to K=64; at K=65 a
+#: prefix slot is read without being written and the second suffix lands one
+#: past the array, in the block reduction. The cap sits two below that bound.
+#: Reaching K=63 needs a frequent 62-itemset, which no run completes. The cap
+#: is enforced here, on the host: widening the device guards would buy
+#: unreachable capacity and leave K>=65 corrupt.
 MAX_SUPPORTED_K = 62
 
 
@@ -145,8 +134,8 @@ def _assert_home(context: str, **arrays) -> None:
 
     That pinning is NOT a module-wide property, and reading it as one is how
     the K=2 twin of N20 shipped. `k2.py::count_pairs_fused_k2`,
-    `k3plus.py::count_itemsets_fused_k3plus`, `k3plus.py::count_k3plus_fully_fused`
-    and `shared_tiled.py::count_pairs_k2_shared_fused` all still allocate and
+    `k3plus.py::count_k3plus_fully_fused` and
+    `shared_tiled.py::count_pairs_k2_shared_fused` all still allocate and
     launch on the AMBIENT device; the last of those is what `gpu/dispatch.py`
     selects by default when `ET_MINER_KERNEL_VARIANT` is unset, and both it and
     the `k2.py` one were measured aborting with `cudaErrorIllegalAddress` from
@@ -156,10 +145,7 @@ def _assert_home(context: str, **arrays) -> None:
     and equally the reason this docstring may not generalise over them.
 
     It raises instead of transferring: a mixed-device call is a caller bug, and
-    repairing it with a hidden copy makes it unattributable. That is this
-    module's rule, not a project-wide one -- `gpu/csr_build.py` deliberately
-    repairs with `cp.asarray`, because it takes an explicit target `device_id`
-    ("put it here") where these wrappers infer home from the data.
+    repairing it with a hidden copy makes it unattributable.
 
     Callers must invoke this ABOVE any routing. Below a
     `if n_gpus <= 1: return ...` it never runs on a single-GPU host, which is
@@ -276,7 +262,6 @@ _KERNEL_FILES: dict[str, str] = {
     "count_itemset_fused": "itemset_count.cu",
     "count_itemsets_batch": "itemset_count.cu",
     "count_pairs_fused_k2": "pairs_k2.cu",
-    "count_itemsets_fused_k3plus": "k3plus_fused.cu",
     "count_k3plus_from_groups": "k3plus_fullyfused.cu",
     "count_k3plus_gpu_resident": "k3plus_gpu_resident.cu",
     "decode_candidates_gpu": "decode_candidates.cu",
@@ -289,8 +274,6 @@ _KERNEL_FILES: dict[str, str] = {
     "csr_count_gather": "csr_warp.cu",
     "csr_write_gather": "csr_warp.cu",
     "bitvec_extract_tids": "bitvec_extract_tids.cu",
-    "fill_row_ids": "fill_row_ids.cu",
-    "bootstrap_copy": "bootstrap_copy.cu",
     "csr_to_bitvec": "csr_to_bitvec.cu",
 }
 

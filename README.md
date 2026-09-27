@@ -22,7 +22,7 @@ src/et_miner/
 ├── core/        Apriori loop, candidate generation, matrix/sparse counting, rules
 ├── gpu/         CUDA kernels (sources in gpu/kernels/_src/*.cu), bitvec mining,
 │                multi-GPU row-split, NCCL, dispatch heuristics
-├── streaming/   SON streaming (son), multi-GPU streaming, CUDA-streams pipeline, ramdisk
+├── streaming/   SON streaming (son), multi-GPU streaming, ramdisk
 ├── io/          parquet flush-to-disk, Google Cloud Storage upload
 ├── backends.py  single source of truth for CuPy/Rust capability detection
 └── _env.py      every ET_* environment knob, documented in one place

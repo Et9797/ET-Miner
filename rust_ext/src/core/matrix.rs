@@ -123,61 +123,6 @@ pub fn build_csr_from_coo_raw(
     (indptr, indices)
 }
 
-/// Generate random CSR matrix directly in Rust.
-///
-/// Combines data generation + COO→CSR conversion in one parallel operation.
-/// This is much faster than generating random data in Python and then converting.
-///
-/// # Arguments
-/// * `n_rows` - Number of rows in the matrix
-/// * `n_cols` - Number of columns in the matrix
-/// * `avg_items_per_row` - Average number of non-zero items per row
-/// * `seed` - Random seed for reproducibility
-///
-/// # Returns
-/// Tuple of (indptr, indices) arrays in CSR format.
-pub fn generate_random_csr_raw(
-    n_rows: usize,
-    n_cols: usize,
-    avg_items_per_row: usize,
-    seed: u64,
-) -> (Vec<i64>, Vec<i64>) {
-    let nnz = n_rows * avg_items_per_row;
-
-    // Parallel random generation with thread-local RNGs
-    let entries: Vec<(i64, i64)> = (0..nnz)
-        .into_par_iter()
-        .map_init(
-            || {
-                let thread_id = rayon::current_thread_index().unwrap_or(0);
-                rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(seed.wrapping_add(thread_id as u64))
-            },
-            |rng, _| {
-                let row = rng.gen_range(0..n_rows as i64);
-                let col = rng.gen_range(0..n_cols as i64);
-                (row, col)
-            }
-        )
-        .collect();
-
-    // Parallel sort by (row, col)
-    let mut entries = entries;
-    entries.par_sort_unstable_by_key(|&(r, c)| (r, c));
-
-    // Build CSR indptr
-    let mut indptr = vec![0i64; n_rows + 1];
-    for &(row, _) in &entries {
-        indptr[row as usize + 1] += 1;
-    }
-    for i in 1..=n_rows {
-        indptr[i] += indptr[i - 1];
-    }
-
-    let indices: Vec<i64> = entries.into_iter().map(|(_, col)| col).collect();
-
-    (indptr, indices)
-}
-
 /// Generate bootstrapped CSR matrix by sampling source transactions with replacement.
 ///
 /// This function generates a bootstrap sample for statistical analysis.
@@ -334,17 +279,5 @@ mod tests {
         assert_eq!(indptr, vec![0i64, 2, 4, 6]);
         // Indices should be sorted within each row
         assert_eq!(indices, vec![0i64, 1, 1, 2, 0, 2]);
-    }
-
-    #[test]
-    fn test_generate_random_csr() {
-        let (indptr, indices) = generate_random_csr_raw(100, 50, 5, 42);
-
-        // Should have 101 elements in indptr (n_rows + 1)
-        assert_eq!(indptr.len(), 101);
-        // First element should be 0
-        assert_eq!(indptr[0], 0);
-        // Should have approximately 500 non-zero entries
-        assert!((indices.len() as i64 - 500).abs() < 100);
     }
 }

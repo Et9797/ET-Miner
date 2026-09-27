@@ -61,87 +61,6 @@ def _rows_sorted(flat) -> bool:
     return bool(np.all(a[rows, first] < b[rows, first]))
 
 
-def _prune_non_free_flat(current_flat, current_counts, prev_flat, prev_counts):
-    """Keep only the free-sets (generators) of a level.
-
-    An itemset is a free-set when no proper subset has the same support
-    [Bastide et al. 2000, Pascal]. If dropping one item leaves the count
-    unchanged, that item is implied by the rest and the itemset is not free.
-    Free-sets are anti-monotone (every subset of a free-set is free), so the
-    next level can be generated from the survivors alone without losing any
-    free-set — which is why the caller may hand the survivors forward.
-
-    NOT closed-itemset mining: closed asks about equal-support *supersets*,
-    this asks about equal-support *subsets*. ``prev_flat``/``prev_counts`` must
-    be the COMPLETE previous level, not a previously pruned one, or the test
-    misses subsets that were themselves pruned and under-prunes.
-
-    Operates on raw integer counts (not float support) for exact comparison.
-    Uses bytes-key dict for O(1) lookup of (k-1)-subsets.
-
-    Args:
-        current_flat: numpy int32 (n, k) — current level frequent itemsets.
-        current_counts: numpy int64 (n,) — raw support counts.
-        prev_flat: numpy int32 (m, k-1) — previous level frequent itemsets.
-        prev_counts: numpy int64 (m,) — raw support counts for previous level.
-
-    Returns:
-        Tuple of (pruned_flat, pruned_counts) with the non-free itemsets removed.
-    """
-    import numpy as np
-
-    if prev_flat is None or prev_counts is None or len(prev_flat) == 0 or len(current_flat) == 0:
-        return current_flat, current_counts
-
-    # --- Rust fast path: HashMap + Rayon parallel, GIL-free ---
-    try:
-        from et_miner.backends import get_rust_ext
-
-        et_miner_rust = get_rust_ext()
-        if et_miner_rust is None:
-            raise ImportError("et_miner_rust not built")
-
-        cf = np.ascontiguousarray(current_flat, dtype=np.int32)
-        cc = np.ascontiguousarray(current_counts, dtype=np.int64)
-        pf = np.ascontiguousarray(prev_flat, dtype=np.int32)
-        pc = np.ascontiguousarray(prev_counts, dtype=np.int64)
-        n_before = len(current_flat)
-        k = current_flat.shape[1]
-
-        # Compact path returns pruned arrays directly, skipping the
-        # single-threaded numpy fancy-index that bottlenecked at 30-60s on 430M
-        # K=6 rows. Sequential extend_from_slice in Rust ~10-13× faster.
-        _compact = _rust_prune_fn(et_miner_rust, "prune_non_free_flat_compact")
-        if _compact is not None:
-            flat_1d, pruned_counts, n_kept = _compact(cf, cc, pf, pc)
-            if n_before > n_kept:
-                logger.debug(
-                    f"    Free-set pruning: {n_before:,} → {n_kept:,} ({100 * (1 - n_kept / n_before):.1f}% non-free removed) [rust-compact]"
-                )
-            # Reshape (n_kept * k,) → (n_kept, k) — zero-copy view on
-            # C-contiguous source. Empty case yields (0, k) shape, not (0,),
-            # so prev_frequent_flat.shape[1] stays k for the next K level.
-            return flat_1d.reshape((n_kept, k)), pruned_counts
-
-        # Legacy path: bool mask + Python fancy-index (slow at high K)
-        _mask_fn = _rust_prune_fn(et_miner_rust, "prune_non_free_flat")
-        if _mask_fn is None:
-            raise AttributeError("et_miner_rust exposes no free-set prune")
-        mask = _mask_fn(cf, cc, pf, pc)
-        n_after = int(mask.sum())
-        if n_before > n_after:
-            logger.debug(
-                f"    Free-set pruning: {n_before:,} → {n_after:,} ({100 * (1 - n_after / n_before):.1f}% non-free removed) [rust-mask]"
-            )
-        return current_flat[mask], current_counts[mask]
-    except (ImportError, AttributeError):
-        pass
-
-    # --- Python fallback ---
-    mask = _prune_non_free_mask_python(current_flat, current_counts, prev_flat, prev_counts)
-    return current_flat[mask], current_counts[mask]
-
-
 def _prune_non_free_mask_python(current_flat, current_counts, prev_flat, prev_counts):
     """Pure-Python free-set keep-mask (True = keep). Dict-based, so it
     does not need prev_flat sorted."""
@@ -176,11 +95,16 @@ def _prune_non_free_mask_python(current_flat, current_counts, prev_flat, prev_co
 
 
 def _prune_non_free_mask(current_flat, current_counts, prev_flat, prev_counts):
-    """Keep-mask form of :func:`_prune_non_free_flat` (True = keep / open), for
-    callers that must filter more than the two arrays in lockstep (the
-    sparse-CSR path also carries the survivor index array). Rust
-    ``prune_non_free_flat`` when available (prev_flat must be row-sorted),
-    else the dict-based Python fallback."""
+    """Free-set keep-mask of a level (True = keep).
+
+    An itemset is a free-set (generator) when no (k-1)-subset has the same
+    count [Bastide et al. 2000]. ``prev_flat``/``prev_counts`` must be the
+    COMPLETE previous level, or the test misses subsets that were themselves
+    pruned and under-prunes. A mask rather than filtered arrays, because the
+    sparse-CSR path also carries the survivor index array and filters it in
+    lockstep. Rust ``prune_non_free_flat`` when available (``prev_flat`` must be
+    row-sorted), else the dict-based Python fallback.
+    """
     import numpy as np
 
     n = len(current_flat)

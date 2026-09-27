@@ -99,26 +99,6 @@ def _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s):
     )
 
 
-def _count_batch_prebuilt(bitvecs_gpu, items_flat_np, offsets_np, n_itemsets, n_u64s):
-    """Count itemsets using pre-built flat numpy arrays (avoids Python loop).
-
-    For multi-GPU recount: build arrays ONCE, each GPU only does DMA transfer.
-    Eliminates O(N) Python list-building that was serialized by the GIL.
-    """
-    import cupy as cp
-
-    items_gpu = cp.array(items_flat_np, dtype=cp.int32)
-    offsets_gpu = cp.array(offsets_np, dtype=cp.int64)  # FIXED: int32 -> int64 for >2B elements
-
-    return _launch_batch_kernel(
-        bitvecs_gpu,
-        items_gpu,
-        offsets_gpu,
-        n_itemsets,
-        n_u64s,
-    )
-
-
 def _launch_batch_kernel(bitvecs_gpu, all_items_gpu, offsets_gpu, n_itemsets, n_u64s):
     """Shared kernel launch logic for batch counting."""
     import cupy as cp

@@ -74,7 +74,7 @@ group must produce the same signature.
 uv run python -m et_miner.synthetic --preset all --out datasets/synth
 uv run python datasets/prepare_online_retail.py
 OUT=bench/results/$(date +%F)-consolidation
-uv run python bench/runner.py --mode consolidation --out $OUT --max-hours 6.5
+uv run python bench/runner.py --mode consolidation --out $OUT --max-gpu-hours 7.5
 uv run python bench/consolidation_report.py --out $OUT
 ```
 

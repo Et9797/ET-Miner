@@ -7,7 +7,9 @@ through `bench/runner.py --mode consolidation`.
 ## Box and budget
 
 2× RTX 3060 12 GB (sm_86, no P2P), Ryzen 5 5600X (6C/12T), 31 GB RAM. Budget:
-≤ 8 GPU-hours, counted as Σ (process wall × devices the config uses).
+≤ 8 GPU-hours, counted as Σ (process wall × devices the config uses; a CPU
+config counts as one). The campaign runs with `--max-gpu-hours 7.5`, leaving
+room for the calibration and microbench runs that preceded it.
 
 Every config pins `POLARS_MAX_THREADS`, `RAYON_NUM_THREADS`, `MKL_NUM_THREADS`
 and `OMP_NUM_THREADS` to 6 (the physical core count), passes `n_jobs=6` where it

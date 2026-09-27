@@ -408,6 +408,9 @@ def main() -> int:
     ap.add_argument("--mode", choices=["smoke", "full", "consolidation"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
+    ap.add_argument("--max-gpu-hours", type=float, default=None,
+                    help="stop once the rows of this invocation used this many GPU-hours "
+                         "(subprocess time x devices the config uses; CPU configs count as one)")
     ap.add_argument("--only", default=None, help="run only configs whose id contains this")
     ap.add_argument("--skip", default=None, help="skip configs whose id contains this")
     args = ap.parse_args()
@@ -470,12 +473,16 @@ def main() -> int:
     deadline = time.time() + args.max_hours * 3600 if args.max_hours else None
 
     failed_here: list[str] = []
+    gpu_seconds = 0.0
     for cfg in selected:
         if cfg["id"] in done_ids:
             print(f"skip (done): {cfg['id']}  [replayed from raw.jsonl]")
             continue
         if deadline and time.time() > deadline:
             print("max-hours reached — stopping (resume with the same command)")
+            break
+        if args.max_gpu_hours is not None and gpu_seconds > args.max_gpu_hours * 3600:
+            print(f"max-gpu-hours reached ({gpu_seconds / 3600:.2f}) — stopping (resume with the same command)")
             break
         skip_reason = _within(cfg, rows)
         if skip_reason:
@@ -486,6 +493,8 @@ def main() -> int:
                 f.write(json.dumps(result) + "\n")
             continue
         result = run_config(cfg, out_dir)
+        devices = 1 if cfg.get("route") == "F" else int(cfg.get("n_gpus", 1))
+        gpu_seconds += (result.get("proc_s") or 0) * devices
         if result.get("status") != "ok":
             failed_here.append(f"{cfg['id']} ({result.get('status')})")
         rows.append(result)

@@ -12,9 +12,10 @@ construction. Measured on an RTX A4000 (CuPy 14.1), a 64M-element slice
 takes 1.1 B/element of extra VRAM at a 1% pass rate and 13 B/element
 (794 MiB) when every element survives, under the chunk budget's safety
 margin of max(1 GiB, 4% of VRAM) (``row_split_chunks``). A slice that still
-does not fit the device is filtered on the host (slice-wise D2H, 4 B/element
-of host RAM), so a degenerate chunk degrades to a slower path instead of
-failing.
+does not fit the device is filtered on the host (slice-wise D2H; up to
+24 B/element of host RAM for the slice, its int64 indices, the gathered
+counts and their int64 copy), so a degenerate chunk degrades to a slower
+path instead of failing.
 
 This was one of three implementations selected by ``ET_MINER_FILTER_IMPL``:
 a two-launch ``compact_threshold`` kernel with a host sort, this sliced

@@ -51,16 +51,23 @@ figures move — measured, per artifact, not assumed.
   Such a box (a Ryzen AM4 host with two RTX A4000s behind the CPU's host
   bridge, `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`) reports
   peer access and then loses the copies: `cudaMemcpy`, `cudaMemcpyPeer` and
-  CuPy assignment all return success with the destination untouched, so the
+  CuPy assignment from GPU 1 to GPU 0 return success with the destination
+  untouched (small copies land, copies of 64 KiB and more drop), so the
   staged D2D reduce (the NCCL-absent fallback) summed only GPU 0's shard —
   `smoke` on two GPUs returned 342 itemsets with roughly half their counts
   instead of 694 — `bitvecs=` sharded across two GPUs mined a shard of
   stale memory, and NCCL's P2P transport hung about one run in three at
-  the first collective. `et_miner.gpu.nccl.peer_copy_works` now probes each
-  device pair once with a 4 KiB pattern; when the copy does not land, the
-  staged reduce and the `bitvecs=` shards go through host memory and NCCL
-  is started with `NCCL_P2P_DISABLE=1` (its SHM transport) unless the
-  caller set that variable. Tests: `tests/test_peer_copy_probe.py`.
+  the first collective. No probe can certify such a pair, so
+  `et_miner.gpu.nccl.copy_between_devices` now stages every cross-device
+  copy through host memory (the staged reduce and the `bitvecs=` shards go
+  through it; `ET_MINER_DIRECT_D2D=1` opts back into direct copies for
+  NVLink or a known-good PCIe switch), and NCCL communicators are created
+  under `NCCL_P2P_LEVEL=NVL` (P2P over NVLink only) unless the caller set
+  `NCCL_P2P_LEVEL` or `NCCL_P2P_DISABLE`; the variable is put back
+  afterwards, and it has no effect when another library initialised NCCL
+  first, since NCCL reads it once per process. Tests:
+  `tests/test_cross_device_copy.py` (real transfers of 8M int32 and more,
+  no monkeypatching; the default path never issues a direct copy).
 
 *PR 1 — canonical order and the exact threshold*
 
@@ -532,11 +539,14 @@ replacement.
   20.00 s (compact) vs 19.05 s (cupy) vs 19.99 s (cpu), `deep_sparse_large`
   17.91 vs 18.49 vs 18.83 s (medians of 3), so rule 5 keeps the smallest: no
   kernel, no host sort (48 B/survivor), no host-RAM probe. Six registered
-  kernels remain. Per 64M-element slice on an A4000 the filter takes 94 ms
-  and 1.1 B/element of extra VRAM at a 1% pass rate (13 B/element, 794 MiB,
-  when every element survives); at the 10B-candidate levels of the
-  unmeasured AlphaFold regime that is about 15 s per level where the kernel
-  took two passes over the array — the one place it could have won.
+  kernels remain. Per 64M-element slice on an A4000 the filter takes 10 ms
+  at a 1% pass rate (500 ms when every element survives) and 1.1 B/element
+  of extra VRAM at 1% (12 B/element, 732 MiB, at 100%); at the
+  10B-candidate levels of the unmeasured AlphaFold regime that is about
+  1.6 s per level where the kernel took two passes over the array — the one
+  place it could have won.
+- **`et_miner.gpu.memory_budget`** (the `safe_threshold_filter` shim, imported
+  by nothing, which silently ignored `max_gpu_elements`): gone.
 
 ---
 

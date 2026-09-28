@@ -54,12 +54,11 @@ if TYPE_CHECKING:
 def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, devices=None):
     """Row-split a caller's (n_cols, n_u64s) bitvecs across up to ``n_gpus`` devices.
 
-    Shards are cut at 64-row word boundaries and copied onto their devices (the
-    caller's array is read-only to the engine; the copy stages through the host
-    where devices have no peer access, and explicitly where a device pair's
-    copies do not land — ``gpu.nccl.peer_copy_works``). On one device the
-    caller's array is the only shard. ``devices`` names the shard devices
-    explicitly, repeats allowed.
+    Shards are cut at 64-row word boundaries and copied onto their devices
+    through host memory (``gpu.nccl.copy_between_devices``; a direct
+    device-to-device copy only with ``ET_MINER_DIRECT_D2D=1``). The caller's
+    array is read-only to the engine. On one device the caller's array is the
+    only shard. ``devices`` names the shard devices explicitly, repeats allowed.
 
     Returns:
         ``bitvecs_list`` for ``_apriori_row_split_multi_gpu``: (array, device, rows).
@@ -67,7 +66,7 @@ def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, device
     import cupy as cp
     import numpy as np
 
-    from et_miner.gpu.nccl import peer_copy_works
+    from et_miner.gpu.nccl import copy_between_devices
 
     n_u64s = bitvecs_gpu.shape[1]
     if devices is None:
@@ -80,18 +79,12 @@ def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, device
     shards = []
     for i, dev in enumerate(devices):
         lo, hi = int(cuts[i]), int(cuts[i + 1])
-        home = int(bitvecs_gpu.device.id)
-        with cp.cuda.Device(home):
+        with cp.cuda.Device(bitvecs_gpu.device.id):
             src = cp.ascontiguousarray(bitvecs_gpu[:, lo:hi])
-            staged = None if dev == home or peer_copy_works(dev, home) else src.get()
         with cp.cuda.Device(dev):
-            if staged is None:
-                dst = cp.empty(src.shape, dtype=src.dtype)
-                dst.data.copy_from_device(src.data, src.nbytes)
-            else:
-                dst = cp.asarray(staged)
-            cp.cuda.Device().synchronize()
-        del src, staged
+            dst = cp.empty(src.shape, dtype=src.dtype)
+        copy_between_devices(dst, src)
+        del src
         shards.append((dst, dev, min(hi * 64, n_transactions) - lo * 64))
     logger.info(f"  Pre-built bitvecs: split into {n_dev} row shards")
     return shards
@@ -132,9 +125,8 @@ def _apriori_row_split_multi_gpu(
 
     PCIe transfer per chunk: only survivors × 12 bytes (int64 index +
     int32 count). For K=2 with 35K features: ~600K frequent pairs × 12 =
-    7.2 MB instead of the 2.4 GB dense array. (The default `compact`
-    filter keeps this guarantee at any survivor count; the `cpu` A/B
-    baseline impl deliberately re-enacts the historical full-array D2H.)
+    7.2 MB instead of the 2.4 GB dense array; the sliced filter keeps this
+    guarantee at any survivor count.
 
     ``prune_non_free`` keeps two populations per level, and which one each
     consumer gets is the whole correctness story:

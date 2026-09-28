@@ -43,9 +43,13 @@ the branch is pushed and a pull request against `main` is open.
   `ET_MINER_FILTER_IMPL`, `ET_MINER_ROW_BALANCE=nnz`.
   `ET_MINER_TILED_MIN_GROUP_PAIRS` pins the dispatch (unset = measured).
 - Six registered kernels remain; `bench/selfcheck.py` launches each one.
-- Peer-copy probe (`gpu/nccl.py::peer_copy_works`): on a box whose PCIe P2P
-  drops device-to-device writes, the staged reduce and the `bitvecs=` shards
-  go through host memory and NCCL starts with `NCCL_P2P_DISABLE=1`.
+- Cross-device copies (`gpu/nccl.py::copy_between_devices`) go through host
+  memory: the staged reduce and the `bitvecs=` shards never issue a direct
+  device-to-device copy unless `ET_MINER_DIRECT_D2D=1`, and NCCL is created
+  under `NCCL_P2P_LEVEL=NVL` unless the caller set its own policy (a PCIe P2P
+  copy that does not land corrupts silently, and no probe can tell such a
+  pair apart: the review council measured that a 4 KiB probe passes where
+  64 KiB copies drop).
 - Tier chain: every surviving kernel pinned by a leg's own environment and
   proven with call spies (`tests/test_tier_equivalence.py`, `CLAUDE.md`); the
   three 2-GPU legs pass on the A4000 box.
@@ -56,7 +60,7 @@ the branch is pushed and a pull request against `main` is open.
    protocol mechanically, and the owner may weigh the unmeasured regime):
    the `compact_threshold` kernel went on a tie (it was never faster in a
    measured regime; at the unmeasured 10B-candidate levels the sliced filter
-   costs ≈ 15 s per level where the kernel took two passes), and the nnz row
+   costs ≈ 1.6 s per level where the kernel took two passes), and the nnz row
    balance went on a tie.
 2. **Open review findings** (`REPORT.md`, "Review findings"): `CLAUDE.md`'s
    intrinsic list names three deleted `.cu` files (owner's edit); a hung NCCL
@@ -73,13 +77,16 @@ the branch is pushed and a pull request against `main` is open.
 
 - 2× RTX A4000 16 GB (sm_86) behind the CPU's host bridge (`nvidia-smi topo
   -m`: PHB), Ryzen 5 5600X, 46 GB RAM; CuPy 14.1.1, NCCL 2.31.
-- **PCIe P2P drops writes from GPU 1 to GPU 0** (the other direction lands).
-  Export `NCCL_P2P_DISABLE=1` for every two-GPU job (the miner now sets it
-  itself when its probe fails, but NCCL reads it once per process, so set it
-  before anything else initialises NCCL). Never run P2P traffic (the probe
-  tests, `nccl-hang/repro_nnz2.py`, cudaMemcpyPeer experiments) next to a
-  measurement on the same GPU: a dropped P2P write landed in another
-  process's memory once (`REPORT.md`, "Incident during this run").
+- **PCIe P2P drops writes from GPU 1 to GPU 0** (the other direction lands;
+  small copies land, copies of 64 KiB and more drop). The miner issues no
+  direct device-to-device copy by default and creates NCCL under
+  `NCCL_P2P_LEVEL=NVL`, so nothing needs exporting for it; the campaign
+  runner still exports `NCCL_P2P_DISABLE=1` so every row uses one
+  transport. That variable governs NCCL only: CuPy copies from other code
+  (the `e4bb3ae` clone, `nccl-hang/repro_nnz2.py`, cudaMemcpyPeer
+  experiments) still write P2P, and such a write landed in another
+  process's memory once (`REPORT.md`, "Incident during this run"). Never
+  run them next to a measurement on the same GPU.
 - The campaign clone at `e4bb3ae` is `/root/projects/etm-campaign` (venv with
   CuPy and `et_miner_rust`; `datasets/` symlinked to this checkout). Run it
   with `env -u CONDA_PREFIX uv run --no-sync …` so uv never re-syncs the venv.

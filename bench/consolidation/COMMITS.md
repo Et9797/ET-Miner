@@ -114,6 +114,40 @@ corruption incident; HANDOFF.md lists the open work.
 EOF
 ```
 
+## 6. After the review council (PR #16): no device-to-device copies by default
+
+```
+git add src/et_miner/gpu/nccl.py src/et_miner/gpu/row_split.py src/et_miner/_env.py \
+        src/et_miner/gpu/csr_bitvec.py src/et_miner/gpu/row_split_chunks.py \
+        src/et_miner/gpu/kernels/filter.py src/et_miner/gpu/memory_budget.py \
+        tests/test_cross_device_copy.py tests/test_peer_copy_probe.py tests/test_balance_split.py \
+        tests/test_chunked_dense.py tests/test_threshold_filter.py tests/test_runtime_dependencies.py \
+        CHANGELOG.md bench/README.md bench/consolidation/REPORT.md bench/consolidation/HANDOFF.md \
+        bench/consolidation/COMMITS.md bench/results/2026-09-27-consolidation/FINDINGS.md .claude/handoffs
+git commit -F - <<'EOF'
+gpu: no device-to-device copies by default; NCCL P2P limited to NVLink
+
+The review council of PR #16 measured that the 4 KiB peer-copy probe of
+fd5f706 certifies the broken pair on the A4000 box: 4 KiB copies land
+while copies of 64 KiB and more drop, and the probe answered True in
+most fresh processes, so the staged reduce could still add an unwritten
+staging buffer. The probe is gone. gpu/nccl.py::copy_between_devices
+stages every cross-device copy through host memory (the staged reduce
+and the bitvecs= shards use it); ET_MINER_DIRECT_D2D=1 opts back into
+direct copies. NCCL communicators are created under NCCL_P2P_LEVEL=NVL
+unless the caller set NCCL_P2P_LEVEL or NCCL_P2P_DISABLE, and the
+variable is restored afterwards. Tests: real 8M-element transfers on
+two GPUs with no monkeypatching, and the default path never calls the
+direct copy.
+
+Also from the review: the dead memory_budget shim is gone, the budget's
+dead peer-copy branch and its stale comments are gone, an empty
+ET_MINER_ROW_BALANCE counts as unset, _row_split_cuts lost its unread
+indptr, the filter's host-fallback RAM is documented as 24 B/element,
+and the slice timing is corrected to 10 ms per 64M elements.
+EOF
+```
+
 Every message ends with the trailers the session was given:
 
 ```

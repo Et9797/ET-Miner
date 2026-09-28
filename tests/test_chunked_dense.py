@@ -49,17 +49,16 @@ class TestChunkBudgetFormula:
         assert mc * CHUNK_BYTES_PER_CANDIDATE <= 17 * GIB
         assert mc > 1_000_000_000  # still billions of candidates per chunk
 
-    def test_non_nccl_needs_more_headroom(self):
-        """Today's fallback materializes a peer copy on GPU 0 — budget halves."""
-        kw = dict(avail_bytes=20 * GIB, total_vram_bytes=24 * GIB, group_data_bytes=0)
-        assert chunk_budget_from_bytes(**kw, use_nccl=False) < chunk_budget_from_bytes(**kw, use_nccl=True)
+    def test_non_nccl_reserves_the_staging_buffer(self):
+        """The staged fallback reserves its fixed buffer on GPU 0, nothing per candidate."""
+        from et_miner.gpu.nccl import STAGING_BYTES
 
-    def test_staging_replaces_peer_copy_term(self):
-        """With a fixed staging buffer the per-candidate term drops back."""
-        kw = dict(avail_bytes=20 * GIB, total_vram_bytes=24 * GIB, group_data_bytes=0, use_nccl=False)
-        with_staging = chunk_budget_from_bytes(**kw, staging_bytes=512 * (1 << 20))
-        without = chunk_budget_from_bytes(**kw)
-        assert with_staging > without
+        kw = dict(avail_bytes=20 * GIB, total_vram_bytes=24 * GIB, group_data_bytes=0)
+        nccl = chunk_budget_from_bytes(**kw, use_nccl=True)
+        staged = chunk_budget_from_bytes(**kw, use_nccl=False)
+        assert staged < nccl
+        assert staged == chunk_budget_from_bytes(**kw, use_nccl=False, staging_bytes=STAGING_BYTES)
+        assert (nccl - staged) * (CHUNK_BYTES_PER_CANDIDATE + 2) <= STAGING_BYTES + (CHUNK_BYTES_PER_CANDIDATE + 2)
 
     def test_env_cap_only_lowers(self):
         kw = dict(avail_bytes=20 * GIB, total_vram_bytes=24 * GIB)

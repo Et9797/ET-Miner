@@ -1,6 +1,6 @@
 """psutil is a runtime dependency, not a dev one.
 
-Two modules under ``src/`` measure host memory through psutil and swallow
+One module under ``src/`` measures host memory through psutil and swallows
 ImportError, degrading silently rather than failing (the row-split miner's
 ``max_ram_gb`` guard imports it unguarded):
 

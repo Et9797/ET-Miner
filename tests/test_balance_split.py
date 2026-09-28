@@ -20,42 +20,43 @@ def _indptr(row_nnz):
 
 class TestRowSplitCuts:
     def test_rows_mode_equal_counts(self):
-        cuts = _row_split_cuts(_indptr([1] * 10), 10, 2, balance="rows")
+        cuts = _row_split_cuts(10, 2, balance="rows")
         assert cuts == [(0, 5), (5, 10)]
 
     def test_rows_mode_remainder(self):
-        cuts = _row_split_cuts(_indptr([1] * 10), 10, 3, balance="rows")
+        cuts = _row_split_cuts(10, 3, balance="rows")
         assert cuts == [(0, 4), (4, 8), (8, 10)]
 
     def test_default_is_rows(self):
-        assert _row_split_cuts(_indptr([1] * 10), 10, 2) == [(0, 5), (5, 10)]
+        assert _row_split_cuts(10, 2) == [(0, 5), (5, 10)]
 
     def test_single_gpu_is_whole_range(self):
-        assert _row_split_cuts(_indptr([2] * 7), 7, 1, balance="rows") == [(0, 7)]
+        assert _row_split_cuts(7, 1, balance="rows") == [(0, 7)]
 
     def test_contiguous_and_covering(self):
-        rng = np.random.default_rng(3)
-        indptr = _indptr(rng.integers(0, 50, size=1000))
-        cuts = _row_split_cuts(indptr, 1000, 4, balance="rows")
+        cuts = _row_split_cuts(1000, 4, balance="rows")
         assert cuts[0][0] == 0 and cuts[-1][1] == 1000
         assert all(a[1] == b[0] for a, b in zip(cuts, cuts[1:]))
 
     def test_no_empty_shards(self):
-        cuts = _row_split_cuts(_indptr([1] * 5), 5, 4, balance="rows")
+        cuts = _row_split_cuts(5, 4, balance="rows")
         assert all(e > s for s, e in cuts)
         assert cuts[0][0] == 0 and cuts[-1][1] == 5
 
     def test_more_gpus_than_rows(self):
-        cuts = _row_split_cuts(_indptr([1, 1]), 2, 8, balance="rows")
+        cuts = _row_split_cuts(2, 8, balance="rows")
         assert sum(e - s for s, e in cuts) == 2
 
-    @pytest.mark.parametrize("mode", ["nnz", "roundrobin"])
-    def test_removed_and_unknown_modes_raise_naming_rows(self, mode):
-        with pytest.raises(ValueError, match="equal row counts"):
-            _row_split_cuts(_indptr([1] * 4), 4, 2, balance=mode)
+    def test_removed_nnz_raises_naming_rows(self):
+        with pytest.raises(ValueError, match="balance='nnz' was removed"):
+            _row_split_cuts(4, 2, balance="nnz")
+
+    def test_unknown_mode_raises(self):
+        with pytest.raises(ValueError, match="must be 'rows'"):
+            _row_split_cuts(4, 2, balance="roundrobin")
 
     def test_empty_input(self):
-        assert _row_split_cuts(_indptr([]), 0, 2, balance="rows") == []
+        assert _row_split_cuts(0, 2, balance="rows") == []
 
 
 class TestRemovedNnzBalance:
@@ -68,6 +69,10 @@ class TestRemovedNnzBalance:
         monkeypatch.delenv("ET_MINER_ROW_BALANCE", raising=False)
         _env.reject_removed_knobs()
         monkeypatch.setenv("ET_MINER_ROW_BALANCE", "rows")
+        _env.reject_removed_knobs()
+
+    def test_env_empty_is_unset(self, monkeypatch):
+        monkeypatch.setenv("ET_MINER_ROW_BALANCE", "")
         _env.reject_removed_knobs()
 
     @pytest.mark.parametrize("value", ["nnz", "NNZ", " nnz "])

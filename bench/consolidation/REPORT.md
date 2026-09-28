@@ -141,7 +141,9 @@ within noise: sk2ml2 43.22, dsl 23.58, oom2 to K=3 36.72, SON dsl 184.57.
 ## Verification on the second box (the final tree, 2× RTX A4000)
 
 The DP10 changes and the peer-copy fix were verified on the A4000 box, with
-`NCCL_P2P_DISABLE=1` exported for every GPU job (see finding 21 for why):
+`NCCL_P2P_DISABLE=1` exported for every GPU job (see finding 21 for why; the
+variable governs NCCL only, CuPy's own device-to-device copies ignore it,
+which is why the code now stages them through the host):
 
 | Check | Result |
 |---|---|
@@ -214,10 +216,11 @@ measurement and P2P traffic.
 - **Multi-GPU is verified on one box only**, the 2× A4000 (the three 2-GPU
   tier legs, the multigpu tests, `bitvecs=` across devices, multi-GPU SON,
   the C2/E2 verify rows), and there only with NCCL's P2P transport off: on
-  that box PCIe P2P drops device-to-device writes (finding 21). The probe
-  that now guards the staged reduce and the `bitvecs=` shards detects a copy
-  that does not land; a P2P transport that *hangs* without dropping copies
-  would not be caught, and a hung collective never times out.
+  that box PCIe P2P drops device-to-device writes (finding 21). The code no
+  longer issues any: cross-device copies go through host memory unless
+  `ET_MINER_DIRECT_D2D=1`, and NCCL is limited to NVLink P2P
+  (`NCCL_P2P_LEVEL=NVL`) unless the caller chose; NVLink itself is untested
+  (no such box), and a hung collective never times out (finding 22).
 - **Two GPUs can be slower than one on a wide K≥3 level.** `stress_k2` to
   K=3 took 781.87 s on two A4000s at `e4bb3ae` (the K=3 oversize groups run
   on the per-candidate kernel when they are chunked across devices, DP4)
@@ -225,9 +228,10 @@ measurement and P2P traffic.
   one-GPU fused number on the A4000; the two-GPU number on the final tree is
   not in the verify matrix.
 - **The filter at 10B candidates is extrapolated**, not measured: the sliced
-  CuPy filter costs ≈ 94 ms per 64M-element slice on an A4000 (≈ 15 s per
-  10B-candidate level) where the removed kernel took two passes over the
-  array. The measured regimes (612M candidates at most) tied.
+  CuPy filter costs ≈ 10 ms per 64M-element slice on an A4000 at a 1% pass
+  rate (≈ 1.6 s per 10B-candidate level; 500 ms per slice when every element
+  survives) where the removed kernel took two passes over the array. The
+  measured regimes (612M candidates at most) tied.
 - **sm_90 is untested**, and so are the RTX 3090s the brief assumed: every
   number is from an RTX 3060 12 GB or an RTX A4000 16 GB (both sm_86).
 - **Regimes not covered:** AlphaFold scale (77M rows, K up to 22), cards
@@ -333,15 +337,21 @@ work. "Fixed" items carry a test unless marked.
     sharded across two GPUs mined a shard of stale pool memory (the affinity
     test passed only when the previous test had left the right bytes in the
     pool), and NCCL's P2P transport hung about one run in three at the first
-    collective. `gpu/nccl.py::peer_copy_works` probes each device pair once;
-    a failed probe routes the staged reduce and the shard copies through host
-    memory and starts NCCL with `NCCL_P2P_DISABLE=1`. Tests:
-    `tests/test_peer_copy_probe.py`; `test_nccl_fallback_forced` and the
-    affinity tests now pass on that box. Evidence:
-    `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`.
+    collective. The first fix (`fd5f706`) probed each device pair once with a
+    4 KiB copy; the review council measured that this certifies the broken
+    pair (4 KiB copies land while copies of 64 KiB and more drop, and the
+    probe answered True in most fresh processes), so the probe is gone:
+    `gpu/nccl.py::copy_between_devices` stages every cross-device copy
+    through host memory (the staged reduce and the `bitvecs=` shards),
+    `ET_MINER_DIRECT_D2D=1` opts back into direct copies, and NCCL is
+    created under `NCCL_P2P_LEVEL=NVL` unless the caller set its own policy,
+    with the variable restored afterwards. Tests:
+    `tests/test_cross_device_copy.py` (8M-element transfers, no
+    monkeypatching); `test_nccl_fallback_forced` passes repeatedly on that
+    box. Evidence: `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`.
 22. (should, open) A hung NCCL collective never times out and gives no
-    diagnostic; the probe above catches the copies that do not land, not a
-    transport that only hangs.
+    diagnostic. `NCCL_P2P_LEVEL=NVL` keeps NCCL off the PCIe P2P transport
+    that hangs here; NCCL behaviour on an NVLink box is unverified.
 
 Claims the reviewer tried and failed to break: exact output on every kernel
 setting and output mode (complete, free-sets, anchors, both) on 1 and 2

@@ -405,8 +405,8 @@ def build_bitvecs_gpu_from_scipy(
     return build_bitvecs_gpu(indptr, indices, n_rows, n_cols, device_id, buffer_pool)
 
 
-def _row_split_cuts(indptr: np.ndarray, n_rows: int, n_gpus: int, balance: str = "rows") -> list[tuple[int, int]]:
-    """Contiguous [start, end) row ranges per GPU. Pure numpy — unit-tested.
+def _row_split_cuts(n_rows: int, n_gpus: int, balance: str = "rows") -> list[tuple[int, int]]:
+    """Contiguous [start, end) row ranges per GPU. Pure Python — unit-tested.
 
     Equal row counts (``balance="rows"``, the only mode): dense-kernel cost
     and bitvec bytes scale with ROWS (every kernel strip-mines all
@@ -426,11 +426,14 @@ def _row_split_cuts(indptr: np.ndarray, n_rows: int, n_gpus: int, balance: str =
 
 
 def _check_balance(balance) -> None:
-    if balance != "rows":
+    if balance == "rows":
+        return
+    if balance == "nnz":
         raise ValueError(
-            f"balance={balance!r} was removed: the multi-GPU row split is by equal row counts "
+            "balance='nnz' was removed: the multi-GPU row split is by equal row counts "
             "(balance='rows', the default; nnz-balanced cuts won no regime). Pass 'rows' or None."
         )
+    raise ValueError(f"balance must be 'rows' or None, got {balance!r} (the split is by equal row counts)")
 
 
 def build_bitvecs_row_split_from_arrays(
@@ -478,7 +481,7 @@ def build_bitvecs_row_split_from_arrays(
     if indices.dtype != np.int64:
         indices = indices.astype(np.int64)
 
-    ranges = _row_split_cuts(indptr, n_rows, n_gpus, balance=balance)
+    ranges = _row_split_cuts(n_rows, n_gpus, balance=balance)
 
     def _build_shard(gpu_id, start, end):
         nnz_start = int(indptr[start])

@@ -32,6 +32,12 @@ Variables:
                                        force multi-chunk runs on small data
     ET_MINER_DISABLE_NCCL              "1" skips NCCL init and forces the
                                        staged D2D reduce fallback
+    ET_MINER_DIRECT_D2D                "1" lets the non-NCCL reduce and the
+                                       bitvecs= shard copy use direct
+                                       device-to-device copies; default:
+                                       through host memory (gpu/nccl.py:
+                                       a P2P copy that does not land
+                                       corrupts silently)
     ET_MINER_ROW_BALANCE               removed: "nnz" (or any value but
                                        "rows") raises ValueError; the
                                        multi-GPU row split is by equal row
@@ -129,6 +135,10 @@ def disable_nccl() -> bool:
     return os.environ.get("ET_MINER_DISABLE_NCCL", "").strip() == "1"
 
 
+def direct_d2d() -> bool:
+    return os.environ.get("ET_MINER_DIRECT_D2D", "").strip() == "1"
+
+
 def reject_removed_knobs() -> None:
     """Raise for a knob that no longer exists rather than ignore it."""
     if "ET_MINER_FILTER_IMPL" in os.environ:
@@ -137,10 +147,10 @@ def reject_removed_knobs() -> None:
             "threshold_filter) is the one survivor filter; the compact_threshold kernel and the "
             "whole-array CPU path are gone. Unset it."
         )
-    balance = os.environ.get("ET_MINER_ROW_BALANCE")
-    if balance is not None and balance.strip().lower() != "rows":
+    balance = os.environ.get("ET_MINER_ROW_BALANCE", "").strip()
+    if balance and balance.lower() != "rows":
         raise ValueError(
-            f"ET_MINER_ROW_BALANCE={balance.strip().lower()!r} was removed: the multi-GPU row split is by "
+            f"ET_MINER_ROW_BALANCE={balance.lower()!r} was removed: the multi-GPU row split is by "
             "equal row counts (the old 'rows' default; nnz-balanced cuts won no regime). Unset it."
         )
     if "ET_MINER_KERNEL_VARIANT" in os.environ:

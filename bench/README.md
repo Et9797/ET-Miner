@@ -22,10 +22,14 @@ while they run.
   the first collective on a Ryzen AM4 box with two RTX A4000s;
   `NCCL_P2P_DISABLE=1` (the SHM transport) fixed it
   (`results/2026-09-28-consolidation-2gpu/nccl-hang/README.md`). On the same
-  box plain device-to-device copies do not land either, which the miner now
-  detects (`gpu/nccl.py::peer_copy_works`: the staged reduce goes through
-  host memory and NCCL is started with P2P disabled); the campaign runner
-  sets `NCCL_P2P_DISABLE=1` explicitly so every row uses one transport.
+  box plain device-to-device copies do not land either (small ones do, which
+  is why no probe can tell); the miner therefore stages every cross-device
+  copy through host memory (`gpu/nccl.py::copy_between_devices`,
+  `ET_MINER_DIRECT_D2D=1` opts back in) and creates NCCL under
+  `NCCL_P2P_LEVEL=NVL` unless you set `NCCL_P2P_LEVEL` or
+  `NCCL_P2P_DISABLE` yourself. The campaign runner sets `NCCL_P2P_DISABLE=1`
+  explicitly so every row uses one transport; that variable governs NCCL
+  only, CuPy copies from older revisions still write P2P.
 - **Disk ≥ 40 GB** (datasets + wheels + rust build), **host RAM ≥ 32 GB** —
   a count slice that does not fit the device is filtered on the host
   (4 B/element per 64M-element slice).

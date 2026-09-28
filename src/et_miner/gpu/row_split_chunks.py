@@ -17,9 +17,8 @@ and filter survivors per chunk. This module owns:
   K=2 and K>=3 branches of ``row_split``.
 
 Byte model per chunk candidate: 4 B for the int32 dense counts on every
-GPU, plus reduce workspace — zero for the in-place NCCL path, another
-4 B/candidate on GPU 0 for today's peer-copy fallback (a fixed staging
-buffer replaces that term when the staged reduce lands). Survivor
+GPU (plus slack), and for the non-NCCL reduce a fixed staging buffer on
+GPU 0 (``gpu.nccl.STAGING_BYTES``) instead of any per-candidate term. Survivor
 filtering is deliberately *not* budgeted per candidate: the filter works
 in 64M-element slices whose worst case (13 B/element, every element
 surviving) fits the safety margin, and a slice that does not fit is
@@ -82,7 +81,7 @@ def chunk_budget_from_bytes(
     total_vram_bytes: int,
     group_data_bytes: int = 0,
     use_nccl: bool = True,
-    staging_bytes: int = 0,
+    staging_bytes: int | None = None,
     env_cap: int | None = None,
 ) -> int:
     """Max candidates per dense chunk — the pure byte model.
@@ -93,10 +92,10 @@ def chunk_budget_from_bytes(
         total_vram_bytes: Device VRAM (smallest participating GPU), for the
             fractional safety margin.
         group_data_bytes: Resident K>=3 group arrays (0 for K=2).
-        use_nccl: In-place NCCL reduce (no extra per-candidate workspace)
-            vs the fallback, which needs peer-copy/staging room on GPU 0.
-        staging_bytes: Fixed staging buffer reserved by the non-NCCL
-            reduce (0 while the fallback still full-copies peers).
+        use_nccl: In-place NCCL reduce (no reduce workspace) vs the
+            staged fallback, which reserves its staging buffer on GPU 0.
+        staging_bytes: The non-NCCL reduce's fixed staging buffer; None
+            means ``gpu.nccl.STAGING_BYTES`` (0 with NCCL).
         env_cap: ``ET_MINER_MAX_CHUNK_CANDS`` — caps (never raises) the
             computed budget so tests can force multi-chunk runs.
 
@@ -107,15 +106,14 @@ def chunk_budget_from_bytes(
     # of what is actually available — a small pool limit must shrink the
     # chunks, not zero out the budget (1-candidate chunks are a de-facto
     # hang at scale).
+    if staging_bytes is None:
+        from et_miner.gpu.nccl import STAGING_BYTES
+
+        staging_bytes = STAGING_BYTES
     margin = max(MARGIN_FLOOR_BYTES, int(total_vram_bytes * MARGIN_VRAM_FRACTION))
     margin = min(margin, max(0, avail_bytes) // 4)
     usable = avail_bytes - group_data_bytes - margin - (0 if use_nccl else staging_bytes)
-    if use_nccl or staging_bytes > 0:
-        # counts + slack for allocator fragmentation
-        per_candidate = CHUNK_BYTES_PER_CANDIDATE + 2
-    else:
-        # today's fallback materializes a full peer copy on GPU 0
-        per_candidate = 2 * CHUNK_BYTES_PER_CANDIDATE + 2
+    per_candidate = CHUNK_BYTES_PER_CANDIDATE + 2  # counts + slack for allocator fragmentation
     max_cands = max(1, int(usable // per_candidate))
     if env_cap is not None:
         max_cands = max(1, min(max_cands, env_cap))

@@ -119,11 +119,12 @@ def test_host_fallback_under_a_real_pool_limit():
     pool = cp.get_default_memory_pool()
     pool.free_all_blocks()
     counts_gpu = cp.asarray(counts)
+    previous_limit = pool.get_limit()
     try:
         pool.set_limit(size=pool.used_bytes() + 2 * (1 << 20))  # 2 MiB of headroom
         idx, cnt = threshold_filter(counts_gpu, 300)
     finally:
-        pool.set_limit(size=0)  # restore unlimited
+        pool.set_limit(size=previous_limit)
     ref_idx, ref_cnt = _reference(counts, 300)
     np.testing.assert_array_equal(idx, ref_idx)
     np.testing.assert_array_equal(cnt, ref_cnt)

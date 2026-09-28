@@ -9,59 +9,93 @@ staging buffer on GPU 0 instead of materializing full peer copies.
 
 Some boxes report peer access between two devices and then lose the
 writes: a device-to-device copy returns success with the destination
-untouched, and NCCL's P2P transport hangs at the first collective (seen on
-a Ryzen AM4 host with two RTX A4000s behind the CPU's host bridge,
-`bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`). ``peer_copy_works``
-probes each device pair once with a 4 KiB pattern; when the copy does not
-land, the staged fallback goes through host memory and NCCL is started with
-``NCCL_P2P_DISABLE=1`` (its SHM transport), unless the caller set that
-variable already.
+untouched, or written elsewhere, and NCCL's P2P transport hangs at the
+first collective (a Ryzen AM4 host with two RTX A4000s behind the CPU's
+host bridge; `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`). No
+probe can certify such a box: small copies land while large ones drop. So
+``copy_between_devices`` stages every cross-device copy through host memory
+unless ``ET_MINER_DIRECT_D2D=1`` opts in, and ``_init_nccl`` creates its
+communicators under ``NCCL_P2P_LEVEL=NVL`` (P2P over NVLink only, SHM
+elsewhere) unless the caller set ``NCCL_P2P_LEVEL`` or ``NCCL_P2P_DISABLE``.
+NCCL reads that variable once per process, at its first communicator, so
+the setting has no effect when another library initialised NCCL first; it
+is put back afterwards so it leaks into nothing.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 
 from loguru import logger
 
 from et_miner import _env
 
-_peer_copy_ok: dict[tuple[int, int], bool] = {}
 
 
-def peer_copy_works(dst_device: int, src_device: int) -> bool:
-    """Whether a device-to-device copy from ``src_device`` lands on ``dst_device``.
-
-    Probed once per pair per process (4 KiB pattern, both devices
-    synchronized before the check) and cached. A failed probe is logged once.
-    """
-    import numpy as np
-
-    key = (int(dst_device), int(src_device))
-    if key in _peer_copy_ok:
-        return _peer_copy_ok[key]
-    if key[0] == key[1]:
-        _peer_copy_ok[key] = True
-        return True
+def _host_staged_copy(dst, src) -> None:
+    """``src`` → host → ``dst``: no device-to-device write is issued."""
     import cupy as cp
 
-    pattern = np.arange(1024, dtype=np.int32) * 7 + 3
-    with cp.cuda.Device(key[1]):
-        src = cp.asarray(pattern)
+    with cp.cuda.Device(src.device.id):
+        host = src.get()
+    with cp.cuda.Device(dst.device.id):
+        dst.set(host)
         cp.cuda.Device().synchronize()
-    with cp.cuda.Device(key[0]):
-        dst = cp.full(pattern.size, -1, dtype=cp.int32)
-        dst.data.copy_from_device(src.data, pattern.nbytes)
+
+
+def _direct_copy(dst, src) -> None:
+    """The opt-in device-to-device copy (``ET_MINER_DIRECT_D2D=1``)."""
+    import cupy as cp
+
+    with cp.cuda.Device(src.device.id):
+        src = cp.ascontiguousarray(src)
+    with cp.cuda.Device(dst.device.id):
+        dst.data.copy_from_device(src.data, src.nbytes)
         cp.cuda.Device().synchronize()
-        ok = bool(np.array_equal(dst.get(), pattern))
-    _peer_copy_ok[key] = ok
-    if not ok:
-        logger.warning(
-            f"device-to-device copies from GPU {key[1]} to GPU {key[0]} do not land (PCIe P2P drops "
-            "them on this box): the staged reduce goes through host memory and NCCL runs with "
-            "NCCL_P2P_DISABLE=1"
-        )
-    return ok
+
+
+def copy_between_devices(dst, src) -> None:
+    """Copy ``src`` into ``dst`` (same shape and dtype; ``dst`` contiguous).
+
+    Through host memory by default. ``ET_MINER_DIRECT_D2D=1`` issues a direct
+    device-to-device copy instead, for NVLink or a known-good PCIe switch
+    only: a direct copy that does not land corrupts silently, and no probe
+    can tell such a pair apart (see the module docstring). Both callers, the
+    non-NCCL reduce and the ``bitvecs=`` shard copy, are off the hot path.
+    On one device the copy is a plain device assignment.
+    """
+    import cupy as cp
+
+    if dst.shape != src.shape or dst.dtype != src.dtype:
+        raise ValueError(f"copy_between_devices: shape/dtype mismatch {dst.shape}/{dst.dtype} vs {src.shape}/{src.dtype}")
+    if int(dst.device.id) == int(src.device.id):
+        with cp.cuda.Device(dst.device.id):
+            dst[...] = src
+        return
+    if _env.direct_d2d():
+        _direct_copy(dst, src)
+    else:
+        _host_staged_copy(dst, src)
+
+
+@contextlib.contextmanager
+def _nccl_p2p_policy():
+    """``NCCL_P2P_LEVEL=NVL`` while the communicators are created, unless the caller chose.
+
+    NCCL reads its P2P settings once per process, at its first
+    communicator; the variable is put back afterwards so it does not leak
+    into child processes or other NCCL users of this one.
+    """
+    if "NCCL_P2P_LEVEL" in os.environ or "NCCL_P2P_DISABLE" in os.environ:
+        yield
+        return
+    os.environ["NCCL_P2P_LEVEL"] = "NVL"
+    try:
+        yield
+    finally:
+        os.environ.pop("NCCL_P2P_LEVEL", None)
+
 
 #: Fixed staging buffer for the non-NCCL fallback reduce — one allocation
 #: on GPU 0, reserved by the chunk budget (row_split_chunks) so slice-wise
@@ -86,11 +120,6 @@ def _init_nccl(device_ids):
         from cupy.cuda import nccl as _nccl
         from concurrent.futures import ThreadPoolExecutor
 
-        # NCCL reads NCCL_P2P_DISABLE once, at its first communicator; a
-        # box where copies do not land in either direction of some pair
-        # must not use the P2P transport (the ring sends both ways).
-        if any(not peer_copy_works(a, b) for a in device_ids for b in device_ids if a != b):
-            os.environ.setdefault("NCCL_P2P_DISABLE", "1")
         n = len(device_ids)
         uid = _nccl.get_unique_id()
         comms = [None] * n
@@ -99,7 +128,7 @@ def _init_nccl(device_ids):
             with cp.cuda.Device(device_ids[rank]):
                 comms[rank] = _nccl.NcclCommunicator(n, uid, rank)
 
-        with ThreadPoolExecutor(max_workers=n) as pool:
+        with _nccl_p2p_policy(), ThreadPoolExecutor(max_workers=n) as pool:
             list(pool.map(_init_rank, range(n)))
 
         return comms, True
@@ -201,11 +230,9 @@ def _nccl_reduce_sum_to_root(gpu_arrays, comms, device_ids):
 def _staged_reduce_to_gpu0(gpu_arrays, device_ids):
     """Non-NCCL fallback: slice-wise peer adds through one staging buffer.
 
-    UVA ``copy_from_device`` handles the cross-device copy with or without
-    peer access (the driver stages through the host when P2P is absent —
-    the vast.ai case); a pair whose copies do not land (``peer_copy_works``)
-    is staged through host memory explicitly. Peak extra VRAM on GPU 0 is
-    the fixed STAGING_BYTES buffer, never a full peer copy of the chunk.
+    Every slice reaches GPU 0 through ``copy_between_devices`` (host memory
+    unless ``ET_MINER_DIRECT_D2D=1``). Peak extra VRAM on GPU 0 is the fixed
+    STAGING_BYTES buffer, never a full peer copy of the chunk.
     """
     import cupy as cp
 
@@ -218,15 +245,9 @@ def _staged_reduce_to_gpu0(gpu_arrays, device_ids):
         staging = cp.empty(staging_elems, dtype=target.dtype)
         for i in range(1, len(gpu_arrays)):
             src = gpu_arrays[i]
-            direct = peer_copy_works(dev0, device_ids[i])
             for start in range(0, n, staging_elems):
                 m = min(staging_elems, n - start)
-                if direct:
-                    staging[:m].data.copy_from_device(src[start : start + m].data, m * itemsize)
-                else:
-                    with cp.cuda.Device(device_ids[i]):
-                        host = src[start : start + m].get()
-                    staging[:m].set(host)
+                copy_between_devices(staging[:m], src[start : start + m])
                 target[start : start + m] += staging[:m]
         del staging
 

@@ -6,7 +6,8 @@ of candidates) over correlated random bitvecs of `n_u64s` words, and times
 count_k3plus_allcounts with variant="legacy" and variant="shared" on one GPU,
 the median of --reps launches after a warm-up. Prints one JSON line per point.
 
-Usage: CUDA_VISIBLE_DEVICES=0 python bench/kernel_crossover.py [--reps 3] > crossover.jsonl
+Usage: CUDA_VISIBLE_DEVICES=0 python bench/kernel_crossover.py [--reps 3]
+       [--words 570,7813] [--suffixes 6,8,12] [--ks 3,6] > crossover.jsonl
 """
 
 from __future__ import annotations
@@ -68,12 +69,16 @@ def main() -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--reps", type=int, default=3)
+    ap.add_argument("--words", default=",".join(map(str, WORDS)))
+    ap.add_argument("--suffixes", default=",".join(map(str, SUFFIXES)))
+    ap.add_argument("--ks", default=",".join(map(str, KS)))
     args = ap.parse_args()
+    words, suffixes, ks = ([int(x) for x in v.split(",")] for v in (args.words, args.suffixes, args.ks))
     rng = np.random.default_rng(0)
     n_cols = 600
-    for n_u64s in WORDS:
+    for n_u64s in words:
         bitvecs = _random_bitvecs(cp, n_cols, n_u64s)
-        for k, m in [(k, m) for k in KS for m in SUFFIXES]:
+        for k, m in [(k, m) for k in ks for m in suffixes]:
             pairs = m * (m - 1) // 2
             n_groups = max(1, TARGET_CANDIDATES // pairs)
             while n_groups > 1 and n_groups * pairs * n_u64s > MAX_WORDS_X_CANDS:

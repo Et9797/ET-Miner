@@ -106,9 +106,9 @@ def main() -> int:
             bv[0, 0] = 0b1011
             assert int(get_popcount_kernel()(bv.view(cp.uint64)).sum()) == 3
 
-            from et_miner.gpu.kernels import count_pairs_k2_allcounts
+            from et_miner.gpu.kernels import count_pairs_k2_per_candidate
 
-            counts = count_pairs_k2_allcounts(bv, [0, 1, 2], 4)
+            counts = count_pairs_k2_per_candidate(bv, [0, 1, 2], 4)
             assert counts.shape == (3,)
 
             from et_miner.gpu.kernels.filter import compact_threshold_filter

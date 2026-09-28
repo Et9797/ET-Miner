@@ -312,7 +312,8 @@ def test_main_refuses_the_tick_when_the_tree_moved_after_the_last_config(monkeyp
     out = capsys.readouterr().out
     assert rc == 1
     assert "NOT GATED at A" in out and "started at A and stands at B" in out
-    assert "6 of 6 configs are ok at A" in out, "premise: no row is stale; only the tree moved"
+    n = len(runner.build_matrix("smoke", 2))
+    assert f"{n} of {n} configs are ok at A" in out, "premise: no row is stale; only the tree moved"
     assert "consistent ✓" not in out
 
 
@@ -322,6 +323,7 @@ def test_main_lists_rows_produced_after_a_mid_run_edit_as_stale(monkeypatch, tmp
     rc = _drive_main(monkeypatch, tmp_path, ["A", "B"], row_rev="B")
     out = capsys.readouterr().out
     assert rc == 1
-    assert "0 of 6 configs are ok at A" in out
-    assert "6 were produced at a revision other than A (B)" in out
+    n = len(runner.build_matrix("smoke", 2))
+    assert f"0 of {n} configs are ok at A" in out
+    assert f"{n} were produced at a revision other than A (B)" in out
     assert "consistent ✓" not in out

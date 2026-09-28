@@ -12,10 +12,12 @@ import pytest
 from et_miner.gpu.kernels.filter import HOST_SORT_BYTES_PER_SURVIVOR
 from et_miner.gpu.row_split_chunks import (
     CHUNK_BYTES_PER_CANDIDATE,
+    TILED_MIN_GROUP_PAIRS,
     ChunkPlan,
     chunk_budget_from_bytes,
     plan_candidate_chunks,
     plan_group_chunks,
+    tiled_min_group_pairs,
 )
 
 GIB = 1 << 30
@@ -105,15 +107,15 @@ class TestPlanCandidateChunks:
         assert plan_candidate_chunks(0, 100) == []
 
     def test_single_chunk(self):
-        assert plan_candidate_chunks(50, 100) == [ChunkPlan(0, 50)]
+        assert plan_candidate_chunks(50, 100) == [ChunkPlan(0, 50, per_candidate=True)]
 
     def test_exact_multiple(self):
         plans = plan_candidate_chunks(200, 100)
-        assert plans == [ChunkPlan(0, 100), ChunkPlan(100, 100)]
+        assert plans == [ChunkPlan(0, 100, True), ChunkPlan(100, 100, True)]
 
     def test_remainder(self):
         plans = plan_candidate_chunks(250, 100)
-        assert plans[-1] == ChunkPlan(200, 50)
+        assert plans[-1] == ChunkPlan(200, 50, True)
 
     def test_coverage_no_overlap(self):
         plans = plan_candidate_chunks(1_000_003, 4096)
@@ -122,7 +124,7 @@ class TestPlanCandidateChunks:
         assert sum(p.size for p in plans) == 1_000_003
 
     def test_min_one(self):
-        assert plan_candidate_chunks(3, 0) == [ChunkPlan(0, 1), ChunkPlan(1, 1), ChunkPlan(2, 1)]
+        assert plan_candidate_chunks(3, 0) == [ChunkPlan(0, 1, True), ChunkPlan(1, 1, True), ChunkPlan(2, 1, True)]
 
 
 def _cum(sizes):
@@ -135,130 +137,101 @@ class TestPlanGroupChunks:
         assert plan_group_chunks(_cum([0, 0]), 100) == []
 
     def test_all_fit_one_chunk(self):
-        plans = plan_group_chunks(_cum([10, 20, 30]), 100, tiled_min_group_pairs=0)
-        assert plans == [ChunkPlan(0, 60, use_legacy=False)]
+        assert plan_group_chunks(_cum([10, 20, 30]), 100) == [ChunkPlan(0, 60)]
 
     def test_boundaries_land_on_groups(self):
         sizes = [7, 11, 13, 17, 19, 23]
         cum = _cum(sizes)
-        plans = plan_group_chunks(cum, 30, tiled_min_group_pairs=0)
+        plans = plan_group_chunks(cum, 30)
         boundaries = set(int(x) for x in cum)
         for p in plans:
             assert p.start in boundaries
             assert p.start + p.size in boundaries
             assert p.size <= 30
-            assert not p.use_legacy
+            assert not p.per_candidate
 
     def test_exact_fit_boundary(self):
-        plans = plan_group_chunks(_cum([5, 5, 5]), 10, tiled_min_group_pairs=0)
-        assert plans == [ChunkPlan(0, 10, False), ChunkPlan(10, 5, False)]
+        plans = plan_group_chunks(_cum([5, 5, 5]), 10)
+        assert plans == [ChunkPlan(0, 10), ChunkPlan(10, 5)]
 
-    def test_mega_group_goes_legacy(self):
+    def test_a_group_over_the_budget_runs_per_candidate(self):
         # middle group (250 pairs) exceeds the 100-candidate budget
-        plans = plan_group_chunks(_cum([40, 250, 40]), 100, tiled_min_group_pairs=0)
-        legacy = [p for p in plans if p.use_legacy]
-        assert [(p.start, p.size) for p in legacy] == [(40, 100), (140, 100), (240, 50)]
-        aligned = [p for p in plans if not p.use_legacy]
-        assert aligned == [ChunkPlan(0, 40, False), ChunkPlan(290, 40, False)]
+        plans = plan_group_chunks(_cum([40, 250, 40]), 100)
+        split = [p for p in plans if p.per_candidate]
+        assert [(p.start, p.size) for p in split] == [(40, 100), (140, 100), (240, 50)]
+        assert [p for p in plans if not p.per_candidate] == [ChunkPlan(0, 40), ChunkPlan(290, 40)]
 
     def test_group_just_over_budget(self):
         plans = plan_group_chunks(_cum([101]), 100)
         assert plans == [ChunkPlan(0, 100, True), ChunkPlan(100, 1, True)]
 
-    def test_group_exactly_budget_not_legacy(self):
-        assert plan_group_chunks(_cum([100]), 100) == [ChunkPlan(0, 100, False)]
+    def test_group_exactly_budget_stays_tiled(self):
+        assert plan_group_chunks(_cum([100]), 100) == [ChunkPlan(0, 100)]
 
     def test_coverage_property(self):
         rng = np.random.default_rng(7)
-        sizes = rng.integers(1, 500, size=200)
+        sizes = rng.integers(1, 1500, size=200)
         cum = _cum(sizes)
-        plans = plan_group_chunks(cum, 777)  # default tiny-threshold: mixed classes
+        plans = plan_group_chunks(cum, 777)
         assert plans[0].start == 0
         assert all(a.start + a.size == b.start for a, b in zip(plans, plans[1:]))
         assert sum(p.size for p in plans) == int(cum[-1])
+        for p in plans:
+            if p.per_candidate:  # only a group over the budget is split
+                assert _within_one_group(cum, p) and _group_of(cum, p) > 777
 
     def test_deterministic(self):
         sizes = [3, 9, 1000, 4, 4, 4, 900, 2]
-        a = plan_group_chunks(_cum(sizes), 50)
-        b = plan_group_chunks(_cum(sizes), 50)
-        assert a == b
+        assert plan_group_chunks(_cum(sizes), 50) == plan_group_chunks(_cum(sizes), 50)
 
     def test_budget_smaller_than_every_group(self):
-        """max_cands=1: every multi-pair group becomes legacy sub-chunks."""
+        """max_cands=1: every multi-pair group becomes per-candidate sub-chunks."""
         plans = plan_group_chunks(_cum([2, 3]), 1)
-        assert all(p.use_legacy for p in plans)
+        assert all(p.per_candidate for p in plans)
         assert sum(p.size for p in plans) == 5
 
-    def test_tiny_groups_routed_legacy_by_default(self):
-        """Groups under ET_MINER_TILED_MIN_GROUP_PAIRS (64) waste a
-        256-thread tile-pair block — contiguous runs go legacy wholesale."""
-        plans = plan_group_chunks(_cum([5, 5, 5]), 100)
-        assert plans == [ChunkPlan(0, 15, use_legacy=True)]
-
-    def test_mixed_tiny_and_mid_runs(self):
-        plans = plan_group_chunks(_cum([5, 5, 200, 200, 5]), 500, tiled_min_group_pairs=64)
-        assert plans == [
-            ChunkPlan(0, 10, use_legacy=True),
-            ChunkPlan(10, 400, use_legacy=False),
-            ChunkPlan(410, 5, use_legacy=True),
-        ]
-
-    def test_alternating_classes_do_not_become_one_chunk_per_group(self):
-        """The routing is dropped when it costs more launches than it saves.
-
-        Groups straddling the threshold flip class almost every group, and a
-        class change ends a chunk. Observed on a real K=10 level: 59,481
-        chunks where one would do.
-        """
-        sizes = [5, 200] * 400
-        plans = plan_group_chunks(_cum(sizes), 10**9, tiled_min_group_pairs=64)
-        assert plans == [ChunkPlan(0, sum(sizes), use_legacy=False)]
-
-    def test_routing_survives_when_tiny_groups_arrive_in_runs(self):
-        """Long runs of one class merge, so the routing costs nothing."""
-        sizes = [5] * 200 + [200] * 200
-        plans = plan_group_chunks(_cum(sizes), 10**9, tiled_min_group_pairs=64)
-        assert plans == [
-            ChunkPlan(0, 1000, use_legacy=True),
-            ChunkPlan(1000, 40_000, use_legacy=False),
-        ]
-
-    def test_a_small_plan_keeps_its_classes(self):
-        """Below FRAGMENTATION_FLOOR the comparison never runs.
-
-        A handful of extra launches cannot pay for a second planning pass,
-        and the tiny groups still get the kernel that suits them.
-        """
-        sizes = [5, 200] * 8
-        plans = plan_group_chunks(_cum(sizes), 10**9, tiled_min_group_pairs=64)
-        assert len(plans) == len(sizes)
-        assert [p.use_legacy for p in plans] == [True, False] * 8
-
-    def test_fragmented_plan_still_covers_the_space_exactly(self):
-        rng = np.random.default_rng(11)
-        sizes = rng.integers(1, 128, size=5_000)
-        cum = _cum(sizes)
-        plans = plan_group_chunks(cum, 777, tiled_min_group_pairs=64)
-        assert plans[0].start == 0
-        assert all(a.start + a.size == b.start for a, b in zip(plans, plans[1:]))
-        assert sum(p.size for p in plans) == int(cum[-1])
-        assert plan_group_chunks(cum, 777, tiled_min_group_pairs=64) == plans
-
-    def test_mega_groups_are_untouched_by_the_fragmentation_check(self):
-        """Mega-groups must stay legacy sub-chunks however the plan is judged."""
-        sizes = [5, 250] * 100
-        plans = plan_group_chunks(_cum(sizes), 100, tiled_min_group_pairs=64)
-        assert all(p.use_legacy for p in plans if p.size > 5)
-        assert sum(p.size for p in plans) == sum(sizes)
-
     def test_k2_synthetic_single_group(self):
-        """The K=2 pair space is planned as one synthetic group: tiled when
-        whole-in-one-chunk, legacy sub-chunks when it exceeds the budget,
-        legacy when trivially small."""
-        assert plan_group_chunks(_cum([1000]), 10_000) == [ChunkPlan(0, 1000, False)]
-        assert plan_group_chunks(_cum([30]), 10_000) == [ChunkPlan(0, 30, True)]
+        """The K=2 pair space is one synthetic group: tiled when it fits one
+        chunk, per-candidate sub-chunks when it exceeds the budget."""
+        assert plan_group_chunks(_cum([1000]), 10_000) == [ChunkPlan(0, 1000)]
         mega = plan_group_chunks(_cum([25_000]), 10_000)
-        assert all(p.use_legacy for p in mega) and sum(p.size for p in mega) == 25_000
+        assert all(p.per_candidate for p in mega) and sum(p.size for p in mega) == 25_000
+
+
+def _within_one_group(cum, plan) -> bool:
+    g = int(np.searchsorted(cum, plan.start, side="right")) - 1
+    return plan.start + plan.size <= int(cum[g + 1])
+
+
+def _group_of(cum, plan) -> int:
+    g = int(np.searchsorted(cum, plan.start, side="right")) - 1
+    return int(cum[g + 1] - cum[g])
+
+
+class TestTiledThreshold:
+    """Which kernel a prefix group gets: the measured crossover, or the pin."""
+
+    def test_unpinned_is_the_measured_crossover(self, monkeypatch):
+        monkeypatch.delenv("ET_MINER_TILED_MIN_GROUP_PAIRS", raising=False)
+        for k, pairs in TILED_MIN_GROUP_PAIRS.items():
+            assert tiled_min_group_pairs(k) == pairs
+        assert tiled_min_group_pairs(20) == TILED_MIN_GROUP_PAIRS[8]
+
+    def test_the_crossover_falls_with_k(self):
+        values = [TILED_MIN_GROUP_PAIRS[k] for k in sorted(TILED_MIN_GROUP_PAIRS)]
+        assert values == sorted(values, reverse=True)
+
+    @pytest.mark.parametrize("pin", ["0", "1000000"])
+    def test_the_env_pins_every_level(self, monkeypatch, pin):
+        monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", pin)
+        assert {tiled_min_group_pairs(k) for k in range(2, 30)} == {int(pin)}
+
+    def test_the_variant_knob_is_refused(self, monkeypatch):
+        from et_miner import _env
+
+        monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "legacy")
+        with pytest.raises(ValueError, match="ET_MINER_KERNEL_VARIANT was removed"):
+            _env.reject_removed_knobs()
 
 
 class TestEnvCapAccessor:

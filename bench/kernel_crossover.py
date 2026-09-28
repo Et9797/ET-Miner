@@ -3,7 +3,7 @@
 Builds synthetic prefix groups (a prefix of K-2 items and `m` suffixes per
 group, the number of groups chosen so every point counts about the same number
 of candidates) over correlated random bitvecs of `n_u64s` words, and times
-count_k3plus_allcounts with variant="legacy" and variant="shared" on one GPU,
+count_k3plus_per_candidate and count_shared_tiled_allcounts on one GPU,
 the median of --reps launches after a warm-up. Prints one JSON line per point.
 
 Usage: CUDA_VISIBLE_DEVICES=0 python bench/kernel_crossover.py [--reps 3]
@@ -64,7 +64,7 @@ def _groups(k: int, m: int, n_groups: int, n_cols: int, rng):
 def main() -> int:
     import cupy as cp
 
-    from et_miner.gpu.kernels import count_k3plus_allcounts, upload_k3plus_groups
+    from et_miner.gpu.kernels import count_k3plus_per_candidate, count_shared_tiled_allcounts, upload_k3plus_groups
     from et_miner.gpu.kernels.shared_tiled import compute_cumulative_tilepairs
 
     ap = argparse.ArgumentParser()
@@ -95,12 +95,13 @@ def main() -> int:
             }
             results = {}
             for variant in ("legacy", "shared"):
-                count_k3plus_allcounts(bitvecs, groups, n_u64s, groups_gpu=gpu, variant=variant)
+                count = count_k3plus_per_candidate if variant == "legacy" else count_shared_tiled_allcounts
+                count(bitvecs, groups, n_u64s, groups_gpu=gpu)
                 times = []
                 for _ in range(args.reps):
                     cp.cuda.Device(0).synchronize()
                     t0 = time.perf_counter()
-                    out = count_k3plus_allcounts(bitvecs, groups, n_u64s, groups_gpu=gpu, variant=variant)
+                    out = count(bitvecs, groups, n_u64s, groups_gpu=gpu)
                     cp.cuda.Device(0).synchronize()
                     times.append(time.perf_counter() - t0)
                 results[variant] = out.get()

@@ -3,8 +3,21 @@
 Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
 
     Tier 1 Polars == Tier 2 Rust (sparse=True)
-        == single-GPU legacy == multi-GPU legacy == shared multi-GPU
+        == row-split 1 GPU (measured kernel dispatch)
+        == row-split 1 GPU, tiled kernel pinned
+        == row-split 1 GPU, per-candidate kernel pinned
+        == row-split 1 GPU, forced chunks (the fused tiled kernel)
+        == SON 1 GPU, forced chunks (the batched itemset kernel)
+        == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
+        == SON 2 GPUs, forced chunks
         == efficient-apriori (the canonical oracle)
+
+Every surviving counting kernel is pinned by the leg's own environment, not by
+a default: ET_MINER_TILED_MIN_GROUP_PAIRS pins the tiled (0) or the
+per-candidate (a pair count no group reaches) kernel for every prefix group,
+ET_MINER_MAX_CHUNK_CANDS forces chunking (on one GPU the pair space and every
+larger group then go to the fused tiled kernel; on two, to per-candidate
+sub-chunks), and a chunk_size below the row count forces SON to four chunks.
 
 Comparisons are exact on itemsets AND absolute counts — never weakened to
 count-only or tolerance checks. Oracle boundary handling: the miner keeps
@@ -17,7 +30,6 @@ CPU-tier assertions run everywhere (they gate CI); GPU-tier assertions are
 gpu-marked and self-skip below the needed device count.
 """
 
-import inspect
 import math
 from itertools import chain, combinations
 
@@ -220,38 +232,103 @@ def test_fpgrowth_second_oracle_agrees(smoke_dataset):
 
 # ── GPU half of the chain (box campaign; auto-skipped without devices) ─────
 
+#: No prefix group reaches this many pairs, so every group runs per-candidate.
+_NO_GROUP = str(10**12)
+#: A chunk budget far below the smoke preset's pair space and largest groups.
+_TINY_CHUNK = "40"
 
-@pytest.mark.gpu
-def test_single_gpu_legacy_matches_oracle(smoke_dataset, oracle_set):
+
+_WRAPPERS = (
+    "count_pairs_k2_shared",
+    "count_pairs_k2_per_candidate",
+    "count_shared_tiled_allcounts",
+    "count_k3plus_per_candidate",
+    "count_tiled_fused",
+    "count_itemsets_cuda",
+)
+
+
+def _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, env, *, runs=(), never=(), **kwargs):
+    """One GPU leg; `runs` / `never` name the kernel wrappers the pin must reach / exclude."""
+    from et_miner.gpu import kernels
+
+    calls = dict.fromkeys(_WRAPPERS, 0)
+    for name in _WRAPPERS:
+        def spy(*a, _real=getattr(kernels, name), _name=name, **k):
+            calls[_name] += 1
+            return _real(*a, **k)
+
+        monkeypatch.setattr(kernels, name, spy)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
     df, _ = smoke_dataset
-    got = _counted(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True), "single-GPU legacy")
-    _assert_counted_sets_equal(got, oracle_set, "single-GPU legacy vs efficient-apriori")
+    got = _counted(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, **kwargs), label)
+    _assert_counted_sets_equal(got, oracle_set, f"{label} vs efficient-apriori")
+    assert all(calls[n] for n in runs), f"{label}: the pinned kernel did not run: {calls}"
+    assert not any(calls[n] for n in never), f"{label}: a kernel the pin excludes ran: {calls}"
 
 
-@pytest.mark.gpu
-def test_multi_gpu_legacy_matches_oracle(smoke_dataset, oracle_set):
+def _needs_two_gpus():
     if _gpu_count() < 2:
         pytest.skip("needs 2 CUDA devices")
-    df, _ = smoke_dataset
-    got = _counted(
-        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2),
-        "multi-GPU legacy",
-    )
-    _assert_counted_sets_equal(got, oracle_set, "multi-GPU legacy vs efficient-apriori")
 
 
 @pytest.mark.gpu
-def test_multi_gpu_shared_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
-    if _gpu_count() < 2:
-        pytest.skip("needs 2 CUDA devices")
-    from et_miner.gpu.kernels import count_k3plus_allcounts
+def test_row_split_one_gpu_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU", {"ET_MINER_FILTER_IMPL": "compact"})
 
-    if "variant" not in inspect.signature(count_k3plus_allcounts).parameters:
-        pytest.skip("shared kernel variant not wired yet")
-    monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "shared")
-    df, _ = smoke_dataset
-    got = _counted(
-        apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, n_gpus=2),
-        "shared multi-GPU",
-    )
-    _assert_counted_sets_equal(got, oracle_set, "shared multi-GPU vs efficient-apriori")
+
+@pytest.mark.gpu
+def test_row_split_one_gpu_tiled_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, tiled", {"ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
+             runs=("count_pairs_k2_shared", "count_shared_tiled_allcounts"),
+             never=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate", "count_tiled_fused"))
+
+
+@pytest.mark.gpu
+def test_row_split_one_gpu_per_candidate_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, per-candidate",
+             {"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP},
+             runs=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"),
+             never=("count_pairs_k2_shared", "count_shared_tiled_allcounts", "count_tiled_fused"))
+
+
+@pytest.mark.gpu
+def test_row_split_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    """On one GPU a level beyond one dense chunk is counted by the fused tiled kernel."""
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, forced chunks",
+             {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
+             runs=("count_tiled_fused",), never=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"))
+
+
+@pytest.mark.gpu
+def test_son_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "SON 1 GPU, four chunks", {},
+             runs=("count_itemsets_cuda",), streaming=True, chunk_size=SPEC.n_rows // 4 + 1, show_progress=False)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+def test_row_split_two_gpus_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _needs_two_gpus()
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 2 GPUs", {}, n_gpus=2)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+def test_row_split_two_gpus_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    """Across GPUs a level beyond one chunk runs per-candidate sub-chunks, reduced per chunk."""
+    _needs_two_gpus()
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 2 GPUs, forced chunks",
+             {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
+             runs=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"), never=("count_tiled_fused",),
+             n_gpus=2)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+def test_son_two_gpus_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _needs_two_gpus()
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "SON 2 GPUs, four chunks", {},
+             runs=("count_itemsets_cuda",), streaming=True, n_gpus=2, chunk_size=SPEC.n_rows // 4 + 1,
+             show_progress=False)

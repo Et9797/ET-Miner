@@ -19,7 +19,8 @@ pytestmark = pytest.mark.gpu
 
 from et_miner.gpu.kernels import (
     count_itemsets_cuda,
-    count_pairs_k2_allcounts,
+    count_pairs_k2_per_candidate,
+    count_pairs_k2_shared,
     count_tiled_fused,
     decode_k2_pairs_flat,
     k2_groups,
@@ -86,8 +87,8 @@ def count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count):
     if path == "fused-tiled":
         idx, counts = count_tiled_fused(bitvecs_gpu, k2_groups(freq_cols), n_u64s, min_count)
     else:
-        variant = "legacy" if path == "dense-per-candidate" else "shared"
-        dense = count_pairs_k2_allcounts(bitvecs_gpu, freq_cols, n_u64s, variant=variant).get()
+        count = count_pairs_k2_per_candidate if path == "dense-per-candidate" else count_pairs_k2_shared
+        dense = count(bitvecs_gpu, freq_cols, n_u64s).get()
         idx = np.nonzero(dense >= min_count)[0]
         counts = dense[idx].astype(np.int64)
     pairs = [(int(a), int(b)) for a, b in decode_k2_pairs_flat(idx, list(freq_cols))]

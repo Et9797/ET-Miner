@@ -126,7 +126,12 @@ class TestKernelKCap:
         """At the cap every K>=3 kernel counts exactly; one past it raises."""
         import cupy as cp
 
-        from et_miner.gpu.kernels import K3PlusGroups, count_k3plus_allcounts, count_tiled_fused
+        from et_miner.gpu.kernels import (
+            K3PlusGroups,
+            count_k3plus_per_candidate,
+            count_shared_tiled_allcounts,
+            count_tiled_fused,
+        )
 
         n_rows, n_cols, n_u64s = 640, 80, 10
         bv = cp.asarray(np.full((n_cols, n_u64s), 0xFFFFFFFFFFFFFFFF, dtype=np.uint64))
@@ -145,8 +150,8 @@ class TestKernelKCap:
         def count(groups):
             if kernel == "tiled-fused":
                 return count_tiled_fused(bv, groups, n_u64s, 1)[1].tolist()
-            variant = "legacy" if kernel == "per-candidate" else "shared"
-            return count_k3plus_allcounts(bv, groups, n_u64s, variant=variant).get().tolist()
+            count = count_k3plus_per_candidate if kernel == "per-candidate" else count_shared_tiled_allcounts
+            return count(bv, groups, n_u64s).get().tolist()
 
         assert count(one_candidate(60)) == [n_rows]  # K = 62
         with pytest.raises(ValueError, match="exceeds the kernel cap"):

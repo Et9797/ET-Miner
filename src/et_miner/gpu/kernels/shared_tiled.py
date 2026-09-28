@@ -70,7 +70,7 @@ def count_shared_tiled_allcounts(
     bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None
 ):
     """Dense counting via the tiled kernel — drop-in for
-    count_k3plus_allcounts on group-aligned chunks (int32, chunk-relative,
+    count_k3plus_per_candidate on group-aligned chunks (int32, chunk-relative,
     bit-identical candidate layout)."""
     import cupy as cp
 
@@ -139,8 +139,8 @@ def k2_groups(freq_item_cols):
 def count_pairs_k2_shared(bitvecs_gpu, freq_item_cols, n_u64s):
     """Tiled dense K=2 over the WHOLE pair space (single chunk only — a
     partial pair range cannot be tile-served; a pair space chunked across
-    several GPUs runs on the per-candidate kernel via the planner's
-    use_legacy flag, and on one GPU count_tiled_fused counts it whole)."""
+    several GPUs runs on the per-candidate kernel, and on one GPU
+    count_tiled_fused counts it whole)."""
     return count_shared_tiled_allcounts(bitvecs_gpu, k2_groups(freq_item_cols), n_u64s)
 
 

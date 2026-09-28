@@ -140,8 +140,11 @@ def upload_k3plus_groups(groups_info, device_id):
         return out
 
 
-def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, variant=None):
-    """Dense K>=3 counting: returns support count for candidates in range.
+def count_k3plus_per_candidate(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None):
+    """Dense K>=3 counting, one thread per candidate: support counts for a range.
+
+    Unlike the tiled kernel it serves any candidate range, so it also counts a
+    prefix group too large for one chunk.
 
     Takes pre-built groups_info from build_k3plus_groups_from_flat().
     No threshold filtering — outputs counts for every candidate in range.
@@ -165,11 +168,7 @@ def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chun
         chunk_start: First candidate index to process (default: 0).
         chunk_size: Number of candidates to process (default: all).
         groups_gpu: Pre-uploaded group data dict from upload_k3plus_groups().
-            If None, uploads fresh (backward compatible legacy path).
-        variant: "legacy" | "shared" | None (None resolves
-            ET_MINER_KERNEL_VARIANT). The shared/tiled kernel requires
-            group-aligned chunks — callers route mega-group sub-chunks
-            here with variant="legacy" (see plan_group_chunks).
+            If None, uploads fresh.
 
     Returns:
         CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
@@ -179,22 +178,11 @@ def count_k3plus_allcounts(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chun
     _assert_k_cap(groups_info)
     import cupy as cp
 
-    if variant is None:
-        from et_miner.gpu.dispatch import resolved_kernel_variant
-
-        variant = resolved_kernel_variant()
-    if variant == "shared":
-        from .shared_tiled import count_shared_tiled_allcounts
-
-        return count_shared_tiled_allcounts(
-            bitvecs_gpu, groups_info, n_u64s, chunk_start=chunk_start, chunk_size=chunk_size, groups_gpu=groups_gpu
-        )
-
     tc = groups_info.total_candidates
     if chunk_size is None:
         chunk_size = tc - chunk_start
 
-    _assert_bitvecs("count_k3plus_allcounts", bitvecs_gpu, **({} if groups_gpu is None else {"groups_gpu": groups_gpu["gpi"]}))
+    _assert_bitvecs("count_k3plus_per_candidate", bitvecs_gpu, **({} if groups_gpu is None else {"groups_gpu": groups_gpu["gpi"]}))
     device_id = bitvecs_gpu.device.id
     if groups_gpu is None:
         groups_gpu = upload_k3plus_groups(groups_info, device_id)

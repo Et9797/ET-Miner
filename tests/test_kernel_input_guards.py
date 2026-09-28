@@ -24,8 +24,8 @@ def _entry_points():
     from et_miner.gpu.kernels import (
         K3PlusGroups,
         count_itemsets_cuda,
-        count_k3plus_allcounts,
-        count_pairs_k2_allcounts,
+        count_k3plus_per_candidate,
+        count_pairs_k2_per_candidate,
         count_pairs_k2_shared,
         count_shared_tiled_allcounts,
         count_tiled_fused,
@@ -42,9 +42,9 @@ def _entry_points():
     )
     cols = list(range(8))
     return [
-        ("count_pairs_k2_allcounts", lambda bv: count_pairs_k2_allcounts(bv, cols, 4, variant="legacy")),
+        ("count_pairs_k2_per_candidate", lambda bv: count_pairs_k2_per_candidate(bv, cols, 4)),
         ("count_pairs_k2_shared", lambda bv: count_pairs_k2_shared(bv, cols, 4)),
-        ("count_k3plus_allcounts", lambda bv: count_k3plus_allcounts(bv, groups, 4, variant="legacy")),
+        ("count_k3plus_per_candidate", lambda bv: count_k3plus_per_candidate(bv, groups, 4)),
         ("count_shared_tiled_allcounts", lambda bv: count_shared_tiled_allcounts(bv, groups, 4)),
         ("count_tiled_fused", lambda bv: count_tiled_fused(bv, groups, 4, 1)),
         ("count_itemsets_cuda", lambda bv: count_itemsets_cuda(bv, [np.array([0, 1], dtype=np.int32)])),

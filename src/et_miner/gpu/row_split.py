@@ -31,8 +31,10 @@ from et_miner.gpu.mining import (
 from et_miner.gpu.nccl import _init_nccl
 from et_miner.gpu.row_split_chunks import (
     compute_chunk_budget,
+    plan_candidate_chunks,
     plan_group_chunks,
     run_chunked_dense_level,
+    tiled_min_group_pairs,
 )
 from et_miner.io.flush import _flush_k_parquet
 from et_miner.io.gcs import (
@@ -159,8 +161,10 @@ def _apriori_row_split_multi_gpu(
     from et_miner.gpu.csr_bitvec import build_bitvecs_row_split
     from et_miner.gpu.kernels import (
         get_popcount_kernel,
-        count_pairs_k2_allcounts,
-        count_k3plus_allcounts,
+        count_k3plus_per_candidate,
+        count_pairs_k2_per_candidate,
+        count_pairs_k2_shared,
+        count_shared_tiled_allcounts,
         count_tiled_fused,
         k2_groups,
         select_k3plus_groups,
@@ -176,6 +180,7 @@ def _apriori_row_split_multi_gpu(
             f"CSR tidset indices are int32 — upgrade to int64 before running at this scale."
         )
 
+    _env.reject_removed_knobs()
     min_count_threshold = _min_count(min_support, n_transactions)
     session = ProfilingSession() if profile else None
 
@@ -375,6 +380,42 @@ def _apriori_row_split_multi_gpu(
         k = resume_from_k + 1
         logger.info(f"  RESUME: Jumping to K={k} ({len(prev_frequent_flat):,} itemsets)")
 
+    def _subset(groups, keep):
+        """The groups where ``keep`` holds, or None when they hold no candidate."""
+        if not keep.any():
+            return None
+        chosen = groups if keep.all() else select_k3plus_groups(groups, keep)
+        return chosen if chosen.total_candidates > 0 else None
+
+    def _count_dense(groups, chunks, label):
+        """Count one candidate space on every shard, reduce, compact: (indices, counts)."""
+        groups_gpu = {did: upload_k3plus_groups(groups, did) for _, did, _ in bitvecs_list}
+
+        def _launch(bitvec_gpu, device_id, chunk):
+            with cp.cuda.Device(device_id):
+                count = count_k3plus_per_candidate if chunk.per_candidate else count_shared_tiled_allcounts
+                return count(
+                    bitvec_gpu,
+                    groups,
+                    bitvec_gpu.shape[1],
+                    chunk_start=chunk.start,
+                    chunk_size=chunk.size,
+                    groups_gpu=groups_gpu[device_id],
+                )
+
+        # try/finally, because this is ~40 GB on a wide level and
+        # run_chunked_dense_level can raise. Without it the group arrays stayed
+        # resident on every device for the rest of the run.
+        try:
+            return run_chunked_dense_level(
+                bitvecs_list, chunks, _launch, min_count_threshold, nccl_comms, _use_nccl, level_label=label
+            )
+        finally:
+            for did in list(groups_gpu):
+                with cp.cuda.Device(did):
+                    del groups_gpu[did]
+                    cp.get_default_memory_pool().free_all_blocks()
+
     # ── K=1: parallel popcount across GPUs, sum ────────────────────────
     if not _resume_active:
         _k1_start = time.perf_counter()
@@ -471,11 +512,10 @@ def _apriori_row_split_multi_gpu(
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
                 _n_cands_cb = n_pairs
 
-                # Chunked by measured VRAM budget — big cards get one chunk,
-                # small (or pool-limited) cards split the pair space. The
-                # pair space is one synthetic group: whole-in-one-chunk runs
-                # may use the shared/tiled kernel, multi-chunk runs are
-                # legacy sub-chunks (a partial pair range can't be tiled).
+                # One synthetic group over the frequent items. Tiled when it is
+                # large enough and fits one chunk; a pair space chunked across
+                # several GPUs runs per-candidate sub-chunks; on one GPU a pair
+                # space beyond one chunk is counted fused (survivors only).
                 _k2_budget = compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
                 if _one_device and n_pairs > _k2_budget:
                     bv0, did0, _ = bitvecs_list[0]
@@ -488,8 +528,10 @@ def _apriori_row_split_multi_gpu(
                             bv0, k2_groups(freq_cols), bv0.shape[1], min_count_threshold
                         )
                 else:
-                    _k2_cp = np.array([0, n_pairs], dtype=np.int64)
-                    k2_chunks = plan_group_chunks(_k2_cp, _k2_budget)
+                    if n_pairs >= tiled_min_group_pairs(2):
+                        k2_chunks = plan_group_chunks(np.array([0, n_pairs], dtype=np.int64), _k2_budget)
+                    else:
+                        k2_chunks = plan_candidate_chunks(n_pairs, _k2_budget)
                     logger.info(
                         f"  K=2: {n_pairs:,} total pairs, {len(k2_chunks)} chunk(s), "
                         f"dense output {min(_k2_budget, n_pairs) * 4 / (1 << 30):.2f} GB/GPU per chunk"
@@ -497,13 +539,14 @@ def _apriori_row_split_multi_gpu(
 
                     def _k2_chunk_on_gpu(bitvec_gpu, device_id, chunk):
                         with cp.cuda.Device(device_id):
-                            return count_pairs_k2_allcounts(
+                            if not chunk.per_candidate:
+                                return count_pairs_k2_shared(bitvec_gpu, freq_cols, bitvec_gpu.shape[1])
+                            return count_pairs_k2_per_candidate(
                                 bitvec_gpu,
                                 freq_cols,
                                 bitvec_gpu.shape[1],
                                 chunk_start=chunk.start,
                                 chunk_size=chunk.size,
-                                variant="legacy" if chunk.use_legacy else None,
                             )
 
                     freq_pair_indices, freq_pair_counts = run_chunked_dense_level(
@@ -554,14 +597,20 @@ def _apriori_row_split_multi_gpu(
                         device_ids, group_data_bytes=group_data_bytes, use_nccl=_use_nccl
                     )
 
+                    # Kernel per prefix group, at the measured crossover: small
+                    # groups per-candidate, the rest tiled. The two sets are
+                    # separate candidate spaces with their own chunk plans, so
+                    # neither kernel's chunks fragment the other's.
+                    tiled = np.diff(groups_info.cumulative_pairs) >= tiled_min_group_pairs(k)
+                    small = _subset(groups_info, ~tiled)
+                    big = _subset(groups_info, tiled)
                     # (groups, survivor indices into them, counts) per counted part
                     parts = []
-                    dense_groups = groups_info
-                    if _one_device:
-                        mega = np.diff(groups_info.cumulative_pairs) > max_cands_per_chunk
+                    if big is not None and _one_device:
+                        mega = np.diff(big.cumulative_pairs) > max_cands_per_chunk
                         if mega.any():
-                            fused_groups = select_k3plus_groups(groups_info, mega)
-                            dense_groups = None if mega.all() else select_k3plus_groups(groups_info, ~mega)
+                            fused_groups = _subset(big, mega)
+                            big = _subset(big, ~mega)
                             logger.info(
                                 f"  K={k}: {int(mega.sum()):,} prefix group(s), "
                                 f"{fused_groups.total_candidates:,} candidates, exceed one dense chunk "
@@ -572,54 +621,18 @@ def _apriori_row_split_multi_gpu(
                                 parts.append(
                                     (fused_groups, *count_tiled_fused(bv0, fused_groups, bv0.shape[1], min_count_threshold))
                                 )
-
-                    if dense_groups is not None:
-                        k3_chunks = plan_group_chunks(dense_groups.cumulative_pairs, max_cands_per_chunk)
-
-                        logger.debug(
-                            f"  K={k}: {dense_groups.total_candidates:,} candidates, {len(k3_chunks)} chunk(s), "
-                            f"group data {group_data_bytes / (1 << 30):.1f} GB, "
-                            f"budget {max_cands_per_chunk:,} cands/chunk"
-                        )
-
-                        # Upload group data to all GPUs ONCE — stays resident across chunks
-                        all_groups_gpu = {}
-                        for bv, did, _ in bitvecs_list:
-                            all_groups_gpu[did] = upload_k3plus_groups(dense_groups, did)
-
-                        def _k3plus_chunk_on_gpu(bitvec_gpu, device_id, chunk):
-                            with cp.cuda.Device(device_id):
-                                return count_k3plus_allcounts(
-                                    bitvec_gpu,
-                                    dense_groups,
-                                    bitvec_gpu.shape[1],
-                                    chunk_start=chunk.start,
-                                    chunk_size=chunk.size,
-                                    groups_gpu=all_groups_gpu[device_id],
-                                    variant="legacy" if chunk.use_legacy else None,
-                                )
-
-                        # try/finally, because this is ~40 GB on a wide level and
-                        # run_chunked_dense_level can raise. Without it the group
-                        # arrays stayed resident on every device for the rest of
-                        # the run.
-                        try:
-                            freq_cand_indices, freq_cand_counts = run_chunked_dense_level(
-                                bitvecs_list,
-                                k3_chunks,
-                                _k3plus_chunk_on_gpu,
-                                min_count_threshold,
-                                nccl_comms,
-                                _use_nccl,
-                                level_label=f"K={k}",
-                            )
-                        finally:
-                            # Free group data from all GPUs
-                            for did in list(all_groups_gpu):
-                                with cp.cuda.Device(did):
-                                    del all_groups_gpu[did]
-                                    cp.get_default_memory_pool().free_all_blocks()
-                        parts.append((dense_groups, freq_cand_indices, freq_cand_counts))
+                    logger.debug(
+                        f"  K={k}: {tc:,} candidates — per-candidate "
+                        f"{0 if small is None else small.total_candidates:,}, tiled "
+                        f"{0 if big is None else big.total_candidates:,}; group data "
+                        f"{group_data_bytes / (1 << 30):.1f} GB, budget {max_cands_per_chunk:,} cands/chunk"
+                    )
+                    if small is not None:
+                        chunks = plan_candidate_chunks(small.total_candidates, max_cands_per_chunk)
+                        parts.append((small, *_count_dense(small, chunks, f"K={k}")))
+                    if big is not None:
+                        chunks = plan_group_chunks(big.cumulative_pairs, max_cands_per_chunk)
+                        parts.append((big, *_count_dense(big, chunks, f"K={k}")))
 
                     parts = [part for part in parts if len(part[1]) > 0]
                     if parts:

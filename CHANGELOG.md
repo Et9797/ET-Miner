@@ -469,6 +469,20 @@ replacement.
   it saved: `oom_regression` to K=3 mined in 37.62 s without it and 101.25 s
   with it, and on `stress_k2` the Rust prune alone took 487 s at K=3. The
   Rust function stays in `rust_ext`; nothing calls it.
+- **`ET_MINER_KERNEL_VARIANT`.** Setting it raises. The row-split miner picks
+  the kernel per prefix group at the measured crossover: tiled for groups of
+  at least 120 candidate pairs at K=3, falling to 23 at K≥8
+  (`TILED_MIN_GROUP_PAIRS`), per-candidate below, each set counted as its own
+  candidate space so the two never fragment each other's chunks.
+  `ET_MINER_TILED_MIN_GROUP_PAIRS` pins that choice (0 = tiled everywhere).
+  The wrappers lost `variant=`: `count_pairs_k2_allcounts` and
+  `count_k3plus_allcounts` are now `count_pairs_k2_per_candidate` and
+  `count_k3plus_per_candidate`. Measured before the change: the tiled K=2
+  kernel was 10× faster (`oom_regression` 7.64 s vs 82.49 s); at K≥3 the old
+  default tiled every group once the small-group routing fragmented its plan
+  and was 5× slower than per-candidate on `deep_sparse_large` (76.39 s vs
+  14.63 s), while per-candidate was 5× slower than tiled on `oom_regression`
+  to K=3 (492.21 s vs 93.08 s).
 
 ---
 

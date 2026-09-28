@@ -47,10 +47,10 @@ def _gpu_count() -> int:
         return 0
 
 
-def _cfg(id_, preset, *, variant="legacy", filter_impl=None, n_gpus=2, balance=None,
+def _cfg(id_, preset, *, filter_impl=None, n_gpus=2, balance=None,
          disable_nccl=False, max_length=None, min_support=None,
          two_phase=False, rep=0, timeout_s=1800):
-    env = {"ET_MINER_KERNEL_VARIANT": variant}
+    env = {}
     if n_gpus == 1:
         # Make "1 GPU" mean it: dispatch auto-detects physical devices and
         # would otherwise route big levels to the pair-split multi-GPU path,
@@ -86,21 +86,13 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
-        for v in ("legacy", "shared"):
-            for g in gpus:
-                cfgs.append(_cfg(f"smoke-{v}-{g}g", "smoke", variant=v, n_gpus=g, timeout_s=900))
-        for v in ("legacy", "shared"):
-            cfgs.append(
-                _cfg(f"stressk2ml2-{v}-{max(gpus)}g", "stress_k2", variant=v, n_gpus=max(gpus),
-                     max_length=2, timeout_s=1800)
-            )
+        for g in gpus:
+            cfgs.append(_cfg(f"smoke-{g}g", "smoke", n_gpus=g, timeout_s=900))
+        cfgs.append(_cfg(f"stressk2ml2-{max(gpus)}g", "stress_k2", n_gpus=max(gpus), max_length=2, timeout_s=1800))
         return cfgs
 
-    # full — on-box recalibration: stress_k2's K=3 is ~76B candidates, so a
-    # single legacy stress run costs ~37 min. Legacy stress gets ONE rep
-    # (the slow baseline needs no variance estimate at that cost); shared
-    # and deep_k keep 3. One-off axes run FIRST so a --max-hours stop can
-    # only ever shed redundant reps, never whole measurement axes.
+    # full: one-off axes FIRST, so a --max-hours stop can only ever shed
+    # redundant reps, never whole measurement axes.
     for impl in ("compact", "cupy", "cpu"):
         cfgs.append(_cfg(f"stressk2-filter-{impl}", "stress_k2", filter_impl=impl,
                          n_gpus=max(gpus), max_length=2, timeout_s=1800))
@@ -109,16 +101,10 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
     for rep in range(2):
         for bal in ("rows", "nnz"):
             cfgs.append(_cfg(f"skew-{bal}", "skewed_rows", balance=bal, n_gpus=max(gpus), rep=rep))
-    for g in gpus:
-        cfgs.append(_cfg(f"stressk2-legacy-{g}g", "stress_k2", variant="legacy", n_gpus=g,
-                         max_length=3, rep=0, timeout_s=3600))
     for rep in range(3):
         for g in gpus:
-            cfgs.append(_cfg(f"stressk2-shared-{g}g", "stress_k2", variant="shared", n_gpus=g,
-                             max_length=3, rep=rep, timeout_s=3600))
-            for v in ("legacy", "shared"):
-                if rep == 0 or v == "shared":
-                    cfgs.append(_cfg(f"deepk-{v}-{g}g", "deep_k", variant=v, n_gpus=g, rep=rep))
+            cfgs.append(_cfg(f"stressk2-{g}g", "stress_k2", n_gpus=g, max_length=3, rep=rep, timeout_s=3600))
+            cfgs.append(_cfg(f"deepk-{g}g", "deep_k", n_gpus=g, rep=rep))
     return cfgs
 
 
@@ -508,10 +494,10 @@ def main() -> int:
     #
     # Refute wide, claim narrow. Scoping this to `all_ids` (or to `selected`)
     # would suppress the campaign's only cross-mode refutation: smoke's
-    # `stressk2ml2-{legacy,shared}-2g` and full's
+    # `stressk2ml2-2g` and full's
     # `stressk2-filter-{compact,cupy,cpu}` all share
     # `group_key == ('stress_k2', 2, None, False, False)`, and that group is the sole
-    # place KERNEL_VARIANT and FILTER_IMPL results ever meet. Both modes write
+    # place the two modes' results ever meet. Both modes write
     # to one campaign directory so that they do meet.
     #
     # A divergence found in a row outside this selection is still a real

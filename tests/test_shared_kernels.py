@@ -14,8 +14,8 @@ cp = pytest.importorskip("cupy", reason="cupy not installed")
 
 pytestmark = pytest.mark.gpu
 
-from et_miner.gpu.kernels.k2 import count_pairs_k2_allcounts
-from et_miner.gpu.kernels.k3plus import K3PlusGroups, count_k3plus_allcounts
+from et_miner.gpu.kernels.k2 import count_pairs_k2_per_candidate
+from et_miner.gpu.kernels.k3plus import K3PlusGroups, count_k3plus_per_candidate
 from et_miner.gpu.kernels.shared_tiled import (
     TILE_T,
     compute_cumulative_tilepairs,
@@ -65,14 +65,14 @@ class TestDenseEquivalence:
     def test_bit_equal_across_word_tails(self, n_u64s):
         bv = _random_bitvecs(300, n_u64s, seed=n_u64s)
         groups = _groups_from_sizes(STRADDLE_SIZES, prefix_len=2, n_cols=300)
-        legacy = count_k3plus_allcounts(bv, groups, n_u64s, variant="legacy").get()
+        legacy = count_k3plus_per_candidate(bv, groups, n_u64s).get()
         shared = count_shared_tiled_allcounts(bv, groups, n_u64s).get()
         np.testing.assert_array_equal(shared, legacy)
 
     def test_one_suffix_groups_contribute_nothing(self):
         bv = _random_bitvecs(100, 8)
         groups = _groups_from_sizes([1, 5, 1, 40, 1], prefix_len=1, n_cols=100)
-        legacy = count_k3plus_allcounts(bv, groups, 8, variant="legacy").get()
+        legacy = count_k3plus_per_candidate(bv, groups, 8).get()
         shared = count_shared_tiled_allcounts(bv, groups, 8).get()
         np.testing.assert_array_equal(shared, legacy)
         ctp = compute_cumulative_tilepairs(groups.suffix_offsets)
@@ -82,7 +82,7 @@ class TestDenseEquivalence:
         """prefix_len=0 (the K=2 synthetic group shape): prefix AND = ~0."""
         bv = _random_bitvecs(120, 16, seed=3)
         cols = sorted(int(c) for c in np.random.default_rng(4).choice(120, 60, replace=False))
-        legacy = count_pairs_k2_allcounts(bv, cols, 16, variant="legacy").get()
+        legacy = count_pairs_k2_per_candidate(bv, cols, 16).get()
         shared = count_pairs_k2_shared(bv, cols, 16).get()
         np.testing.assert_array_equal(shared, legacy)
 
@@ -103,14 +103,14 @@ class TestDenseEquivalence:
         )
         shared = count_shared_tiled_allcounts(bv, groups, 8).get()
         assert not shared.any()
-        legacy = count_k3plus_allcounts(bv, groups, 8, variant="legacy").get()
+        legacy = count_k3plus_per_candidate(bv, groups, 8).get()
         np.testing.assert_array_equal(shared, legacy)
 
     def test_group_aligned_chunks_bit_equal(self):
         bv = _random_bitvecs(300, 12, seed=6)
         groups = _groups_from_sizes([10, 33, 64, 5, 90], prefix_len=2, n_cols=300, seed=7)
         cp_arr = np.asarray(groups.cumulative_pairs)
-        full = count_k3plus_allcounts(bv, groups, 12, variant="legacy").get()
+        full = count_k3plus_per_candidate(bv, groups, 12).get()
         # chunk at every group boundary pairing
         for a in range(len(cp_arr) - 1):
             for b in range(a + 1, len(cp_arr)):
@@ -138,7 +138,7 @@ class TestFusedEquivalence:
     def test_fused_returns_exactly_the_dense_survivors(self, prefix_len):
         bv = _random_bitvecs(300, 10, seed=8, density=0.5)
         groups = _groups_from_sizes(STRADDLE_SIZES, prefix_len=prefix_len, n_cols=300)
-        dense = count_k3plus_allcounts(bv, groups, 10, variant="legacy").get()
+        dense = count_k3plus_per_candidate(bv, groups, 10).get()
         min_count = int(np.median(dense))
         want_idx, want_cnt = _dense_survivors(dense, min_count)
         got_idx, got_cnt = count_tiled_fused(bv, groups, 10, min_count)
@@ -149,7 +149,7 @@ class TestFusedEquivalence:
     def test_k2_fused_returns_exactly_the_dense_survivors(self):
         bv = _random_bitvecs(150, 6, seed=10)
         cols = sorted(int(c) for c in np.random.default_rng(11).choice(150, 50, replace=False))
-        want_idx, want_cnt = _dense_survivors(count_pairs_k2_allcounts(bv, cols, 6, variant="legacy").get(), 20)
+        want_idx, want_cnt = _dense_survivors(count_pairs_k2_per_candidate(bv, cols, 6).get(), 20)
         got_idx, got_cnt = count_tiled_fused(bv, k2_groups(cols), 6, 20)
         np.testing.assert_array_equal(got_idx, want_idx)
         np.testing.assert_array_equal(got_cnt, want_cnt)
@@ -164,14 +164,3 @@ class TestFusedEquivalence:
         tiny_idx, tiny_cnt = count_tiled_fused(bv, groups, 4, 1, initial_capacity=3)
         np.testing.assert_array_equal(tiny_idx, base_idx)
         np.testing.assert_array_equal(tiny_cnt, base_cnt)
-
-
-class TestVariantWiring:
-    def test_allcounts_env_routing(self, monkeypatch):
-        bv = _random_bitvecs(100, 8, seed=13)
-        groups = _groups_from_sizes([20, 40], prefix_len=1, n_cols=100)
-        results = {}
-        for variant in ("legacy", "shared"):
-            monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", variant)
-            results[variant] = count_k3plus_allcounts(bv, groups, 8).get()
-        np.testing.assert_array_equal(results["legacy"], results["shared"])

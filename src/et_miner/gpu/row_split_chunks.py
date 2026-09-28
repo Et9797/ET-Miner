@@ -8,8 +8,11 @@ and compact survivors per chunk. This module owns:
   AlphaFold-scale numbers without a GPU),
 - the VRAM measurement that honors per-device CuPy memory-pool limits
   (``compute_chunk_budget``),
-- chunk planning (plain candidate ranges for K=2; group-aligned ranges for
-  K>=3, ready for kernels that require whole prefix groups per chunk),
+- which kernel counts a prefix group (``tiled_min_group_pairs``, the
+  measured crossover),
+- chunk planning (plain candidate ranges for the per-candidate kernel;
+  group-aligned ranges for the tiled kernel, which needs whole prefix groups
+  per chunk),
 - the chunk loop itself (``run_chunked_dense_level``), shared by both the
   K=2 and K>=3 branches of ``row_split``.
 
@@ -36,20 +39,27 @@ from et_miner import _env
 #: int32 dense counts — one per candidate per GPU.
 CHUNK_BYTES_PER_CANDIDATE = 4
 
-#: Chunk-count blow-up above which the tiny-group routing is abandoned for
-#: this level. Routing tiny groups to the legacy kernel saves a little
-#: occupancy per launch; fragmenting the plan costs a whole launch per group.
-#: Measured on a 720,811-transaction lattice (1,444 items, min_count 25) whose
-#: median K=10 prefix group held 91 pairs against the default threshold of 64:
-#: the classes alternated nearly every group, giving 59,481 chunks and 1136.7 s
-#: at K=10 against 1 chunk and 11.6 s once the routing was dropped, for
-#: identical itemsets on all 16 levels. The levels that were already one chunk
-#: ran ~7% slower without the routing, which bounds what it is worth.
-FRAGMENTATION_FACTOR = 4
+#: Pairs per prefix group at which the tiled kernel becomes faster than the
+#: per-candidate kernel, per K. Measured by bench/kernel_crossover.py
+#: (bench/results/2026-09-27-consolidation/crossover.jsonl): the ratio does
+#: not depend on the row count, since both kernels scale with the words, and
+#: it falls with K, since the per-candidate kernel reads every prefix word for
+#: every candidate. K=7 sits between its measured neighbours; beyond K=8 the
+#: K=8 value holds. K=2 is one group with an empty prefix, counted as K=3.
+TILED_MIN_GROUP_PAIRS = {2: 120, 3: 120, 4: 91, 5: 66, 6: 45, 7: 32, 8: 23}
 
-#: Plans smaller than this never trip the check: at a handful of launches the
-#: difference cannot pay for the second planning pass.
-FRAGMENTATION_FLOOR = 64
+
+def tiled_min_group_pairs(k: int) -> int:
+    """Pairs a prefix group needs to be counted by the tiled kernel at level ``k``.
+
+    ``ET_MINER_TILED_MIN_GROUP_PAIRS`` pins it for every level (0 = tiled for
+    every group); unset, it is the measured crossover.
+    """
+    pinned = _env.tiled_min_group_pairs()
+    if pinned is not None:
+        return pinned
+    return TILED_MIN_GROUP_PAIRS.get(k, TILED_MIN_GROUP_PAIRS[max(TILED_MIN_GROUP_PAIRS)])
+
 
 #: Floor/fraction for the safety margin: max(1 GiB, 4% of device VRAM).
 #: Replaces the old hardcoded 6 GiB, which was 25% of an RTX 3090.
@@ -62,9 +72,9 @@ class ChunkPlan(NamedTuple):
 
     start: int
     size: int
-    #: True when this range must run on the legacy per-candidate kernel
-    #: (a single prefix group too large for group-aligned chunking).
-    use_legacy: bool = False
+    #: True when this range runs on the per-candidate kernel rather than the
+    #: tiled one (small groups, or a group too large for group-aligned chunks).
+    per_candidate: bool = False
 
 
 def chunk_budget_from_bytes(
@@ -163,49 +173,28 @@ def compute_chunk_budget(
 
 
 def plan_candidate_chunks(total_candidates: int, max_cands: int) -> list[ChunkPlan]:
-    """Plain contiguous ranges (K=2 and legacy K>=3 kernels)."""
+    """Plain contiguous ranges for the per-candidate kernel."""
     if total_candidates <= 0:
         return []
     max_cands = max(1, max_cands)
     return [
-        ChunkPlan(start, min(max_cands, total_candidates - start))
+        ChunkPlan(start, min(max_cands, total_candidates - start), per_candidate=True)
         for start in range(0, total_candidates, max_cands)
     ]
 
 
-def plan_group_chunks(
-    cumulative_pairs, max_cands: int, tiled_min_group_pairs: int | None = None
-) -> list[ChunkPlan]:
-    """Group-aligned contiguous ranges over the K>=3 candidate space.
+def plan_group_chunks(cumulative_pairs, max_cands: int) -> list[ChunkPlan]:
+    """Group-aligned contiguous ranges over a candidate space, for the tiled kernel.
 
-    Every chunk boundary lands on a prefix-group boundary, which kernels
-    that stage per-group state (the shared/tiled variant) require. Two
-    kinds of group are routed to the legacy per-candidate kernel via
-    ``use_legacy=True``:
-
-    - **mega-groups** (pairs > ``max_cands``): cannot be group-aligned —
-      emitted as plain candidate-range sub-chunks;
-    - **tiny groups** (pairs < ``tiled_min_group_pairs``, default from
-      ``ET_MINER_TILED_MIN_GROUP_PAIRS``): a 256-thread tile-pair block
-      would idle on a handful of pairs, so contiguous runs of them go to
-      the legacy kernel wholesale. ``tiled_min_group_pairs=0`` disables
-      the routing.
-
-    Groups merge only within a run of one class, so the tiny routing pays
-    off only when tiny groups arrive in runs. A level whose groups straddle
-    the threshold alternates class almost every group, and then every group
-    becomes its own chunk — the routing saves a little occupancy per launch
-    and buys thousands of launches to do it. ``_fragments`` detects that by
-    planning the same level without the tiny class and comparing chunk
-    counts; the routing is dropped when it multiplies them.
+    Every chunk boundary lands on a prefix-group boundary, which the tiled
+    kernel requires. A group larger than ``max_cands`` cannot be group-aligned
+    and is split into plain candidate ranges on the per-candidate kernel.
 
     The plan is a deterministic function of its inputs, so every GPU in a
     row-split run derives the identical plan — a requirement for the
     collective reduce. Chunks are emitted in ascending candidate order and
     cover the space exactly.
     """
-    if tiled_min_group_pairs is None:
-        tiled_min_group_pairs = _env.tiled_min_group_pairs()
     cp_arr = np.asarray(cumulative_pairs, dtype=np.int64)
     n_groups = len(cp_arr) - 1
     total = int(cp_arr[-1]) if n_groups >= 0 and len(cp_arr) else 0
@@ -213,62 +202,22 @@ def plan_group_chunks(
         return []
     max_cands = max(1, max_cands)
 
-    sizes = np.diff(cp_arr)
-    mega = sizes > max_cands
-    # class 2 = mega (legacy sub-chunks), 1 = tiny (legacy), 0 = tiled
-    klass = np.where(mega, 2, np.where(sizes < tiled_min_group_pairs, 1, 0))
-    plans = _plans_for_classes(cp_arr, klass, n_groups, max_cands)
-    if _fragments(len(plans)):
-        aligned = _plans_for_classes(
-            cp_arr, np.where(mega, 2, 0), n_groups, max_cands
-        )
-        if len(plans) > FRAGMENTATION_FACTOR * len(aligned):
-            logger.debug(
-                f"  Tiny-group routing would fragment the plan into {len(plans):,} chunks "
-                f"against {len(aligned):,} without it; dropping it for this level"
-            )
-            return aligned
-    return plans
-
-
-def _fragments(n_plans: int) -> bool:
-    """Whether a plan is big enough for launch count to be worth checking.
-
-    Below the floor the two plans differ by a handful of launches and the
-    second planning pass would cost more than it saves.
-    """
-    return n_plans > FRAGMENTATION_FLOOR
-
-
-def _plans_for_classes(cp_arr, klass, n_groups: int, max_cands: int) -> list[ChunkPlan]:
-    """Merge contiguous groups of one class into budget-bounded chunks."""
-    change = np.nonzero(np.diff(klass))[0] + 1
-    run_bounds = np.concatenate([[0], change, [n_groups]])
-
     plans: list[ChunkPlan] = []
-    for r in range(len(run_bounds) - 1):
-        g_lo, g_hi = int(run_bounds[r]), int(run_bounds[r + 1])
-        k = int(klass[g_lo])
-        if k == 2:
-            # Each mega-group individually sub-chunked by candidate range.
-            for g in range(g_lo, g_hi):
-                g_start, g_end = int(cp_arr[g]), int(cp_arr[g + 1])
-                plans.extend(
-                    ChunkPlan(start, min(max_cands, g_end - start), use_legacy=True)
-                    for start in range(g_start, g_end, max_cands)
-                )
+    g = 0
+    while g < n_groups:
+        start, end = int(cp_arr[g]), int(cp_arr[g + 1])
+        if end - start > max_cands:
+            plans.extend(
+                ChunkPlan(s, min(max_cands, end - s), per_candidate=True) for s in range(start, end, max_cands)
+            )
+            g += 1
             continue
-        # Greedy whole-group chunks within the run, budget-bounded.
-        use_legacy = k == 1
-        g = g_lo
-        while g < g_hi:
-            start = int(cp_arr[g])
-            j = int(np.searchsorted(cp_arr, start + max_cands, side="right")) - 1
-            j = min(max(j, g + 1), g_hi)
-            size = int(cp_arr[j]) - start
-            if size > 0:
-                plans.append(ChunkPlan(start, size, use_legacy=use_legacy))
-            g = j
+        # Greedy whole-group chunk: every following group that still fits.
+        j = int(np.searchsorted(cp_arr, start + max_cands, side="right")) - 1
+        j = min(max(j, g + 1), n_groups)
+        if int(cp_arr[j]) - start > 0:
+            plans.append(ChunkPlan(start, int(cp_arr[j]) - start))
+        g = j
     return plans
 
 
@@ -311,7 +260,7 @@ def run_chunked_dense_level(
                 logger.debug(
                     f"    {level_label} chunk {chunk_idx + 1}/{len(chunks)}: "
                     f"candidates [{chunk.start:,}, {chunk.start + chunk.size:,})"
-                    + (" (legacy sub-chunk)" if chunk.use_legacy else "")
+                    + (" (per-candidate)" if chunk.per_candidate else "")
                 )
 
             futures = [pool.submit(launch_chunk, bv, did, chunk) for bv, did, _ in bitvecs_list]

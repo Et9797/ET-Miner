@@ -40,8 +40,10 @@ markdown report, and the environment capture. Datasets under
 ## What the gate enforces (see /CLAUDE.md)
 
 `run_smoke.sh` and `run_full.sh` FIRST run `tests/test_tier_equivalence.py`:
-Tier 1 Polars == Tier 2 Rust == single-GPU legacy == multi-GPU legacy ==
-shared multi-GPU == **efficient-apriori**, exact itemsets and counts, on the
+Tier 1 Polars == Tier 2 Rust == row-split 1 GPU (measured dispatch, tiled
+pinned, per-candidate pinned, forced chunks) == SON 1 GPU == row-split 2 GPUs
+(plain and forced chunks) == SON 2 GPUs == **efficient-apriori**, exact
+itemsets and counts, on the
 `smoke` synthetic preset. Any divergence aborts the run — no benchmark
 number is worth recording from a miner that disagrees with the oracle.
 
@@ -49,12 +51,11 @@ number is worth recording from a miner that disagrees with the oracle.
 
 | Env | Values | Meaning |
 |---|---|---|
-| `ET_MINER_KERNEL_VARIANT` | `auto`/`legacy`/`shared` | dense counting kernel A/B |
 | `ET_MINER_FILTER_IMPL` | `compact`/`cupy`/`cpu` | survivor filter A/B |
 | `ET_MINER_ROW_BALANCE` | `rows`/`nnz` | multi-GPU row split A/B |
 | `ET_MINER_DISABLE_NCCL` | `1` | force the staged D2D reduce |
 | `ET_MINER_MAX_CHUNK_CANDS` | int | force multi-chunk runs |
-| `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | groups below this many pairs use the per-candidate kernel (0 disables) |
+| `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |
 | `ET_MINER_DISABLE_RUST` | `1` | every Rust role takes its fallback (read once, at import) |
 
 ## Consolidation campaign

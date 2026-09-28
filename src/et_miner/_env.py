@@ -34,13 +34,16 @@ Variables:
     ET_MINER_ROW_BALANCE               multi-GPU row-split mode: "rows"
                                        (default, equal row counts) or "nnz"
                                        (equal cumulative nnz cuts)
-    ET_MINER_KERNEL_VARIANT            dense counting kernel: "auto"
-                                       (default; currently = shared),
-                                       "legacy", or "shared" (tiled
-                                       prefix-sharing kernel)
-    ET_MINER_TILED_MIN_GROUP_PAIRS     groups with fewer candidate pairs
-                                       route to the legacy kernel even
-                                       under the shared variant (default 64)
+    ET_MINER_KERNEL_VARIANT            removed: setting it raises ValueError
+                                       (the kernel is chosen per prefix
+                                       group; pin it with the next knob)
+    ET_MINER_TILED_MIN_GROUP_PAIRS     int, pins the candidate pairs a
+                                       prefix group needs for the tiled
+                                       kernel; smaller groups run on the
+                                       per-candidate kernel. 0 = tiled for
+                                       every group. Unset: the measured
+                                       crossover per K (see
+                                       et_miner.gpu.row_split_chunks)
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -129,12 +132,18 @@ def row_balance() -> str:
     return os.environ.get("ET_MINER_ROW_BALANCE", "rows").strip().lower()
 
 
-def kernel_variant() -> str:
-    return os.environ.get("ET_MINER_KERNEL_VARIANT", "auto").strip().lower()
+def reject_removed_knobs() -> None:
+    """Raise for a knob that no longer exists rather than ignore it."""
+    if "ET_MINER_KERNEL_VARIANT" in os.environ:
+        raise ValueError(
+            "ET_MINER_KERNEL_VARIANT was removed: the row-split miner picks the tiled or the "
+            "per-candidate kernel per prefix group, at the measured crossover. "
+            "ET_MINER_TILED_MIN_GROUP_PAIRS pins that choice (0 = tiled for every group). Unset it."
+        )
 
 
-def tiled_min_group_pairs() -> int:
-    return _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", 64)
+def tiled_min_group_pairs() -> int | None:
+    return _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", None)
 
 
 def log_dir() -> Path:

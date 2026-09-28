@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .loader import get_cuda_kernel
+from .loader import _assert_bitvecs, get_cuda_kernel
 
 
 def count_itemsets_cuda(
@@ -25,13 +25,15 @@ def count_itemsets_cuda(
     Returns:
         Numpy array of counts
     """
+    import cupy as cp
 
+    _assert_bitvecs("count_itemsets_cuda", bitvecs_gpu)
     n_cols, n_u64s = bitvecs_gpu.shape
     n_itemsets = len(itemsets)
 
-    if use_batch and n_itemsets > 10:
-        return _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s)
-    else:
+    with cp.cuda.Device(bitvecs_gpu.device.id):
+        if use_batch and n_itemsets > 10:
+            return _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s)
         return _count_single(bitvecs_gpu, itemsets, n_cols, n_u64s)
 
 

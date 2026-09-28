@@ -51,19 +51,3 @@ static __device__ int _decode_candidate(
     *g_out = g;
     return 1;
 }
-
-// Same decode for groups described by explicit sizes (the GPU-resident
-// kernels, whose groups are runs of rows of the sorted prev-level table).
-static __device__ int _decode_candidate_sized(
-    const long long* __restrict__ cumulative_pairs,   // (n_groups + 1), [0]-prefixed
-    const long long* __restrict__ group_sizes,        // (n_groups)
-    const long long n_groups,
-    const long long cand,
-    long long* g_out, long long* i_out, long long* j_out)
-{
-    if (n_groups <= 0 || cand < 0 || cand >= cumulative_pairs[n_groups]) return 0;
-    const long long g = _find_group(cumulative_pairs, n_groups, cand);
-    if (!_triangular_inverse(cand - cumulative_pairs[g], group_sizes[g], i_out, j_out)) return 0;
-    *g_out = g;
-    return 1;
-}

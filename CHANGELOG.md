@@ -431,6 +431,26 @@ replacement.
   `deep_k` where the per-level counter took 6.84 s, and a four-chunk SON run on
   `deep_sparse_large` finished in 194.75 s with it and hit the 600 s cap
   without.
+- **The single-GPU bitvec miner and the GPU-resident miner.** The row-split
+  miner now serves every in-core GPU call: `use_gpu=True` on one GPU or many,
+  and `bitvecs=` (sharded by 64-row words across `n_gpus` devices). It gained
+  `profile=True` and the `max_ram_gb` / `max_vram_gb` guards, and `output_dir`
+  / `resume_from_k` now work with `bitvecs=` too. `apriori(gpu_resident=True)`
+  raises. Gone with the two miners: their pair/candidate fan-out across GPUs
+  (which copied the whole bitvec matrix to every device through host RAM), the
+  per-candidate fused kernels (`pairs_k2.cu`, `k3plus_fullyfused.cu`) with
+  their 10M-result ceiling, the GPU-resident kernels
+  (`k3plus_gpu_resident.cu`, `decode_candidates.cu`), and the exports
+  `count_pairs_fused_k2(_multi_gpu)`, `count_k3plus_fully_fused(_multi_gpu)`,
+  `count_*_gpu_resident(_multi_gpu)`, `build_prefix_groups_gpu`,
+  `build_k3plus_groups`, `count_k3plus_shared_fused` and
+  `count_pairs_k2_shared_fused` (the tiled fused kernel is
+  `count_tiled_fused`). Measured wall time, row-split vs the faster of the
+  two: `oom_regression` (K≤2) 8.22 s vs 10.34 s, `deep_sparse_large` 24.19 s
+  vs 26.98 s, Online Retail at 0.002 0.35 s vs 2.66 s. Where the old
+  single-GPU miner won (`stress_k2` K≤2 on 12 GB, 56.21 s vs 453.57 s: the
+  pair counts do not fit one dense chunk), the row-split miner now counts the
+  way it did, with the fused tiled kernel.
 
 ---
 

@@ -141,12 +141,8 @@ class TestRefusedOffTheRowSplitMiner:
         with pytest.raises(ValueError, match=self.MATCH):
             apriori(df, min_support=MIN_SUPPORT, streaming=True, chunk_size=1000, prune_apriori=False)
 
-    def test_single_gpu_bitvec_route(self, df):
-        with pytest.raises(ValueError, match=self.MATCH):
-            apriori(df, min_support=MIN_SUPPORT, use_gpu=True, n_gpus=1, prune_apriori=False)
-
-    def test_gpu_resident_route(self, df):
-        with pytest.raises(ValueError, match=self.MATCH):
+    def test_gpu_resident_is_refused_first(self, df):
+        with pytest.raises(ValueError, match="gpu_resident was removed"):
             apriori(df, min_support=MIN_SUPPORT, use_gpu=True, gpu_resident=True, prune_apriori=False)
 
     def test_explicit_true_is_accepted_on_the_cpu_route(self, df):
@@ -156,6 +152,15 @@ class TestRefusedOffTheRowSplitMiner:
 
 
 # ── the row-split miner, where the switch lives ───────────────────────────────
+
+
+@pytest.mark.gpu
+def test_single_gpu_honours_the_switch(prune_calls):
+    """One GPU reaches the row-split miner too, so False is honoured there."""
+    df, matrix = _fixture()
+    counts, _ = _brute_force(matrix)
+    assert _mined(df, use_gpu=True, n_gpus=1, prune_apriori=False) == counts
+    assert not prune_calls
 
 
 def _needs_two_gpus() -> None:

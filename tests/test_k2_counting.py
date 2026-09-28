@@ -1,7 +1,10 @@
-"""Tests for fused k=2 CUDA kernel.
+"""K=2 counting paths against a Python candidate reference.
 
-Verifies that the single-launch pair generation + AND + popcount + filter
-kernel produces identical results to the Python-based candidate pipeline.
+The row-split miner counts K=2 three ways: dense on the per-candidate kernel,
+dense on the tiled kernel (the whole pair space as one group), and fused on
+the tiled kernel (one GPU, pair counts beyond one dense chunk). Each must
+return exactly the pairs and counts the reference gets from Python candidate
+generation and the batched itemset kernel.
 
 Skip automatically if CuPy is not available.
 """
@@ -15,10 +18,14 @@ cupy = pytest.importorskip("cupy")
 pytestmark = pytest.mark.gpu
 
 from et_miner.gpu.kernels import (
-    count_pairs_fused_k2,
     count_itemsets_cuda,
-    get_cuda_kernel,
+    count_pairs_k2_allcounts,
+    count_tiled_fused,
+    decode_k2_pairs_flat,
+    k2_groups,
 )
+
+PATHS = ["dense-per-candidate", "dense-tiled", "fused-tiled"]
 
 
 def _make_bitvecs(n_cols, n_rows, density=0.3, seed=42):
@@ -72,15 +79,26 @@ def _python_k2_reference(bitvecs_gpu, freq_cols, n_u64s, min_count):
     return pairs, np.array(filtered_counts, dtype=np.int64)
 
 
-class TestFusedK2Kernel:
-    """Test the fused k=2 pair counting kernel."""
+def count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count):
+    """(pairs, counts) of the pairs reaching min_count, on one K=2 path."""
+    if len(freq_cols) < 2:
+        return [], np.array([], dtype=np.int64)
+    if path == "fused-tiled":
+        idx, counts = count_tiled_fused(bitvecs_gpu, k2_groups(freq_cols), n_u64s, min_count)
+    else:
+        variant = "legacy" if path == "dense-per-candidate" else "shared"
+        dense = count_pairs_k2_allcounts(bitvecs_gpu, freq_cols, n_u64s, variant=variant).get()
+        idx = np.nonzero(dense >= min_count)[0]
+        counts = dense[idx].astype(np.int64)
+    pairs = [(int(a), int(b)) for a, b in decode_k2_pairs_flat(idx, list(freq_cols))]
+    return pairs, counts
 
-    def test_kernel_compiles(self):
-        """Verify the fused k=2 kernel compiles without errors."""
-        kernel = get_cuda_kernel('count_pairs_fused_k2')
-        assert kernel is not None
 
-    def test_small_known_answer(self):
+@pytest.mark.parametrize("path", PATHS)
+class TestK2Counting:
+    """Every K=2 path against the Python reference."""
+
+    def test_small_known_answer(self, path):
         """Known-answer test with 4 items and predictable bitvectors."""
         # 4 columns, 128 rows. Set specific bit patterns.
         n_rows = 128
@@ -100,7 +118,7 @@ class TestFusedK2Kernel:
         freq_cols = [0, 1, 2, 3]
 
         # min_count = 30: should find (0,1)=64, (0,2)=32, (1,2)=32
-        pairs, counts = count_pairs_fused_k2(bitvecs_gpu, freq_cols, n_u64s, min_count=30)
+        pairs, counts = count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count=30)
 
         # Sort for comparison
         pair_count_map = {p: int(c) for p, c in zip(pairs, counts)}
@@ -116,15 +134,13 @@ class TestFusedK2Kernel:
         for p in pairs:
             assert 3 not in p
 
-    def test_matches_python_reference(self):
+    def test_matches_python_reference(self, path):
         """Fused kernel output must exactly match Python reference for random data."""
         bitvecs_gpu, n_u64s, n_rows = _make_bitvecs(n_cols=20, n_rows=1000, density=0.3)
         freq_cols = list(range(20))
         min_count = 50
 
-        fused_pairs, fused_counts = count_pairs_fused_k2(
-            bitvecs_gpu, freq_cols, n_u64s, min_count
-        )
+        fused_pairs, fused_counts = count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count)
         ref_pairs, ref_counts = _python_k2_reference(
             bitvecs_gpu, freq_cols, n_u64s, min_count
         )
@@ -138,15 +154,13 @@ class TestFusedK2Kernel:
             f"Extra in fused: {fused_set - ref_set}, Missing from fused: {ref_set - fused_set}"
         )
 
-    def test_larger_scale_matches(self):
+    def test_larger_scale_matches(self, path):
         """Test with more items (100 cols) to stress triangular indexing."""
         bitvecs_gpu, n_u64s, n_rows = _make_bitvecs(n_cols=100, n_rows=5000, density=0.2)
         freq_cols = list(range(100))
         min_count = 200
 
-        fused_pairs, fused_counts = count_pairs_fused_k2(
-            bitvecs_gpu, freq_cols, n_u64s, min_count
-        )
+        fused_pairs, fused_counts = count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count)
         ref_pairs, ref_counts = _python_k2_reference(
             bitvecs_gpu, freq_cols, n_u64s, min_count
         )
@@ -155,41 +169,37 @@ class TestFusedK2Kernel:
         ref_set = {(p, int(c)) for p, c in zip(ref_pairs, ref_counts)}
         assert fused_set == ref_set
 
-    def test_zero_frequent_items(self):
+    def test_zero_frequent_items(self, path):
         """Edge case: 0 frequent items should return empty."""
         bitvecs_gpu, n_u64s, _ = _make_bitvecs(n_cols=5, n_rows=64)
-        pairs, counts = count_pairs_fused_k2(bitvecs_gpu, [], n_u64s, min_count=1)
+        pairs, counts = count_pairs(path, bitvecs_gpu, [], n_u64s, min_count=1)
         assert pairs == []
         assert len(counts) == 0
 
-    def test_one_frequent_item(self):
+    def test_one_frequent_item(self, path):
         """Edge case: 1 frequent item -> 0 pairs."""
         bitvecs_gpu, n_u64s, _ = _make_bitvecs(n_cols=5, n_rows=64)
-        pairs, counts = count_pairs_fused_k2(bitvecs_gpu, [0], n_u64s, min_count=1)
+        pairs, counts = count_pairs(path, bitvecs_gpu, [0], n_u64s, min_count=1)
         assert pairs == []
         assert len(counts) == 0
 
-    def test_high_min_count_filters_all(self):
+    def test_high_min_count_filters_all(self, path):
         """If min_count is higher than n_rows, no pairs should be found."""
         bitvecs_gpu, n_u64s, n_rows = _make_bitvecs(n_cols=10, n_rows=100, density=0.5)
         freq_cols = list(range(10))
         # min_count > n_rows means impossible to satisfy
-        pairs, counts = count_pairs_fused_k2(
-            bitvecs_gpu, freq_cols, n_u64s, min_count=n_rows + 1
-        )
+        pairs, counts = count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count=n_rows + 1)
         assert pairs == []
         assert len(counts) == 0
 
-    def test_subset_of_columns(self):
+    def test_subset_of_columns(self, path):
         """Only a subset of columns are frequent — kernel should only process those."""
         bitvecs_gpu, n_u64s, _ = _make_bitvecs(n_cols=50, n_rows=2000, density=0.4)
         # Only columns 10, 20, 30, 40 are "frequent"
         freq_cols = [10, 20, 30, 40]
         min_count = 100
 
-        fused_pairs, fused_counts = count_pairs_fused_k2(
-            bitvecs_gpu, freq_cols, n_u64s, min_count
-        )
+        fused_pairs, fused_counts = count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count)
         ref_pairs, ref_counts = _python_k2_reference(
             bitvecs_gpu, freq_cols, n_u64s, min_count
         )
@@ -198,16 +208,14 @@ class TestFusedK2Kernel:
         ref_set = {(p, int(c)) for p, c in zip(ref_pairs, ref_counts)}
         assert fused_set == ref_set
 
-    def test_many_u64_words(self):
+    def test_many_u64_words(self, path):
         """Test with large n_u64s to verify word-parallel reduction works."""
         # 100K rows = 1563 u64s per column — stresses the thread-parallel popcount
         bitvecs_gpu, n_u64s, _ = _make_bitvecs(n_cols=10, n_rows=100_000, density=0.1)
         freq_cols = list(range(10))
         min_count = 500
 
-        fused_pairs, fused_counts = count_pairs_fused_k2(
-            bitvecs_gpu, freq_cols, n_u64s, min_count
-        )
+        fused_pairs, fused_counts = count_pairs(path, bitvecs_gpu, freq_cols, n_u64s, min_count)
         ref_pairs, ref_counts = _python_k2_reference(
             bitvecs_gpu, freq_cols, n_u64s, min_count
         )

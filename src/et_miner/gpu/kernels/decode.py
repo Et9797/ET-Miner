@@ -37,7 +37,7 @@ def decode_k3plus_flat(freq_indices, groups_info, k):
 
     Args:
         freq_indices: numpy array of candidate indices that passed threshold.
-        groups_info: K3PlusGroups namedtuple from build_k3plus_groups().
+        groups_info: K3PlusGroups namedtuple from build_k3plus_groups_from_flat().
         k: current itemset size.
 
     Returns:

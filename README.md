@@ -11,7 +11,7 @@ ET-Miner implements the Apriori algorithm across three performance tiers, all be
 |------|-------|-------------|
 | **Tier 1** | Python + Polars | Vectorized boolean matrix operations. Zero dependencies beyond Polars. |
 | **Tier 2** | Rust via PyO3 | SIMD-vectorized CSR support counting (AVX2/AVX-512). 80--110x speedup. |
-| **Tier 3** | Multi-GPU CUDA | CSR bitvector encoding, fused popcount kernels, zero-transfer GPU-resident mining. |
+| **Tier 3** | CUDA, one or more GPUs | CSR-to-bitvector encoding and a row-split miner: shards of transactions per GPU, tiled and per-candidate counting kernels, counts summed across GPUs. |
 
 The streaming engine (SON algorithm) enables bounded-memory processing of arbitrarily large datasets — limited by storage, not RAM.
 
@@ -20,8 +20,8 @@ The streaming engine (SON algorithm) enables bounded-memory processing of arbitr
 ```
 src/et_miner/
 ├── core/        Apriori loop, candidate generation, matrix/sparse counting, rules
-├── gpu/         CUDA kernels (sources in gpu/kernels/_src/*.cu), bitvec mining,
-│                multi-GPU row-split, NCCL, dispatch heuristics
+├── gpu/         CUDA kernels (sources in gpu/kernels/_src/*.cu), the row-split
+│                miner (one or more GPUs), chunk planning, NCCL reduce
 ├── streaming/   SON streaming (son), multi-GPU streaming, ramdisk
 ├── io/          parquet flush-to-disk, Google Cloud Storage upload
 ├── backends.py  single source of truth for CuPy/Rust capability detection
@@ -232,10 +232,10 @@ flush/upload pipeline are environment variables, documented in
 **GPU Acceleration**
 - CUDA kernel sources maintained as real `.cu` files (`src/et_miner/gpu/kernels/_src/`), compiled on first use via CuPy
 - Direct CSR-to-GPU bitvector conversion (bypasses dense matrix construction)
-- Fused CUDA kernels: candidate generation + support counting + filtering in a single launch
-- GPU-resident mining: zero PCIe transfers between K-levels (~264 bytes total across 22 levels)
+- One in-core GPU miner for one or many GPUs: each GPU counts its shard of the transactions, the counts are summed (NCCL, or a staged copy without it), and only the survivors leave the GPU
+- Candidates are enumerated inside the kernels from prefix groups built on the host; a tiled kernel shares each prefix across 32×32 suffix pairs, a per-candidate kernel serves small groups, and on one GPU a level too large for one dense count array is counted fused (count + threshold in one launch)
 - Density-adaptive layout: `sparse_from_k="auto"` measures each level's mean support and switches from dense bitvectors to sparse CSR tidsets when tidsets become the smaller representation (mean support < n/32); an int pins the switch to a fixed K-level
-- Multi-GPU support with per-device work distribution (tested up to 8x H200)
+- Multi-GPU by row split, from transactions or from prebuilt `bitvecs=` (tested up to 8x H200)
 
 ## AlphaFold Application
 

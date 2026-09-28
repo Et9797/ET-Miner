@@ -1,10 +1,10 @@
-"""GPU equivalence tests: shared/tiled kernels vs the legacy kernels.
+"""GPU equivalence tests: shared/tiled kernels vs the per-candidate kernels.
 
-The shared variant must be BIT-IDENTICAL to legacy on the dense path
-(same candidate indexing, same int32 array) and set-identical on the fused
-path — across group sizes straddling the T=32 tile, empty/one-suffix
-groups, odd word-tile tails, the all-zero-prefix early-exit, mega-group
-legacy routing, and the fused overflow-retry protocol.
+The tiled dense kernel must be BIT-IDENTICAL to the per-candidate one (same
+candidate indexing, same int32 array), and the fused tiled kernel must return
+exactly the dense survivors (same indices, same counts) — across group sizes
+straddling the T=32 tile, empty/one-suffix groups, odd word-tile tails, the
+all-zero-prefix early-exit, and the fused overflow-retry protocol.
 """
 
 import numpy as np
@@ -14,15 +14,15 @@ cp = pytest.importorskip("cupy", reason="cupy not installed")
 
 pytestmark = pytest.mark.gpu
 
-from et_miner.gpu.kernels.k2 import count_pairs_fused_k2, count_pairs_k2_allcounts
-from et_miner.gpu.kernels.k3plus import K3PlusGroups, count_k3plus_allcounts, count_k3plus_fully_fused
+from et_miner.gpu.kernels.k2 import count_pairs_k2_allcounts
+from et_miner.gpu.kernels.k3plus import K3PlusGroups, count_k3plus_allcounts
 from et_miner.gpu.kernels.shared_tiled import (
     TILE_T,
     compute_cumulative_tilepairs,
-    count_k3plus_shared_fused,
     count_pairs_k2_shared,
-    count_pairs_k2_shared_fused,
     count_shared_tiled_allcounts,
+    count_tiled_fused,
+    k2_groups,
 )
 
 
@@ -127,39 +127,43 @@ class TestDenseEquivalence:
             count_shared_tiled_allcounts(bv, groups, 4, chunk_start=3, chunk_size=10)
 
 
-class TestFusedEquivalence:
-    def test_k3_set_equal_with_boundary_counts(self):
-        # Small item pool -> heavy prefix sharing -> varied group sizes.
-        bv = _random_bitvecs(40, 10, seed=8, density=0.4)
-        rng = np.random.default_rng(9)
-        prev = sorted({tuple(sorted(int(c) for c in rng.choice(40, 3, replace=False))) for _ in range(400)})
-        legacy_c, legacy_n = count_k3plus_fully_fused(bv, prev, 4, 10, min_count=5)
-        shared_c, shared_n = count_k3plus_shared_fused(bv, prev, 4, 10, min_count=5)
-        assert len(shared_c) > 0
-        assert set(zip(map(tuple, legacy_c), map(int, legacy_n))) == set(
-            zip(map(tuple, shared_c), map(int, shared_n))
-        )
+def _dense_survivors(counts, min_count):
+    counts = np.asarray(counts)
+    idx = np.nonzero(counts >= min_count)[0].astype(np.int64)
+    return idx, counts[idx].astype(np.int64)
 
-    def test_k2_fused_set_equal(self):
+
+class TestFusedEquivalence:
+    @pytest.mark.parametrize("prefix_len", [1, 3])
+    def test_fused_returns_exactly_the_dense_survivors(self, prefix_len):
+        bv = _random_bitvecs(300, 10, seed=8, density=0.5)
+        groups = _groups_from_sizes(STRADDLE_SIZES, prefix_len=prefix_len, n_cols=300)
+        dense = count_k3plus_allcounts(bv, groups, 10, variant="legacy").get()
+        min_count = int(np.median(dense))
+        want_idx, want_cnt = _dense_survivors(dense, min_count)
+        got_idx, got_cnt = count_tiled_fused(bv, groups, 10, min_count)
+        assert len(want_idx) > 0
+        np.testing.assert_array_equal(got_idx, want_idx)
+        np.testing.assert_array_equal(got_cnt, want_cnt)
+
+    def test_k2_fused_returns_exactly_the_dense_survivors(self):
         bv = _random_bitvecs(150, 6, seed=10)
         cols = sorted(int(c) for c in np.random.default_rng(11).choice(150, 50, replace=False))
-        legacy_p, legacy_n = count_pairs_fused_k2(bv, cols, 6, min_count=20)
-        shared_p, shared_n = count_pairs_k2_shared_fused(bv, cols, 6, min_count=20)
-        assert set(zip(map(tuple, legacy_p), map(int, legacy_n))) == set(
-            zip(map(tuple, shared_p), map(int, shared_n))
-        )
+        want_idx, want_cnt = _dense_survivors(count_pairs_k2_allcounts(bv, cols, 6, variant="legacy").get(), 20)
+        got_idx, got_cnt = count_tiled_fused(bv, k2_groups(cols), 6, 20)
+        np.testing.assert_array_equal(got_idx, want_idx)
+        np.testing.assert_array_equal(got_cnt, want_cnt)
 
     def test_overflow_retry_returns_everything(self):
         """Force capacity overflow: the kernel keeps counting, the wrapper
         re-allocates to the exact reported size and re-runs — never truncates."""
         bv = _random_bitvecs(80, 4, seed=12, density=0.6)
-        cols = list(range(60))
-        baseline_p, baseline_n = count_pairs_k2_shared_fused(bv, cols, 4, min_count=1)
-        assert len(baseline_p) > 10
-        tiny_p, tiny_n = count_pairs_k2_shared_fused(bv, cols, 4, min_count=1, max_results=3)
-        assert set(zip(map(tuple, baseline_p), map(int, baseline_n))) == set(
-            zip(map(tuple, tiny_p), map(int, tiny_n))
-        )
+        groups = k2_groups(list(range(60)))
+        base_idx, base_cnt = count_tiled_fused(bv, groups, 4, 1)
+        assert len(base_idx) > 10
+        tiny_idx, tiny_cnt = count_tiled_fused(bv, groups, 4, 1, initial_capacity=3)
+        np.testing.assert_array_equal(tiny_idx, base_idx)
+        np.testing.assert_array_equal(tiny_cnt, base_cnt)
 
 
 class TestVariantWiring:

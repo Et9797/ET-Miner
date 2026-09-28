@@ -122,59 +122,6 @@ class TestAnchorIsAnOutputSelector:
         assert got == want, f"levels reported {sorted(got)}, expected {sorted(want)}"
 
 
-class TestResultTruncationRaises:
-    """#23/#24 -- four multi-GPU kernels clamped with a bare min(n, gpu_max)
-    where their single-GPU siblings called the helper, and the helper itself
-    tolerated 5% loss with a logger.warning. Neither fix works alone: calling
-    the helper at four more sites while it still tolerated 5% would merely have
-    extended the silent-loss window to all eight."""
-
-    def test_any_overflow_raises(self):
-        from et_miner.gpu.kernels.loader import _warn_result_truncation
-
-        assert _warn_result_truncation(100, 100, "exact fit") == 100
-        with pytest.raises(RuntimeError, match="Result truncation"):
-            _warn_result_truncation(9880, 9583, "3% overflow")  # was tolerated
-        with pytest.raises(RuntimeError, match="Result truncation"):
-            _warn_result_truncation(10_000_001, 10_000_000, "one over")
-
-    def test_the_message_names_only_reachable_remedies(self):
-        """It lands hours into a run, so it has to be actionable ON THIS ROUTE.
-
-        The first version advised `resume_from_k` and raising `max_results`.
-        Neither is reachable here: these kernels run under
-        `_apriori_from_bitvecs`, where `max_results` is not a public apriori()
-        parameter and `_validate_route_support` refuses both `resume_from_k` and
-        `output_dir`. So the message told a user hours into a campaign to do two
-        things that raise ValueError.
-        """
-        from et_miner.gpu.kernels.loader import _warn_result_truncation
-
-        with pytest.raises(RuntimeError) as exc:
-            _warn_result_truncation(5000, 4000, "ctx", k=6)
-        msg = str(exc.value)
-        assert "K=6" in msg, msg
-        # the reachable remedies
-        assert "n_gpus>1" in msg and "prune_equal_support=True" in msg, msg
-        assert "max_length" in msg, msg
-        # and not the unreachable ones
-        assert "resume_from_k" not in msg, msg
-        assert "Raise max_results" not in msg, msg
-
-    def test_no_bare_clamp_survives(self):
-        """The four sites were found by exactly this grep."""
-        from pathlib import Path
-
-        root = Path(__file__).resolve().parents[1] / "src" / "et_miner" / "gpu" / "kernels"
-        offenders = [
-            f"{p.name}:{i}"
-            for p in root.glob("*.py")
-            for i, line in enumerate(p.read_text().splitlines(), 1)
-            if "min(n, gpu_max)" in line or "min(n_actual, max_results)" in line
-        ]
-        assert not offenders, f"bare truncation clamps: {offenders}"
-
-
 class TestKernelKCap:
     """#25 -- the K>=3 kernels cache the candidate in a fixed 64-slot shared
     array. Beyond the cap they read an uninitialised slot AS A COLUMN INDEX and
@@ -190,20 +137,36 @@ class TestKernelKCap:
             _assert_k_supported(63)
 
     @pytest.mark.gpu
-    def test_an_oversized_candidate_raises_instead_of_miscounting(self):
-        """At the cap the fully-fused kernel counts exactly; one past it raises."""
+    @pytest.mark.parametrize("kernel", ["per-candidate", "tiled-dense", "tiled-fused"])
+    def test_an_oversized_candidate_raises_instead_of_miscounting(self, kernel):
+        """At the cap every K>=3 kernel counts exactly; one past it raises."""
         import cupy as cp
 
-        from et_miner.gpu.kernels import count_k3plus_fully_fused
+        from et_miner.gpu.kernels import K3PlusGroups, count_k3plus_allcounts, count_tiled_fused
 
         n_rows, n_cols, n_u64s = 640, 80, 10
         bv = cp.asarray(np.full((n_cols, n_u64s), 0xFFFFFFFFFFFFFFFF, dtype=np.uint64))
-        at_cap = [tuple(range(60)) + (60,), tuple(range(60)) + (61,)]
-        cands, counts = count_k3plus_fully_fused(bv, at_cap, 62, n_u64s, 1)
-        assert cands == [tuple(range(62))] and counts.tolist() == [n_rows]
-        past_cap = [tuple(range(61)) + (61,), tuple(range(61)) + (62,)]
+
+        def one_candidate(prefix_len):
+            return K3PlusGroups(
+                prefix_items=np.arange(prefix_len, dtype=np.int32),
+                prefix_offsets=np.array([0, prefix_len], dtype=np.int64),
+                suffixes=np.array([prefix_len, prefix_len + 1], dtype=np.int32),
+                suffix_offsets=np.array([0, 2], dtype=np.int64),
+                cumulative_pairs=np.array([0, 1], dtype=np.int64),
+                total_candidates=1,
+                groups=None,
+            )
+
+        def count(groups):
+            if kernel == "tiled-fused":
+                return count_tiled_fused(bv, groups, n_u64s, 1)[1].tolist()
+            variant = "legacy" if kernel == "per-candidate" else "shared"
+            return count_k3plus_allcounts(bv, groups, n_u64s, variant=variant).get().tolist()
+
+        assert count(one_candidate(60)) == [n_rows]  # K = 62
         with pytest.raises(ValueError, match="exceeds the kernel cap"):
-            count_k3plus_fully_fused(bv, past_cap, 63, n_u64s, 1)
+            count(one_candidate(61))  # K = 63
 
 
 @pytest.mark.gpu
@@ -226,44 +189,6 @@ class TestMemoryGuardRaises:
     def test_the_default_guards_do_not_fire(self, nested_df):
         got = apriori(nested_df, min_support=0.05, max_length=4, use_gpu=True)
         assert got.height > 0
-
-
-class TestRouteResolution:
-    """#32 -- the route was chosen from the ambient device count and the
-    caller's n_gpus was ignored, so n_gpus=1 on a two-GPU box still landed on
-    the fan-out kernels. And gpu/dispatch.py had NO logging at all, so a
-    campaign that lost itemsets to a downstream clamp produced a log
-    indistinguishable from the 1-GPU run that would have raised."""
-
-    def test_caller_budget_caps_the_device_count(self, monkeypatch):
-        from et_miner.gpu import dispatch
-
-        monkeypatch.setattr(dispatch, "get_gpu_count", lambda: 8)
-        big = dispatch.CANDIDATE_COUNT_THRESHOLD_K3 * 10
-
-        assert dispatch._resolve_gpus(1, big, dispatch.CANDIDATE_COUNT_THRESHOLD_K3, "t") == 1
-        assert dispatch._resolve_gpus(2, big, dispatch.CANDIDATE_COUNT_THRESHOLD_K3, "t") == 2
-        # a budget above what exists is clamped, not honoured
-        assert dispatch._resolve_gpus(99, big, dispatch.CANDIDATE_COUNT_THRESHOLD_K3, "t") == 8
-        # None keeps the previous ambient behaviour
-        assert dispatch._resolve_gpus(None, big, dispatch.CANDIDATE_COUNT_THRESHOLD_K3, "t") == 8
-        # below the work threshold, one device regardless
-        assert dispatch._resolve_gpus(8, 1, dispatch.CANDIDATE_COUNT_THRESHOLD_K3, "t") == 1
-
-    def test_the_resolved_route_is_logged(self, monkeypatch):
-        from loguru import logger
-
-        from et_miner.gpu import dispatch
-
-        monkeypatch.setattr(dispatch, "get_gpu_count", lambda: 4)
-        lines: list[str] = []
-        sink = logger.add(lines.append, level="DEBUG", format="{message}")
-        try:
-            dispatch._resolve_gpus(2, 10**9, dispatch.CANDIDATE_COUNT_THRESHOLD_K3, "k=5")
-        finally:
-            logger.remove(sink)
-        out = "".join(lines)
-        assert "caller n_gpus=2" in out and "available=4" in out and "running on 2" in out
 
 
 @pytest.mark.gpu

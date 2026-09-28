@@ -3,14 +3,9 @@
 Called by ``child_run.py`` for configs with ``"mode": "consolidation"``. The
 route is named explicitly rather than inferred from ``n_gpus``:
 
-    A        single-GPU bitvec miner   apriori(use_gpu=True, n_gpus=1)
-    A-split  A's pair/candidate split  apriori(bitvecs=..., n_gpus=N); the
+    C          row-split miner         apriori(use_gpu=True, n_gpus=N)
+    C-bitvecs  row-split from bitvecs  apriori(bitvecs=..., n_gpus=N); the
                                        bitvec build is timed separately
-    B        GPU-resident miner        apriori(use_gpu=True, gpu_resident=True)
-    B-split  B's split                 apriori(bitvecs=..., gpu_resident=True, n_gpus=N)
-    C        row-split miner           n_gpus=1 mirrors apriori()'s GPU branch
-                                       (CSR build, then _apriori_row_split_multi_gpu);
-                                       n_gpus>1 is apriori(use_gpu=True, n_gpus=N)
     D        SON, one GPU or CPU       apriori(streaming=True, chunk_size=...)
     E        SON, multi-GPU            apriori(streaming=True, n_gpus=N, chunk_size=...)
     F        CPU                       apriori(use_gpu=False, sparse=..., n_jobs=...)
@@ -98,43 +93,22 @@ def _mine(cfg: dict, df, min_support: float, max_length, level_cb, progress_cb, 
     route = cfg["route"]
     n_gpus = int(cfg.get("n_gpus", 1))
     common = dict(min_support=min_support, max_length=max_length)
-    if route == "A":
-        return apriori(df, use_gpu=True, n_gpus=1, sparse_from_k=cfg.get("sparse_from_k"),
-                       level_callback=level_cb, **common)
-    if route == "B":
-        return apriori(df, use_gpu=True, n_gpus=1, gpu_resident=True, level_callback=level_cb, **common)
-    if route in ("A-split", "B-split"):
+    if route == "C-bitvecs":
         t0 = time.perf_counter()
         bv, col_to_item, n = _bitvecs(df, min_support)
         timings["bitvec_build_s"] = round(time.perf_counter() - t0, 3)
         t0 = time.perf_counter()
-        res = apriori(bitvecs=(bv, col_to_item, n), n_gpus=n_gpus, gpu_resident=(route == "B-split"),
-                      level_callback=level_cb, **common)
+        res = apriori(bitvecs=(bv, col_to_item, n), n_gpus=n_gpus, level_callback=level_cb, **common)
         timings["mine_s"] = round(time.perf_counter() - t0, 3)
         return res
     if route == "C":
-        if n_gpus > 1:
-            return apriori(df, use_gpu=True, n_gpus=n_gpus, sparse_from_k=cfg.get("sparse_from_k"),
-                           prune_apriori=cfg.get("prune_apriori", True),
-                           prune_equal_support=cfg.get("prune_equal_support", False),
-                           level_callback=level_cb, **common)
-        from et_miner.core.matrix import _build_csr_from_transactions
-        from et_miner.core.result import _empty_result
-        from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
-
-        csr_result = _build_csr_from_transactions(df.lazy(), min_support, "items")
-        if csr_result is None:
-            return _empty_result()
-        csr, idx_to_item, n = csr_result
-        return _apriori_row_split_multi_gpu(
-            csr, idx_to_item, n, min_support, max_length, 1, level_cb,
-            prune_non_free=cfg.get("prune_equal_support", False),
-            prune_apriori=cfg.get("prune_apriori", True),
-            sparse_from_k=cfg.get("sparse_from_k"),
-        )
+        return apriori(df, use_gpu=True, n_gpus=n_gpus, sparse_from_k=cfg.get("sparse_from_k"),
+                       prune_apriori=cfg.get("prune_apriori", True),
+                       prune_equal_support=cfg.get("prune_equal_support", False),
+                       level_callback=level_cb, **common)
     if route in ("D", "E"):
         return apriori(df, streaming=True, chunk_size=int(cfg["chunk_size"]), n_gpus=n_gpus if route == "E" else 1,
-                       use_gpu=cfg.get("use_gpu", True), gpu_resident=cfg.get("gpu_resident", False),
+                       use_gpu=cfg.get("use_gpu", True),
                        show_progress=False, progress_callback=progress_cb, **common)
     if route == "F":
         return apriori(df, use_gpu=False, sparse=cfg.get("sparse"), n_jobs=int(cfg.get("n_jobs", 1)),

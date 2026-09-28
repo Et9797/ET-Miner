@@ -246,6 +246,7 @@ def apriori_streaming_multi_gpu(
             max_length=max_length,
             item_col=item_col,
             use_gpu=True,
+            n_gpus=effective_n_gpus,
             batch_size=batch_size,
             show_progress=show_progress,
             sparse=sparse,

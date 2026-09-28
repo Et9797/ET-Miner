@@ -279,7 +279,12 @@ def test_bitvecs_route_honours_the_flag_and_never_writes_to_the_caller(prune):
 
 
 @pytest.mark.gpu
-def test_profile_with_pruning_raises_rather_than_dropping_the_flag():
+@pytest.mark.gpu
+def test_profile_with_pruning_returns_the_session_and_the_same_itemsets():
+    from et_miner.core.profiling import ProfilingSession
+
     df, _ = _fixture()
-    with pytest.raises(ValueError, match="profile"):
-        apriori(df, min_support=MIN_SUPPORT, use_gpu=True, prune_equal_support=True, profile=True)
+    plain = apriori(df, min_support=MIN_SUPPORT, use_gpu=True, prune_equal_support=True)
+    result, session = apriori(df, min_support=MIN_SUPPORT, use_gpu=True, prune_equal_support=True, profile=True)
+    assert isinstance(session, ProfilingSession) and session.phases
+    assert sorted(map(tuple, result["itemset"].to_list())) == sorted(map(tuple, plain["itemset"].to_list()))

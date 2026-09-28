@@ -497,6 +497,15 @@ replacement.
   and was 5× slower than per-candidate on `deep_sparse_large` (76.39 s vs
   14.63 s), while per-candidate was 5× slower than tiled on `oom_regression`
   to K=3 (492.21 s vs 93.08 s).
+- **`ET_MINER_ROW_BALANCE=nnz` and `balance="nnz"`.** Either raises; the
+  multi-GPU row split is by equal row counts (`rows`, the old default, stays
+  accepted as a no-op). Measured on two GPUs (2× RTX A4000 16 GB, NCCL with
+  P2P disabled, `bench/results/2026-09-28-consolidation-2gpu/`), the
+  nnz-balanced cut tied the rows split in both regimes built for it:
+  `skewed_rows` 1.07 s vs 1.07 s and `deep_sparse_large` 18.14 s vs 17.91 s
+  (medians of 3), so rule 5 keeps the smaller code. Gone with it: the
+  searchsorted cut and its "largest shard must fit the smallest device"
+  feasibility check.
 
 ---
 

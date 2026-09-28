@@ -52,7 +52,6 @@ number is worth recording from a miner that disagrees with the oracle.
 | Env | Values | Meaning |
 |---|---|---|
 | `ET_MINER_FILTER_IMPL` | `compact`/`cupy`/`cpu` | survivor filter A/B |
-| `ET_MINER_ROW_BALANCE` | `rows`/`nnz` | multi-GPU row split A/B |
 | `ET_MINER_DISABLE_NCCL` | `1` | force the staged D2D reduce |
 | `ET_MINER_MAX_CHUNK_CANDS` | int | force multi-chunk runs |
 | `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |

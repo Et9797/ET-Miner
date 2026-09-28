@@ -31,9 +31,10 @@ Variables:
                                        force multi-chunk runs on small data
     ET_MINER_DISABLE_NCCL              "1" skips NCCL init and forces the
                                        staged D2D reduce fallback
-    ET_MINER_ROW_BALANCE               multi-GPU row-split mode: "rows"
-                                       (default, equal row counts) or "nnz"
-                                       (equal cumulative nnz cuts)
+    ET_MINER_ROW_BALANCE               removed: "nnz" (or any value but
+                                       "rows") raises ValueError; the
+                                       multi-GPU row split is by equal row
+                                       counts, and "rows" is a no-op
     ET_MINER_KERNEL_VARIANT            removed: setting it raises ValueError
                                        (the kernel is chosen per prefix
                                        group; pin it with the next knob)
@@ -131,12 +132,14 @@ def disable_nccl() -> bool:
     return os.environ.get("ET_MINER_DISABLE_NCCL", "").strip() == "1"
 
 
-def row_balance() -> str:
-    return os.environ.get("ET_MINER_ROW_BALANCE", "rows").strip().lower()
-
-
 def reject_removed_knobs() -> None:
     """Raise for a knob that no longer exists rather than ignore it."""
+    balance = os.environ.get("ET_MINER_ROW_BALANCE")
+    if balance is not None and balance.strip().lower() != "rows":
+        raise ValueError(
+            f"ET_MINER_ROW_BALANCE={balance.strip().lower()!r} was removed: the multi-GPU row split is by "
+            "equal row counts (the old 'rows' default; nnz-balanced cuts won no regime). Unset it."
+        )
     if "ET_MINER_KERNEL_VARIANT" in os.environ:
         raise ValueError(
             "ET_MINER_KERNEL_VARIANT was removed: the row-split miner picks the tiled or the "

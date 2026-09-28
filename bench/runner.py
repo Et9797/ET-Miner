@@ -48,7 +48,7 @@ def _gpu_count() -> int:
         return 0
 
 
-def _cfg(id_, preset, *, filter_impl=None, n_gpus=2, balance=None,
+def _cfg(id_, preset, *, filter_impl=None, n_gpus=2,
          disable_nccl=False, max_length=None, min_support=None,
          two_phase=False, rep=0, timeout_s=1800):
     env = {}
@@ -59,8 +59,6 @@ def _cfg(id_, preset, *, filter_impl=None, n_gpus=2, balance=None,
         env["CUDA_VISIBLE_DEVICES"] = "0"
     if filter_impl:
         env["ET_MINER_FILTER_IMPL"] = filter_impl
-    if balance:
-        env["ET_MINER_ROW_BALANCE"] = balance
     if disable_nccl:
         env["ET_MINER_DISABLE_NCCL"] = "1"
     return {
@@ -104,8 +102,7 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
     cfgs.append(_cfg("deepk-nonccl", "deep_k", disable_nccl=True, n_gpus=max(gpus)))
     cfgs.append(_cfg("twophase-smoke", "smoke", two_phase=True, n_gpus=max(gpus)))
     for rep in range(2):
-        for bal in ("rows", "nnz"):
-            cfgs.append(_cfg(f"skew-{bal}", "skewed_rows", balance=bal, n_gpus=max(gpus), rep=rep))
+        cfgs.append(_cfg("skew", "skewed_rows", n_gpus=max(gpus), rep=rep))
     for rep in range(3):
         for g in gpus:
             cfgs.append(_cfg(f"stressk2-{g}g", "stress_k2", n_gpus=g, max_length=3, rep=rep, timeout_s=3600))

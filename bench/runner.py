@@ -11,14 +11,15 @@ signatures — kernel variant, filter impl, GPU count, NCCL mode, row
 balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
-Usage: python bench/runner.py --mode smoke|full|consolidation|supplement [--out DIR]
+Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify [--out DIR]
        [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
 
 `consolidation` runs the GPU-layer consolidation matrix
 (bench/consolidation_matrix.py): every config names its route explicitly,
 and every (dataset, min_support, max_length, prune_equal_support) group must
 agree on its signature across GPU, SON and CPU routes alike. `supplement` runs
-the configs added after that campaign (`build_supplement_matrix`).
+the configs added after that campaign (`build_supplement_matrix`), and
+`verify` the reduced re-run on the consolidated tree (`build_verify_matrix`).
 """
 
 from __future__ import annotations
@@ -83,6 +84,10 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
         from consolidation_matrix import build_supplement_matrix
 
         return build_supplement_matrix(n_dev)
+    if mode == "verify":
+        from consolidation_matrix import build_verify_matrix
+
+        return build_verify_matrix(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -393,7 +398,7 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement"], required=True)
+    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,

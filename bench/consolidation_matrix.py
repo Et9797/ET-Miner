@@ -195,3 +195,38 @@ def build_supplement_matrix(n_dev: int) -> list[dict]:
         _cfg("C1-legacy", "oom2ml3", "C", variant="legacy"),
     ]
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+#: Pins every prefix group on the per-candidate kernel (no group reaches it).
+_NO_GROUP = str(10**12)
+
+
+def build_verify_matrix(n_dev: int) -> list[dict]:
+    """The reduced re-run on the consolidated tree (`--mode verify`).
+
+    The surviving in-core miner at its default dispatch on every in-core
+    regime plus the two max_length=3 ones, the same miner with each kernel
+    pinned where the dispatch has to pick, SON on one GPU and a CPU control.
+    """
+    tiled = {"ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}
+    per_candidate = {"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP}
+    base = [_cfg("C1", w, "C") for w in IN_CORE + ("oom2ml3",)]
+    base.append(_cfg("C1", "sk2ml3", "C", timeout_s=3600, single_rep=True))
+    for w in ("dsl", "or002"):
+        base.append(_cfg("C1-tiled", w, "C", env=tiled))
+        base.append(_cfg("C1-percand", w, "C", env=per_candidate))
+    base.append(_cfg("C1-tiled", "oom2ml3", "C", env=tiled))
+    base.append(_cfg("D1", "deepk", "D", chunk_size=SON["deepk"][0], expect_chunks=4))
+    base.append(_cfg("D1", "dsl", "D", chunk_size=SON["dsl"][0], expect_chunks=4, timeout_s=900, single_rep=True))
+    for w in ("deepk", "or003"):
+        base.append(_cfg("F-auto", w, "F", sparse=None, n_jobs=6))
+    if n_dev >= 2:
+        base += [_cfg("C2", w, "C", n_gpus=2) for w in ("smoke", "deepk", "oom2", "sk2ml2", "dsl")]
+        base.append(_cfg("E2", "deepk", "E", n_gpus=2, chunk_size=SON["deepk"][0], expect_chunks=4))
+    cfgs = []
+    for rep in range(REPS):
+        for c in base:
+            if rep and c.get("single_rep"):
+                continue
+            cfgs.append({**c, "id": f"{c['base_id']}#r{rep}", "rep": rep})
+    return cfgs

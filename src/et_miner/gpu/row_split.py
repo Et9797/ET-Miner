@@ -114,7 +114,7 @@ def _apriori_row_split_multi_gpu(
     chunk (both K=2 and K>=3 — see gpu.row_split_chunks):
       1. Each GPU runs the dense kernel on the chunk → int32 partial counts
       2. ncclReduce to GPU 0 (or the bounded staged D2D fallback)
-      3. compact_threshold on GPU 0 → only survivors cross PCIe to CPU
+      3. sliced threshold filter on GPU 0 → only survivors cross PCIe to CPU
 
     Since all GPUs share the same prev_frequent, they generate the same
     candidates in the same deterministic order. The dense output at index i

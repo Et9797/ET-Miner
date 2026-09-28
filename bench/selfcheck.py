@@ -125,7 +125,6 @@ def _smoke_launch(cp) -> None:
         count_tiled_fused,
         get_popcount_kernel,
     )
-    from et_miner.gpu.kernels.filter import compact_threshold_filter
     from et_miner.gpu.kernels.loader import _KERNEL_FILES
 
     launched = set()
@@ -151,9 +150,6 @@ def _smoke_launch(cp) -> None:
     launched.add("count_shared_tiled_fused")
     assert count_itemsets_cuda(full, [np.array([0, 1], np.int32), np.array([1, 2, 3], np.int32)]).tolist() == [256, 256]
     launched.add("count_itemsets_batch")
-    idx, cnt = compact_threshold_filter(cp.asarray(np.array([5, 1, 7, 7, 0], dtype=np.int32)), 5, impl="compact")
-    assert idx.tolist() == [0, 2, 3] and cnt.tolist() == [5, 7, 7]
-    launched.add("compact_threshold")
     missing = set(_KERNEL_FILES) - launched
     assert not missing, f"registered kernels this selfcheck never launches: {sorted(missing)}"
 

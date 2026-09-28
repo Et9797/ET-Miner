@@ -58,8 +58,8 @@ def main() -> int:
     lines.append(f"Runs: {len(ok)} ok, {len(bad)} failed/timeout. Raw data: `raw.jsonl`, env: `env.txt`.\n")
 
     lines.append("## Wall time by config (median over reps)\n")
-    lines.append("| config | preset | filter | gpus | reps | median s | min s | peak VRAM MB | throttled |")
-    lines.append("|---|---|---|---|---|---|---|---|---|")
+    lines.append("| config | preset | gpus | reps | median s | min s | peak VRAM MB | throttled |")
+    lines.append("|---|---|---|---|---|---|---|---|")
     for base in sorted(by_config):
         rs = by_config[base]
         cfg = rs[0]["config"]
@@ -67,8 +67,7 @@ def main() -> int:
         peak = max((max(r.get("peak_vram_mb", {"0": 0}).values(), default=0) for r in rs), default=0)
         throttled = any(r.get("throttle_reasons") for r in rs)
         lines.append(
-            f"| {base} | {cfg['preset']} "
-            f"| {cfg['env'].get('ET_MINER_FILTER_IMPL', 'compact')} | {cfg.get('n_gpus')} "
+            f"| {base} | {cfg['preset']} | {cfg.get('n_gpus')} "
             f"| {len(rs)} | {_fmt_s(statistics.median(walls))} | {_fmt_s(min(walls))} "
             f"| {peak} | {'⚠' if throttled else ''} |"
         )

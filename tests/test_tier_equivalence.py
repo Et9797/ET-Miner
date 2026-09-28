@@ -275,7 +275,7 @@ def _needs_two_gpus():
 
 @pytest.mark.gpu
 def test_row_split_one_gpu_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU", {"ET_MINER_FILTER_IMPL": "compact"})
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU", {})
 
 
 @pytest.mark.gpu

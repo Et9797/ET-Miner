@@ -18,8 +18,8 @@ while they run.
   warns if `/dev/shm` is small; `NCCL_SHM_DISABLE=1` forces the socket
   transport as a last resort (slower but functional).
 - **Disk ≥ 40 GB** (datasets + wheels + rust build), **host RAM ≥ 32 GB** —
-  the survivor filter sorts on the host (~48 B/survivor at peak) and its
-  valve stages count slices through host RAM.
+  a count slice that does not fit the device is filtered on the host
+  (4 B/element per 64M-element slice).
 - Prefer "dedicated GPU" listings for benchmark stability.
 
 ## Quickstart
@@ -51,7 +51,6 @@ number is worth recording from a miner that disagrees with the oracle.
 
 | Env | Values | Meaning |
 |---|---|---|
-| `ET_MINER_FILTER_IMPL` | `compact`/`cupy`/`cpu` | survivor filter A/B |
 | `ET_MINER_DISABLE_NCCL` | `1` | force the staged D2D reduce |
 | `ET_MINER_MAX_CHUNK_CANDS` | int | force multi-chunk runs |
 | `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |

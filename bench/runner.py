@@ -48,7 +48,7 @@ def _gpu_count() -> int:
         return 0
 
 
-def _cfg(id_, preset, *, filter_impl=None, n_gpus=2,
+def _cfg(id_, preset, *, n_gpus=2,
          disable_nccl=False, max_length=None, min_support=None,
          two_phase=False, rep=0, timeout_s=1800):
     env = {}
@@ -57,8 +57,6 @@ def _cfg(id_, preset, *, filter_impl=None, n_gpus=2,
         # would otherwise route big levels to the pair-split multi-GPU path,
         # silently muddying the 1g-vs-2g benchmark axis (observed on-box).
         env["CUDA_VISIBLE_DEVICES"] = "0"
-    if filter_impl:
-        env["ET_MINER_FILTER_IMPL"] = filter_impl
     if disable_nccl:
         env["ET_MINER_DISABLE_NCCL"] = "1"
     return {
@@ -96,9 +94,6 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
 
     # full: one-off axes FIRST, so a --max-hours stop can only ever shed
     # redundant reps, never whole measurement axes.
-    for impl in ("compact", "cupy", "cpu"):
-        cfgs.append(_cfg(f"stressk2-filter-{impl}", "stress_k2", filter_impl=impl,
-                         n_gpus=max(gpus), max_length=2, timeout_s=1800))
     cfgs.append(_cfg("deepk-nonccl", "deep_k", disable_nccl=True, n_gpus=max(gpus)))
     cfgs.append(_cfg("twophase-smoke", "smoke", two_phase=True, n_gpus=max(gpus)))
     for rep in range(2):

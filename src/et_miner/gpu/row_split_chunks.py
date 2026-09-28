@@ -2,7 +2,7 @@
 
 The row-split dense paths (K=2 and K>=3) count candidates into chunk-sized
 int32 arrays sized from *measured* headroom, reduce the per-GPU partials,
-and compact survivors per chunk. This module owns:
+and filter survivors per chunk. This module owns:
 
 - the byte model (``chunk_budget_from_bytes`` — pure math, unit-tested at
   AlphaFold-scale numbers without a GPU),
@@ -20,11 +20,11 @@ Byte model per chunk candidate: 4 B for the int32 dense counts on every
 GPU, plus reduce workspace — zero for the in-place NCCL path, another
 4 B/candidate on GPU 0 for today's peer-copy fallback (a fixed staging
 buffer replaces that term when the staged reduce lands). Survivor
-compaction (12 B/survivor on GPU 0, ~48 B/survivor of host sort workspace)
-is deliberately *not* budgeted per candidate: the filter checks its own
-feasibility at call time and falls back to the bounded sliced-D2H valve,
-so a degenerate ~100%-survivor chunk degrades to a slower path instead of
-sizing every normal chunk for the worst case.
+filtering is deliberately *not* budgeted per candidate: the filter works
+in 64M-element slices whose worst case (13 B/element, every element
+surviving) fits the safety margin, and a slice that does not fit is
+filtered on the host, so a degenerate ~100%-survivor chunk degrades to a
+slower path instead of sizing every normal chunk for the worst case.
 """
 
 from __future__ import annotations
@@ -235,7 +235,7 @@ def run_chunked_dense_level(
     For every chunk, each GPU counts the same candidate range against its
     own transaction shard (``launch_chunk(bitvec_gpu, device_id, chunk)``
     → device-local int32 counts), the partials are summed across GPUs, and
-    GPU 0 compacts survivors. Per-chunk survivor indices are ascending and
+    GPU 0 filters survivors. Per-chunk survivor indices are ascending and
     chunks are processed in ascending order, so the concatenated result
     keeps the global ascending-index contract.
 
@@ -247,7 +247,7 @@ def run_chunked_dense_level(
 
     import cupy as cp
 
-    from et_miner.gpu.kernels.filter import compact_threshold_filter
+    from et_miner.gpu.kernels.filter import threshold_filter
     from et_miner.gpu.nccl import reduce_sum_to_gpu0
 
     device_ids = [did for _, did, _ in bitvecs_list]
@@ -272,7 +272,7 @@ def run_chunked_dense_level(
 
             with cp.cuda.Device(device_ids[0]):
                 global_counts = gpu_results[0]
-                freq_idx, freq_cnt = compact_threshold_filter(global_counts, min_count)
+                freq_idx, freq_cnt = threshold_filter(global_counts, min_count)
                 n_freq_chunk = len(freq_idx)
                 pass_rate = 100 * n_freq_chunk / chunk.size if chunk.size else 0.0
                 logger.info(

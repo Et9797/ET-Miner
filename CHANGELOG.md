@@ -506,6 +506,22 @@ replacement.
   (medians of 3), so rule 5 keeps the smaller code. Gone with it: the
   searchsorted cut and its "largest shard must fit the smallest device"
   feasibility check.
+- **`ET_MINER_FILTER_IMPL`, the `compact_threshold` kernel and the
+  whole-array CPU filter.** Setting the knob raises. The dense survivor
+  filter is the sliced `cp.nonzero` path,
+  `et_miner.gpu.kernels.filter.threshold_filter` (`compact_threshold_filter`
+  and its `impl=` are gone), with a per-slice host fallback when a slice does
+  not fit the device. On two GPUs (2× RTX A4000 16 GB, NCCL with P2P
+  disabled, `bench/results/2026-09-28-consolidation-2gpu/`) the three
+  implementations tied in both regimes built for them: `stress_k2` K≤2
+  20.00 s (compact) vs 19.05 s (cupy) vs 19.99 s (cpu), `deep_sparse_large`
+  17.91 vs 18.49 vs 18.83 s (medians of 3), so rule 5 keeps the smallest: no
+  kernel, no host sort (48 B/survivor), no host-RAM probe. Six registered
+  kernels remain. Per 64M-element slice on an A4000 the filter takes 94 ms
+  and 1.1 B/element of extra VRAM at a 1% pass rate (13 B/element, 794 MiB,
+  when every element survives); at the 10B-candidate levels of the
+  unmeasured AlphaFold regime that is about 15 s per level where the kernel
+  took two passes over the array — the one place it could have won.
 
 ---
 

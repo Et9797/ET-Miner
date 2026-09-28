@@ -9,7 +9,7 @@ classes appended for the box campaign.
 import numpy as np
 import pytest
 
-from et_miner.gpu.kernels.filter import HOST_SORT_BYTES_PER_SURVIVOR
+from et_miner.gpu.kernels.filter import SLICE_ELEMS, WORST_CASE_BYTES_PER_ELEMENT
 from et_miner.gpu.row_split_chunks import (
     CHUNK_BYTES_PER_CANDIDATE,
     TILED_MIN_GROUP_PAIRS,
@@ -80,26 +80,29 @@ class TestChunkBudgetFormula:
         assert mc >= 10_000_000
         assert mc * CHUNK_BYTES_PER_CANDIDATE <= 512 * (1 << 20)
 
-    def test_all_survivors_worst_case_host_model(self):
-        """100%-survivor chunks: sort workspace is host-side, per the model.
+    def test_all_survivors_worst_case_fits_the_margin(self):
+        """100%-survivor slices: the filter's worst case lives in the margin.
 
-        The budget deliberately does NOT reserve GPU/host worst-case survivor
-        space per candidate — the filter checks feasibility per call and
-        valves. This test pins the documented model numbers so a drive-by
-        change to either constant breaks loudly.
+        The budget deliberately does NOT reserve survivor space per
+        candidate — the filter works in slices whose worst case (every
+        element surviving) fits the safety margin the budget always leaves,
+        and a slice that still does not fit falls back to the host. This test
+        pins the documented model numbers so a drive-by change to either
+        constant breaks loudly.
         """
+        from et_miner.gpu.row_split_chunks import MARGIN_FLOOR_BYTES
+
         assert CHUNK_BYTES_PER_CANDIDATE == 4  # int32 dense counts
-        assert HOST_SORT_BYTES_PER_SURVIVOR == 48  # 12B pair + 8B argsort + 12B gather + slack
+        assert WORST_CASE_BYTES_PER_ELEMENT == 13  # 1B mask + 8B int64 index + 4B gathered count
+        assert SLICE_ELEMS * WORST_CASE_BYTES_PER_ELEMENT < MARGIN_FLOOR_BYTES  # 794 MiB < 1 GiB
 
-        # H200 box (2 TB host): even a full 8B-candidate chunk surviving 100%
-        # sorts within host RAM.
-        mc = chunk_budget_from_bytes(90 * GIB, 141 * GIB, group_data_bytes=40 * GIB)
-        assert mc * HOST_SORT_BYTES_PER_SURVIVOR < 0.8 * (2 << 40)
-
-        # 3090 box (64 GB host): a 100%-survivor chunk exceeds host workspace,
-        # which is exactly when the filter must route to the sliced valve.
-        mc3090 = chunk_budget_from_bytes(20 * GIB, 24 * GIB)
-        assert mc3090 * HOST_SORT_BYTES_PER_SURVIVOR > 0.8 * (64 * GIB)
+        # Any device with >= 4 GiB available keeps the full 1 GiB margin, so
+        # a 100%-survivor slice fits next to the chunk it filters.
+        margin = MARGIN_FLOOR_BYTES
+        assert min(margin, (4 * GIB) // 4) == MARGIN_FLOOR_BYTES
+        # The OOM-regression pool (512 MB) caps the margin at a quarter of
+        # available; a full slice cannot fit there, which is the host path.
+        assert SLICE_ELEMS * WORST_CASE_BYTES_PER_ELEMENT > (512 * (1 << 20)) // 4
 
 
 class TestPlanCandidateChunks:
@@ -254,11 +257,14 @@ class TestEnvCapAccessor:
 
         assert _env.max_chunk_candidates() == 100_000
 
-    def test_filter_impl_default(self, monkeypatch):
-        monkeypatch.delenv("ET_MINER_FILTER_IMPL", raising=False)
-        from et_miner import _env
+    def test_the_filter_knob_is_refused_before_any_mining(self, monkeypatch):
+        import polars as pl
 
-        assert _env.filter_impl() == "compact"
+        from et_miner import apriori
+
+        monkeypatch.setenv("ET_MINER_FILTER_IMPL", "compact")
+        with pytest.raises(ValueError, match="ET_MINER_FILTER_IMPL was removed"):
+            apriori(pl.DataFrame({"items": [[1, 2]] * 4}), min_support=0.5)
 
 
 @pytest.mark.gpu
@@ -299,11 +305,3 @@ class TestChunkedEquivalenceGPU:
         baseline = smoke_run()
         monkeypatch.setenv("ET_MINER_MAX_CHUNK_CANDS", str(cap))
         assert smoke_run() == baseline
-
-    def test_forced_chunks_all_filter_impls_agree(self, smoke_run, monkeypatch):
-        monkeypatch.setenv("ET_MINER_MAX_CHUNK_CANDS", "5000")
-        results = []
-        for impl in ("compact", "cupy", "cpu"):
-            monkeypatch.setenv("ET_MINER_FILTER_IMPL", impl)
-            results.append(smoke_run())
-        assert results[0] == results[1] == results[2]

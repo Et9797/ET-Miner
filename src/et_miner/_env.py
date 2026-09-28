@@ -23,9 +23,10 @@ Variables:
     ET_MINER_GCS_CREDENTIALS           path to a service-account JSON
     GCS_TOKEN                          raw OAuth token (alternative to creds)
     ET_MINER_LOG_DIR                   directory for optional file logging
-    ET_MINER_FILTER_IMPL               dense-count threshold filter impl:
-                                       "compact" (default) | "cupy" | "cpu"
-                                       (see et_miner.gpu.kernels.filter)
+    ET_MINER_FILTER_IMPL               removed: setting it raises ValueError
+                                       (the sliced CuPy filter in
+                                       et_miner.gpu.kernels.filter is the
+                                       one survivor filter)
     ET_MINER_MAX_CHUNK_CANDS           caps the measured dense-chunk budget
                                        (candidates per chunk) — lets tests
                                        force multi-chunk runs on small data
@@ -110,10 +111,6 @@ def gcs_token() -> str | None:
     return os.environ.get("GCS_TOKEN")
 
 
-def filter_impl() -> str:
-    return os.environ.get("ET_MINER_FILTER_IMPL", "compact").strip().lower()
-
-
 def _int_env(name: str, default: int | None) -> int | None:
     v = os.environ.get(name)
     if not v:
@@ -134,6 +131,12 @@ def disable_nccl() -> bool:
 
 def reject_removed_knobs() -> None:
     """Raise for a knob that no longer exists rather than ignore it."""
+    if "ET_MINER_FILTER_IMPL" in os.environ:
+        raise ValueError(
+            "ET_MINER_FILTER_IMPL was removed: the sliced CuPy filter (et_miner.gpu.kernels.filter."
+            "threshold_filter) is the one survivor filter; the compact_threshold kernel and the "
+            "whole-array CPU path are gone. Unset it."
+        )
     balance = os.environ.get("ET_MINER_ROW_BALANCE")
     if balance is not None and balance.strip().lower() != "rows":
         raise ValueError(

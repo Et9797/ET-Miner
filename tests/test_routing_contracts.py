@@ -161,11 +161,11 @@ class TestSupportedCombinationsStillWork:
         result = apriori(df, min_support=0.05, use_gpu=True, gpu_resident=True)
         assert isinstance(result, pl.DataFrame) and result.height > 0
 
-    def test_gpu_resident_on_single_gpu_streaming(self, df):
-        """Forwarded, not refused: apriori_streaming takes the parameter."""
-        result = apriori(df, min_support=0.05, streaming=True, chunk_size=100,
-                         gpu_resident=True)
-        assert isinstance(result, pl.DataFrame)
+    def test_gpu_resident_on_single_gpu_streaming_is_refused(self, df):
+        """SON has no GPU-resident mode: use_gpu=True mines its chunks on the
+        row-split miner. The flag raises rather than being ignored."""
+        with pytest.raises(ValueError, match="gpu_resident was removed"):
+            apriori(df, min_support=0.05, streaming=True, chunk_size=100, gpu_resident=True)
 
     def test_memory_budget_reaches_the_multi_gpu_streaming_route(self, df):
         """#10 -- forwarded, not rejected. The callee had no such parameter and

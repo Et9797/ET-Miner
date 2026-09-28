@@ -116,7 +116,11 @@ def apriori_streaming(
             within this memory budget. Overrides chunk_size parameter.
         local_support_factor: Factor to lower local support threshold (default 0.9).
             Lower values reduce false negatives but increase candidates.
-        use_gpu: Use GPU acceleration if available.
+        use_gpu: Mine each chunk on the GPU with the row-split miner and count
+            pass 2 with the batched itemset kernel; otherwise both passes run
+            on the CPU.
+        gpu_resident: Removed; True raises ValueError. ``use_gpu=True`` keeps
+            the candidates on the GPU without it.
         batch_size: Candidates per batch for memory control in counting phase.
         profile: If True, return profiling metrics alongside results.
         show_progress: If True, display progress bars (requires tqdm).
@@ -141,6 +145,11 @@ def apriori_streaming(
         ...     show_progress=True,
         ... )
     """
+    if gpu_resident:
+        raise ValueError(
+            "gpu_resident was removed: with use_gpu=True, SON mines each chunk on the "
+            "row-split miner and counts pass 2 with the batched kernel. Drop the argument."
+        )
     lf = transactions.lazy() if isinstance(transactions, pl.DataFrame) else transactions
     session = ProfilingSession() if profile else None
 
@@ -262,23 +271,9 @@ def apriori_streaming(
         # Track all items seen
         all_items.update(col_to_item.values())
 
-        # Mine frequent itemsets: GPU-resident fast path or standard CPU/GPU path
-        local_frequent = None
-        if gpu_resident:
-            local_frequent = _mine_chunk_gpu_resident(
-                matrix,
-                col_to_item,
-                chunk_n,
-                local_min_support,
-                max_length,
-            )
-            if local_frequent is None:
-                logger.warning(
-                    "GPU-resident failed for chunk {}, falling back to CPU",
-                    chunk_idx,
-                )
-
-        if local_frequent is None:
+        if use_gpu:
+            local_frequent = _mine_chunk_gpu(matrix, col_to_item, chunk_n, local_min_support, max_length)
+        else:
             local_frequent = _mine_chunk_frequent(
                 matrix,
                 col_to_item,
@@ -286,7 +281,6 @@ def apriori_streaming(
                 local_min_support,
                 max_length,
                 batch_size,
-                use_gpu,
                 sparse,
                 n_jobs,
             )
@@ -365,6 +359,7 @@ def apriori_streaming(
 
     # Map back from col tuples to original itemsets
     col_to_itemset = {col_tuple: itemset for col_tuple, itemset in zip(candidate_cols, candidate_itemsets)}
+    candidate_list = list(candidate_itemsets)
 
     # Second pass: count support across all chunks
     chunk_iter2 = range(n_chunks)
@@ -398,33 +393,18 @@ def apriori_streaming(
         if matrix.height == 0:
             continue
 
-        # Count support for all candidates in this chunk
-        # GPU-resident fast path: bitvec AND+popcount on GPU
-        gpu_chunk_counts = None
-        if gpu_resident:
-            gpu_chunk_counts = _count_candidates_gpu(
-                matrix,
-                list(candidate_itemsets),
-                sorted_items,
-            )
-            if gpu_chunk_counts is None:
-                logger.warning(
-                    "GPU counting failed for chunk {}, falling back to CPU",
-                    chunk_idx,
-                )
-
-        if gpu_chunk_counts is not None:
-            # GPU path: counts are keyed by item-ID tuples directly
-            for itemset, count in gpu_chunk_counts.items():
+        if use_gpu:
+            # Keyed by item-ID tuples directly.
+            for itemset, count in _count_candidates_gpu(matrix, candidate_list, sorted_items).items():
                 global_counts[itemset] += count
         else:
-            # CPU path: counts are keyed by column-name tuples
+            # Keyed by column-name tuples.
             chunk_counts = count_support_batched(
                 matrix,
                 candidate_cols,
                 chunk_n,
                 batch_size,
-                use_gpu,
+                False,
                 False,  # No progress for individual chunks
                 sparse,
                 n_jobs,
@@ -477,92 +457,65 @@ def apriori_streaming(
     return result_df
 
 
-def _build_bitvecs_for_chunk(
-    matrix: pl.DataFrame,
-    col_to_item: dict[str, int] | None = None,
-) -> tuple[Any, dict[int, int] | None] | None:
-    """Boolean matrix -> CSR -> GPU bitvecs. Returns (bitvecs_gpu, idx_to_item) or None.
-
-    Chains existing functions to build GPU bitvectors from a Polars boolean matrix.
-    Returns None on any failure so callers can gracefully fall back to CPU.
-    """
-    try:
-        from et_miner.core.matrix import _polars_to_sparse_csr
-        from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
-
-        csr, col_name_to_idx = _polars_to_sparse_csr(matrix)
-        bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
-        idx_to_item = {col_name_to_idx[col]: col_to_item[col] for col in col_to_item} if col_to_item else None
-        return bitvecs_gpu, idx_to_item
-    except Exception as e:
-        logger.warning("GPU bitvec build failed: {}", e)
-        return None
-
-
-def _mine_chunk_gpu_resident(
+def _mine_chunk_gpu(
     matrix: pl.DataFrame,
     col_to_item: dict[str, int],
     n_transactions: int,
     min_support: float,
     max_length: int | None,
-) -> list[tuple[int, ...]] | None:
-    """Mine chunk with GPU-resident Apriori. Returns list of itemsets or None on failure."""
+) -> list[tuple[int, ...]]:
+    """Mine one chunk on the current device with the row-split miner."""
+    import cupy as cp
+
+    from et_miner.core.matrix import _polars_to_sparse_csr
+    from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
+    from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
+
+    csr, col_name_to_idx = _polars_to_sparse_csr(matrix)
+    idx_to_item = {col_name_to_idx[col]: item for col, item in col_to_item.items()}
+    device_id = cp.cuda.Device().id
+    bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
+    del csr
     try:
-        import cupy as cp
-        from et_miner.gpu.mining import _apriori_from_bitvecs_gpu_resident
-
-        result = _build_bitvecs_for_chunk(matrix, col_to_item)
-        if result is None:
-            return None
-
-        bitvecs_gpu, idx_to_item = result
-        result_df = _apriori_from_bitvecs_gpu_resident(
-            bitvecs_gpu,
+        result_df = _apriori_row_split_multi_gpu(
+            None,
             idx_to_item,
             n_transactions,
             min_support,
             max_length,
-            profile=False,
-            level_callback=None,
+            1,
+            bitvecs_list=[(bitvecs_gpu, device_id, n_transactions)],
         )
-        itemsets = [tuple(x) for x in result_df["itemset"].to_list()]
+    finally:
         del bitvecs_gpu
         cp.get_default_memory_pool().free_all_blocks()
-        return itemsets
-    except Exception as e:
-        logger.warning("GPU-resident chunk mining failed: {}", e)
-        return None
+    return [tuple(x) for x in result_df["itemset"].to_list()]
 
 
 def _count_candidates_gpu(
     matrix: pl.DataFrame,
     candidate_itemsets: list[tuple[int, ...]],
     sorted_items: list[int],
-) -> dict[tuple[int, ...], int] | None:
-    """Count all candidates on GPU via bitvec AND+popcount. Returns counts dict or None."""
+) -> dict[tuple[int, ...], int]:
+    """Count mixed-length candidates on the current device with the batched kernel."""
+    import cupy as cp
+
+    from et_miner.core.matrix import _polars_to_sparse_csr
+    from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
+    from et_miner.gpu.kernels import count_itemsets_cuda
+
+    # sorted_items order = matrix column order = bitvec column order (_build_matrix_for_items)
+    csr, _ = _polars_to_sparse_csr(matrix)
+    bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
+    del csr
+    item_to_idx = {item: idx for idx, item in enumerate(sorted_items)}
+    itemsets_np = [np.array([item_to_idx[i] for i in itemset], dtype=np.int32) for itemset in candidate_itemsets]
     try:
-        import cupy as cp
-        from et_miner.gpu.kernels import count_itemsets_cuda
-
-        result = _build_bitvecs_for_chunk(matrix)
-        if result is None:
-            return None
-
-        bitvecs_gpu, _ = result
-
-        # Map item IDs -> bitvec column indices
-        # sorted_items order = bitvec column order (from _build_matrix_for_items)
-        item_to_idx = {item: idx for idx, item in enumerate(sorted_items)}
-        itemsets_np = [np.array([item_to_idx[i] for i in itemset], dtype=np.int32) for itemset in candidate_itemsets]
-
         counts = count_itemsets_cuda(bitvecs_gpu, itemsets_np)
+    finally:
         del bitvecs_gpu
         cp.get_default_memory_pool().free_all_blocks()
-
-        return {itemset: int(counts[i]) for i, itemset in enumerate(candidate_itemsets)}
-    except Exception as e:
-        logger.warning("GPU candidate counting failed: {}", e)
-        return None
+    return {itemset: int(counts[i]) for i, itemset in enumerate(candidate_itemsets)}
 
 
 def _mine_chunk_frequent(
@@ -572,11 +525,10 @@ def _mine_chunk_frequent(
     min_support: float,
     max_length: int | None,
     batch_size: int | None,
-    use_gpu: bool | str,
     sparse: bool | None,
     n_jobs: int,
 ) -> list[tuple[int, ...]]:
-    """Mine frequent itemsets from a single chunk's boolean matrix.
+    """Mine frequent itemsets from a single chunk's boolean matrix on the CPU.
 
     This is a simplified version of the main apriori() logic, optimized for
     the streaming use case where we just need the itemsets (not supports).
@@ -627,7 +579,7 @@ def _mine_chunk_frequent(
             candidates,
             n_transactions,
             batch_size,
-            use_gpu,
+            False,
             False,
             sparse,
             n_jobs,

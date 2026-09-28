@@ -43,14 +43,12 @@ from et_miner._compat import HAS_TQDM, tqdm
 # SON-specific helpers live in streaming.py; generic ones in matrix.py (foundation layer)
 from et_miner.streaming.son import (
     _build_matrix_for_items,
+    _count_candidates_gpu,
     _estimate_chunk_size_from_memory,
     _get_memory_gb,
-    _mine_chunk_frequent,
+    _mine_chunk_gpu,
 )
-from et_miner.core.matrix import (
-    build_boolean_matrix,
-    count_support_batched,
-)
+from et_miner.core.matrix import build_boolean_matrix
 from et_miner.core.result import (
     _build_result_df,
     _empty_result,
@@ -135,11 +133,12 @@ def apriori_streaming_multi_gpu(
     The SON (Savasere-Omiecinski-Navathe) algorithm:
 
     1. Pass 1 - Local Mining: Find locally frequent itemsets in each chunk
-       with a lowered support threshold (local_support_factor × min_support).
-       Chunks are processed in parallel across n_gpus GPUs.
+       with a lowered support threshold (local_support_factor × min_support),
+       one chunk per GPU on the row-split miner.
 
     2. Pass 2 - Global Counting: Count support for all candidate itemsets
-       across the full dataset. Again processed in parallel waves.
+       across the full dataset with the batched itemset kernel, again one
+       chunk per GPU.
 
     Memory usage is O(chunk_size × n_items × n_gpus), with GPU memory cleaned
     after each chunk to prevent accumulation.
@@ -153,10 +152,13 @@ def apriori_streaming_multi_gpu(
         chunk_size: Number of transactions per chunk (default 10M).
         local_support_factor: Factor to lower local support threshold (default 0.9).
             Lower values reduce false negatives but increase candidates.
-        batch_size: Candidates per batch for memory control in counting phase.
+        batch_size: Accepted for parity with apriori_streaming; the GPU
+            passes do not read it.
         show_progress: If True, display progress bars (requires tqdm).
-        sparse: Control scipy sparse matrix usage.
-        n_jobs: Number of parallel workers for support counting per GPU.
+        sparse: Accepted for parity with apriori_streaming; the GPU passes
+            do not read it.
+        n_jobs: Accepted for parity with apriori_streaming; the GPU passes do
+            not read it.
         progress_callback: Optional callback for progress updates. Called with:
             (phase: str, chunk_idx: int, n_chunks: int, metrics: dict)
             where phase is "pass1" or "pass2", and metrics contains
@@ -309,18 +311,7 @@ def apriori_streaming_multi_gpu(
 
                 local_items = set(col_to_item.values())
 
-                # Mine frequent itemsets in this chunk
-                local_frequent = _mine_chunk_frequent(
-                    matrix,
-                    col_to_item,
-                    chunk_n,
-                    local_min_support,
-                    max_length,
-                    batch_size,
-                    True,  # use_gpu - always True in multi-GPU streaming
-                    sparse,
-                    n_jobs,
-                )
+                local_frequent = _mine_chunk_gpu(matrix, col_to_item, chunk_n, local_min_support, max_length)
 
                 return set(local_frequent), local_items
 
@@ -420,16 +411,7 @@ def apriori_streaming_multi_gpu(
     sorted_items = sorted(candidate_items)
     item_to_col = {item: f"i_{idx}" for idx, item in enumerate(sorted_items)}
 
-    # Convert candidate itemsets to column-name tuples
-    candidate_cols: list[tuple[str, ...]] = [
-        tuple(item_to_col[item] for item in itemset)
-        for itemset in candidate_itemsets
-    ]
-
-    col_to_itemset = {
-        col_tuple: itemset
-        for col_tuple, itemset in zip(candidate_cols, candidate_itemsets)
-    }
+    candidate_list = list(candidate_itemsets)
 
     def process_chunk_pass2(chunk_idx: int, gpu_id: int) -> dict[tuple[int, ...], int]:
         """Process a single chunk for Pass 2 on a specific GPU.
@@ -457,29 +439,7 @@ def apriori_streaming_multi_gpu(
                 if matrix.height == 0:
                     return {}
 
-                # Count support for all candidates in this chunk
-                chunk_counts = count_support_batched(
-                    matrix,
-                    candidate_cols,
-                    chunk_n,
-                    batch_size,
-                    True,  # Always use GPU in multi-GPU streaming
-                    False,
-                    sparse,
-                    n_jobs,
-                    # Candidates are mixed-length (all K pooled in SON Pass 2); the
-                    # length filter auto-picks k=len(itemsets[0]) and would drop
-                    # transactions shorter than that, undercounting shorter itemsets.
-                    enable_length_filter=False,
-                )
-
-                # Map back to itemset tuples
-                result = {}
-                for col_tuple, count in chunk_counts.items():
-                    itemset = col_to_itemset[col_tuple]
-                    result[itemset] = count
-
-                return result
+                return _count_candidates_gpu(matrix, candidate_list, sorted_items)
 
         finally:
             _cleanup_gpu_memory(gpu_id)

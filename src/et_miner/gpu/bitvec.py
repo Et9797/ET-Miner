@@ -82,94 +82,16 @@ def _build_gpu_bitvec_matrix(
     return cp.asarray(bitvecs_cpu)
 
 
-def _count_support_gpu_bitvec(
-    bitvecs_gpu: "cp.ndarray",
-    itemsets_indices: list[list[int]],
-    n_rows: int,
-) -> np.ndarray:
-    """Count itemset support using GPU bitvec AND + popcount.
-
-    For each itemset, performs bitwise AND across all column bitvecs,
-    then counts set bits using popcount. This is extremely fast on GPU
-    due to massive parallelism (thousands of itemsets processed simultaneously).
-
-    Args:
-        bitvecs_gpu: GPU array [n_cols, n_u64s] of packed column bitvecs.
-        itemsets_indices: List of itemsets as column index lists.
-        n_rows: Original number of rows (for validation).
-
-    Returns:
-        numpy array of support counts (one per itemset).
-
-    Example:
-        >>> bitvecs = _build_gpu_bitvec_matrix(csr)
-        >>> counts = _count_support_gpu_bitvec(bitvecs, [[0, 1, 2], [1, 2, 3]], 1000000)
-    """
-    if not CUPY_INSTALLED:
-        raise RuntimeError("CuPy not available")
-    import cupy as cp
-
-    n_itemsets = len(itemsets_indices)
-    if n_itemsets == 0:
-        return np.array([], dtype=np.uint32)
-
-    n_u64s = bitvecs_gpu.shape[1]
-
-    # Process itemsets: AND columns together, then hardware popcount
-    # Uses _popcount_u64_array() which calls cuda_kernels.get_popcount_kernel()
-    # for native __popcll hardware intrinsic (compiles to GPU POPC instruction)
-    counts = cp.zeros(n_itemsets, dtype=cp.uint32)
-
-    for i, cols in enumerate(itemsets_indices):
-        if len(cols) == 0:
-            counts[i] = n_rows
-            continue
-
-        # Start with first column
-        result = bitvecs_gpu[cols[0]].copy()
-
-        # AND with remaining columns
-        for col in cols[1:]:
-            result &= bitvecs_gpu[col]
-
-        # Hardware popcount using __popcll intrinsic
-        counts[i] = _popcount_u64_array(result)
-
-    return cp.asnumpy(counts)
-
-
-def _popcount_u64_array(arr: "cp.ndarray") -> int:
-    """Count total set bits in a u64 array using GPU hardware intrinsic.
-
-    Uses the native __popcll instruction via CuPy ElementwiseKernel for
-    maximum performance. This compiles directly to the GPU's POPC instruction.
-
-    Args:
-        arr: CuPy array of u64 values.
-
-    Returns:
-        Total count of set bits across all u64s.
-    """
-    from et_miner.gpu.kernels import get_popcount_kernel
-
-    # Use hardware __popcll intrinsic - much faster than software bit manipulation
-    kernel = get_popcount_kernel()
-    popcounts = kernel(arr)  # Returns popcount per u64
-    return int(popcounts.sum())
-
-
 def count_support_gpu_bitvec(
     matrix: pl.DataFrame,
     itemsets: list[tuple[str, ...]],
     show_progress: bool = False,
 ) -> dict[tuple[str, ...], int]:
-    """Count itemset support using GPU-accelerated bitvec operations.
+    """Count itemset support on the current CUDA device.
 
     Builds the bitvecs with the CUDA CSR→bitvec kernel (the Rust builder only
-    when that kernel fails), then counts each itemset with GPU AND + popcount.
-
-    Expected throughput: ~500K itemsets/sec on H200 GPU
-    (vs ~50K/s Rust SIMD CPU, ~10K/s Python)
+    when that kernel fails), then counts every itemset in one batched
+    AND + popcount launch (count_itemsets_cuda).
 
     Args:
         matrix: Boolean DataFrame from build_boolean_matrix().
@@ -191,21 +113,18 @@ def count_support_gpu_bitvec(
     if not itemsets:
         return {}
 
-    # Convert to sparse CSR (efficient for GPU transfer)
+    from et_miner.gpu.kernels import count_itemsets_cuda
+
     csr, col_to_idx = _polars_to_sparse_csr(matrix)
     n_rows = csr.shape[0]
-    n_cols = csr.shape[1]
-
-    logger.debug(f"[GPU BITVEC] {len(itemsets)} itemsets, {n_rows:,} transactions, {n_cols} items")
-
-    # Build bitvecs and transfer to GPU
+    logger.debug(f"[GPU BITVEC] {len(itemsets)} itemsets, {n_rows:,} transactions, {csr.shape[1]} items")
     bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
 
-    # Convert itemsets to column indices
-    itemsets_indices = [[col_to_idx[col] for col in itemset] for itemset in itemsets]
-
-    # Count on GPU
-    counts = _count_support_gpu_bitvec(bitvecs_gpu, itemsets_indices, n_rows)
-
-    # Build result dict
-    return {itemset: int(count) for itemset, count in zip(itemsets, counts)}
+    # The empty itemset is in every transaction; the kernel would count it as 0.
+    counted = [s for s in itemsets if s]
+    counts = count_itemsets_cuda(
+        bitvecs_gpu, [np.array([col_to_idx[col] for col in s], dtype=np.int32) for s in counted]
+    )
+    result = {s: int(c) for s, c in zip(counted, counts)}
+    result.update({s: n_rows for s in itemsets if not s})
+    return result

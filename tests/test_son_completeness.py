@@ -6,11 +6,12 @@ logged and skipped breaks both halves silently: its locally frequent itemsets
 never become candidates, and its counts never reach the global total while
 support is still divided by the full row count.
 
-The multi-GPU half also checks two things that made its chunks fail inside a
-worker, where the failure was then dropped: GPU counting needs no Rust extension
-(the bitvec build and the count are CUDA), and a worker's bitvecs are built on
-that worker's device (without peer access, a chunk counted on device 1 against
-bitvecs on device 0 raises).
+The GPU halves mine each chunk on the row-split miner and count pass 2 with the
+batched itemset kernel. The multi-GPU half also checks two things that made its
+chunks fail inside a worker, where the failure was then dropped: GPU counting
+needs no Rust extension (the bitvec build and the count are CUDA), and a
+worker's bitvecs are built on that worker's device (without peer access, a
+chunk counted on device 1 against bitvecs on device 0 raises).
 """
 
 from __future__ import annotations
@@ -62,15 +63,37 @@ def test_single_gpu_son_raises_when_a_pass1_chunk_fails(transactions, monkeypatc
     failing = _FailOnCall(son.build_boolean_matrix, 2)
     monkeypatch.setattr(son, "build_boolean_matrix", failing)
     with pytest.raises(RuntimeError, match="injected failure on call 2"):
-        son.apriori_streaming(
-            transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, show_progress=False
-        )
+        son.apriori_streaming(transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, show_progress=False)
     assert failing.calls == 2
 
 
 def test_single_gpu_son_matches_in_core_when_nothing_fails(transactions):
     got = son.apriori_streaming(transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, show_progress=False)
     assert _as_set(got) == _as_set(apriori(transactions, min_support=MIN_SUPPORT))
+
+
+def test_gpu_resident_is_refused(transactions):
+    with pytest.raises(ValueError, match="gpu_resident was removed"):
+        son.apriori_streaming(transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, gpu_resident=True)
+
+
+@pytest.mark.gpu
+class TestSingleGpuSonOnTheGpu:
+    def _run(self, transactions):
+        return son.apriori_streaming(
+            transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, use_gpu=True, show_progress=False
+        )
+
+    def test_matches_in_core(self, transactions):
+        assert _as_set(self._run(transactions)) == _as_set(apriori(transactions, min_support=MIN_SUPPORT))
+
+    @pytest.mark.parametrize("target", ["_mine_chunk_gpu", "_count_candidates_gpu"])
+    def test_a_failed_chunk_raises(self, transactions, monkeypatch, target):
+        failing = _FailOnCall(getattr(son, target), 2)
+        monkeypatch.setattr(son, target, failing)
+        with pytest.raises(RuntimeError, match="injected failure on call 2"):
+            self._run(transactions)
+        assert failing.calls == 2
 
 
 @pytest.mark.gpu
@@ -86,14 +109,15 @@ class TestMultiGpuSon:
             transactions, min_support=MIN_SUPPORT, n_gpus=2, chunk_size=CHUNK, show_progress=False
         )
 
-    @pytest.mark.parametrize("target", ["build_boolean_matrix", "_mine_chunk_frequent"])
+    @pytest.mark.parametrize("target", ["build_boolean_matrix", "_mine_chunk_gpu"])
     def test_a_failed_pass1_chunk_raises(self, transactions, monkeypatch, target):
         monkeypatch.setattr(self.mg, target, _FailOnCall(getattr(self.mg, target), 2))
         with pytest.raises(RuntimeError, match="injected failure"):
             self._run(transactions)
 
-    def test_a_failed_pass2_chunk_raises(self, transactions, monkeypatch):
-        monkeypatch.setattr(self.mg, "_build_matrix_for_items", _FailOnCall(self.mg._build_matrix_for_items, 2))
+    @pytest.mark.parametrize("target", ["_build_matrix_for_items", "_count_candidates_gpu"])
+    def test_a_failed_pass2_chunk_raises(self, transactions, monkeypatch, target):
+        monkeypatch.setattr(self.mg, target, _FailOnCall(getattr(self.mg, target), 2))
         with pytest.raises(RuntimeError, match="injected failure"):
             self._run(transactions)
 

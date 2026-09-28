@@ -415,6 +415,23 @@ sentence with a check wherever one is possible.
 - `tests/fixtures/min_count_cases.json` — shared ground truth for the min-count
   rule, read by the Python and Rust test suites alike.
 
+### Removed
+
+GPU-layer consolidation, each removal decided by the measurements in
+`bench/results/2026-09-27-consolidation/FINDINGS.md` (one RTX 3060 12 GB unless
+noted). Every removed parameter or value raises `ValueError` naming its
+replacement.
+
+- **SON's GPU-resident mode.** `apriori_streaming(gpu_resident=True)` (and
+  `apriori(streaming=True, gpu_resident=True)`) raises. With `use_gpu=True`,
+  single- and multi-GPU SON mine every chunk on the row-split miner and count
+  pass 2 with the batched itemset kernel; the per-level bitvec rebuild and the
+  per-itemset counting loop are gone, and `count_support_batched(use_gpu=True)`
+  counts with the batched kernel too. The batched pass 2 took 1.70 s on
+  `deep_k` where the per-level counter took 6.84 s, and a four-chunk SON run on
+  `deep_sparse_large` finished in 194.75 s with it and hit the 600 s cap
+  without.
+
 ---
 
 ## [0.1.0]

@@ -1,11 +1,17 @@
 # GPU-layer consolidation — report
 
-Branch `refactor/kernel-consolidation` (local only, not pushed), bundle
-`~/et-miner-consolidation.bundle` (`main..HEAD`). Evidence:
-`bench/results/2026-09-27-consolidation/` (Phase 2 campaign, `FINDINGS.md`),
-`bench/results/2026-09-28-consolidation-verify/` (Phase 4 re-run). Box: 2× RTX
-3060 12 GB (sm_86), one of which fell off the bus mid-campaign; every number
-below is from device 0.
+Branch `refactor/kernel-consolidation` (origin at `93224ef` when the second
+box's work began), bundle `~/et-miner-consolidation.bundle` (`main..HEAD`).
+Evidence: `bench/results/2026-09-27-consolidation/` (Phase 2 campaign,
+`FINDINGS.md`), `bench/results/2026-09-28-consolidation-verify/` (Phase 4
+re-run), `bench/results/2026-09-28-consolidation-2gpu/` (the 2-GPU rows:
+DP6, DP10) and `bench/results/2026-09-28-consolidation-verify-2gpu/` (the
+verify matrix on the final tree, two GPUs). Boxes: Phases 2 and 4 ran on 2×
+RTX 3060 12 GB (sm_86), one of which fell off the bus mid-campaign, so every
+Phase 2/4 number is from device 0; the 2-GPU rows and the final verification
+ran on a second box, 2× RTX A4000 16 GB (sm_86), with NCCL's P2P transport
+disabled (`…-2gpu/nccl-hang/README.md`). Numbers from the two boxes are never
+compared with each other.
 
 ## Decisions
 
@@ -19,30 +25,30 @@ Phase 2 cells are median [min, max] seconds over 3 reps (1 where marked);
 | DP3 K≥3 | Per prefix group at the measured crossover (rule 4): tiled from 120 pairs at K=3 down to 23 at K≥8, per-candidate below; separate candidate spaces | dsl per-candidate 14.63 vs tiled 76.39 (C1); or002 tiled 1.26 vs 2.61 (A1); supplementary oom2 to K=3 tiled 93.08 vs 492.21 (C1); kernel sweep: ratio independent of rows, parity 120/91/66/45/23 pairs at K=3/4/5/6/8 | default vs pinned per-candidate / tiled: dsl 23.65 vs 24.36 / 115.35; or002 0.18 vs 0.63 / 0.19; oom2 to K=3 36.83 vs — / 36.99 (K=3 level 28.96, was 93.08) |
 | DP4 fallback | Per-candidate kernel kept by role (small groups; oversize groups across GPUs); small-group routing kept; fragmentation guard gone | C1-shared won oom2 8.22 vs 83.09; C1-legacy won dsl 24.19 vs 86.00; tiling small groups too won nothing | sk2ml3 K=3: 11 groups (6.37B candidates) fused, the rest tiled dense in 16 chunks: 666.08 for the level |
 | DP5 layout | Dense only; `sparse_from_k` raises | dense won dsl (every sparse layout out of memory); sparse's best gap 0.26 s (or002) | — |
-| DP6 multi-GPU | **Open**: no data (device lost). A/B split fan-outs left with A and B; `bitvecs=` on several GPUs uses C's row split | C2 one rep on 5 regimes; splits none | — |
+| DP6 multi-GPU | C's row split with the NCCL reduce is the multi-GPU scheme; the A/B pair/candidate splits win nothing and stay gone with A and B (`bitvecs=` on several GPUs uses C's row split) | 2× A4000, Σ K≥2 s: oom2 C2-shared 3.40 vs Asplit2 37.25 / Bsplit2 36.39; sk2ml2 17.22 vs 225.08 / 224.67; sk2ml3 781.87 (C2-shared unopposed, the splits failed the gate) | C2 on the final tree, 2× A4000: see the verify table |
 | DP7 out-of-core | SON stays; pass 1 on C per chunk, pass 2 on the batched itemset kernel, on both SON paths | D1-resident deepk 3.69 vs D1-gpu 22.64 / D1-cpu 12.21; dsl 194.75 (1 rep) vs >600 | SON on C + batched pass 2: deepk 3.49 [3.37, 4.01]; dsl 191.50 (1 rep) |
 | DP8 CPU | Unchanged: Polars and sparse+Rust both kept, `sparse=None` already dispatches to the winner | Polars deepk 2.64 vs 5.46, skew 3.52 vs 6.71; sparse+Rust or003 39.81 vs 44.77 | control, path unchanged: F-auto deepk 2.66, or003 39.80 |
 | DP9 host roles | R2, R4 kept; the Apriori group prune and R3 gone (`prune_apriori` raises) | per call Rust 2–27× the fallback; prune vs no prune a tie (≤ 0.31 s); supplementary oom2 to K=3 101.25 with vs 37.62 without | — |
-| DP10 A/B arms | **Open**: one rep each, baseline missing. Nothing removed | sk2ml2 C2 filter compact 28.45 / cupy 22.94 / cpu 24.94 (1 rep) | — |
+| DP10 A/B arms | Ties everywhere (rule 2: no winner), so rule 5 keeps the least code: the nnz row balance goes (`ET_MINER_ROW_BALANCE=nnz` and `balance="nnz"` raise); the sliced CuPy filter is the one survivor filter (`threshold_filter`), the `compact_threshold` kernel and the whole-array CPU path go, `ET_MINER_FILTER_IMPL` raises | 2× A4000, wall s, medians of 3: filter on sk2ml2 compact 20.00 / cupy 19.05 / cpu 19.99, on dsl 17.91 / 18.49 / 18.83; balance skew rows 1.07 / nnz 1.07, dsl 17.91 / 18.14 | the final tree runs the CuPy filter and the rows split in every row of the verify table |
 
-## Lines changed per area (`git diff --numstat main..HEAD`)
+## Lines changed per area (`git diff --numstat main`, the final tree)
 
 | Area | Added | Removed | Net |
 |---|---|---|---|
-| CUDA sources (`gpu/kernels/_src/*.cu`) | 1 | 643 | −642 |
-| `gpu/` Python | 560 | 5,465 | −4,905 |
-| `streaming/` | 129 | 1,109 | −980 |
-| `core/` | 87 | 248 | −161 |
-| tests | 882 | 3,918 | −3,036 |
+| CUDA sources (`gpu/kernels/_src/*.cu`) | 1 | 701 | −700 |
+| `gpu/` Python | 782 | 5,742 | −4,960 |
+| `streaming/` | 137 | 1,110 | −973 |
+| `core/` | 97 | 249 | −152 |
+| other `src/` (`_env.py`, `synthetic.py`, `cli.py`, …) | 168 | 42 | +126 |
+| tests | 1,052 | 4,207 | −3,155 |
 | `rust_ext/` | 0 | 568 | −568 |
-| bench harness and docs | 1,712 | 393 | +1,319 |
-| bench results (campaign data) | 1,736 | 0 | +1,736 |
+| bench harness and docs | 2,377 | 431 | +1,946 |
+| bench results (campaign data) | 2,978 | 0 | +2,978 |
 
-Kernels: 19 registered entry points in 15 `.cu` files on `main`, 7 in 6 now
+Kernels: 19 registered entry points in 15 `.cu` files on `main`, 6 in 5 now
 (`count_pairs_k2_dense`, `count_k3plus_dense`, `count_shared_tiled_dense`,
-`count_shared_tiled_fused`, `count_itemsets_batch`, `compact_threshold`,
-`csr_to_bitvec`), plus the popcount ElementwiseKernel. In-core GPU miners:
-three, now one.
+`count_shared_tiled_fused`, `count_itemsets_batch`, `csr_to_bitvec`), plus
+the popcount ElementwiseKernel. In-core GPU miners: three, now one.
 
 ## Public API and knob removals
 
@@ -56,6 +62,10 @@ speedups under `### Removed` in `CHANGELOG.md`):
 - `ET_MINER_KERNEL_VARIANT` (any value).
 - `ET_MINER_TILED_MIN_GROUP_PAIRS` changed meaning: unset now means the
   measured crossover per K instead of a flat 64; a value pins every level.
+- `ET_MINER_ROW_BALANCE=nnz` and `balance="nnz"` on `build_bitvecs_row_split`
+  / `build_bitvecs_row_split_from_arrays` (DP10; `rows` stays a no-op).
+- `ET_MINER_FILTER_IMPL` (any value; DP10). `compact_threshold_filter` and its
+  `impl=` are gone; the filter is `et_miner.gpu.kernels.filter.threshold_filter`.
 
 Exports removed from `et_miner.gpu.kernels`: `count_pairs_fused_k2(_multi_gpu)`,
 `count_k3plus_fully_fused(_multi_gpu)`, `count_pairs_fused_k2_gpu_resident(_multi_gpu)`,
@@ -66,6 +76,7 @@ renamed: `count_pairs_k2_allcounts` → `count_pairs_k2_per_candidate`,
 `count_k3plus_allcounts` → `count_k3plus_per_candidate` (no `variant=`);
 added: `count_tiled_fused`, `k2_groups`, `select_k3plus_groups`.
 `count_itemsets_cuda` lost `use_batch`. `K3PlusGroups` lost `suffix_src_rows`.
+`compact_threshold_filter` → `threshold_filter` (no `impl=`; DP10).
 
 ## Rust, per role
 
@@ -127,18 +138,101 @@ After the review fixes (`2cc5d73`), rep 0 of the same matrix without
 20 configs) gave the same signatures in all 11 regimes and the same times
 within noise: sk2ml2 43.22, dsl 23.58, oom2 to K=3 36.72, SON dsl 184.57.
 
+## Verification on the second box (the final tree, 2× RTX A4000)
+
+The DP10 changes and the peer-copy fix were verified on the A4000 box, with
+`NCCL_P2P_DISABLE=1` exported for every GPU job (see finding 21 for why):
+
+| Check | Result |
+|---|---|
+| `uv run ruff check src tests bench` | clean |
+| `uv run pytest -q -m "not slow"` | 682 passed, 12 deselected (`test_support_001`/`0001`, finding 10) |
+| tier gate `tests/test_tier_equivalence.py` | 13 passed: 5 CPU, 5 one-GPU and the 3 two-GPU legs, each pin proven by call spies |
+| `uv run pytest -q -m "gpu and multigpu"` | 24 passed |
+| `uv run pytest -q -m "gpu and slow"` | 5 passed, the four infeasible `test_support_001`/`0001` deselected |
+| `bench/selfcheck.py` | READY: 6 kernels compiled and each launched with a known answer on 2 devices |
+| verify matrix (`bench/results/2026-09-28-consolidation-verify-2gpu/`) | 78 config-reps, all ok; every regime one signature, equal to Phase 2 (Phase 4 for oom2ml3) |
+
+Wall s, median [min, max]; the "same box" column is the `e4bb3ae` twin
+measured on the A4000s in the 2-GPU campaign (only two-GPU configs were
+measured there, so the one-GPU rows have no same-box twin; they are not
+compared with the 3060 numbers above):
+
+| Config | Now, 2× A4000 | `e4bb3ae` twin, same box |
+|---|---|---|
+| smoke C1 | 0.09 [0.09, 0.09] | |
+| deepk C1 | 0.49 [0.48, 0.49] | |
+| skew C1 | 0.61 [0.60, 0.70] | |
+| oom2 C1 | 6.05 [5.84, 6.07] | |
+| sk2ml2 C1 | 35.06 [31.83, 35.22] | |
+| sk2ml3 C1 (1 rep) | 584.07 | |
+| oom2ml3 C1 | 28.04 [27.30, 28.16] | |
+| dsl C1 | 22.94 [22.08, 22.99] | |
+| dsl C1 per-candidate pinned | 22.56 [22.48, 23.09] | |
+| dsl C1 tiled pinned | 94.28 [93.53, 94.37] | |
+| wide C1 | 0.16 [0.16, 0.16] | |
+| or005 C1 | 0.12 [0.11, 0.12] | |
+| or003 C1 | 0.13 [0.13, 0.13] | |
+| or002 C1 | 0.20 [0.19, 0.20] | |
+| or002 C1 per-candidate pinned | 0.51 [0.50, 0.51] | |
+| or002 C1 tiled pinned | 0.21 [0.20, 0.21] | |
+| oom2ml3 C1 tiled pinned | 29.08 [28.64, 29.29] | |
+| deepk D1 (SON, 4 chunks) | 3.21 [3.03, 3.32] | |
+| dsl D1 (SON, 4 chunks, 1 rep) | 174.72 | |
+| deepk F-auto (CPU control) | 2.38 [2.35, 2.38] | |
+| or003 F-auto (CPU control) | 38.89 [38.62, 39.00] | |
+| smoke C2 | 0.63 [0.59, 0.65] | 0.60 (C2-legacy) |
+| deepk C2 | 0.93 [0.92, 0.95] | 0.93 (C2-legacy) |
+| oom2 C2 | 4.09 [4.08, 4.09] | 4.09 (C2-shared) |
+| sk2ml2 C2 | 17.99 [17.99, 18.00] | 20.00 (C2-shared) |
+| sk2ml3 C2 (1 rep) | 306.32 | 784.87 (C2-shared) |
+| dsl C2 | 17.21 [16.92, 17.24] | 17.91 (C2-legacy) |
+| deepk E2 (SON, 4 chunks, 2 GPUs) | 2.89 [2.88, 2.93] | 22.64 |
+
+On two GPUs the final tree is faster than or equal to its `e4bb3ae` twin
+everywhere; `stress_k2` to K=3 on two A4000s went from 784.87 s (the K=3
+oversize groups per-candidate across devices) to 306.32 s, below the 593 s
+of the fused one-GPU path on the same card, and multi-GPU SON on `deep_k`
+from 22.64 s to 2.89 s.
+
+**Incident during this run.** The first `sk2ml3 C1` row of this matrix
+reported 1,311,292 K=3 itemsets (854 too many, with garbage counts) while
+NCCL/P2P diagnostics were running on the same physical GPU from another
+process. Two clean re-runs of the same tree — one under
+`ET_MINER_MAX_CHUNK_CANDS=1141733839`, which reproduces that row's chunk plan
+exactly (`sk2ml3-C1-capped-plan-rerun.txt`) — and a run of the unmodified
+`93224ef` tree gave the correct 1,310,438; the 854 extras all sat in the
+chunk counted between 17:08 and 17:09 UTC, the window of the P2P copies.
+The row was discarded and re-measured with the GPUs otherwise idle
+(`raw.jsonl.before-sk2ml3-rerun` and `sk2ml3-C1_r0-corrupted-by-concurrent-p2p.txt` keep the original row and its log). On this box a P2P
+write from GPU 1 that "does not land" can therefore land in *another
+process's* memory on GPU 0: never share this box's GPUs between a
+measurement and P2P traffic.
+
 ## Open risks
 
-- **Multi-GPU is unverified.** GPU 1 was lost at 20:38 UTC on the first day;
-  DP6 and DP10 have no answer, and every 2-GPU test skips here: the three
-  2-GPU tier legs, `bitvecs=` sharding across devices, the device-affinity
-  tests, multi-GPU SON. The multi-shard reduce itself is tested on one device
-  (two shards on device 0, with and without forced chunks).
+- **Multi-GPU is verified on one box only**, the 2× A4000 (the three 2-GPU
+  tier legs, the multigpu tests, `bitvecs=` across devices, multi-GPU SON,
+  the C2/E2 verify rows), and there only with NCCL's P2P transport off: on
+  that box PCIe P2P drops device-to-device writes (finding 21). The probe
+  that now guards the staged reduce and the `bitvecs=` shards detects a copy
+  that does not land; a P2P transport that *hangs* without dropping copies
+  would not be caught, and a hung collective never times out.
+- **Two GPUs can be slower than one on a wide K≥3 level.** `stress_k2` to
+  K=3 took 781.87 s on two A4000s at `e4bb3ae` (the K=3 oversize groups run
+  on the per-candidate kernel when they are chunked across devices, DP4)
+  against 711.57 s fused on one 3060 in Phase 4. The verify table has the
+  one-GPU fused number on the A4000; the two-GPU number on the final tree is
+  not in the verify matrix.
+- **The filter at 10B candidates is extrapolated**, not measured: the sliced
+  CuPy filter costs ≈ 94 ms per 64M-element slice on an A4000 (≈ 15 s per
+  10B-candidate level) where the removed kernel took two passes over the
+  array. The measured regimes (612M candidates at most) tied.
 - **sm_90 is untested**, and so are the RTX 3090s the brief assumed: every
-  number is from an RTX 3060 12 GB (sm_86).
+  number is from an RTX 3060 12 GB or an RTX A4000 16 GB (both sm_86).
 - **Regimes not covered:** AlphaFold scale (77M rows, K up to 22), cards
-  larger than 12 GB, anything multi-GPU at scale; `stress_k2` to K=3 on the
-  consolidated tree ran once.
+  larger than 16 GB, anything multi-GPU at scale; `stress_k2` to K=3 on the
+  consolidated tree ran once per box.
 - **Kept under rule 4:** the per-candidate kernel for small prefix groups (and
   oversize groups across GPUs), the fused tiled kernel for levels beyond one
   dense chunk on one GPU, and the CPU's `sparse=None` dispatch. The crossover
@@ -179,8 +273,10 @@ work. "Fixed" items carry a test unless marked.
    when no row survived its length filter; `count_itemsets_cuda` now returns
    zeros for zero words and rejects empty itemsets.
 6. (should, open) `CLAUDE.md`'s intrinsic list names the deleted
-   `_src/csr_warp.cu` and `_src/bitvec_extract_tids.cu` (`__ffsll` is no longer
-   used). Left alone: the brief allowed only tier-chain edits to CLAUDE.md.
+   `_src/csr_warp.cu`, `_src/bitvec_extract_tids.cu` and, since DP10,
+   `_src/compact_threshold.cu` (`__ffsll`, `__ffs` and the 32-bit `__popc`
+   are no longer used). Left alone: the brief allowed only tier-chain edits
+   to CLAUDE.md.
 7. (should, fixed) The bench harness dropped removed settings silently
    (`child_run` stopped forwarding `sparse_from_k`, `consolidation_run` ignored
    `gpu_resident`). A config setting a removed key now fails; so does the old
@@ -228,6 +324,24 @@ work. "Fixed" items carry a test unless marked.
     and `build_bitvecs_from_gpu_arrays`. `cargo clippy -- -D warnings` fails
     with 6 errors present on `main`. `bench/runner.py` re-runs non-ok configs
     when resuming.
+21. (must-fix, fixed, pre-existing) On a box whose PCIe P2P drops
+    device-to-device writes (the 2× A4000 behind a Ryzen AM4 host bridge:
+    `cudaMemcpy`, `cudaMemcpyPeer` and CuPy assignment from GPU 1 to GPU 0
+    return success with the destination untouched, while the other direction
+    lands), the staged D2D reduce summed only GPU 0's shard (`smoke` on two
+    GPUs: 342 itemsets at about half their counts instead of 694), `bitvecs=`
+    sharded across two GPUs mined a shard of stale pool memory (the affinity
+    test passed only when the previous test had left the right bytes in the
+    pool), and NCCL's P2P transport hung about one run in three at the first
+    collective. `gpu/nccl.py::peer_copy_works` probes each device pair once;
+    a failed probe routes the staged reduce and the shard copies through host
+    memory and starts NCCL with `NCCL_P2P_DISABLE=1`. Tests:
+    `tests/test_peer_copy_probe.py`; `test_nccl_fallback_forced` and the
+    affinity tests now pass on that box. Evidence:
+    `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`.
+22. (should, open) A hung NCCL collective never times out and gives no
+    diagnostic; the probe above catches the copies that do not land, not a
+    transport that only hangs.
 
 Claims the reviewer tried and failed to break: exact output on every kernel
 setting and output mode (complete, free-sets, anchors, both) on 1 and 2

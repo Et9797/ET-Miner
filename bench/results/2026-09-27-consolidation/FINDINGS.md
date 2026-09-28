@@ -20,15 +20,33 @@ fixed before the campaign ran and applied as written.
   not run by then is missing: C2 has one rep on smoke/deepk/skew/oom2/sk2ml2
   and none on dsl, the pair/candidate-split routes (`Asplit2`, `Bsplit2`) have
   none, `E2` has one rep on deepk and a timeout on dsl, and the DP10 arms have
-  one rep each.
+  one rep each. Those rows were re-measured on the second box (next bullet).
+- **Second box.** The 2-GPU rows (DP6, DP10, `E2`) were measured on
+  2026-09-28 on a second vast.ai container: 2× RTX A4000 16 GB (sm_86, P2P
+  through the host bridge), the same Ryzen 5 5600X, 46 GB RAM, CuPy 14.1.1,
+  NCCL 2.31 (`../2026-09-28-consolidation-2gpu/`, `env.txt` there). Only
+  within-box comparisons are made: every DP6 and DP10 cell compares 2-GPU
+  configs measured there, and no cell compares a 3060 number with an A4000
+  number. On that box NCCL's P2P transport hung about one run in three at
+  the first collective (both ranks enqueue, rank 1 completes, rank 0 never
+  does; `../2026-09-28-consolidation-2gpu/nccl-hang/`), so every row there
+  was measured with `NCCL_P2P_DISABLE=1` (0 hangs in 30 repro runs and 82
+  config-reps). The code path is unchanged (NCCL ring reduce); only the
+  transport between the two devices differs.
 - **Correctness.** Every regime produced exactly one signature across all GPU,
   SON and CPU configs (15 regimes, 459 ok config-reps, `report.md` §Signatures);
   no ok row logged a fallback. The 29 non-ok config-reps are 18 out-of-memory
   errors (sparse layouts on dsl), 2 timeouts (dsl SON, 600 s cap by protocol)
-  and 9 max_length=3 gate skips.
+  and 9 max_length=3 gate skips. The 2-GPU rows on the second box: one
+  signature per regime in all 7 regimes, equal to the Phase 2 signature (72
+  ok config-reps); the 10 non-ok rows are 9 gate skips and the dsl `E2`
+  timeout (600 s cap).
 - **Budget.** Campaign 4.68 GPU-hours (process time × devices, all 495 rows
   including the incident), calibration ≈ 0.72, microbench dumps ≈ 0.1,
   supplementary 1.04 (kernel sweep ≈ 0.40, oom2 to K=3 0.64). Total ≈ 6.5 of the 8 allowed.
+  The 2-GPU rows on the second box added 3.44 GPU-hours (1.72 h box time,
+  82 rows), so the campaign as a whole used ≈ 10 GPU-hours: the overrun is
+  the re-measurement the device loss forced.
 
 ## Decisions
 
@@ -39,11 +57,18 @@ fixed before the campaign ran and applied as written.
 | DP3 K≥3 counting | tiled, per-candidate (dense in C, fused in A), B's `count_k3plus_gpu_resident` | Within C1: per-candidate on dsl (14.63 [14.58, 14.74] vs tiled 76.39 [76.38, 76.43]); tiled none. Within A1: tiled on or002 (1.26 [1.24, 1.26] vs 2.61 [2.59, 2.61]) and sk2ml3 (675.65, unopposed); per-candidate on dsl (17.97 [17.93, 18.05] vs 108.04 [108.02, 108.10]). B's kernel: none. | Both kernels win somewhere, so rule 4: dispatch per prefix group on its pair count. Crossover (kernel sweep, supplementary): the tiled kernel's time over the per-candidate kernel's does not depend on the row count from 7,813 to 312,500 words (both kernels scale with the words) and falls with the suffixes per group and with K. Parity sits at 120 pairs per group at K=3, 91 at K=4, 66 at K=5, 45 at K=6 and ≈ 23 at K=8; at 2 suffixes the tiled kernel is 41× slower at K=3 and 15× at K=6. At 570 words the crossovers sit lower, with every launch under 10 ms. The dsl loss of tiled in C1 is not the threshold: at K=4–9 the fragmentation guard dropped the small-group routing and tiled every group (the run log of `dsl-C1-shared#r0`, not committed, shows `chunk 1/1` at each of those levels), and on 2–4-suffix groups the tiled kernel is 15–45× slower. The dispatch therefore partitions a level by kernel instead of interleaving chunks. B's kernel goes with B. | DP3 tables; `crossover.jsonl`; `supplement/` |
 | DP4 what tiled can't serve | C1-shared (small groups, mega-groups and multi-chunk K=2 per-candidate), C1-tiny0 (small groups tiled too), C1-legacy (all per-candidate) | C1-shared: oom2 (8.22 [8.21, 8.24] vs 83.09). C1-legacy: dsl (24.19 [23.95, 24.27] vs 86.00 [85.95, 86.01]). C1-tiny0: none. | Keep the per-candidate dense kernel as the named fallback (small groups; mega-groups and multi-chunk K=2 on several GPUs) and keep small-group routing (tiny0 wins nothing). Port the one-device oversize case to the fused tiled kernel (DP1: A1-shared vs C1-shared on sk2ml2). | `{oom2,dsl}-C1-*`, `sk2ml2-{A1,C1}-shared` |
 | DP5 layout | dense, `sparse_from_k="auto"`, `sparse_from_k=3` | Dense: dsl (every sparse layout runs out of memory on 12 GB: the CSR shards hold Σ support × 4 B per level). A1-legacy-auto: or002 (2.71 [2.69, 2.73] vs 4.57 [4.55, 4.62]), inside A only; C1 dense takes 0.82 there. Elsewhere none. | Dense only; the sparse CSR layout goes and `"auto"` does not become the default. It wins no regime in the surviving miner and has no capability dense lacks: its transition needs the dense bitvecs first. | DP5 tables |
-| DP6 multi-GPU | C row-split + NCCL vs A/B pair/candidate split | C2-shared over C2-legacy on oom2 and sk2ml2 (one rep); splits: no data | **Open — no answer** (device lost). A's and B's split fan-out leave with A and B (DP1); `bitvecs=` on several GPUs moves onto C's row split. Calibration, single runs, not decision data: sk2ml2 `Asplit2` 315 s, `Bsplit2` 369 s, `C2-shared` 24.4 s. | `*-C2-*` |
+| DP6 multi-GPU | C row-split + NCCL vs A/B pair/candidate split (2-GPU rows measured on the second box, `../2026-09-28-consolidation-2gpu/`) | C2-shared: oom2 (Σ K≥2 3.40 [3.38, 3.41] vs Asplit2 37.25 [37.20, 37.26], Bsplit2 36.39 [36.35, 36.40], C2-legacy 35.35 [35.31, 35.36]), sk2ml2 (17.22 [17.15, 17.23] vs 225.08 [223.73, 227.38], 224.67 [222.45, 227.63], 188.87 [188.86, 188.87]), sk2ml3 (781.87 [779.92, 785.05], unopposed: every other candidate failed the max_length=3 gate). C2-legacy: dsl (5.65 [5.63, 5.65] vs 27.69 [27.67, 27.94]; the DP3 kernel question, settled by the per-group dispatch). Splits: none. | C's row split with the NCCL reduce is the multi-GPU scheme. The pair/candidate splits win nothing and stay gone with A and B (DP1); `bitvecs=` on several GPUs uses C's row split. Wall on the A4000s: sk2ml2 C2-shared 20.00 [19.98, 20.05] against 232.85–237.90 for the splits. Observed, not a decision: sk2ml3 on two A4000s takes 784.87 s wall, where the fused one-GPU path took 711.57 s on one 3060 (Phase 4); across two GPUs the oversize K=3 groups run on the per-candidate kernel (DP4), not the fused tiled one — see `REPORT.md`, open risks. | `*-C2-*`, `*-Asplit2-shared`, `*-Bsplit2` |
 | DP7 out-of-core | SON single-GPU pass 1 on B + pass 2 `count_itemsets_batch` (`D1-resident`), both passes on the per-level GPU counter (`D1-gpu`), CPU (`D1-cpu`); multi-GPU (`E2`) | D1-resident: deepk (3.69 [3.36, 3.76] vs D1-cpu 12.21 [11.98, 12.26]), dsl (194.75, one rep, vs a >600 s timeout for D1-gpu and E2) | SON stays (rule 6). Pass 1 moves to C per chunk; pass 2 keeps `count_itemsets_batch` (pass 2: deepk 1.70 s vs 6.84 s for the per-level counter; dsl 132.6 s vs a timeout); the per-level counter's Python loop goes; E gets the same pair on each of its devices. Overhead against the in-core winner: deepk 3.69 vs 0.43 s (8.6×), dsl 194.75 vs 24.19 s (8.1×). | `{deepk,dsl}-{D1-*,E2}` |
 | DP8 CPU tier | Polars, sparse + Rust, sparse without Rust | Polars: deepk (2.64 [2.44, 2.67] vs 5.46 [5.15, 5.58]), skew (3.52 [3.31, 3.52] vs 6.71 [6.54, 7.00]). Sparse + Rust: or003 (39.81 [39.04, 39.97] vs 44.77 [44.53, 44.77]). Sparse without Rust: none. | Keep both. `sparse=None` is already a rule-4 dispatch that picks the winner in every regime that has one (sparse when C(n,2) > 100K, i.e. n ≥ 448 frequent items, or n·rows/8 > 1 GiB): F-auto deepk 2.61, skew 3.49, or003 39.43. | DP8 tables |
 | DP9 Rust host roles | R2 group build, R3 Apriori group prune, R4 free-set prune: Rust vs fallback; `prune_apriori` on vs off | Per call the fallbacks are slower everywhere: R2 2.1–13×, R3 3.9–18.6× (0.9× on the 4-candidate K=16 call), R4 6.1–27×; R3 on stress_k2 K=3 takes 487 s in Rust (fallback > 300 s cap). Prune vs no prune: no regime either way (largest gap 0.31 s on dsl). Supplementary: on oom2 to K=3 the prune costs 63.6 s of a 93.1 s K=3 level (C1-shared 101.25 [100.33, 102.08] vs C1-shared-noprune 37.62 [37.48, 37.65]). | R2 and R4 stay. Neither the prune nor `prune_apriori=False` wins a regime, a tie everywhere, so rule 5 keeps the smaller code: the prune goes and R3 with it (rule 7: the role disappears). | DP9 tables, microbench |
-| DP10 leftover A/B arms | filter `compact`/`cupy`/`cpu`; row balance `rows`/`nnz` | One rep each; C2-legacy on dsl, their baseline, missing | **Open — no answer** (device lost). Nothing removed. | `*-C2-*-filter-*`, `*-C2-legacy-balance-nnz` |
+| DP10 leftover A/B arms | filter `compact`/`cupy`/`cpu`; row balance `rows`/`nnz` (measured on the second box, `../2026-09-28-consolidation-2gpu/`) | None (rule 2). Filter on sk2ml2 (C2-shared): compact 20.00 [19.98, 20.05], cupy 19.05 [18.06, 19.05], cpu 19.99 [19.00, 20.07]; on dsl (C2-legacy): 17.91 [17.90, 18.41], 18.49 [17.50, 19.23], 18.83 [17.96, 19.05]. Row balance: skew rows 1.07 [1.06, 1.09] vs nnz 1.07 [1.07, 1.07]; dsl 17.91 [17.90, 18.41] vs 18.14 [18.02, 18.80]. | A tie everywhere, so rule 5 keeps the least code on each axis. Row balance: `nnz` goes (`ET_MINER_ROW_BALANCE=nnz` and `balance="nnz"` raise naming the rows split). Filter: the sliced CuPy filter is the one implementation (`threshold_filter`); the `compact_threshold` kernel (two launches, a host sort at 48 B/survivor, a host-RAM probe) and the whole-array CPU path go, and `ET_MINER_FILTER_IMPL` raises. Its capability is kept: measured per 64M-element slice on an A4000, 94 ms and 1.1 B/element of extra VRAM at a 1% pass rate, 13 B/element (794 MiB) with every element surviving, under the budget's 1 GiB margin, and a slice that does not fit is filtered on the host (tested). Not measured: the 10B-candidate levels of the AlphaFold regime, where the slices cost ≈ 15 s per level against two kernel passes. | `*-C2-*-filter-*`, `*-C2-legacy-balance-nnz`, `{sk2ml2,dsl,skew}-C2-{shared,legacy}` |
+
+**Rule 5 on DP10.** Both axes tie in every regime, so rule 5 ("keep
+whatever serves the most routes with the least code") decides, as it did on
+DP9. Every filter implementation serves the same one caller (the dense
+chunk filter on GPU 0) and the sliced CuPy filter is the smallest; the same
+holds for the rows cut against the nnz cut. The peak-VRAM tiebreak is not
+reached.
 
 **Rust, per role.** R1 (CPU K>2 counting) stays: without it the sparse CPU
 route's K≥3 levels are 4–36× slower (F-sparse vs F-sparse-norust) and DP8

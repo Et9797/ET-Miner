@@ -222,6 +222,7 @@ def build_verify_matrix(n_dev: int) -> list[dict]:
         base.append(_cfg("F-auto", w, "F", sparse=None, n_jobs=6))
     if n_dev >= 2:
         base += [_cfg("C2", w, "C", n_gpus=2) for w in ("smoke", "deepk", "oom2", "sk2ml2", "dsl")]
+        base.append(_cfg("C2", "sk2ml3", "C", n_gpus=2, timeout_s=3600, single_rep=True))
         base.append(_cfg("E2", "deepk", "E", n_gpus=2, chunk_size=SON["deepk"][0], expect_chunks=4))
     cfgs = []
     for rep in range(REPS):

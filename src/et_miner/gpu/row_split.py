@@ -56,14 +56,18 @@ def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, device
 
     Shards are cut at 64-row word boundaries and copied onto their devices (the
     caller's array is read-only to the engine; the copy stages through the host
-    where devices have no peer access). On one device the caller's array is the
-    only shard. ``devices`` names the shard devices explicitly, repeats allowed.
+    where devices have no peer access, and explicitly where a device pair's
+    copies do not land — ``gpu.nccl.peer_copy_works``). On one device the
+    caller's array is the only shard. ``devices`` names the shard devices
+    explicitly, repeats allowed.
 
     Returns:
         ``bitvecs_list`` for ``_apriori_row_split_multi_gpu``: (array, device, rows).
     """
     import cupy as cp
     import numpy as np
+
+    from et_miner.gpu.nccl import peer_copy_works
 
     n_u64s = bitvecs_gpu.shape[1]
     if devices is None:
@@ -76,13 +80,18 @@ def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, device
     shards = []
     for i, dev in enumerate(devices):
         lo, hi = int(cuts[i]), int(cuts[i + 1])
-        with cp.cuda.Device(bitvecs_gpu.device.id):
+        home = int(bitvecs_gpu.device.id)
+        with cp.cuda.Device(home):
             src = cp.ascontiguousarray(bitvecs_gpu[:, lo:hi])
+            staged = None if dev == home or peer_copy_works(dev, home) else src.get()
         with cp.cuda.Device(dev):
-            dst = cp.empty(src.shape, dtype=src.dtype)
-            dst.data.copy_from_device(src.data, src.nbytes)
+            if staged is None:
+                dst = cp.empty(src.shape, dtype=src.dtype)
+                dst.data.copy_from_device(src.data, src.nbytes)
+            else:
+                dst = cp.asarray(staged)
             cp.cuda.Device().synchronize()
-        del src
+        del src, staged
         shards.append((dst, dev, min(hi * 64, n_transactions) - lo * 64))
     logger.info(f"  Pre-built bitvecs: split into {n_dev} row shards")
     return shards

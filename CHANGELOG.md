@@ -47,6 +47,21 @@ figures move — measured, per artifact, not assumed.
 
 ### Fixed
 
+- **Two-GPU runs on a box whose PCIe P2P drops device-to-device writes.**
+  Such a box (a Ryzen AM4 host with two RTX A4000s behind the CPU's host
+  bridge, `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`) reports
+  peer access and then loses the copies: `cudaMemcpy`, `cudaMemcpyPeer` and
+  CuPy assignment all return success with the destination untouched, so the
+  staged D2D reduce (the NCCL-absent fallback) summed only GPU 0's shard —
+  `smoke` on two GPUs returned 342 itemsets with roughly half their counts
+  instead of 694 — `bitvecs=` sharded across two GPUs mined a shard of
+  stale memory, and NCCL's P2P transport hung about one run in three at
+  the first collective. `et_miner.gpu.nccl.peer_copy_works` now probes each
+  device pair once with a 4 KiB pattern; when the copy does not land, the
+  staged reduce and the `bitvecs=` shards go through host memory and NCCL
+  is started with `NCCL_P2P_DISABLE=1` (its SHM transport) unless the
+  caller set that variable. Tests: `tests/test_peer_copy_probe.py`.
+
 *PR 1 — canonical order and the exact threshold*
 
 - **#1, #2, #3, #20** — itemsets are emitted as **ascending tuples of item ids

@@ -6,13 +6,62 @@ GPU 0, which alone filters survivors. Preferred path is ncclReduce to root
 NCCL is unavailable (or disabled via ET_MINER_DISABLE_NCCL=1), a bounded
 staged device-to-device fallback adds peers slice-wise through one fixed
 staging buffer on GPU 0 instead of materializing full peer copies.
+
+Some boxes report peer access between two devices and then lose the
+writes: a device-to-device copy returns success with the destination
+untouched, and NCCL's P2P transport hangs at the first collective (seen on
+a Ryzen AM4 host with two RTX A4000s behind the CPU's host bridge,
+`bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`). ``peer_copy_works``
+probes each device pair once with a 4 KiB pattern; when the copy does not
+land, the staged fallback goes through host memory and NCCL is started with
+``NCCL_P2P_DISABLE=1`` (its SHM transport), unless the caller set that
+variable already.
 """
 
 from __future__ import annotations
 
+import os
+
 from loguru import logger
 
 from et_miner import _env
+
+_peer_copy_ok: dict[tuple[int, int], bool] = {}
+
+
+def peer_copy_works(dst_device: int, src_device: int) -> bool:
+    """Whether a device-to-device copy from ``src_device`` lands on ``dst_device``.
+
+    Probed once per pair per process (4 KiB pattern, both devices
+    synchronized before the check) and cached. A failed probe is logged once.
+    """
+    import numpy as np
+
+    key = (int(dst_device), int(src_device))
+    if key in _peer_copy_ok:
+        return _peer_copy_ok[key]
+    if key[0] == key[1]:
+        _peer_copy_ok[key] = True
+        return True
+    import cupy as cp
+
+    pattern = np.arange(1024, dtype=np.int32) * 7 + 3
+    with cp.cuda.Device(key[1]):
+        src = cp.asarray(pattern)
+        cp.cuda.Device().synchronize()
+    with cp.cuda.Device(key[0]):
+        dst = cp.full(pattern.size, -1, dtype=cp.int32)
+        dst.data.copy_from_device(src.data, pattern.nbytes)
+        cp.cuda.Device().synchronize()
+        ok = bool(np.array_equal(dst.get(), pattern))
+    _peer_copy_ok[key] = ok
+    if not ok:
+        logger.warning(
+            f"device-to-device copies from GPU {key[1]} to GPU {key[0]} do not land (PCIe P2P drops "
+            "them on this box): the staged reduce goes through host memory and NCCL runs with "
+            "NCCL_P2P_DISABLE=1"
+        )
+    return ok
 
 #: Fixed staging buffer for the non-NCCL fallback reduce — one allocation
 #: on GPU 0, reserved by the chunk budget (row_split_chunks) so slice-wise
@@ -37,6 +86,11 @@ def _init_nccl(device_ids):
         from cupy.cuda import nccl as _nccl
         from concurrent.futures import ThreadPoolExecutor
 
+        # NCCL reads NCCL_P2P_DISABLE once, at its first communicator; a
+        # box where copies do not land in either direction of some pair
+        # must not use the P2P transport (the ring sends both ways).
+        if any(not peer_copy_works(a, b) for a in device_ids for b in device_ids if a != b):
+            os.environ.setdefault("NCCL_P2P_DISABLE", "1")
         n = len(device_ids)
         uid = _nccl.get_unique_id()
         comms = [None] * n
@@ -149,8 +203,9 @@ def _staged_reduce_to_gpu0(gpu_arrays, device_ids):
 
     UVA ``copy_from_device`` handles the cross-device copy with or without
     peer access (the driver stages through the host when P2P is absent —
-    the vast.ai case). Peak extra VRAM on GPU 0 is the fixed STAGING_BYTES
-    buffer, never a full peer copy of the chunk.
+    the vast.ai case); a pair whose copies do not land (``peer_copy_works``)
+    is staged through host memory explicitly. Peak extra VRAM on GPU 0 is
+    the fixed STAGING_BYTES buffer, never a full peer copy of the chunk.
     """
     import cupy as cp
 
@@ -163,9 +218,15 @@ def _staged_reduce_to_gpu0(gpu_arrays, device_ids):
         staging = cp.empty(staging_elems, dtype=target.dtype)
         for i in range(1, len(gpu_arrays)):
             src = gpu_arrays[i]
+            direct = peer_copy_works(dev0, device_ids[i])
             for start in range(0, n, staging_elems):
                 m = min(staging_elems, n - start)
-                staging[:m].data.copy_from_device(src[start : start + m].data, m * itemsize)
+                if direct:
+                    staging[:m].data.copy_from_device(src[start : start + m].data, m * itemsize)
+                else:
+                    with cp.cuda.Device(device_ids[i]):
+                        host = src[start : start + m].get()
+                    staging[:m].set(host)
                 target[start : start + m] += staging[:m]
         del staging
 

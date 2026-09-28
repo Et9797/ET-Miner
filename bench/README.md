@@ -17,6 +17,15 @@ while they run.
   too-small shm shows up as hangs or `NCCL WARN SHM` errors. `selfcheck.py`
   warns if `/dev/shm` is small; `NCCL_SHM_DISABLE=1` forces the socket
   transport as a last resort (slower but functional).
+  With P2P available through the CPU's host bridge only (`nvidia-smi topo -m`
+  shows `PHB`), NCCL's P2P transport hung about one two-GPU run in three at
+  the first collective on a Ryzen AM4 box with two RTX A4000s;
+  `NCCL_P2P_DISABLE=1` (the SHM transport) fixed it
+  (`results/2026-09-28-consolidation-2gpu/nccl-hang/README.md`). On the same
+  box plain device-to-device copies do not land either, which the miner now
+  detects (`gpu/nccl.py::peer_copy_works`: the staged reduce goes through
+  host memory and NCCL is started with P2P disabled); the campaign runner
+  sets `NCCL_P2P_DISABLE=1` explicitly so every row uses one transport.
 - **Disk ≥ 40 GB** (datasets + wheels + rust build), **host RAM ≥ 32 GB** —
   a count slice that does not fit the device is filtered on the host
   (4 B/element per 64M-element slice).

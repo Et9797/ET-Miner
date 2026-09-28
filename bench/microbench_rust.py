@@ -1,11 +1,11 @@
-"""Time the Rust host roles R2-R4 against their fallbacks on real level arrays.
+"""Time the Rust host roles R2 and R4 against their fallbacks on real level arrays.
 
 Two steps, each in a fresh process so the thread budget is fixed before any
 pool starts:
 
     dump   mine a dataset on the row-split miner (one GPU) and save the inputs
-           of every R2 (prefix-group build), R3 (Apriori group prune) and R4
-           (free-set prune) call to <dir>/<dataset>/<role>_k<K>.npz
+           of every R2 (prefix-group build) and R4 (free-set prune) call to
+           <dir>/<dataset>/<role>_k<K>.npz
     time   load every dumped input and time Rust against the fallback, per
            call, R4 together with the fancy-index that follows it
 
@@ -16,8 +16,8 @@ Usage:
 
 `time` prints one JSON line per call; a fallback still running after
 --fallback-timeout seconds is interrupted and recorded as a lower bound. `--then-k3` with
-`--max-length 2` dumps the K=3 group build and prune the miner would run next,
-without counting K=3 (stress_k2's K=3 level holds ~12B candidates).
+`--max-length 2` dumps the K=3 group build the miner would run next, without
+counting K=3 (stress_k2's K=3 level holds ~12B candidates).
 """
 
 from __future__ import annotations
@@ -44,9 +44,8 @@ def dump(dataset: str, out: Path, free_sets: bool, max_length: int | None, then_
     from et_miner.synthetic import PRESETS
 
     out.mkdir(parents=True, exist_ok=True)
-    build, prune_groups, prune_free = (
+    build, prune_free = (
         kernels.build_k3plus_groups_from_flat,
-        row_split._prune_groups_apriori,
         row_split._prune_non_free_mask,
     )
     seen: dict[str, int] = {}
@@ -60,18 +59,11 @@ def dump(dataset: str, out: Path, free_sets: bool, max_length: int | None, then_
         np.savez(_name("r2", flat.shape[1] + 1), flat=flat)
         return build(flat)
 
-    def _prune(groups_info, prev_set, k, prev_flat_np=None):
-        fields = {f: np.asarray(getattr(groups_info, f)) for f in
-                  ("prefix_items", "prefix_offsets", "suffixes", "suffix_offsets", "cumulative_pairs")}
-        np.savez(_name("r3", k), k=k, prev_flat=prev_flat_np, total=groups_info.total_candidates, **fields)
-        return prune_groups(groups_info, prev_set, k, prev_flat_np=prev_flat_np)
-
     def _free(cur, cc, prev, pc):
         np.savez(_name("r4", cur.shape[1]), cur=cur, cc=cc, prev=prev, pc=pc)
         return prune_free(cur, cc, prev, pc)
 
     kernels.build_k3plus_groups_from_flat = _build  # row_split imports it at call time
-    row_split._prune_groups_apriori = _prune
     row_split._prune_non_free_mask = _free
 
     spec = PRESETS[dataset]
@@ -79,26 +71,15 @@ def dump(dataset: str, out: Path, free_sets: bool, max_length: int | None, then_
     csr, idx_to_item, n = _build_csr_from_transactions(df.lazy(), spec.min_support, "items")
     res = row_split._apriori_row_split_multi_gpu(
         csr, idx_to_item, n, spec.min_support, max_length, n_gpus, None,
-        prune_non_free=free_sets, prune_apriori=True,
+        prune_non_free=free_sets,
     )
     if then_k3:
         item_to_col = {item: col for col, item in idx_to_item.items()}
         pairs = [sorted(item_to_col[i] for i in s) for s in res["itemset"].to_list() if len(s) == 2]
         flat = np.array(pairs, dtype=np.int32)
         flat = flat[np.lexsort(flat[:, ::-1].T)]
-        groups = kernels.build_k3plus_groups_from_flat(flat)
-        row_split._prune_groups_apriori(groups, None, 3, prev_flat_np=flat)
+        kernels.build_k3plus_groups_from_flat(flat)
     print(json.dumps({"dumped": sorted(p.name for p in out.glob("*.npz"))}))
-
-
-def _groups(z):
-    from et_miner.gpu.kernels import K3PlusGroups
-
-    return K3PlusGroups(
-        prefix_items=z["prefix_items"], prefix_offsets=z["prefix_offsets"], suffixes=z["suffixes"],
-        suffix_offsets=z["suffix_offsets"], cumulative_pairs=z["cumulative_pairs"],
-        total_candidates=int(z["total"]), groups=None,
-    )
 
 
 def _time(fn, reps: int, timeout: float) -> tuple[list[float], bool]:
@@ -137,16 +118,6 @@ def time_calls(root: Path, reps: int, timeout: float) -> None:
     if rust is None:
         raise SystemExit("et_miner_rust is not available; nothing to compare")
 
-    def _python_prune(groups, k, prev):
-        import et_miner.backends as backends
-
-        real = backends.get_rust_ext
-        backends.get_rust_ext = lambda: None
-        try:
-            return mining._prune_groups_apriori(groups, None, k, prev_flat_np=prev)
-        finally:
-            backends.get_rust_ext = real
-
     for path in sorted(root.rglob("*.npz")):
         z = np.load(path, allow_pickle=False)
         role = path.name.split("_")[0]
@@ -155,12 +126,6 @@ def time_calls(root: Path, reps: int, timeout: float) -> None:
             rust_fn = lambda: build_k3plus_groups_from_flat(flat)  # noqa: E731
             fb_fn = lambda: _build_k3plus_groups_numpy(flat)  # noqa: E731
             size = {"rows": int(flat.shape[0]), "k": int(flat.shape[1]) + 1}
-        elif role == "r3":
-            groups, k, prev = _groups(z), int(z["k"]), z["prev_flat"]
-            rust_fn = lambda: mining._prune_groups_apriori(groups, None, k, prev_flat_np=prev)  # noqa: E731
-            fb_fn = lambda: _python_prune(groups, k, prev)  # noqa: E731
-            size = {"candidates": int(z["total"]), "groups": int(len(z["cumulative_pairs"]) - 1),
-                    "prev_rows": int(prev.shape[0]), "k": k}
         elif role == "r4":
             cur, cc, prev, pc = z["cur"], z["cc"], z["prev"], z["pc"]
 

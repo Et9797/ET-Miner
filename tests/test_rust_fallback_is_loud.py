@@ -1,17 +1,14 @@
 """The Rust fast paths may fall back, but never in silence.
 
 ``et_miner_rust`` is optional in the sense that the itemsets are identical
-without it, not in the sense that the run is: ``prune_groups_apriori`` and
-``build_k3plus_groups_from_flat`` back candidate generation on the
-downward-closure row-split path, which was measured at 93% of mining time
-over a nine-level run (K=2..K=10). A routine ``uv sync`` in a consumer project prunes the
-extension, the import fails, and before these warnings nothing in any log
-said the run had changed cost.
+without it, not in the sense that the run is: ``build_k3plus_groups_from_flat``
+backs candidate generation on the row-split GPU path at every level. A routine
+``uv sync`` in a consumer project prunes the extension, the import fails, and
+before these warnings nothing in any log said the run had changed cost.
 """
 
 from __future__ import annotations
 
-import itertools
 
 import numpy as np
 import pytest
@@ -21,7 +18,6 @@ import et_miner.backends as backends
 from et_miner.backends import BUILD_COMMAND
 import et_miner.gpu.kernels.k3plus as k3plus
 from et_miner.gpu.kernels.k3plus import build_k3plus_groups_from_flat
-from et_miner.gpu.mining import _prune_groups_apriori
 
 
 @pytest.fixture
@@ -56,18 +52,6 @@ def test_absent_extension_warns_in_the_group_builder(monkeypatch, warnings_captu
     assert len(warnings_captured) == 1
     assert "et_miner_rust is not installed" in warnings_captured[0]
     assert BUILD_COMMAND in warnings_captured[0], "the warning must quote the one recipe in backends.py"
-
-
-def test_absent_extension_warns_in_the_apriori_prune(monkeypatch, warnings_captured):
-    # A clique, so the prune has survivors: every 3-subset of {0..4} is
-    # present, and the 4-itemsets built from them keep all four subsets.
-    flat = np.array(list(itertools.combinations(range(5), 3)), dtype=np.int32)
-    groups = k3plus._build_k3plus_groups_numpy(flat)
-    monkeypatch.setattr(backends, "_rust_ext", None)
-    pruned = _prune_groups_apriori(groups, None, 4, prev_flat_np=flat)
-    assert pruned is not None and pruned.total_candidates > 0
-    assert len(warnings_captured) == 1
-    assert "et_miner_rust is not installed" in warnings_captured[0]
 
 
 def test_the_warning_fires_once_not_once_per_level(monkeypatch, warnings_captured):

@@ -461,6 +461,14 @@ replacement.
   sub-second gap) and ran out of memory on `deep_sparse_large` (20M rows,
   12 GB) where the dense layout mined it in 24.19 s: its shards hold four
   bytes per supporting transaction of every itemset in the level.
+- **The host-side Apriori group prune (`prune_apriori`).** Any value raises.
+  The GPU miner counts every candidate its prefix groups generate instead of
+  subset-testing them on the host first; the results are the same. The prune
+  won no measured regime against `prune_apriori=False` (largest gap 0.31 s,
+  on `deep_sparse_large`), and on wide levels it cost more than the counting
+  it saved: `oom_regression` to K=3 mined in 37.62 s without it and 101.25 s
+  with it, and on `stress_k2` the Rust prune alone took 487 s at K=3. The
+  Rust function stays in `rust_ext`; nothing calls it.
 
 ---
 

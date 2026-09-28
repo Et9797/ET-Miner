@@ -68,18 +68,10 @@ RUSTFLAGS="-C target-cpu=native" uv run maturin develop --release -m rust_ext/Ca
 ```
 
 "Optional" means the results are identical without it, not that the cost is.
-`prune_groups_apriori` and `build_k3plus_groups_from_flat` back candidate
-generation on the downward-closure row-split path, so a pipeline that mines
-there pays for its absence on every level. Measured on an 11.3M x 8 level
-with ~1.88M prefix groups and identical candidate counts either way:
-
-| | without | with |
-|---|---|---|
-| `build_k3plus_groups_from_flat` | 6.1 s | 0.3 s |
-| `prune_groups_apriori` | 32.8 s | 3.9 s |
-
-On a nine-level run (K=2..K=10) at that scale candidate generation was 93% of mining time,
-so the extension is worth about 5.9x on the whole mine.
+`build_k3plus_groups_from_flat` builds the prefix groups every GPU level
+counts, and `prune_non_free_flat` runs the free-set prune, so a pipeline that
+mines there pays for its absence on every level. Measured on an 11.3M x 8
+level with ~1.88M prefix groups: 6.1 s without the group build, 0.3 s with it.
 
 To depend on it from another project rather than building it by hand, install
 it from this repository's `rust_ext` subdirectory, pinned to the same revision

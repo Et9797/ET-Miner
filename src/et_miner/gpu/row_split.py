@@ -25,7 +25,6 @@ from et_miner.core.result import (
 )
 from et_miner.gpu.mining import (
     _anchor_keep_mask,
-    _prune_groups_apriori,
     _prune_non_free_mask,
     _rows_sorted,
 )
@@ -97,7 +96,6 @@ def _apriori_row_split_multi_gpu(
     output_dir=None,  # Per-K Parquet flush: write frequent_k{k}.parquet per level
     resume_from_k: int | None = None,  # Resume from K=N+1, loading K=N from parquet
     prune_non_free: bool = False,  # keep only free-sets (generators) per level
-    prune_apriori: bool = False,  # Apriori subset pruning on candidate groups
     anchor_items: set | None = None,  # V3 B6: two-phase anchor filtering
     profile: bool = False,
     max_ram_gb: float | None = None,
@@ -532,25 +530,6 @@ def _apriori_row_split_multi_gpu(
             else:
                 # K>=3: build groups from flat array — no Python tuple grouping
                 groups_info = build_k3plus_groups_from_flat(prev_frequent_flat)
-
-                # Apriori subset pruning — resolved against the COMPLETE previous
-                # level. Against the free subset it rejects candidates whose
-                # (k-1)-subsets are frequent but not free, which loses frequent
-                # itemsets; against the complete level it only drops candidates
-                # that cannot be frequent, so it is lossless.
-                if prune_apriori and groups_info is not None:
-                    tc_before = groups_info.total_candidates
-                    # None, not a prebuilt set: prev_full_flat is authoritative
-                    # and the Rust path never reads the set. See #29 --
-                    # materialising it here cost ~9 s/level at 10M itemsets
-                    # (measured, k=5) for an argument that was then discarded.
-                    # gpu/mining.py::_prune_groups_apriori carries the numbers.
-                    groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
-                    tc_after = groups_info.total_candidates if groups_info is not None else 0
-                    if tc_before > tc_after:
-                        logger.debug(
-                            f"    Apriori pruning K={k}: {tc_before:,} → {tc_after:,} candidates ({100 * (1 - tc_after / tc_before):.1f}% pruned)"
-                        )
 
                 n_freq = 0
                 current_flat = np.empty((0, k), dtype=np.int32)

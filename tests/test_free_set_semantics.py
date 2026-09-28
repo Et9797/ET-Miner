@@ -155,11 +155,10 @@ def test_infer_count_rejects_its_own_counterexample():
 
 def test_row_split_helpers_keep_only_free_sets_without_a_gpu():
     """The row-split level loop, driven on the CPU with the engine's own helpers:
-    groups from the kept level, apriori prune against the COMPLETE level, count,
-    free-set prune against the COMPLETE level. Guards the helpers on machines
-    with no CUDA device."""
+    groups from the kept level, count, free-set prune against the COMPLETE
+    level. Guards the helpers on machines with no CUDA device."""
     from et_miner.gpu.kernels.k3plus import build_k3plus_groups_from_flat
-    from et_miner.gpu.mining import _prune_groups_apriori, _prune_non_free_mask
+    from et_miner.gpu.mining import _prune_non_free_mask
 
     _, matrix = _fixture()
     counts, free = _brute_force(matrix)
@@ -179,11 +178,6 @@ def test_row_split_helpers_keep_only_free_sets_without_a_gpu():
             candidates = list(itertools.combinations([int(x[0]) for x in prev_flat], 2))
         else:
             groups = build_k3plus_groups_from_flat(np.ascontiguousarray(prev_flat, dtype=np.int32))
-            if groups is None:
-                break
-            groups = _prune_groups_apriori(
-                groups, set(map(tuple, full_flat.tolist())), k, prev_flat_np=np.ascontiguousarray(full_flat)
-            )
             if groups is None:
                 break
             pi, po = np.asarray(groups.prefix_items), np.asarray(groups.prefix_offsets)

@@ -311,6 +311,20 @@ class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
         assert mg._estimate_chunk_size_from_memory is son._estimate_chunk_size_from_memory
 
 
+class TestRemovedParametersRaise:
+    """A removed parameter raises on every route, naming its replacement."""
+
+    @pytest.mark.parametrize("value", [True, False])
+    def test_prune_apriori(self, df, value):
+        with pytest.raises(ValueError, match="prune_apriori was removed"):
+            apriori(df, min_support=0.05, prune_apriori=value)
+
+    @pytest.mark.parametrize("value", [3, "auto"])
+    def test_sparse_from_k(self, df, value):
+        with pytest.raises(ValueError, match="sparse_from_k was removed"):
+            apriori(df, min_support=0.05, sparse_from_k=value)
+
+
 class TestGpuResidentIsRemoved:
     """gpu_resident=True raises on every route combination, before any other
     guard: the parameter is gone, whatever else the call asks for.
@@ -332,7 +346,6 @@ class TestGpuResidentIsRemoved:
                 gpu_resident=True,
                 prune_equal_support=pruning,
                 use_generator_pruning=False,
-                prune_apriori=True,
                 anchor_items={0, 1} if anchored else None,
                 output_dir=None,
                 resume_from_k=None,
@@ -352,7 +365,6 @@ class TestGpuResidentIsRemoved:
             gpu_resident=False,
             prune_equal_support=False,
             use_generator_pruning=False,
-            prune_apriori=True,
             anchor_items=None,
             output_dir=None,
             resume_from_k=None,
@@ -371,7 +383,6 @@ class TestGpuResidentIsRemoved:
             gpu_resident=False,
             prune_equal_support=False,
             use_generator_pruning=False,
-            prune_apriori=True,
             anchor_items=None,
             output_dir=str(tmp_path),
             resume_from_k=None,

@@ -75,6 +75,7 @@ def _validate_parameters(
     max_length: int | None,
     batch_size: int | None,
     sparse_from_k: int | str | None = None,
+    prune_apriori: bool | None = None,
 ) -> None:
     """Validate apriori parameters with clear error messages."""
     # min_support: must be numeric in [0.0, 1.0]
@@ -105,6 +106,12 @@ def _validate_parameters(
             "sparse_from_k was removed: the GPU miner keeps dense bitvectors at every level "
             "(the sparse CSR layout won no measured regime and ran out of memory where dense "
             "did not). Drop the argument."
+        )
+    if prune_apriori is not None:
+        raise ValueError(
+            "prune_apriori was removed: the GPU miner counts every candidate its prefix groups "
+            "generate instead of subset-testing them on the host first (as fast or faster in "
+            "every measured regime, same results). Drop the argument."
         )
 
 
@@ -228,7 +235,6 @@ def _validate_route_support(
     gpu_resident: bool,
     prune_equal_support: bool,
     use_generator_pruning: bool,
-    prune_apriori: bool,
     anchor_items: set | None,
     output_dir: str | None,
     resume_from_k: int | None,
@@ -325,14 +331,6 @@ def _validate_route_support(
                 "resume_from_k would silently re-mine from K=1."
             )
 
-    # prune_apriori is the row-split miner's K>=3 subset test; no other route
-    # has the switch.
-    if not prune_apriori and not reaches_row_split:
-        raise ValueError(
-            "prune_apriori=False requires the row-split miner, reached with "
-            "bitvecs= or with use_gpu=True and streaming=False; on this route "
-            "the flag would be silently ignored."
-        )
 
     # A persisted K-level is a valid resume artifact IFF it is the complete
     # frequent level at that K -- resume reloads it as BOTH the generation base
@@ -384,7 +382,7 @@ def apriori(
     warn_complexity: bool = True,
     prune_equal_support: bool = False,
     use_generator_pruning: bool = False,
-    prune_apriori: bool = True,
+    prune_apriori: bool | None = None,
     sparse: bool | None = None,
     n_jobs: int = 1,
     enable_length_filter: bool = True,
@@ -440,13 +438,9 @@ def apriori(
             is itself non-free and its support is exactly the minimum of its
             (k-1)-subset supports, so it never has to be counted. Exact, no
             impact on results. CPU path only.
-        prune_apriori: GPU routes only (use_gpu=True without streaming, or
-            bitvecs=): run the exact Apriori subset test over every K>=3
-            candidate group before counting, dropping the candidates with an
-            infrequent (k-1)-subset. Exact, so it changes candidate counts and
-            time, never the mined itemsets. Default True. The CPU route applies
-            the subset test unconditionally, so False is refused off the GPU
-            routes rather than silently ignored.
+        prune_apriori: Removed; any value raises ValueError. The GPU miner
+            counts every candidate its prefix groups generate instead of
+            running a host-side subset test first (the results are the same).
         sparse: Scipy CSR matrix usage. True = force, False = Polars, None = auto
             (switches at >100K k=2 candidates or >500 items <10% density).
         n_jobs: Parallel workers for sparse k>2 counting. 1=sequential, -1=all CPUs.
@@ -467,10 +461,10 @@ def apriori(
 
             **n_candidates is route-dependent and the routes do not agree.**
             The CPU path applies the full per-candidate subset test before
-            counting, so it reports candidates that survived it. The GPU group
-            path prunes at suffix granularity, which over-approximates, so it
-            reports more candidates than the CPU path for the same input at the
-            same level. Both are honest counts of what that route was about to
+            counting, so it reports candidates that survived it. The GPU path
+            counts every candidate its prefix groups generate, so it reports
+            more candidates than the CPU path for the same input at the same
+            level. Both are honest counts of what that route was about to
             count; neither is "the" candidate count. A consumer doing per-level
             cost accounting should treat the figure as comparable within a
             route and not across routes.
@@ -514,7 +508,7 @@ def apriori(
         >>> result = apriori(df, min_support=0.0001, sparse=True, n_jobs=-1)
         >>> result = apriori(huge_df, min_support=0.001, streaming=True, n_gpus=8)
     """
-    _validate_parameters(min_support, max_length, batch_size, sparse_from_k)
+    _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)
 
     # Every parameter/route mismatch is rejected here, ABOVE the routing, so a
     # route cannot silently drop something the caller asked for. This has to run
@@ -529,7 +523,6 @@ def apriori(
         gpu_resident=gpu_resident,
         prune_equal_support=prune_equal_support,
         use_generator_pruning=use_generator_pruning,
-        prune_apriori=prune_apriori,
         anchor_items=anchor_items,
         output_dir=output_dir,
         resume_from_k=resume_from_k,
@@ -589,7 +582,6 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,
-            prune_apriori=prune_apriori,
             profile=profile,
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
@@ -669,7 +661,6 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,  # free-sets: emit == generate
-            prune_apriori=prune_apriori,  # exact subset test, its own switch
             anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
             profile=profile,
             max_ram_gb=max_ram_gb,

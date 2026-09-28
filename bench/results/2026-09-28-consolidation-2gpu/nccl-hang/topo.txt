@@ -1,0 +1,31 @@
+GPU 0: NVIDIA RTX A4000 (UUID: GPU-8082895a-7886-2466-1a78-4d3c9f30cc30)
+GPU 1: NVIDIA RTX A4000 (UUID: GPU-5dd7ce57-ebf2-d239-9855-6efe3dd0a6a1)
+| NVIDIA-SMI 550.107.02             Driver Version: 550.107.02     CUDA Version: 12.8     |
+	[4mGPU0	GPU1	CPU Affinity	NUMA Affinity	GPU NUMA ID[0m
+GPU0	 X 	PHB	0-11	0		N/A
+GPU1	PHB	 X 	0-11	0		N/A
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+
+ 	[4mGPU0	GPU1	[0m
+ GPU0	X	OK	
+ GPU1	OK	X	
+
+Legend:
+
+  X    = Self
+  OK   = Status Ok
+  CNS  = Chipset not supported
+  GNS  = GPU not supported
+  TNS  = Topology not supported
+  NS   = Not supported
+  U    = Unknown
+cupy 14.1.1 nccl 23102

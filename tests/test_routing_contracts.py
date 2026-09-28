@@ -208,9 +208,9 @@ class TestGuardsCoverEveryRouteNotJustTheOnesTheTestsExercise:
 
     def test_anchor_items_is_refused_on_the_bitvecs_route(self, df):
         """Measured before the fix: 210 itemsets returned, 136 of them
-        UNANCHORED. `_apriori_from_bitvecs` has no `anchor_items` parameter, so
-        the call validated and then dropped it -- defect #8's exact failure mode,
-        in the guard written to close it."""
+        UNANCHORED -- the call validated and then dropped anchor_items, defect
+        #8's exact failure mode, in the guard written to close it. The bitvecs
+        route refuses anchors (see _validate_route_support)."""
         pytest.importorskip("cupy")
         from et_miner.core.matrix import _build_csr_from_transactions
         from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix

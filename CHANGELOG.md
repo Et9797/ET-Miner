@@ -427,7 +427,9 @@ replacement.
   single- and multi-GPU SON mine every chunk on the row-split miner and count
   pass 2 with the batched itemset kernel; the per-level bitvec rebuild and the
   per-itemset counting loop are gone, and `count_support_batched(use_gpu=True)`
-  counts with the batched kernel too. The batched pass 2 took 1.70 s on
+  counts with the batched kernel too. `count_itemsets_cuda` always launches
+  the batched kernel (its `use_batch` flag and the one-itemset-per-launch
+  kernel `count_itemset_fused` are gone). The batched pass 2 took 1.70 s on
   `deep_k` where the per-level counter took 6.84 s, and a four-chunk SON run on
   `deep_sparse_large` finished in 194.75 s with it and hit the 600 s cap
   without.

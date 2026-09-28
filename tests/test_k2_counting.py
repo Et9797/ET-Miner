@@ -67,7 +67,7 @@ def _python_k2_reference(bitvecs_gpu, freq_cols, n_u64s, min_count):
 
     # Count via existing batch kernel
     itemsets_np = [np.array(list(c), dtype=np.int32) for c in candidates]
-    counts = count_itemsets_cuda(bitvecs_gpu, itemsets_np, use_batch=True)
+    counts = count_itemsets_cuda(bitvecs_gpu, itemsets_np)
 
     # Filter
     pairs = []

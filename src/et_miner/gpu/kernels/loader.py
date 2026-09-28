@@ -162,7 +162,6 @@ def _grid_dims(n_blocks):
 
 # CUDA entry point -> .cu file in _src/ (cache keys are the entry-point names)
 _KERNEL_FILES: dict[str, str] = {
-    "count_itemset_fused": "itemset_count.cu",
     "count_itemsets_batch": "itemset_count.cu",
     "count_pairs_k2_dense": "pairs_k2_dense.cu",
     "count_k3plus_dense": "k3plus_dense.cu",
@@ -205,7 +204,7 @@ def clear_kernel_cache():
         _kernel_cache = {}
 
 
-def get_cuda_kernel(name: str = "count_itemset_fused"):
+def get_cuda_kernel(name: str):
     """Get compiled CUDA kernel, caching for reuse. Thread-safe."""
     import cupy as cp
 

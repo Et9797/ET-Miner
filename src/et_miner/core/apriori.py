@@ -30,7 +30,6 @@ from typing import Any, Literal
 import polars as pl
 from loguru import logger
 
-from et_miner.gpu.density import validate_sparse_from_k
 
 from .candidates import _generate_candidates
 from .matrix import (
@@ -101,8 +100,12 @@ def _validate_parameters(
         if batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 
-    # sparse_from_k: int K-level, "auto", or None
-    validate_sparse_from_k(sparse_from_k)
+    if sparse_from_k is not None:
+        raise ValueError(
+            "sparse_from_k was removed: the GPU miner keeps dense bitvectors at every level "
+            "(the sparse CSR layout won no measured regime and ran out of memory where dense "
+            "did not). Drop the argument."
+        )
 
 
 def _prune_equal_support(
@@ -403,7 +406,7 @@ def apriori(
     # Memory guard limits for exhaustive mining
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
-    # V3: dense→sparse CSR transition — int K-level, "auto" = measured density
+    # Removed: any value but None raises
     sparse_from_k: int | Literal["auto"] | None = None,
     # V3 B6: restrict candidates to anchor neighborhoods (two-phase mining)
     anchor_items: set | None = None,
@@ -478,11 +481,8 @@ def apriori(
             The array is READ-ONLY to the engine: ET-Miner writes only to
             bitvectors it builds itself, never to one it is handed, so the
             caller may reuse it after the call without copying it first.
-        sparse_from_k: GPU paths only — when to switch support counting from
-            dense bitvectors to sparse CSR tidsets. An int fixes the K-level;
-            "auto" transitions when the previous level's measured mean support
-            drops below n_transactions/32 (the point where tidsets become
-            smaller than bitvectors); None (default) never switches.
+        sparse_from_k: Removed; any value other than None raises ValueError.
+            The GPU miner keeps dense bitvectors at every level.
         max_ram_gb / max_vram_gb: Memory guards for the GPU routes
             (use_gpu=True without streaming, or bitvecs=): MemoryError between
             K-levels once host RSS or the largest device's CuPy pool exceeds
@@ -590,7 +590,6 @@ def apriori(
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,
             prune_apriori=prune_apriori,
-            sparse_from_k=sparse_from_k,
             profile=profile,
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
@@ -671,7 +670,6 @@ def apriori(
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,  # free-sets: emit == generate
             prune_apriori=prune_apriori,  # exact subset test, its own switch
-            sparse_from_k=sparse_from_k,  # V3: density transition K-level
             anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
             profile=profile,
             max_ram_gb=max_ram_gb,

@@ -251,7 +251,6 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
                 raise ImportError("et_miner_rust not built")
 
             pf = np.ascontiguousarray(prev_flat_np, dtype=np.int32)
-            src_rows = getattr(groups_info, "suffix_src_rows", None)
             result = et_miner_rust.prune_groups_apriori(
                 np.ascontiguousarray(groups_info.prefix_items),
                 np.ascontiguousarray(groups_info.prefix_offsets),
@@ -260,13 +259,13 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
                 np.ascontiguousarray(groups_info.cumulative_pairs),
                 int(groups_info.total_candidates),
                 pf,
-                None if src_rows is None else np.ascontiguousarray(src_rows, dtype=np.int64),
+                None,
             )
             if result is None:
                 return None
             if len(result) != 7:  # pre-0.2.0 wheel would also have rejected the 8th argument
                 raise TypeError("prune_groups_apriori returned a 6-tuple")
-            pi, po, sf, so, cp_arr, sr, tc = result
+            pi, po, sf, so, cp_arr, _sr, tc = result
             return K3PlusGroups(
                 prefix_items=np.asarray(pi),
                 prefix_offsets=np.asarray(po),
@@ -275,7 +274,6 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
                 cumulative_pairs=np.asarray(cp_arr),
                 total_candidates=int(tc),
                 groups=groups_info.groups,
-                suffix_src_rows=None if src_rows is None else np.asarray(sr, dtype=np.int64),
             )
         except (ImportError, AttributeError) as exc:
             # Raised above for a missing extension, and by getattr on a wheel
@@ -284,10 +282,10 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
             from et_miner.gpu.kernels.k3plus import _warn_missing_rust_once
 
             _warn_missing_rust_once(f"_prune_groups_apriori ({exc})")
-        except TypeError:  # stale wheel: no suffix_src_rows parameter / 6-tuple result
+        except TypeError:  # stale wheel: no 8th parameter / 6-tuple result
             from et_miner.gpu.kernels.k3plus import _warn_stale_rust_once
 
-            _warn_stale_rust_once("prune_groups_apriori has no suffix_src_rows")
+            _warn_stale_rust_once("prune_groups_apriori has the pre-0.2.0 signature")
 
     # --- Python fallback ---
     # The only reader of prev_frequent_set. Derive it here rather than at the
@@ -307,10 +305,9 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
     prefix_offsets = groups_info.prefix_offsets
     suffixes = groups_info.suffixes
     suffix_offsets = groups_info.suffix_offsets
-    src_rows = getattr(groups_info, "suffix_src_rows", None)
     n_groups = len(suffix_offsets) - 1
 
-    new_pi, new_po, new_sf, new_so, new_sr = [], [0], [], [0], []
+    new_pi, new_po, new_sf, new_so = [], [0], [], [0]
     new_total = 0
     new_cp = [0]  # MUST start with 0 — every consumer assumes cumulative_pairs[0] == 0
 
@@ -319,8 +316,6 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
         sstart, send = int(suffix_offsets[g]), int(suffix_offsets[g + 1])
         prefix = tuple(int(x) for x in prefix_items[pstart:pend])
         gsuf = [int(x) for x in suffixes[sstart:send]]
-        # Per-SLOT validity (not a set of values) so suffix_src_rows can be
-        # filtered slot-for-slot alongside the suffixes.
         valid = [False] * len(gsuf)
 
         if k == 3:
@@ -352,8 +347,6 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
             new_po.append(len(new_pi))
             new_sf.extend(gsuf[idx] for idx in kept)
             new_so.append(len(new_sf))
-            if src_rows is not None:
-                new_sr.extend(int(src_rows[sstart + idx]) for idx in kept)
             n_pairs = len(kept) * (len(kept) - 1) // 2
             new_total += n_pairs
             new_cp.append(new_total)
@@ -369,5 +362,4 @@ def _prune_groups_apriori(groups_info, prev_frequent_set, k, prev_flat_np=None):
         cumulative_pairs=np.array(new_cp, dtype=np.int64),
         total_candidates=new_total,
         groups=groups_info.groups,  # preserve original group metadata
-        suffix_src_rows=None if src_rows is None else np.array(new_sr, dtype=np.int64),
     )

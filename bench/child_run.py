@@ -197,7 +197,6 @@ def main() -> int:
                 item_col="items",
                 use_gpu=True,
                 n_gpus=cfg.get("n_gpus", 2),
-                sparse_from_k=cfg.get("sparse_from_k"),
                 level_callback=level_cb,
             )
         wall_s = time.perf_counter() - t0

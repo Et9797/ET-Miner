@@ -451,6 +451,16 @@ replacement.
   single-GPU miner won (`stress_k2` K≤2 on 12 GB, 56.21 s vs 453.57 s: the
   pair counts do not fit one dense chunk), the row-split miner now counts the
   way it did, with the fused tiled kernel.
+- **The sparse CSR layout on the GPU (`sparse_from_k`).** Any value other
+  than `None` raises, on `apriori()` and `mine_two_phase` (whose default was
+  `"auto"`). The GPU miner keeps dense bitvectors at every level; gone are
+  the dense→sparse transition, the CSR shard kernels (`csr_warp.cu`,
+  `bitvec_extract_tids.cu`), `gpu/sparse_csr.py`, `gpu/density.py` and the
+  groups' `suffix_src_rows`. The layout won no regime in the row-split miner
+  (Online Retail at 0.002: 0.56 s with `sparse_from_k=3` vs 0.82 s dense, a
+  sub-second gap) and ran out of memory on `deep_sparse_large` (20M rows,
+  12 GB) where the dense layout mined it in 24.19 s: its shards hold four
+  bytes per supporting transaction of every itemset in the level.
 
 ---
 

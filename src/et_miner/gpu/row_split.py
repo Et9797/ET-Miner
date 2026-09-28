@@ -23,7 +23,6 @@ from et_miner.core.result import (
     _empty_result,
     _min_count,
 )
-from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse
 from et_miner.gpu.mining import (
     _anchor_keep_mask,
     _prune_groups_apriori,
@@ -31,15 +30,6 @@ from et_miner.gpu.mining import (
     _rows_sorted,
 )
 from et_miner.gpu.nccl import _init_nccl
-from et_miner.gpu.sparse_csr import (
-    SparseMiningState,
-    convert_shards_to_csr,
-    free_groups,
-    log_new_shards,
-    materialize_survivors,
-    run_sparse_level,
-    upload_groups_to_shards,
-)
 from et_miner.gpu.row_split_chunks import (
     compute_chunk_budget,
     plan_group_chunks,
@@ -57,39 +47,6 @@ if TYPE_CHECKING:
     # numpy is imported inside the functions that use it, alongside the
     # optional cupy import; this binds the name for annotations only.
     import numpy as np
-
-
-def _release_level_state(groups_gpu, sparse_state) -> None:
-    """Release both level-scoped GPU allocations, independently.
-
-    These are two unrelated allocations -- the current level's group arrays
-    (tens of GB on a dense K>=3 level) and the resident CSR shards -- and they
-    used to share one `try` with a bare `except Exception: pass`. Any failure in
-    `free_groups` therefore skipped `sparse_state.release()` entirely, leaking
-    the shards, and the `pass` meant nothing recorded that it had happened.
-
-    The bare catch itself is deliberate and stays: this runs from a `finally`,
-    frequently while an exception is already propagating, and a cleanup failure
-    must never replace the original error. What changes is that a failure in one
-    cannot cancel the other, and that both are logged instead of swallowed.
-
-    Extracted to module scope so the isolation is testable directly, rather than
-    by driving a whole mining run to failure at the right moment.
-    """
-    # Both limbs are lambdas. `sparse_state.release` as a bare bound method
-    # would be looked up while this tuple is BUILT -- before the loop, before
-    # any `try` -- so a None or part-built `sparse_state` would raise there and
-    # skip `free_groups` entirely: the exact "one failure cancels the other"
-    # coupling this function exists to remove, reintroduced by an attribute
-    # access. Deferring it puts the lookup inside the try that guards it.
-    for label, release in (
-        ("group arrays", lambda: free_groups(groups_gpu)),
-        ("CSR shards", lambda: sparse_state.release()),
-    ):
-        try:
-            release()
-        except Exception as exc:  # noqa: BLE001 -- see docstring
-            logger.warning(f"    Cleanup failed while releasing {label}: {exc!r}")
 
 
 def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, devices=None):
@@ -141,7 +98,6 @@ def _apriori_row_split_multi_gpu(
     resume_from_k: int | None = None,  # Resume from K=N+1, loading K=N from parquet
     prune_non_free: bool = False,  # keep only free-sets (generators) per level
     prune_apriori: bool = False,  # Apriori subset pruning on candidate groups
-    sparse_from_k: int | str | None = None,  # V3: CSR from this K level, or "auto" = measured density
     anchor_items: set | None = None,  # V3 B6: two-phase anchor filtering
     profile: bool = False,
     max_ram_gb: float | None = None,
@@ -228,22 +184,11 @@ def _apriori_row_split_multi_gpu(
     def _result(df):
         return (df, session) if profile else df
 
-    # Sparse CSR mode state: one GPU-resident shard per device (gpu.sparse_csr),
-    # sticky once the transition fires.
-    sparse_state = SparseMiningState()
-    _sparse_groups_gpu = None
-
     logger.info(
         f"  Row-split multi-GPU: {n_gpus} GPUs, min_count={min_count_threshold:,} (GPU-resident dense counting)"
     )
 
     # Phase 0: Build row-split bitvecs across GPUs.
-    #
-    # Ownership is recorded BEFORE the branch, because the density transition
-    # below has to know whether the arrays are ours to free. They are not when
-    # a caller passes `bitvecs_list=` (core/apriori.py's bitvecs route, SON's
-    # per-chunk mining).
-    _owns_bitvecs = bitvecs_list is None
     if bitvecs_list is None:
         t0 = time.perf_counter()
         bitvecs_list = build_bitvecs_row_split(csr, n_gpus)
@@ -397,9 +342,8 @@ def _apriori_row_split_multi_gpu(
         prev_frequent_flat = flat_col_ids.reshape(n_loaded, resume_from_k).astype(np.int32)
 
         # Reconstruct raw counts from the flushed support column, so the first
-        # resumed level keeps the free-set prune and the "auto" density
-        # transition. count → support → count round-trips exactly through
-        # float64 for any int32-range count.
+        # resumed level keeps the free-set prune. count → support → count
+        # round-trips exactly through float64 for any int32-range count.
         if "support" in table.column_names:
             supports_np = table.column("support").combine_chunks().to_numpy(zero_copy_only=False)
             prev_counts_flat = np.rint(supports_np.astype(np.float64) * n_transactions).astype(np.int64)
@@ -522,133 +466,9 @@ def _apriori_row_split_multi_gpu(
             _k_start = time.perf_counter()
             if session:
                 session.start_phase(f"k{k}")
-            # Sparse mode bookkeeping: the survivor candidate indices (filtered and
-            # permuted in lockstep with current_flat by every later step, so the
-            # shards are materialized in the final row order), the resident group
-            # arrays of this level, and the candidate count for the level callback.
-            _surv = None
-            _sparse_groups_gpu = None
             _n_cands_cb = 0
 
-            # V3: Sparse CSR mode — fixed K-level or measured density ("auto").
-            # Sticky once entered: the transition frees the bitvecs, so later
-            # levels must never fall back to the dense path.
-            _mean_count = None
-            if (
-                sparse_from_k == SPARSE_AUTO
-                and not sparse_state.active
-                and prev_counts_flat is not None
-                and len(prev_counts_flat) > 0
-            ):
-                _mean_count = float(prev_counts_flat.mean())
-            _sparse_mode = sparse_state.active or should_transition_to_sparse(
-                sparse_from_k, k, n_transactions=n_transactions, mean_count=_mean_count
-            )
-
-            if _sparse_mode:
-                # ═══ SPARSE CSR PATH — GPU-resident row-split shards (gpu.sparse_csr) ═══
-                if not sparse_state.active:
-                    _trigger = (
-                        f"measured mean support {_mean_count / n_transactions:.4%} "
-                        f"< {DENSITY_CROSSOVER:.4%} crossover"
-                        if sparse_from_k == SPARSE_AUTO
-                        else f"fixed sparse_from_k={sparse_from_k}"
-                    )
-                    logger.info(f"  ═══ DENSITY TRANSITION at K={k} ({_trigger}): dense bitvec → sparse CSR ═══")
-                    # Each GPU converts its own bitvec shard on-device (shard-local
-                    # tids, no host merge); per-shard row lengths are verified
-                    # against the dense counts of the previous level exactly.
-                    sparse_state.shards = convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat)
-
-                    # Release the dense bitvecs -- but only claim it when the
-                    # arrays are actually ours. #30.
-                    #
-                    # What was here freed nothing and said it had. `del bv`
-                    # unbinds a loop name while bitvecs_list[i][0] still holds
-                    # the array; free_all_blocks() then ran BEFORE .clear()
-                    # dropped those references, so the blocks were still in use;
-                    # and .clear() mutates a list the caller may own. On the
-                    # borrowed route the caller holds the array regardless, so
-                    # no ordering makes the old message true.
-                    #
-                    # Note that dropping `del bv` and leaning on .clear() alone
-                    # would not fix it either: a `for` target outlives its loop,
-                    # so `bv` would still pin the LAST device's bitvecs. Hence
-                    # the comprehension -- its scope does not leak in Python 3,
-                    # so no array is ever bound to a surviving name.
-                    _bv_devices = [did for _, did, _ in bitvecs_list]
-                    if _owns_bitvecs:
-                        bitvecs_list.clear()
-                    else:
-                        # Never mutate a caller-supplied container.
-                        bitvecs_list = []
-                    for _did in _bv_devices:
-                        with cp.cuda.Device(_did):
-                            cp.get_default_memory_pool().free_all_blocks()
-                    if _owns_bitvecs:
-                        logger.debug("    Freed bitvec VRAM across all GPUs")
-                    else:
-                        # The pool call stays on both branches: it is not scoped
-                        # to this function's allocations, and the sibling
-                        # try/finally around the K>=3 group arrays relies on it.
-                        # Only the claim changes.
-                        logger.debug(
-                            "    Bitvecs are caller-owned and were not released; "
-                            "returned this route's pool blocks across all GPUs"
-                        )
-
-                # Build groups from prev_frequent, with the suffix-slot → row
-                # permutation the CSR kernels enumerate candidates from.
-                groups_info = build_k3plus_groups_from_flat(prev_frequent_flat, with_src_rows=True)
-
-                # Apriori pruning — resolved against the COMPLETE previous level.
-                # Against the free subset it rejects candidates whose (k-1)-subsets
-                # are frequent but not free, which loses frequent itemsets; against
-                # the complete level it only drops candidates that cannot be
-                # frequent, so it is lossless.
-                if prune_apriori and groups_info is not None:
-                    tc_before = groups_info.total_candidates
-                    # None, not a prebuilt set: prev_full_flat is authoritative
-                    # and the Rust path never reads the set. See #29 --
-                    # materialising it here cost ~9 s/level at 10M itemsets
-                    # (measured, k=5) for an argument that was then discarded.
-                    # gpu/mining.py::_prune_groups_apriori carries the numbers.
-                    groups_info = _prune_groups_apriori(groups_info, None, k, prev_flat_np=prev_full_flat)
-                    tc_after = groups_info.total_candidates if groups_info is not None else 0
-                    if tc_before > tc_after:
-                        logger.debug(
-                            f"    Apriori pruning K={k}: {tc_before:,} → {tc_after:,} ({100 * (1 - tc_after / tc_before):.1f}% pruned)"
-                        )
-
-                n_freq = 0
-                current_flat = np.empty((0, k), dtype=np.int32)
-                current_counts_raw = np.empty(0, dtype=np.int64)
-
-                if groups_info is not None and groups_info.total_candidates > 0:
-                    tc = groups_info.total_candidates
-                    _n_cands_cb = tc
-                    logger.info(f"  K={k}: {tc:,} candidates (CSR sparse mode)")
-
-                    # Count on every shard (in-kernel candidate enumeration), reduce
-                    # the int32 partials, compact survivors — the dense chunk loop.
-                    _sparse_groups_gpu = upload_groups_to_shards(groups_info, sparse_state.shards)
-                    _surv, current_counts_raw = run_sparse_level(
-                        sparse_state.shards,
-                        groups_info,
-                        _sparse_groups_gpu,
-                        min_count_threshold,
-                        nccl_comms=nccl_comms,
-                        use_nccl=_use_nccl,
-                        level_label=f"K={k}",
-                    )
-                    n_freq = len(_surv)
-
-                    if n_freq > 0:
-                        current_flat = decode_k3plus_flat(_surv, groups_info, k)
-                        current_counts_raw = current_counts_raw.astype(np.int64)
-
-
-            elif k == 2:
+            if k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
                 _n_cands_cb = n_pairs
@@ -714,7 +534,10 @@ def _apriori_row_split_multi_gpu(
                 groups_info = build_k3plus_groups_from_flat(prev_frequent_flat)
 
                 # Apriori subset pruning — resolved against the COMPLETE previous
-                # level (see the sparse branch above for why that matters).
+                # level. Against the free subset it rejects candidates whose
+                # (k-1)-subsets are frequent but not free, which loses frequent
+                # itemsets; against the complete level it only drops candidates
+                # that cannot be frequent, so it is lossless.
                 if prune_apriori and groups_info is not None:
                     tc_before = groups_info.total_candidates
                     # None, not a prebuilt set: prev_full_flat is authoritative
@@ -839,8 +662,6 @@ def _apriori_row_split_multi_gpu(
                 sort_idx = np.lexsort(current_flat[:, ::-1].T)
                 current_flat = current_flat[sort_idx]
                 current_counts_raw = current_counts_raw[sort_idx]
-                if _surv is not None:
-                    _surv = _surv[sort_idx]
 
             # The complete frequent level — what every subset test of K+1
             # resolves against. Same object as the emitted level when the flag
@@ -854,14 +675,9 @@ def _apriori_row_split_multi_gpu(
             # from — those must be the same population, or the output
             # advertises itemsets the run will never extend.
             if prune_non_free and n_freq > 0:
-                # Mask form on both branches: the sparse path also carries the
-                # survivor index array and must filter it in lockstep, so the
-                # shards materialize exactly the kept rows.
                 _keep = _prune_non_free_mask(current_flat, current_counts_raw, prev_full_flat, prev_full_counts)
                 current_flat = current_flat[_keep]
                 current_counts_raw = current_counts_raw[_keep]
-                if _surv is not None:
-                    _surv = _surv[_keep]
                 n_freq = len(current_flat)
 
             if n_freq > 0:
@@ -910,30 +726,12 @@ def _apriori_row_split_multi_gpu(
                 break
             _check_memory_guard(k)
 
-            if sparse_state.active and _sparse_groups_gpu is not None:
-                # Rebuild the shards for K+1 in the final row order (skipped when no
-                # next level can follow); per-shard lengths are verified against
-                # the survivor counts exactly. Row i of the new shards ≡ row i of
-                # prev_frequent_flat on every GPU, by construction.
-                if n_freq >= k + 1 and k < effective_max_length and _surv is not None:
-                    sparse_state.replace(
-                        materialize_survivors(
-                            sparse_state.shards, _sparse_groups_gpu, _surv, current_counts_raw, level_label=f"K={k}"
-                        )
-                    )
-                    log_new_shards(sparse_state.shards, n_freq)
-                free_groups(_sparse_groups_gpu)
-                _sparse_groups_gpu = None
-
             prev_frequent_flat = current_flat
             prev_counts_flat = current_counts_raw
             prev_full_flat = full_flat
             prev_full_counts = full_counts
             k += 1
     finally:
-        # Release the resident CSR shards and any group arrays of an aborted
-        # level -- independently, so one failure cannot leak the other.
-        _release_level_state(_sparse_groups_gpu, sparse_state)
         # Emergency uploader shutdown (happy path does ordered drain below)
         try:
             uploader.close(wait=False)
@@ -1200,7 +998,7 @@ def mine_two_phase(
     item_col: str = "items",
     n_gpus: int = 1,
     output_dir: str | None = None,
-    sparse_from_k: int | str | None = SPARSE_AUTO,
+    sparse_from_k: int | str | None = None,
     level_callback=None,
 ) -> tuple:
     """Two-phase mining: anchor discovery, then an anchor-restricted REPORT.
@@ -1252,10 +1050,7 @@ def mine_two_phase(
         n_gpus: Number of GPUs to use.
         output_dir: Directory for per-K Parquet output. Phase 1 writes to
             output_dir/phase1/, Phase 2 to output_dir/phase2/.
-        sparse_from_k: Dense→sparse CSR transition. "auto" (default) switches
-            when the previous level's measured mean support drops below the
-            n/32 byte-cost crossover; an int fixes the K-level; None never
-            switches.
+        sparse_from_k: Removed; any value other than None raises ValueError.
         level_callback: Optional callback(k, n_candidates, n_frequent, ms).
 
     Returns:

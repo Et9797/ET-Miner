@@ -225,15 +225,12 @@ def _gpu_count() -> int:
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, 2])
 @pytest.mark.parametrize("prune", [False, True])
-@pytest.mark.parametrize("sparse_from_k", [None, 3])
-def test_row_split_matches_the_reference(n_gpus, prune, sparse_from_k):
+def test_row_split_matches_the_reference(n_gpus, prune):
     if n_gpus > _gpu_count():
         pytest.skip(f"needs {n_gpus} GPUs")
     df, matrix = _fixture()
     counts, free = _brute_force(matrix)
-    mined = _mined(
-        df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=prune, sparse_from_k=sparse_from_k
-    )
+    mined = _mined(df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=prune)
     assert set(mined) == (free if prune else set(counts))
     assert all(mined[c] == pytest.approx(counts[c] / len(matrix), abs=1e-12) for c in mined)
     _assert_emit_equals_generate(mined)

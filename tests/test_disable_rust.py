@@ -27,16 +27,15 @@ from et_miner.gpu import bitvec
 from et_miner.gpu.kernels.k3plus import _build_k3plus_groups_numpy, build_k3plus_groups_from_flat
 
 flat = np.array([[0, 1], [0, 2], [0, 3], [1, 2], [1, 3]], dtype=np.int32)
-g = build_k3plus_groups_from_flat(flat, with_src_rows=True)
-ref = _build_k3plus_groups_numpy(flat, with_src_rows=True)
+g = build_k3plus_groups_from_flat(flat)
+ref = _build_k3plus_groups_numpy(flat)
 rows = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3], [0, 1, 2, 3], [0, 1]] * 20
 res = apriori(pl.DataFrame({"items": rows}), min_support=0.3, sparse=True)
 print(json.dumps({
     "backends": [backends.RUST_INSTALLED, backends.get_rust_ext() is None, backends.RUST_DISABLED],
     "copies": [et_miner.HAS_RUST, sparse.RUST_INSTALLED, bitvec.RUST_INSTALLED],
     "groups_equal": bool(np.array_equal(g.suffixes, ref.suffixes)
-                         and np.array_equal(g.cumulative_pairs, ref.cumulative_pairs)
-                         and np.array_equal(g.suffix_src_rows, ref.suffix_src_rows)),
+                         and np.array_equal(g.cumulative_pairs, ref.cumulative_pairs)),
     "lattice": sorted((sorted(s), round(p * len(rows))) for s, p in zip(res["itemset"].to_list(), res["support"].to_list())),
 }))
 """

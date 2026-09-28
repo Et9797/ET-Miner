@@ -56,16 +56,14 @@ def dump(dataset: str, out: Path, free_sets: bool, max_length: int | None, then_
         seen[key] = seen.get(key, 0) + 1
         return out / (f"{key}.npz" if seen[key] == 1 else f"{key}_{seen[key]}.npz")
 
-    def _build(flat, *, with_src_rows=False):
-        np.savez(_name("r2", flat.shape[1] + 1), flat=flat, with_src_rows=with_src_rows)
-        return build(flat, with_src_rows=with_src_rows)
+    def _build(flat):
+        np.savez(_name("r2", flat.shape[1] + 1), flat=flat)
+        return build(flat)
 
     def _prune(groups_info, prev_set, k, prev_flat_np=None):
         fields = {f: np.asarray(getattr(groups_info, f)) for f in
                   ("prefix_items", "prefix_offsets", "suffixes", "suffix_offsets", "cumulative_pairs")}
-        src = getattr(groups_info, "suffix_src_rows", None)
-        np.savez(_name("r3", k), k=k, prev_flat=prev_flat_np, total=groups_info.total_candidates,
-                 src_rows=np.empty(0, np.int64) if src is None else src, **fields)
+        np.savez(_name("r3", k), k=k, prev_flat=prev_flat_np, total=groups_info.total_candidates, **fields)
         return prune_groups(groups_info, prev_set, k, prev_flat_np=prev_flat_np)
 
     def _free(cur, cc, prev, pc):
@@ -96,11 +94,10 @@ def dump(dataset: str, out: Path, free_sets: bool, max_length: int | None, then_
 def _groups(z):
     from et_miner.gpu.kernels import K3PlusGroups
 
-    src = z["src_rows"]
     return K3PlusGroups(
         prefix_items=z["prefix_items"], prefix_offsets=z["prefix_offsets"], suffixes=z["suffixes"],
         suffix_offsets=z["suffix_offsets"], cumulative_pairs=z["cumulative_pairs"],
-        total_candidates=int(z["total"]), groups=None, suffix_src_rows=src if len(src) else None,
+        total_candidates=int(z["total"]), groups=None,
     )
 
 
@@ -154,9 +151,9 @@ def time_calls(root: Path, reps: int, timeout: float) -> None:
         z = np.load(path, allow_pickle=False)
         role = path.name.split("_")[0]
         if role == "r2":
-            flat, wsr = z["flat"], bool(z["with_src_rows"])
-            rust_fn = lambda: build_k3plus_groups_from_flat(flat, with_src_rows=wsr)  # noqa: E731
-            fb_fn = lambda: _build_k3plus_groups_numpy(flat, with_src_rows=wsr)  # noqa: E731
+            flat = z["flat"]
+            rust_fn = lambda: build_k3plus_groups_from_flat(flat)  # noqa: E731
+            fb_fn = lambda: _build_k3plus_groups_numpy(flat)  # noqa: E731
             size = {"rows": int(flat.shape[0]), "k": int(flat.shape[1]) + 1}
         elif role == "r3":
             groups, k, prev = _groups(z), int(z["k"]), z["prev_flat"]

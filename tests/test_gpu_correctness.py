@@ -84,22 +84,6 @@ class TestAnchorIsAnOutputSelector:
         leaked = [list(s) for s in got if not (anchors & set(s))]
         assert not leaked, f"{len(leaked)} unanchored itemsets emitted, e.g. {leaked[:5]}"
 
-    @pytest.mark.parametrize("n_gpus", [1, 2])
-    def test_sparse_csr_branch(self, nested_df, n_gpus):
-        """The sparse branch is separate code: the deleted filter there also
-        filtered the survivor index array in lockstep, and that array feeds
-        materialize_survivors, whose per-shard length check RAISES."""
-        if n_gpus > _gpu_count():
-            pytest.skip(f"needs {n_gpus} CUDA devices")
-        anchors = {16, 17, 18, 19}
-        kw = dict(min_support=0.05, max_length=5, use_gpu=True, n_gpus=n_gpus,
-                  prune_equal_support=True, sparse_from_k=3)
-        full = apriori(nested_df, **kw)
-        expected = {tuple(sorted(s)) for s in full["itemset"].to_list() if anchors & set(s)}
-        got = {tuple(sorted(s))
-               for s in apriori(nested_df, anchor_items=anchors, **kw)["itemset"].to_list()}
-        assert got == expected
-
     def test_the_anchored_run_reaches_every_level_the_full_lattice_anchors(self, nested_df):
         """The generation base must stay unrestricted, so the anchored run must
         report an itemset at every K where the FULL lattice has one containing
@@ -234,111 +218,6 @@ class TestMineTwoPhase:
         assert default >= 1e-4, f"phase2_support default {default} is a full-lattice run"
 
 
-class TestLevelStateCleanupIsolation:
-    """#27 -- one bare `except Exception: pass` wrapped two unrelated releases.
-
-    `free_groups(...)` and `sparse_state.release()` free different allocations:
-    the current level's group arrays (tens of GB on a dense K>=3 level) and the
-    resident CSR shards. Sharing one `try` meant a failure in the first silently
-    skipped the second, and the `pass` meant nothing recorded it. Both run from
-    a `finally`, so neither may raise -- but neither may cancel the other.
-
-    No GPU needed: the point is the control flow, so both collaborators are
-    injected.
-    """
-
-    @staticmethod
-    def _patch_free_groups(monkeypatch, fn):
-        import et_miner.gpu.row_split as rs
-
-        monkeypatch.setattr(rs, "free_groups", fn)
-
-    def test_shards_are_released_when_free_groups_raises(self, monkeypatch, caplog):
-        """CONTROL: pre-fix, `release()` is never reached."""
-        from et_miner.gpu.row_split import _release_level_state
-
-        released = []
-
-        def _boom(_groups):
-            raise RuntimeError("group free exploded")
-
-        self._patch_free_groups(monkeypatch, _boom)
-
-        class _Sparse:
-            def release(self):
-                released.append(True)
-
-        _release_level_state(object(), _Sparse())
-        assert released == [True], "a failing group free must not skip the shard release"
-
-    def test_group_free_runs_when_release_raises(self, monkeypatch):
-        from et_miner.gpu.row_split import _release_level_state
-
-        freed = []
-        self._patch_free_groups(monkeypatch, lambda g: freed.append(g))
-
-        class _Sparse:
-            def release(self):
-                raise RuntimeError("release exploded")
-
-        sentinel = object()
-        _release_level_state(sentinel, _Sparse())
-        assert freed == [sentinel]
-
-    def test_never_raises_and_logs_both_failures(self, monkeypatch):
-        """It runs from a `finally`, often with an exception already in flight:
-        a cleanup failure must never replace the original error. But it must be
-        visible, which the bare `pass` made impossible."""
-        from loguru import logger
-
-        from et_miner.gpu.row_split import _release_level_state
-
-        messages: list[str] = []
-        sink = logger.add(lambda m: messages.append(m), level="WARNING")
-        try:
-
-            def _boom(_groups):
-                raise RuntimeError("group free exploded")
-
-            self._patch_free_groups(monkeypatch, _boom)
-
-            class _Sparse:
-                def release(self):
-                    raise RuntimeError("release exploded")
-
-            _release_level_state(object(), _Sparse())  # must not raise
-        finally:
-            logger.remove(sink)
-
-        joined = "".join(messages)
-        assert "group arrays" in joined and "CSR shards" in joined
-        assert "group free exploded" in joined and "release exploded" in joined
-
-    def test_group_free_runs_when_the_shard_release_cannot_even_be_looked_up(self, monkeypatch):
-        """The isolation must survive a `sparse_state` that has no `release`.
-
-        The two limbs were built as `(lambda: free_groups(...), sparse_state.release)`.
-        The second is an attribute access, evaluated while the tuple is BUILT --
-        before the loop, before either `try`. A None or part-constructed
-        `sparse_state` therefore raised out of `_release_level_state` itself and
-        `free_groups` never ran: one limb cancelling the other, which is the
-        precise coupling this function was extracted to remove, reintroduced by
-        an attribute lookup rather than by a shared `try`.
-
-        CONTROL: restore the bare `sparse_state.release` and this raises
-        AttributeError with `freed == []`.
-        """
-        from et_miner.gpu.row_split import _release_level_state
-
-        freed = []
-        self._patch_free_groups(monkeypatch, lambda g: freed.append(g))
-
-        sentinel = object()
-        _release_level_state(sentinel, None)  # must not raise
-
-        assert freed == [sentinel], "an unusable sparse_state must not skip the group free"
-
-
 class TestApr1oriPruneSetIsLazy:
     """#29 -- the prune set was built by both callers and read by neither.
 
@@ -358,7 +237,7 @@ class TestApr1oriPruneSetIsLazy:
     def _groups(prev_flat):
         from et_miner.gpu.kernels import build_k3plus_groups_from_flat
 
-        return build_k3plus_groups_from_flat(prev_flat, with_src_rows=True)
+        return build_k3plus_groups_from_flat(prev_flat)
 
     @staticmethod
     def _prev_flat():

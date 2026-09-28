@@ -234,7 +234,6 @@ flush/upload pipeline are environment variables, documented in
 - Direct CSR-to-GPU bitvector conversion (bypasses dense matrix construction)
 - One in-core GPU miner for one or many GPUs: each GPU counts its shard of the transactions, the counts are summed (NCCL, or a staged copy without it), and only the survivors leave the GPU
 - Candidates are enumerated inside the kernels from prefix groups built on the host; a tiled kernel shares each prefix across 32×32 suffix pairs, a per-candidate kernel serves small groups, and on one GPU a level too large for one dense count array is counted fused (count + threshold in one launch)
-- Density-adaptive layout: `sparse_from_k="auto"` measures each level's mean support and switches from dense bitvectors to sparse CSR tidsets when tidsets become the smaller representation (mean support < n/32); an int pins the switch to a fixed K-level
 - Multi-GPU by row split, from transactions or from prebuilt `bitvecs=` (tested up to 8x H200)
 
 ## AlphaFold Application

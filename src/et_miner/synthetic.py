@@ -208,7 +208,8 @@ def estimate_level_sizes(spec: SynthSpec) -> dict:
 
 def check_preset_purpose(spec: SynthSpec) -> None:
     """Assert a preset still exercises what it exists for. Raises on drift."""
-    from et_miner.gpu.density import DENSITY_CROSSOVER
+    # Mean support n/32: where 4-byte tids and n/8-byte bitvecs cost the same.
+    density_crossover = 1.0 / 32.0
 
     est = estimate_level_sizes(spec)
     if spec.name == "stress_k2":
@@ -223,7 +224,7 @@ def check_preset_purpose(spec: SynthSpec) -> None:
         if spec.motif_size < 10:
             raise AssertionError(f"deep_sparse_large must mine to K>=10; motif_size is {spec.motif_size}")
         penetrations = [p for _, p in spec.motif_tiers]
-        if not (penetrations and max(penetrations) > DENSITY_CROSSOVER > spec.motif_penetration):
+        if not (penetrations and max(penetrations) > density_crossover > spec.motif_penetration):
             raise AssertionError(
                 "deep_sparse_large needs a motif tier above the n/32 density crossover and the full "
                 "motif below it, so the mean support of a level crosses n/32 mid-lattice"

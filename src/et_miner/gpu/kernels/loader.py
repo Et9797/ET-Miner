@@ -169,10 +169,6 @@ _KERNEL_FILES: dict[str, str] = {
     "compact_threshold": "compact_threshold.cu",
     "count_shared_tiled_dense": "shared_tiled.cu",
     "count_shared_tiled_fused": "shared_tiled.cu",
-    "csr_count_range": "csr_warp.cu",
-    "csr_count_gather": "csr_warp.cu",
-    "csr_write_gather": "csr_warp.cu",
-    "bitvec_extract_tids": "bitvec_extract_tids.cu",
     "csr_to_bitvec": "csr_to_bitvec.cu",
 }
 
@@ -181,7 +177,6 @@ _KERNEL_FILES: dict[str, str] = {
 # kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
     "k3plus_dense.cu": ["_decode_common.cu"],
-    "csr_warp.cu": ["_decode_common.cu"],
 }
 
 _source_cache: dict[str, str] = {}

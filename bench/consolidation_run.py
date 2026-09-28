@@ -102,7 +102,7 @@ def _mine(cfg: dict, df, min_support: float, max_length, level_cb, progress_cb, 
         timings["mine_s"] = round(time.perf_counter() - t0, 3)
         return res
     if route == "C":
-        return apriori(df, use_gpu=True, n_gpus=n_gpus, sparse_from_k=cfg.get("sparse_from_k"),
+        return apriori(df, use_gpu=True, n_gpus=n_gpus,
                        prune_apriori=cfg.get("prune_apriori", True),
                        prune_equal_support=cfg.get("prune_equal_support", False),
                        level_callback=level_cb, **common)

@@ -87,14 +87,18 @@ def _nccl_p2p_policy():
     communicator; the variable is put back afterwards so it does not leak
     into child processes or other NCCL users of this one.
     """
-    if "NCCL_P2P_LEVEL" in os.environ or "NCCL_P2P_DISABLE" in os.environ:
+    if any(os.environ.get(k, "").strip() for k in ("NCCL_P2P_LEVEL", "NCCL_P2P_DISABLE")):
         yield
         return
+    previous = os.environ.get("NCCL_P2P_LEVEL")
     os.environ["NCCL_P2P_LEVEL"] = "NVL"
     try:
         yield
     finally:
-        os.environ.pop("NCCL_P2P_LEVEL", None)
+        if previous is None:
+            os.environ.pop("NCCL_P2P_LEVEL", None)
+        else:
+            os.environ["NCCL_P2P_LEVEL"] = previous
 
 
 #: Fixed staging buffer for the non-NCCL fallback reduce — one allocation

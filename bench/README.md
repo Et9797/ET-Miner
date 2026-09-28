@@ -32,7 +32,7 @@ while they run.
   only, CuPy copies from older revisions still write P2P.
 - **Disk ≥ 40 GB** (datasets + wheels + rust build), **host RAM ≥ 32 GB** —
   a count slice that does not fit the device is filtered on the host
-  (4 B/element per 64M-element slice).
+  (up to 24 B/element per 64M-element slice).
 - Prefer "dedicated GPU" listings for benchmark stability.
 
 ## Quickstart

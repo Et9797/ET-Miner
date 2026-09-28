@@ -58,6 +58,16 @@ def test_same_device_copy_is_a_device_assignment(monkeypatch):
         np.testing.assert_array_equal(dst.get(), a)
 
 
+def test_direct_copy_on_one_device_copies_every_byte():
+    """The opt-in copy itself, exercised where it cannot write across devices:
+    a non-contiguous source is made contiguous and every byte lands."""
+    with cp.cuda.Device(0):
+        src = cp.arange(20_000, dtype=cp.int32)[::2]
+        dst = cp.zeros(10_000, dtype=cp.int32)
+        nccl_mod._direct_copy(dst, src)
+        np.testing.assert_array_equal(dst.get(), np.arange(0, 20_000, 2, dtype=np.int32))
+
+
 def test_shape_or_dtype_mismatch_is_rejected():
     with cp.cuda.Device(0):
         with pytest.raises(ValueError, match="shape/dtype"):
@@ -204,6 +214,19 @@ def test_nccl_is_created_under_nvl_only_and_the_variable_is_restored(monkeypatch
     assert recording_communicator.seen == ["NVL", "NVL"]
     assert "NCCL_P2P_LEVEL" not in os.environ
     assert "NCCL_P2P_DISABLE" not in os.environ
+
+
+@pytest.mark.multigpu
+@needs_two
+@pytest.mark.parametrize("var", ["NCCL_P2P_DISABLE", "NCCL_P2P_LEVEL"])
+def test_an_empty_nccl_setting_counts_as_unset(monkeypatch, recording_communicator, var):
+    monkeypatch.delenv("NCCL_P2P_LEVEL", raising=False)
+    monkeypatch.delenv("NCCL_P2P_DISABLE", raising=False)
+    monkeypatch.delenv("ET_MINER_DISABLE_NCCL", raising=False)
+    monkeypatch.setenv(var, "")
+    nccl_mod._init_nccl([0, 1])
+    assert recording_communicator.seen == ["NVL", "NVL"]
+    assert os.environ.get(var) == ""
 
 
 @pytest.mark.multigpu

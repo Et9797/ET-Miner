@@ -9,8 +9,9 @@ D2H (80 GB at 10B candidates). ``threshold_filter`` runs ``cp.nonzero``
 over slices of ``SLICE_ELEMS`` elements instead: the temporaries are bounded
 per slice, only survivors cross PCIe, and the result is ordered by
 construction. Measured on an RTX A4000 (CuPy 14.1), a 64M-element slice
-takes 1.1 B/element of extra VRAM at a 1% pass rate and 13 B/element
-(794 MiB) when every element survives, under the chunk budget's safety
+takes 1.1 B/element of extra VRAM at a 1% pass rate and, when every
+element survives, 12 B/element live (732 MiB) with 13 B/element held by
+the pool (794 MiB), under the chunk budget's safety
 margin of max(1 GiB, 4% of VRAM) (``row_split_chunks``). A slice that still
 does not fit the device is filtered on the host (slice-wise D2H; up to
 24 B/element of host RAM for the slice, its int64 indices, the gathered
@@ -35,8 +36,8 @@ import numpy as np
 from loguru import logger
 
 #: Slice length: bounds the per-slice temporaries of ``cp.nonzero`` and the
-#: gather (13 B/element with every element surviving: 794 MiB at 64M) and
-#: the host fallback's staging (4 B/element).
+#: gather (13 B/element held by the pool with every element surviving:
+#: 794 MiB at 64M) and the host fallback's staging (up to 24 B/element).
 SLICE_ELEMS = 64_000_000
 
 #: Measured worst case per element of a slice on top of the counts (every

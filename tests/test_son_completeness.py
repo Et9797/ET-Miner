@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import random
 
+import numpy as np
 import polars as pl
 import pytest
 
@@ -87,6 +88,23 @@ class TestSingleGpuSonOnTheGpu:
     def test_matches_in_core(self, transactions):
         assert _as_set(self._run(transactions)) == _as_set(apriori(transactions, min_support=MIN_SUPPORT))
 
+    @pytest.mark.parametrize(
+        "rows",
+        [
+            pytest.param([["a", "b"], ["a", "b", "c"], ["b", "c"]] * 20, id="string-items"),
+            pytest.param([[1, 2**40], [1, 2**40, 3], [2**40, 3]] * 20, id="ids-beyond-int32"),
+            pytest.param([[1, 2], [1, 2, 3], [2, 3]] * 20 + [[]] * 40, id="empty-baskets"),
+        ],
+    )
+    def test_items_of_any_type_mine_as_on_the_cpu(self, rows):
+        """The chunk miner runs on column indices and maps the items back."""
+        df = pl.DataFrame({"items": rows})
+        kw = dict(min_support=0.1, chunk_size=30, show_progress=False)
+        gpu = son.apriori_streaming(df, use_gpu=True, **kw)
+        cpu = son.apriori_streaming(df, **kw)
+        assert sorted(map(tuple, gpu["itemset"].to_list())) == sorted(map(tuple, cpu["itemset"].to_list()))
+        assert len(cpu) > 0
+
     @pytest.mark.parametrize("target", ["_mine_chunk_gpu", "_count_candidates_gpu"])
     def test_a_failed_chunk_raises(self, transactions, monkeypatch, target):
         failing = _FailOnCall(getattr(son, target), 2)
@@ -141,6 +159,23 @@ def test_gpu_bitvec_counting_needs_no_rust_extension(transactions, monkeypatch):
     cols = list(col_to_item)
     itemsets = [(cols[0], cols[1]), (cols[1], cols[2], cols[3]), (cols[4],)]
     assert bitvec.count_support_gpu_bitvec(matrix, itemsets) == count_support_vectorized(matrix, itemsets)
+
+
+@pytest.mark.gpu
+def test_gpu_counting_handles_no_rows_and_rejects_the_empty_itemset(transactions):
+    """A length filter can leave no row at all; the batched kernel is then not launched."""
+    import cupy as cp
+    from et_miner.core.matrix import build_boolean_matrix, count_support_batched
+    from et_miner.gpu.kernels import count_itemsets_cuda
+
+    rows = pl.DataFrame({"items": [[1], [2], [1], [2], [3]]})
+    matrix, col_to_item, _ = build_boolean_matrix(rows.lazy(), 0.0)
+    cols = list(col_to_item)
+    got = count_support_batched(matrix, [(cols[0], cols[1])], rows.height, use_gpu=True)
+    assert got == {(cols[0], cols[1]): 0}
+    assert count_itemsets_cuda(cp.zeros((3, 0), dtype=cp.uint64), [np.array([0, 1], np.int32)]).tolist() == [0]
+    with pytest.raises(ValueError, match="at least one item"):
+        count_itemsets_cuda(cp.zeros((3, 2), dtype=cp.uint64), [np.array([], np.int32)])
 
 
 @pytest.mark.gpu

@@ -30,6 +30,7 @@ from et_miner.gpu.mining import (
 )
 from et_miner.gpu.nccl import _init_nccl
 from et_miner.gpu.row_split_chunks import (
+    _device_available_bytes,
     compute_chunk_budget,
     plan_candidate_chunks,
     plan_group_chunks,
@@ -66,7 +67,8 @@ def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, device
 
     n_u64s = bitvecs_gpu.shape[1]
     if devices is None:
-        devices = list(range(max(1, min(int(n_gpus), cp.cuda.runtime.getDeviceCount(), n_u64s))))
+        n_dev = max(1, min(int(n_gpus), cp.cuda.runtime.getDeviceCount(), n_u64s))
+        devices = [int(bitvecs_gpu.device.id)] if n_dev == 1 else list(range(n_dev))
     n_dev = len(devices)
     if n_dev == 1 and devices[0] == bitvecs_gpu.device.id:
         return [(bitvecs_gpu, int(bitvecs_gpu.device.id), n_transactions)]
@@ -160,7 +162,7 @@ def _apriori_row_split_multi_gpu(
 
     from et_miner.gpu.csr_bitvec import build_bitvecs_row_split
     from et_miner.gpu.kernels import (
-        get_popcount_kernel,
+        column_popcounts,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
         count_pairs_k2_shared,
@@ -177,7 +179,7 @@ def _apriori_row_split_multi_gpu(
     if n_transactions > np.iinfo(np.int32).max:
         raise ValueError(
             f"n_transactions={n_transactions:,} exceeds int32 max ({np.iinfo(np.int32).max:,}). "
-            f"CSR tidset indices are int32 — upgrade to int64 before running at this scale."
+            f"The dense count arrays are int32 — widen them before running at this scale."
         )
 
     _env.reject_removed_knobs()
@@ -207,13 +209,14 @@ def _apriori_row_split_multi_gpu(
         n_cols,
     )
 
-    # int32 vocab IDs (V5=149, AlphaFold=35K) — halves items_flat in the parquet flush
-    if col_to_item:
-        _max_item = max(col_to_item.values())
-        assert _max_item < 2**31, f"item ID {_max_item} exceeds int32 range"
-    col_to_item_arr = np.zeros(n_cols, dtype=np.int32)
+    # int32 vocab IDs (V5=149, AlphaFold=35K) halve items_flat in the parquet
+    # flush; ids beyond int32 keep int64.
+    col_to_item_arr = np.zeros(n_cols, dtype=np.int64)
     for c, item in col_to_item.items():
         col_to_item_arr[c] = item
+    _i32 = np.iinfo(np.int32)
+    if n_cols == 0 or (_i32.min <= col_to_item_arr.min() and col_to_item_arr.max() <= _i32.max):
+        col_to_item_arr = col_to_item_arr.astype(np.int32)
 
     # V3 B6: Convert anchor item IDs → column indices for fast filtering
     anchor_col_arr = None
@@ -253,13 +256,15 @@ def _apriori_row_split_multi_gpu(
         if max_ram_gb is None and max_vram_gb is None:
             return
         ram_gb, vram_gb = _memory_gb()
-        for used, limit, what in ((ram_gb, max_ram_gb, "RAM"), (vram_gb, max_vram_gb, "VRAM")):
+        for used, limit, what, remedy in (
+            (ram_gb, max_ram_gb, "RAM", "pass output_dir so each level is flushed as it completes"),
+            (vram_gb, max_vram_gb, "VRAM", "mine on more GPUs (n_gpus) to split the bitvectors"),
+        ):
             if limit is not None and used > limit:
                 raise MemoryError(
                     f"Memory guard tripped after K={k_level}: {what}={used:.1f}GB exceeds "
                     f"max_{what.lower()}_gb={limit}GB. The lattice is INCOMPLETE at this point, so "
-                    f"it is not returned. Raise max_{what.lower()}_gb, lower max_length, or pass "
-                    f"output_dir so each level is flushed as it completes."
+                    f"it is not returned. Raise max_{what.lower()}_gb, lower max_length, or {remedy}."
                 )
 
     # Per-K Parquet flush: write each K level to disk immediately.
@@ -421,23 +426,15 @@ def _apriori_row_split_multi_gpu(
         _k1_start = time.perf_counter()
         if session:
             session.start_phase("k1_support")
-        popcount_kernel = get_popcount_kernel()
-
-        CHUNK_COLS = 4096  # ~14 GB temp per chunk — fits in remaining VRAM
-
         def _k1_popcount_on_gpu(bitvec_gpu, device_id):
-            """Chunked popcount on one GPU — runs in thread for parallelism."""
+            """Per-column popcount on one GPU, a block of columns at a time.
+
+            The block's temporary stays within a quarter of the measured
+            headroom (pool limit included), 256 MiB at most.
+            """
             with cp.cuda.Device(device_id):
-                local_counts = np.zeros(n_cols, dtype=np.int64)
-                for c_start in range(0, n_cols, CHUNK_COLS):
-                    c_end = min(c_start + CHUNK_COLS, n_cols)
-                    chunk = bitvec_gpu[c_start:c_end]
-                    popcounts = popcount_kernel(chunk.view(cp.uint64))
-                    local_counts[c_start:c_end] = cp.sum(
-                        popcounts.reshape(c_end - c_start, -1), axis=1, dtype=cp.int64
-                    ).get()
-                    del popcounts
-                return local_counts
+                headroom, _ = _device_available_bytes(device_id)
+                return column_popcounts(bitvec_gpu, max_temp_bytes=min(1 << 28, headroom // 4)).get()
 
         with ThreadPoolExecutor(max_workers=len(bitvecs_list)) as pool:
             futures = [pool.submit(_k1_popcount_on_gpu, bv, did) for bv, did, _ in bitvecs_list]
@@ -492,7 +489,8 @@ def _apriori_row_split_multi_gpu(
 
         if len(prev_frequent_flat) == 0:
             return _result(_build_result_df([]))
-        _check_memory_guard(1)
+        if effective_max_length > 1 and len(prev_frequent_flat) > 1:
+            _check_memory_guard(1)
 
         k = 2
 
@@ -604,6 +602,7 @@ def _apriori_row_split_multi_gpu(
                     tiled = np.diff(groups_info.cumulative_pairs) >= tiled_min_group_pairs(k)
                     small = _subset(groups_info, ~tiled)
                     big = _subset(groups_info, tiled)
+                    del groups_info  # the split holds copies; do not keep the whole level twice
                     # (groups, survivor indices into them, counts) per counted part
                     parts = []
                     if big is not None and _one_device:
@@ -716,7 +715,8 @@ def _apriori_row_split_multi_gpu(
 
             if n_freq == 0:
                 break
-            _check_memory_guard(k)
+            if k < effective_max_length and n_freq > k:  # another level follows
+                _check_memory_guard(k)
 
             prev_frequent_flat = current_flat
             prev_counts_flat = current_counts_raw
@@ -1052,6 +1052,12 @@ def mine_two_phase(
     import shutil
     import tempfile
     from pathlib import Path
+
+    from et_miner.core.apriori import _validate_parameters
+
+    # Before any directory is created: a removed parameter raises here, not
+    # after phase 1 has made its output directory.
+    _validate_parameters(phase1_support, max_length, None, sparse_from_k)
 
     _cleanup_phase1 = False  # track if we need to clean up temp dirs
     # Phase 1: Anchor mining

@@ -234,7 +234,7 @@ Applied to the AlphaFold Protein Structure Database, ET-Miner discovered **26.8 
 
 **Problem.** The AlphaFold Database contains predicted protein structures for over 200 million proteins. Which combinations of structural and functional features — Pfam domains, Gene Ontology terms, confidence scores — co-occur across the protein universe? A standard dense boolean matrix for this dataset requires 206 GB, exceeding even high-end GPU memory.
 
-**Solution.** ET-Miner constructs a CSR representation directly from transactions (~5 GB), converts to GPU-resident bitvectors (~26 GB), and performs all Apriori iterations on-GPU with zero PCIe transfers.
+**Solution.** ET-Miner constructs a CSR representation directly from transactions (~5 GB), converts to GPU-resident bitvectors (~26 GB), and performs all Apriori iterations on the GPU; only each level's frequent itemsets cross PCIe.
 
 ### Results
 

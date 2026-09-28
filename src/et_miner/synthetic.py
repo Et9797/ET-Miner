@@ -260,8 +260,8 @@ def check_preset_purpose(spec: SynthSpec) -> None:
 # smoke is calibrated so the efficient-apriori oracle (pure Python, the
 # mandated smoke-run correctness baseline) finishes in a couple of minutes
 # while the mining still reaches K>=4. stress_k2 forces >100M K=2
-# candidates within 2×24 GB. deep_k plants 10-item motifs (K>=6 mining +
-# the measured-density transition mid-run). skewed_rows clusters nnz for
+# candidates within 2×24 GB. deep_k plants 10-item motifs (K>=6 mining).
+# skewed_rows clusters nnz for
 # the balance A/B. oom_regression is sized so its dense counts exceed a
 # test-set memory-pool limit, proving budget-driven chunking.
 # deep_sparse_large is an AlphaFold-shaped lattice at scale: 20M rows, a

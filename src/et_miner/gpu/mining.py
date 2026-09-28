@@ -83,10 +83,8 @@ def _prune_non_free_mask(current_flat, current_counts, prev_flat, prev_counts):
     An itemset is a free-set (generator) when no (k-1)-subset has the same
     count [Bastide et al. 2000]. ``prev_flat``/``prev_counts`` must be the
     COMPLETE previous level, or the test misses subsets that were themselves
-    pruned and under-prunes. A mask rather than filtered arrays, because the
-    sparse-CSR path also carries the survivor index array and filters it in
-    lockstep. Rust ``prune_non_free_flat`` when available (``prev_flat`` must be
-    row-sorted), else the dict-based Python fallback.
+    pruned and under-prunes. Rust ``prune_non_free_flat`` when available
+    (``prev_flat`` must be row-sorted), else the dict-based Python fallback.
     """
     import numpy as np
 

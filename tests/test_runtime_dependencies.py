@@ -1,13 +1,12 @@
 """psutil is a runtime dependency, not a dev one.
 
-Three modules under ``src/`` measure host memory through psutil, and all
-three swallow ImportError and degrade silently rather than fail:
+Two modules under ``src/`` measure host memory through psutil and swallow
+ImportError, degrading silently rather than failing (the row-split miner's
+``max_ram_gb`` guard imports it unguarded):
 
 - ``gpu.kernels.filter._host_ram_available`` returns None, which collapses
   the compact filter's feasibility test onto a fixed SLICE_ELEMS survivor
   cap and sends every larger level to the sliced CPU valve;
-- ``gpu.mining`` leaves its RSS reading unset, so the ``max_ram_gb`` guard
-  never fires;
 - ``streaming.son._get_memory_gb`` reports 0.0, so the streaming memory
   budget reads as empty.
 

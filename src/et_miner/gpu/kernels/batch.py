@@ -21,8 +21,10 @@ def count_itemsets_cuda(bitvecs_gpu, itemsets: list[np.ndarray]) -> np.ndarray:
 
     _assert_bitvecs("count_itemsets_cuda", bitvecs_gpu)
     n_cols, n_u64s = bitvecs_gpu.shape
-    if not itemsets:
-        return np.empty(0, dtype=np.int64)
+    if any(len(s) == 0 for s in itemsets):
+        raise ValueError("count_itemsets_cuda: every itemset needs at least one item")
+    if not itemsets or n_u64s == 0:
+        return np.zeros(len(itemsets), dtype=np.int64)
     with cp.cuda.Device(bitvecs_gpu.device.id):
         return _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s)
 

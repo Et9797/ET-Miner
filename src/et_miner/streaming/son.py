@@ -464,7 +464,12 @@ def _mine_chunk_gpu(
     min_support: float,
     max_length: int | None,
 ) -> list[tuple[int, ...]]:
-    """Mine one chunk on the current device with the row-split miner."""
+    """Mine one chunk on the current device with the row-split miner.
+
+    The miner runs on column indices and the items are mapped back here, so
+    items of any type (strings, ids beyond int32, an empty basket's None)
+    mine as they do on the CPU route.
+    """
     import cupy as cp
 
     from et_miner.core.matrix import _polars_to_sparse_csr
@@ -472,14 +477,16 @@ def _mine_chunk_gpu(
     from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
 
     csr, col_name_to_idx = _polars_to_sparse_csr(matrix)
-    idx_to_item = {col_name_to_idx[col]: item for col, item in col_to_item.items()}
+    items = [None] * len(col_name_to_idx)
+    for col, idx in col_name_to_idx.items():
+        items[idx] = col_to_item[col]
     device_id = cp.cuda.Device().id
     bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
     del csr
     try:
         result_df = _apriori_row_split_multi_gpu(
             None,
-            idx_to_item,
+            {idx: idx for idx in range(len(items))},
             n_transactions,
             min_support,
             max_length,
@@ -489,7 +496,7 @@ def _mine_chunk_gpu(
     finally:
         del bitvecs_gpu
         cp.get_default_memory_pool().free_all_blocks()
-    return [tuple(x) for x in result_df["itemset"].to_list()]
+    return [tuple(items[c] for c in cols) for cols in result_df["itemset"].to_list()]
 
 
 def _count_candidates_gpu(

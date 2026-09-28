@@ -226,12 +226,19 @@ class TestTiledThreshold:
         monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", pin)
         assert {tiled_min_group_pairs(k) for k in range(2, 30)} == {int(pin)}
 
-    def test_the_variant_knob_is_refused(self, monkeypatch):
-        from et_miner import _env
+    def test_the_variant_knob_is_refused_before_any_mining(self, monkeypatch):
+        import polars as pl
+
+        from et_miner import apriori
 
         monkeypatch.setenv("ET_MINER_KERNEL_VARIANT", "legacy")
         with pytest.raises(ValueError, match="ET_MINER_KERNEL_VARIANT was removed"):
-            _env.reject_removed_knobs()
+            apriori(pl.DataFrame({"items": [[1, 2]] * 4}), min_support=0.5)
+
+    def test_a_negative_pin_is_refused(self, monkeypatch):
+        monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", "-1")
+        with pytest.raises(ValueError, match=">= 0"):
+            tiled_min_group_pairs(3)
 
 
 class TestEnvCapAccessor:

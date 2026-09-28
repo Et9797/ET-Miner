@@ -1,4 +1,4 @@
-"""K=1 support of the single-GPU bitvec miners: popcount a block of columns at a time.
+"""K=1 support of the row-split miner: popcount a block of columns at a time.
 
 A whole-matrix popcount allocates a uint64 temporary as large as the bitvec
 matrix itself, so a matrix above half of free VRAM ran out of memory at K=1

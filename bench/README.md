@@ -62,9 +62,15 @@ number is worth recording from a miner that disagrees with the oracle.
 
 `bench/runner.py --mode consolidation` runs the GPU-layer consolidation matrix
 (`bench/consolidation_matrix.py`; protocol and decision rule in
-`bench/consolidation/PROTOCOL.md`). Each config names its route (A, A-split, B,
-B-split, C, D, E, F — see `bench/consolidation_run.py`), pins every thread pool
-and kernel knob it depends on, warms up on every device it uses, and records
+`bench/consolidation/PROTOCOL.md`). That matrix is the record of the Phase 2
+campaign and runs only at its revision (`e4bb3ae`): the routes and parameters
+it compared are gone from the tree, and a config that names one fails.
+`--mode verify` is the re-run on the consolidated tree (the surviving routes,
+each kernel pinned where the dispatch picks); results and the decisions are in
+`bench/results/2026-09-2*-consolidation*/` and `bench/consolidation/REPORT.md`.
+Each config names its route (C, C-bitvecs, D, E, F — see
+`bench/consolidation_run.py`), pins every thread pool and kernel knob it
+depends on, warms up on every device it uses, and records
 per-level (per-pass for SON) times, per-device peak VRAM, peak RSS, throttle
 reasons, the result signature and any logged fallback (which fails the
 config). Every config of one (dataset, min_support, max_length, free-sets)

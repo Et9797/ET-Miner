@@ -118,9 +118,18 @@ def result_signatures(res, n_rows: int) -> dict:
     return {"n_itemsets": n, "sum_counts": int(total), "itemset_hash": hasher.hexdigest()}
 
 
+#: Config keys whose apriori() parameters were removed; a config that sets one
+#: measured a route that no longer exists, so it fails instead of running another.
+REMOVED_KEYS = ("sparse_from_k", "gpu_resident", "prune_apriori")
+
+
 def main() -> int:
     cfg = json.loads(sys.argv[1])
     import os
+
+    removed = sorted(k for k in REMOVED_KEYS if k in cfg)
+    if removed:
+        raise ValueError(f"config {cfg.get('id')} sets removed keys {removed}: its route no longer exists")
 
     for k, v in cfg.get("env", {}).items():
         os.environ[k] = str(v)

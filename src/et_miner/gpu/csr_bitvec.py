@@ -419,7 +419,7 @@ def _row_split_cuts(indptr: np.ndarray, n_rows: int, n_gpus: int, balance: str =
     and more VRAM); it is an opt-in measured by the skewed-rows benchmark.
 
     Row ranges stay contiguous in both modes — round-robin would break the
-    row-contiguity that CSR slicing and tidset conversion depend on.
+    row-contiguity that CSR slicing depends on.
     """
     if balance not in ("rows", "nnz"):
         raise ValueError(f"balance must be 'rows' or 'nnz', got {balance!r}")

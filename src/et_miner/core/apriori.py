@@ -30,6 +30,7 @@ from typing import Any, Literal
 import polars as pl
 from loguru import logger
 
+from et_miner import _env
 
 from .candidates import _generate_candidates
 from .matrix import (
@@ -264,9 +265,9 @@ def _validate_route_support(
     exactness should not quietly answer a different question.
 
     Where a route CAN honour a parameter it is forwarded instead -- output_dir
-    and resume_from_k on the bitvecs+pruning route, and memory_budget_gb on
-    multi-GPU streaming -- so this only fires where the capability genuinely
-    does not exist.
+    and resume_from_k on the bitvecs route, and memory_budget_gb on multi-GPU
+    streaming -- so this only fires where the capability genuinely does not
+    exist.
     """
     if gpu_resident:
         raise ValueError(
@@ -509,6 +510,7 @@ def apriori(
         >>> result = apriori(huge_df, min_support=0.001, streaming=True, n_gpus=8)
     """
     _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)
+    _env.reject_removed_knobs()
 
     # Every parameter/route mismatch is rejected here, ABOVE the routing, so a
     # route cannot silently drop something the caller asked for. This has to run
@@ -568,6 +570,13 @@ def apriori(
                 f"col_to_item has {len(col_to_item)} keys but bitvecs_gpu has {bitvecs_gpu.shape[0]} columns"
             )
 
+        # The kernels index the array as col * n_u64s + word.
+        if bitvecs_gpu.dtype != "uint64" or not bitvecs_gpu.flags.c_contiguous:
+            raise ValueError(
+                f"bitvecs_gpu must be a C-contiguous uint64 array (cupy.ascontiguousarray), got "
+                f"{bitvecs_gpu.dtype}, c_contiguous={bitvecs_gpu.flags.c_contiguous}"
+            )
+
         from et_miner.gpu.row_split import _apriori_row_split_multi_gpu, shard_prebuilt_bitvecs
 
         return _apriori_row_split_multi_gpu(
@@ -576,9 +585,9 @@ def apriori(
             n_trans,
             min_support,
             max_length,
-            n_gpus,
+            max(1, n_gpus),
             level_callback,
-            bitvecs_list=shard_prebuilt_bitvecs(bitvecs_gpu, n_trans, n_gpus),
+            bitvecs_list=shard_prebuilt_bitvecs(bitvecs_gpu, n_trans, max(1, n_gpus)),
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,
@@ -656,7 +665,7 @@ def apriori(
             n_trans,
             min_support,
             max_length,
-            n_gpus,
+            max(1, n_gpus),
             level_callback,
             output_dir=output_dir,
             resume_from_k=resume_from_k,

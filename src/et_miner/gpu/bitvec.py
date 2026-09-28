@@ -120,7 +120,7 @@ def count_support_gpu_bitvec(
     logger.debug(f"[GPU BITVEC] {len(itemsets)} itemsets, {n_rows:,} transactions, {csr.shape[1]} items")
     bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
 
-    # The empty itemset is in every transaction; the kernel would count it as 0.
+    # The empty itemset is in every transaction; the kernel takes none.
     counted = [s for s in itemsets if s]
     counts = count_itemsets_cuda(
         bitvecs_gpu, [np.array([col_to_idx[col] for col in s], dtype=np.int32) for s in counted]

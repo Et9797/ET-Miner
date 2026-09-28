@@ -299,3 +299,43 @@ class TestGroupArraysAreReleasedOnAnAbortedLevel:
             "group arrays were still resident while the traceback held the frame: "
             f"{during['used']:,} -> {used_after:,} bytes"
         )
+
+
+@pytest.mark.gpu
+class TestRowSplitInputEdges:
+    """Inputs the removed single-GPU miner took that the row-split miner must take too."""
+
+    def test_item_ids_beyond_int32(self):
+        rows = [[1, 2**40], [1, 2**40, 3], [2**40, 3]] * 20
+        df = pl.DataFrame({"items": rows})
+        gpu = apriori(df, min_support=0.1, use_gpu=True)
+        cpu = apriori(df, min_support=0.1)
+        assert sorted(map(tuple, gpu["itemset"].to_list())) == sorted(map(tuple, cpu["itemset"].to_list()))
+
+    def test_a_strided_bitvec_view_is_refused(self):
+        """The kernels index col * n_u64s + word; a strided view would be read as other memory."""
+        import cupy as cp
+
+        bv = cp.zeros((8, 4), dtype=cp.uint64)
+        with pytest.raises(ValueError, match="C-contiguous uint64"):
+            apriori(bitvecs=(bv[::2], {i: i for i in range(4)}, 256), min_support=0.1, use_gpu=True)
+
+    def test_the_memory_guard_does_not_discard_a_finished_lattice(self, nested_df):
+        """After the last level nothing more is mined, so a tripped guard would only throw the result away."""
+        got = apriori(nested_df, min_support=0.05, max_length=1, use_gpu=True, max_ram_gb=0.0)
+        assert got.height > 0
+
+    def test_k1_popcounts_a_bounded_block_of_columns(self, nested_df, monkeypatch):
+        """K=1 uses column_popcounts with a temporary of at most 256 MiB."""
+        from et_miner.gpu import kernels
+
+        budgets = []
+        real = kernels.column_popcounts
+
+        def spy(bv, max_temp_bytes):
+            budgets.append(max_temp_bytes)
+            return real(bv, max_temp_bytes=max_temp_bytes)
+
+        monkeypatch.setattr(kernels, "column_popcounts", spy)
+        apriori(nested_df, min_support=0.05, max_length=2, use_gpu=True)
+        assert budgets and all(0 < b <= 1 << 28 for b in budgets)

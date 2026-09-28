@@ -391,6 +391,17 @@ sentence with a check wherever one is possible.
   step. Tests: `tests/test_prune_apriori_decoupled.py` (exactness on both
   settings, the subset test observed engaging or not, the refusals);
   reproduction: `bench/repro/d64_prune_apriori_welded_to_free_set_gate.py`.
+  (Superseded: the consolidation below removed the prune and the parameter,
+  with those two files.)
+
+*GPU-layer consolidation*
+
+- **`bitvecs=` must be a C-contiguous uint64 array.** A strided view such as
+  `bv[::2]` passed validation, and the K≥2 kernels, which index
+  `col * n_u64s + word`, read it as other memory: right supports at K=1,
+  wrong ones above. It now raises, and every kernel wrapper checks it too.
+- **The memory guards no longer run after the last level.** `max_ram_gb` /
+  `max_vram_gb` tripping there could only throw away a complete lattice.
 
 ### Documentation
 
@@ -458,7 +469,8 @@ replacement.
   `"auto"`). The GPU miner keeps dense bitvectors at every level; gone are
   the dense→sparse transition, the CSR shard kernels (`csr_warp.cu`,
   `bitvec_extract_tids.cu`), `gpu/sparse_csr.py`, `gpu/density.py` and the
-  groups' `suffix_src_rows`. The layout won no regime in the row-split miner
+  Python groups' `suffix_src_rows` (the Rust builder still computes them;
+  nothing reads them). The layout won no regime in the row-split miner
   (Online Retail at 0.002: 0.56 s with `sparse_from_k=3` vs 0.82 s dense, a
   sub-second gap) and ran out of memory on `deep_sparse_large` (20M rows,
   12 GB) where the dense layout mined it in 24.19 s: its shards hold four

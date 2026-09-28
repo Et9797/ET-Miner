@@ -206,6 +206,7 @@ class TestGuardsCoverEveryRouteNotJustTheOnesTheTestsExercise:
     `anchor_items` check thirteen lines below did not.
     """
 
+    @pytest.mark.gpu
     def test_anchor_items_is_refused_on_the_bitvecs_route(self, df):
         """Measured before the fix: 210 itemsets returned, 136 of them
         UNANCHORED -- the call validated and then dropped anchor_items, defect
@@ -221,6 +222,7 @@ class TestGuardsCoverEveryRouteNotJustTheOnesTheTestsExercise:
         with pytest.raises(ValueError, match="anchor_items requires the row-split miner"):
             apriori(bitvecs=bitvecs, min_support=0.05, use_gpu=True, anchor_items={0, 1})
 
+    @pytest.mark.gpu
     def test_anchor_items_still_works_on_the_route_that_implements_it(self, df):
         """The guard must refuse only what the route cannot do."""
         pytest.importorskip("cupy")
@@ -243,6 +245,7 @@ class TestGuardsCoverEveryRouteNotJustTheOnesTheTestsExercise:
             apriori(df, min_support=0.05, use_gpu=True, anchor_items={0, 1},
                     output_dir=str(tmp_path), resume_from_k=2)
 
+    @pytest.mark.gpu
     def test_output_dir_with_anchor_items_is_still_allowed(self, df, tmp_path):
         """Only the READ is refused, not the write. `mine_two_phase` sets
         `output_dir` unconditionally alongside `anchor_items`, so rejecting the
@@ -323,6 +326,13 @@ class TestRemovedParametersRaise:
     def test_sparse_from_k(self, df, value):
         with pytest.raises(ValueError, match="sparse_from_k was removed"):
             apriori(df, min_support=0.05, sparse_from_k=value)
+
+    def test_mine_two_phase_refuses_before_creating_a_directory(self, df, tmp_path):
+        from et_miner.gpu.row_split import mine_two_phase
+
+        with pytest.raises(ValueError, match="sparse_from_k was removed"):
+            mine_two_phase(df, output_dir=str(tmp_path / "out"), sparse_from_k="auto")
+        assert not (tmp_path / "out").exists()
 
 
 class TestGpuResidentIsRemoved:

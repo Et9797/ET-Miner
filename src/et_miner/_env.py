@@ -43,7 +43,10 @@ Variables:
                                        per-candidate kernel. 0 = tiled for
                                        every group. Unset: the measured
                                        crossover per K (see
-                                       et_miner.gpu.row_split_chunks)
+                                       et_miner.gpu.row_split_chunks). On
+                                       one GPU a level beyond one dense
+                                       chunk is counted fused on the tiled
+                                       kernel whatever the pin
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -143,7 +146,10 @@ def reject_removed_knobs() -> None:
 
 
 def tiled_min_group_pairs() -> int | None:
-    return _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", None)
+    v = _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", None)
+    if v is not None and v < 0:
+        raise ValueError(f"ET_MINER_TILED_MIN_GROUP_PAIRS must be >= 0, got {v}")
+    return v
 
 
 def log_dir() -> Path:

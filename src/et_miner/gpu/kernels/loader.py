@@ -139,12 +139,19 @@ def _assert_dtype(context: str, **arrays) -> None:
 def _assert_bitvecs(context: str, bitvecs_gpu, **same_device) -> None:
     """The input guards every bitvec kernel wrapper runs before it launches.
 
-    ``bitvecs_gpu`` must be a 2-D uint64 CuPy array; any ``same_device`` array
-    must live on its device, which is the device the wrapper launches on.
+    ``bitvecs_gpu`` must be a C-contiguous 2-D uint64 CuPy array (the kernels
+    index it as ``col * n_u64s + word``, so a strided view would be read as
+    other memory); any ``same_device`` array must live on its device, which is
+    the device the wrapper launches on.
     """
     _assert_home(context, bitvecs_gpu=bitvecs_gpu, **same_device)
     _assert_rank(context, bitvecs_gpu=(bitvecs_gpu, 2))
     _assert_dtype(context, bitvecs_gpu=(bitvecs_gpu, "uint64"))
+    if not bitvecs_gpu.flags.c_contiguous:
+        raise ValueError(
+            f"{context}: bitvecs_gpu must be C-contiguous (cupy.ascontiguousarray); "
+            "the kernels would read a strided view as other memory."
+        )
 
 
 _MAX_GRID_X = 2_147_483_647  # 2^31 - 1

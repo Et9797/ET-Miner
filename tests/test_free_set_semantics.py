@@ -155,11 +155,10 @@ def test_infer_count_rejects_its_own_counterexample():
 
 def test_row_split_helpers_keep_only_free_sets_without_a_gpu():
     """The row-split level loop, driven on the CPU with the engine's own helpers:
-    groups from the kept level, apriori prune against the COMPLETE level, count,
-    free-set prune against the COMPLETE level. Guards the helpers on machines
-    with no CUDA device."""
+    groups from the kept level, count, free-set prune against the COMPLETE
+    level. Guards the helpers on machines with no CUDA device."""
     from et_miner.gpu.kernels.k3plus import build_k3plus_groups_from_flat
-    from et_miner.gpu.mining import _prune_groups_apriori, _prune_non_free_mask
+    from et_miner.gpu.mining import _prune_non_free_mask
 
     _, matrix = _fixture()
     counts, free = _brute_force(matrix)
@@ -179,11 +178,6 @@ def test_row_split_helpers_keep_only_free_sets_without_a_gpu():
             candidates = list(itertools.combinations([int(x[0]) for x in prev_flat], 2))
         else:
             groups = build_k3plus_groups_from_flat(np.ascontiguousarray(prev_flat, dtype=np.int32))
-            if groups is None:
-                break
-            groups = _prune_groups_apriori(
-                groups, set(map(tuple, full_flat.tolist())), k, prev_flat_np=np.ascontiguousarray(full_flat)
-            )
             if groups is None:
                 break
             pi, po = np.asarray(groups.prefix_items), np.asarray(groups.prefix_offsets)
@@ -225,15 +219,12 @@ def _gpu_count() -> int:
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, 2])
 @pytest.mark.parametrize("prune", [False, True])
-@pytest.mark.parametrize("sparse_from_k", [None, 3])
-def test_row_split_matches_the_reference(n_gpus, prune, sparse_from_k):
+def test_row_split_matches_the_reference(n_gpus, prune):
     if n_gpus > _gpu_count():
         pytest.skip(f"needs {n_gpus} GPUs")
     df, matrix = _fixture()
     counts, free = _brute_force(matrix)
-    mined = _mined(
-        df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=prune, sparse_from_k=sparse_from_k
-    )
+    mined = _mined(df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=prune)
     assert set(mined) == (free if prune else set(counts))
     assert all(mined[c] == pytest.approx(counts[c] / len(matrix), abs=1e-12) for c in mined)
     _assert_emit_equals_generate(mined)
@@ -279,7 +270,12 @@ def test_bitvecs_route_honours_the_flag_and_never_writes_to_the_caller(prune):
 
 
 @pytest.mark.gpu
-def test_profile_with_pruning_raises_rather_than_dropping_the_flag():
+@pytest.mark.gpu
+def test_profile_with_pruning_returns_the_session_and_the_same_itemsets():
+    from et_miner.core.profiling import ProfilingSession
+
     df, _ = _fixture()
-    with pytest.raises(ValueError, match="profile"):
-        apriori(df, min_support=MIN_SUPPORT, use_gpu=True, prune_equal_support=True, profile=True)
+    plain = apriori(df, min_support=MIN_SUPPORT, use_gpu=True, prune_equal_support=True)
+    result, session = apriori(df, min_support=MIN_SUPPORT, use_gpu=True, prune_equal_support=True, profile=True)
+    assert isinstance(session, ProfilingSession) and session.phases
+    assert sorted(map(tuple, result["itemset"].to_list())) == sorted(map(tuple, plain["itemset"].to_list()))

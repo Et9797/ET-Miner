@@ -11,8 +11,15 @@ signatures — kernel variant, filter impl, GPU count, NCCL mode, row
 balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
-Usage: python bench/runner.py --mode smoke|full [--out DIR] [--max-hours H]
-       [--only SUBSTR] [--skip SUBSTR]
+Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify [--out DIR]
+       [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
+
+`consolidation` runs the GPU-layer consolidation matrix
+(bench/consolidation_matrix.py): every config names its route explicitly,
+and every (dataset, min_support, max_length, prune_equal_support) group must
+agree on its signature across GPU, SON and CPU routes alike. `supplement` runs
+the configs added after that campaign (`build_supplement_matrix`), and
+`verify` the reduced re-run on the consolidated tree (`build_verify_matrix`).
 """
 
 from __future__ import annotations
@@ -41,19 +48,15 @@ def _gpu_count() -> int:
         return 0
 
 
-def _cfg(id_, preset, *, variant="legacy", filter_impl=None, n_gpus=2, balance=None,
-         disable_nccl=False, sparse_from_k=None, max_length=None, min_support=None,
+def _cfg(id_, preset, *, n_gpus=2,
+         disable_nccl=False, max_length=None, min_support=None,
          two_phase=False, rep=0, timeout_s=1800):
-    env = {"ET_MINER_KERNEL_VARIANT": variant}
+    env = {}
     if n_gpus == 1:
         # Make "1 GPU" mean it: dispatch auto-detects physical devices and
         # would otherwise route big levels to the pair-split multi-GPU path,
         # silently muddying the 1g-vs-2g benchmark axis (observed on-box).
         env["CUDA_VISIBLE_DEVICES"] = "0"
-    if filter_impl:
-        env["ET_MINER_FILTER_IMPL"] = filter_impl
-    if balance:
-        env["ET_MINER_ROW_BALANCE"] = balance
     if disable_nccl:
         env["ET_MINER_DISABLE_NCCL"] = "1"
     return {
@@ -61,7 +64,6 @@ def _cfg(id_, preset, *, variant="legacy", filter_impl=None, n_gpus=2, balance=N
         "preset": preset,
         "env": env,
         "n_gpus": n_gpus,
-        "sparse_from_k": sparse_from_k,
         "max_length": max_length,
         "min_support": min_support,
         "two_phase": two_phase,
@@ -70,44 +72,36 @@ def _cfg(id_, preset, *, variant="legacy", filter_impl=None, n_gpus=2, balance=N
 
 
 def build_matrix(mode: str, n_dev: int) -> list[dict]:
+    if mode == "consolidation":
+        from consolidation_matrix import build_consolidation_matrix
+
+        return build_consolidation_matrix(n_dev)
+    if mode == "supplement":
+        from consolidation_matrix import build_supplement_matrix
+
+        return build_supplement_matrix(n_dev)
+    if mode == "verify":
+        from consolidation_matrix import build_verify_matrix
+
+        return build_verify_matrix(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
-        for v in ("legacy", "shared"):
-            for g in gpus:
-                cfgs.append(_cfg(f"smoke-{v}-{g}g", "smoke", variant=v, n_gpus=g, timeout_s=900))
-        for v in ("legacy", "shared"):
-            cfgs.append(
-                _cfg(f"stressk2ml2-{v}-{max(gpus)}g", "stress_k2", variant=v, n_gpus=max(gpus),
-                     max_length=2, timeout_s=1800)
-            )
+        for g in gpus:
+            cfgs.append(_cfg(f"smoke-{g}g", "smoke", n_gpus=g, timeout_s=900))
+        cfgs.append(_cfg(f"stressk2ml2-{max(gpus)}g", "stress_k2", n_gpus=max(gpus), max_length=2, timeout_s=1800))
         return cfgs
 
-    # full — on-box recalibration: stress_k2's K=3 is ~76B candidates, so a
-    # single legacy stress run costs ~37 min. Legacy stress gets ONE rep
-    # (the slow baseline needs no variance estimate at that cost); shared
-    # and deep_k keep 3. One-off axes run FIRST so a --max-hours stop can
-    # only ever shed redundant reps, never whole measurement axes.
-    for impl in ("compact", "cupy", "cpu"):
-        cfgs.append(_cfg(f"stressk2-filter-{impl}", "stress_k2", filter_impl=impl,
-                         n_gpus=max(gpus), max_length=2, timeout_s=1800))
+    # full: one-off axes FIRST, so a --max-hours stop can only ever shed
+    # redundant reps, never whole measurement axes.
     cfgs.append(_cfg("deepk-nonccl", "deep_k", disable_nccl=True, n_gpus=max(gpus)))
-    cfgs.append(_cfg("deepk-density-auto", "deep_k", sparse_from_k="auto", n_gpus=max(gpus)))
-    cfgs.append(_cfg("deepk-density-auto-1g", "deep_k", sparse_from_k="auto", n_gpus=1))
     cfgs.append(_cfg("twophase-smoke", "smoke", two_phase=True, n_gpus=max(gpus)))
     for rep in range(2):
-        for bal in ("rows", "nnz"):
-            cfgs.append(_cfg(f"skew-{bal}", "skewed_rows", balance=bal, n_gpus=max(gpus), rep=rep))
-    for g in gpus:
-        cfgs.append(_cfg(f"stressk2-legacy-{g}g", "stress_k2", variant="legacy", n_gpus=g,
-                         max_length=3, rep=0, timeout_s=3600))
+        cfgs.append(_cfg("skew", "skewed_rows", n_gpus=max(gpus), rep=rep))
     for rep in range(3):
         for g in gpus:
-            cfgs.append(_cfg(f"stressk2-shared-{g}g", "stress_k2", variant="shared", n_gpus=g,
-                             max_length=3, rep=rep, timeout_s=3600))
-            for v in ("legacy", "shared"):
-                if rep == 0 or v == "shared":
-                    cfgs.append(_cfg(f"deepk-{v}-{g}g", "deep_k", variant=v, n_gpus=g, rep=rep))
+            cfgs.append(_cfg(f"stressk2-{g}g", "stress_k2", n_gpus=g, max_length=3, rep=rep, timeout_s=3600))
+            cfgs.append(_cfg(f"deepk-{g}g", "deep_k", n_gpus=g, rep=rep))
     return cfgs
 
 
@@ -237,12 +231,48 @@ def _campaign_out(rev: str | None = None) -> Path:
     return DEFAULT_OUT / (rev or _git_rev())
 
 
+def _within(cfg: dict, rows: list[dict]) -> str | None:
+    """None when a conditional consolidation config qualifies, else why it does not.
+
+    `requires_within = {"twin", "factor", "level"}`: the twin's median time at
+    `level` must be within `factor` of the fastest median at that level among
+    configs of the twin's workload that use the same number of GPUs, over the
+    ok rows recorded so far.
+    """
+    import statistics
+
+    req = cfg.get("requires_within")
+    if not req:
+        return None
+    workload = req["twin"].split("-", 1)[0]
+    by_base: dict[str, list[float]] = {}
+    for r in rows:
+        c = r.get("config", {})
+        if r.get("status") != "ok" or c.get("n_gpus") != cfg["n_gpus"]:
+            continue
+        if not str(c.get("base_id", "")).startswith(workload + "-"):
+            continue
+        ms = next((lv["ms"] for lv in r.get("levels", []) if lv["k"] == req["level"]), None)
+        if ms is not None:
+            by_base.setdefault(c["base_id"], []).append(ms)
+    if req["twin"] not in by_base:
+        return f"skipped: {req['twin']} has no ok K={req['level']} time"
+    medians = {b: statistics.median(v) for b, v in by_base.items()}
+    best = min(medians.values())
+    twin = medians[req["twin"]]
+    if twin > req["factor"] * best:
+        return (f"skipped: {req['twin']} K={req['level']} median {twin / 1000:.1f}s is more than "
+                f"{req['factor']}x the {cfg['n_gpus']}-GPU best {best / 1000:.1f}s")
+    return None
+
+
 def run_config(cfg: dict, out_dir: Path) -> dict:
     print(f"→ {cfg['id']} (timeout {cfg['timeout_s']}s) env={cfg['env']}", flush=True)
     safe_id = cfg["id"].replace("#", "_")
     log_path = out_dir / f"{safe_id}.log"
     result_path = out_dir / f"{safe_id}.result.json"
     cfg = {**cfg, "result_path": str(result_path)}
+    t_proc = time.time()
     with log_path.open("w") as log_f:
         proc = subprocess.Popen(
             [sys.executable, str(CHILD), json.dumps(cfg)],
@@ -257,22 +287,25 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
-            return {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev()}
+            return {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev(),
+                    "proc_s": round(time.time() - t_proc, 1)}
+    proc_s = round(time.time() - t_proc, 1)
     # Result file first (immune to NCCL's raw fd-1 writes splicing the
     # child's stdout); stdout scan as debug fallback.
     rev = _git_rev()
     if result_path.exists():
         try:
-            return {**json.loads(result_path.read_text()), "rev": rev}
+            return {**json.loads(result_path.read_text()), "rev": rev, "proc_s": proc_s}
         except json.JSONDecodeError:
             pass
     for line in reversed(stdout.strip().splitlines() or [""]):
         if line.startswith("{"):
             try:
-                return {**json.loads(line), "rev": rev}
+                return {**json.loads(line), "rev": rev, "proc_s": proc_s}
             except json.JSONDecodeError:
                 break
-    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})", "rev": rev}
+    return {"id": cfg["id"], "config": cfg, "status": f"no-result (rc={proc.returncode})", "rev": rev,
+            "proc_s": proc_s}
 
 
 def _coverage(
@@ -328,7 +361,13 @@ def _coverage(
 
 
 def group_key(cfg: dict) -> tuple:
-    return (cfg["preset"], cfg.get("max_length"), cfg.get("min_support"), bool(cfg.get("two_phase")))
+    return (
+        cfg["preset"],
+        cfg.get("max_length"),
+        cfg.get("min_support"),
+        bool(cfg.get("two_phase")),
+        bool(cfg.get("prune_equal_support")),
+    )
 
 
 def check_equivalence(rows: list[dict]) -> list[str]:
@@ -351,9 +390,12 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["smoke", "full"], required=True)
+    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
+    ap.add_argument("--max-gpu-hours", type=float, default=None,
+                    help="stop once the rows of this invocation used this many GPU-hours "
+                         "(subprocess time x devices the config uses; CPU configs count as one)")
     ap.add_argument("--only", default=None, help="run only configs whose id contains this")
     ap.add_argument("--skip", default=None, help="skip configs whose id contains this")
     args = ap.parse_args()
@@ -416,6 +458,7 @@ def main() -> int:
     deadline = time.time() + args.max_hours * 3600 if args.max_hours else None
 
     failed_here: list[str] = []
+    gpu_seconds = 0.0
     for cfg in selected:
         if cfg["id"] in done_ids:
             print(f"skip (done): {cfg['id']}  [replayed from raw.jsonl]")
@@ -423,7 +466,20 @@ def main() -> int:
         if deadline and time.time() > deadline:
             print("max-hours reached — stopping (resume with the same command)")
             break
+        if args.max_gpu_hours is not None and gpu_seconds > args.max_gpu_hours * 3600:
+            print(f"max-gpu-hours reached ({gpu_seconds / 3600:.2f}) — stopping (resume with the same command)")
+            break
+        skip_reason = _within(cfg, rows)
+        if skip_reason:
+            print(f"{skip_reason}: {cfg['id']}")
+            result = {"id": cfg["id"], "config": cfg, "status": skip_reason, "rev": _git_rev()}
+            rows.append(result)
+            with raw.open("a") as f:
+                f.write(json.dumps(result) + "\n")
+            continue
         result = run_config(cfg, out_dir)
+        devices = 1 if cfg.get("route") == "F" else int(cfg.get("n_gpus", 1))
+        gpu_seconds += (result.get("proc_s") or 0) * devices
         if result.get("status") != "ok":
             failed_here.append(f"{cfg['id']} ({result.get('status')})")
         rows.append(result)
@@ -435,10 +491,10 @@ def main() -> int:
     #
     # Refute wide, claim narrow. Scoping this to `all_ids` (or to `selected`)
     # would suppress the campaign's only cross-mode refutation: smoke's
-    # `stressk2ml2-{legacy,shared}-2g` and full's
+    # `stressk2ml2-2g` and full's
     # `stressk2-filter-{compact,cupy,cpu}` all share
-    # `group_key == ('stress_k2', 2, None, False)`, and that group is the sole
-    # place KERNEL_VARIANT and FILTER_IMPL results ever meet. Both modes write
+    # `group_key == ('stress_k2', 2, None, False, False)`, and that group is the sole
+    # place the two modes' results ever meet. Both modes write
     # to one campaign directory so that they do meet.
     #
     # A divergence found in a row outside this selection is still a real

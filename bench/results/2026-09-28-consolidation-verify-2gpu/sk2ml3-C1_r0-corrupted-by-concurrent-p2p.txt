@@ -1,0 +1,40 @@
+2026-09-28 17:02:30.198 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /root/projects/ET-Miner/.venv/lib/libmkl_rt.so.3
+2026-09-28 17:02:30.198 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /root/projects/ET-Miner/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-09-28 17:02:30.501 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:539 - Direct CSR path: 20,000 transactions, min_count=400
+2026-09-28 17:02:30.503 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:562 - Direct CSR path: 67 frequent items
+2026-09-28 17:02:30.505 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:586 - Direct CSR path: 96,135 non-zeros
+2026-09-28 17:02:30.509 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:192 -   Row-split multi-GPU: 1 GPUs, min_count=400 (GPU-resident dense counting)
+2026-09-28 17:02:30.511 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:202 -   Bitvec build: 0.0s across 1 GPUs
+2026-09-28 17:02:30.527 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:488 -   K=1: 67 frequent items in 0.0s
+2026-09-28 17:02:30.532 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:533 -   K=2: 2,211 total pairs, 1 chunk(s), dense output 0.00 GB/GPU per chunk
+2026-09-28 17:02:30.543 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=2 chunk 1/1 filtering: 2,211 candidates → 115 frequent (5.2% pass rate, min_count=400)
+2026-09-28 17:02:30.544 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:714 -   K=2: 115 frequent in 0.0s
+2026-09-28 17:02:30.545 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 1/1 filtering: 188 candidates → 20 frequent (10.6% pass rate, min_count=400)
+2026-09-28 17:02:30.546 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 1/1 filtering: 934 candidates → 44 frequent (4.7% pass rate, min_count=400)
+2026-09-28 17:02:30.546 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:714 -   K=3: 64 frequent in 0.0s
+2026-09-28 17:02:30.691 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:539 - Direct CSR path: 2,000,000 transactions, min_count=30
+2026-09-28 17:02:30.963 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:562 - Direct CSR path: 35000 frequent items
+2026-09-28 17:02:31.359 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:586 - Direct CSR path: 47,473,315 non-zeros
+2026-09-28 17:02:32.703 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:192 -   Row-split multi-GPU: 1 GPUs, min_count=30 (GPU-resident dense counting)
+2026-09-28 17:02:33.249 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:202 -   Bitvec build: 0.5s across 1 GPUs
+2026-09-28 17:02:33.328 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:488 -   K=1: 35,000 frequent items in 0.1s
+2026-09-28 17:02:33.330 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:533 -   K=2: 612,482,500 total pairs, 1 chunk(s), dense output 2.28 GB/GPU per chunk
+2026-09-28 17:03:09.305 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=2 chunk 1/1 filtering: 612,482,500 candidates → 1,660,332 frequent (0.3% pass rate, min_count=30)
+2026-09-28 17:03:09.405 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:714 -   K=2: 1,660,332 frequent in 36.1s
+2026-09-28 17:03:09.426 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 1/1 filtering: 2,440 candidates → 0 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:03:41.377 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 1/15 filtering: 612,447,501 candidates → 453,025 frequent (0.1% pass rate, min_count=30)
+2026-09-28 17:04:11.735 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 2/15 filtering: 612,412,503 candidates → 221,761 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:04:41.439 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 3/15 filtering: 612,377,506 candidates → 135,435 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:05:10.452 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 4/15 filtering: 612,342,510 candidates → 94,121 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:05:38.946 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 5/15 filtering: 612,097,566 candidates → 68,864 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:06:07.000 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 6/15 filtering: 610,244,580 candidates → 52,814 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:06:34.294 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 7/15 filtering: 601,576,641 candidates → 42,636 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:07:25.508 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 8/15 filtering: 1,132,158,346 candidates → 62,721 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:08:11.251 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 9/15 filtering: 961,796,625 candidates → 44,475 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:09:07.664 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 10/15 filtering: 1,095,092,415 candidates → 44,901 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:09:50.581 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 11/15 filtering: 963,963,945 candidates → 37,176 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:10:38.610 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 12/15 filtering: 1,080,457,329 candidates → 35,809 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:11:28.476 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 13/15 filtering: 1,117,930,990 candidates → 17,414 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:12:22.219 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 14/15 filtering: 1,141,733,839 candidates → 140 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:12:23.713 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=3 chunk 15/15 filtering: 30,162,120 candidates → 0 frequent (0.0% pass rate, min_count=30)
+2026-09-28 17:12:23.781 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:714 -   K=3: 1,311,292 frequent in 554.4s

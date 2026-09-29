@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from et_miner.backends import get_rust_ext
-from et_miner.gpu.mining import _prune_non_free_flat, _rust_prune_fn, _rows_sorted
+from et_miner.gpu.mining import _prune_non_free_mask, _rust_prune_fn, _rows_sorted
 
 
 def _fresh_rust():
@@ -23,10 +23,10 @@ def _fresh_rust():
     return ext if version >= (0, 2) else None
 
 
-def _prune_fns(ext):
-    """The mask and compact entry points under whichever name the wheel has —
-    0.3.0 renamed prune_closed_flat* to prune_non_free_flat*."""
-    return _rust_prune_fn(ext, "prune_non_free_flat"), _rust_prune_fn(ext, "prune_non_free_flat_compact")
+def _mask_fn(ext):
+    """The mask entry point under whichever name the wheel has — 0.3.0 renamed
+    prune_closed_flat to prune_non_free_flat."""
+    return _rust_prune_fn(ext, "prune_non_free_flat")
 
 
 def test_rows_sorted_semantics():
@@ -59,25 +59,20 @@ def test_rows_sorted_agrees_with_lexsort_on_random_tables():
 @pytest.mark.skipif(_fresh_rust() is None, reason="et_miner_rust >= 0.2.0 not built")
 def test_rust_free_set_prune_rejects_unsorted_prev():
     ext = _fresh_rust()
-    mask_fn, compact_fn = _prune_fns(ext)
+    mask_fn = _mask_fn(ext)
     cur = np.array([[0, 1, 4]], np.int32)
     cc = np.array([5], np.int64)
     prev_unsorted = np.array([[0, 1], [0, 2], [1, 2], [0, 3], [0, 4]], np.int32)  # j-major order
     pc = np.array([5, 5, 5, 5, 5], np.int64)
     with pytest.raises(ValueError, match="sorted"):
         mask_fn(cur, cc, prev_unsorted, pc)
-    with pytest.raises(ValueError, match="sorted"):
-        compact_fn(cur, cc, prev_unsorted, pc)
 
     order = np.lexsort(prev_unsorted[:, ::-1].T)
     prev_sorted, pc_sorted = prev_unsorted[order], pc[order]
     # (0,1,4) has subset (0,1) with the same count -> not free -> pruned
     assert mask_fn(cur, cc, prev_sorted, pc_sorted).tolist() == [False]
-    flat_1d, counts, n_kept = compact_fn(cur, cc, prev_sorted, pc_sorted)
-    assert n_kept == 0 and len(counts) == 0
 
-    # the Python wrapper goes through the compact path and keeps the free rows
+    # the miner's wrapper keeps exactly the free rows
     cur2 = np.array([[0, 1, 4], [0, 2, 4]], np.int32)
     cc2 = np.array([5, 3], np.int64)
-    kept_flat, kept_counts = _prune_non_free_flat(cur2, cc2, prev_sorted, pc_sorted)
-    assert kept_flat.tolist() == [[0, 2, 4]] and kept_counts.tolist() == [3]
+    assert _prune_non_free_mask(cur2, cc2, prev_sorted, pc_sorted).tolist() == [False, True]

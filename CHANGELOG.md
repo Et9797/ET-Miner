@@ -47,6 +47,28 @@ figures move — measured, per artifact, not assumed.
 
 ### Fixed
 
+- **Two-GPU runs on a box whose PCIe P2P drops device-to-device writes.**
+  Such a box (a Ryzen AM4 host with two RTX A4000s behind the CPU's host
+  bridge, `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`) reports
+  peer access and then loses the copies: `cudaMemcpy`, `cudaMemcpyPeer` and
+  CuPy assignment from GPU 1 to GPU 0 return success with the destination
+  untouched (small copies land, copies of 64 KiB and more drop), so the
+  staged D2D reduce (the NCCL-absent fallback) summed only GPU 0's shard —
+  `smoke` on two GPUs returned 342 itemsets with roughly half their counts
+  instead of 694 — `bitvecs=` sharded across two GPUs mined a shard of
+  stale memory, and NCCL's P2P transport hung about one run in three at
+  the first collective. No probe can certify such a pair, so
+  `et_miner.gpu.nccl.copy_between_devices` now stages every cross-device
+  copy through host memory (the staged reduce and the `bitvecs=` shards go
+  through it; `ET_MINER_DIRECT_D2D=1` opts back into direct copies for
+  NVLink or a known-good PCIe switch), and NCCL communicators are created
+  under `NCCL_P2P_LEVEL=NVL` (P2P over NVLink only) unless the caller set
+  `NCCL_P2P_LEVEL` or `NCCL_P2P_DISABLE`; the variable is put back
+  afterwards, and it has no effect when another library initialised NCCL
+  first, since NCCL reads it once per process. Tests:
+  `tests/test_cross_device_copy.py` (real transfers of 8M int32 and more,
+  no monkeypatching; the default path never issues a direct copy).
+
 *PR 1 — canonical order and the exact threshold*
 
 - **#1, #2, #3, #20** — itemsets are emitted as **ascending tuples of item ids
@@ -391,6 +413,17 @@ sentence with a check wherever one is possible.
   step. Tests: `tests/test_prune_apriori_decoupled.py` (exactness on both
   settings, the subset test observed engaging or not, the refusals);
   reproduction: `bench/repro/d64_prune_apriori_welded_to_free_set_gate.py`.
+  (Superseded: the consolidation below removed the prune and the parameter,
+  with those two files.)
+
+*GPU-layer consolidation*
+
+- **`bitvecs=` must be a C-contiguous uint64 array.** A strided view such as
+  `bv[::2]` passed validation, and the K≥2 kernels, which index
+  `col * n_u64s + word`, read it as other memory: right supports at K=1,
+  wrong ones above. It now raises, and every kernel wrapper checks it too.
+- **The memory guards no longer run after the last level.** `max_ram_gb` /
+  `max_vram_gb` tripping there could only throw away a complete lattice.
 
 ### Documentation
 
@@ -414,6 +447,106 @@ sentence with a check wherever one is possible.
   defect is live and zero once fixed, so the same file is evidence and gate.
 - `tests/fixtures/min_count_cases.json` — shared ground truth for the min-count
   rule, read by the Python and Rust test suites alike.
+
+### Removed
+
+GPU-layer consolidation, each removal decided by the measurements in
+`bench/results/2026-09-27-consolidation/FINDINGS.md` (one RTX 3060 12 GB unless
+noted). Every removed parameter or value raises `ValueError` naming its
+replacement.
+
+- **SON's GPU-resident mode.** `apriori_streaming(gpu_resident=True)` (and
+  `apriori(streaming=True, gpu_resident=True)`) raises. With `use_gpu=True`,
+  single- and multi-GPU SON mine every chunk on the row-split miner and count
+  pass 2 with the batched itemset kernel; the per-level bitvec rebuild and the
+  per-itemset counting loop are gone, and `count_support_batched(use_gpu=True)`
+  counts with the batched kernel too. `count_itemsets_cuda` always launches
+  the batched kernel (its `use_batch` flag and the one-itemset-per-launch
+  kernel `count_itemset_fused` are gone). The batched pass 2 took 1.70 s on
+  `deep_k` where the per-level counter took 6.84 s, and a four-chunk SON run on
+  `deep_sparse_large` finished in 194.75 s with it and hit the 600 s cap
+  without.
+- **The single-GPU bitvec miner and the GPU-resident miner.** The row-split
+  miner now serves every in-core GPU call: `use_gpu=True` on one GPU or many,
+  and `bitvecs=` (sharded by 64-row words across `n_gpus` devices). It gained
+  `profile=True` and the `max_ram_gb` / `max_vram_gb` guards, and `output_dir`
+  / `resume_from_k` now work with `bitvecs=` too. `apriori(gpu_resident=True)`
+  raises. Gone with the two miners: their pair/candidate fan-out across GPUs
+  (which copied the whole bitvec matrix to every device through host RAM), the
+  per-candidate fused kernels (`pairs_k2.cu`, `k3plus_fullyfused.cu`) with
+  their 10M-result ceiling, the GPU-resident kernels
+  (`k3plus_gpu_resident.cu`, `decode_candidates.cu`), and the exports
+  `count_pairs_fused_k2(_multi_gpu)`, `count_k3plus_fully_fused(_multi_gpu)`,
+  `count_*_gpu_resident(_multi_gpu)`, `build_prefix_groups_gpu`,
+  `build_k3plus_groups`, `count_k3plus_shared_fused` and
+  `count_pairs_k2_shared_fused` (the tiled fused kernel is
+  `count_tiled_fused`). Measured wall time, row-split vs the faster of the
+  two: `oom_regression` (K≤2) 8.22 s vs 10.34 s, `deep_sparse_large` 24.19 s
+  vs 26.98 s, Online Retail at 0.002 0.35 s vs 2.66 s. Where the old
+  single-GPU miner won (`stress_k2` K≤2 on 12 GB, 56.21 s vs 453.57 s: the
+  pair counts do not fit one dense chunk), the row-split miner now counts the
+  way it did, with the fused tiled kernel.
+- **The sparse CSR layout on the GPU (`sparse_from_k`).** Any value other
+  than `None` raises, on `apriori()` and `mine_two_phase` (whose default was
+  `"auto"`). The GPU miner keeps dense bitvectors at every level; gone are
+  the dense→sparse transition, the CSR shard kernels (`csr_warp.cu`,
+  `bitvec_extract_tids.cu`), `gpu/sparse_csr.py`, `gpu/density.py` and the
+  Python groups' `suffix_src_rows` (the Rust builder still computes them;
+  nothing reads them). The layout won no regime in the row-split miner
+  (Online Retail at 0.002: 0.56 s with `sparse_from_k=3` vs 0.82 s dense, a
+  sub-second gap) and ran out of memory on `deep_sparse_large` (20M rows,
+  12 GB) where the dense layout mined it in 24.19 s: its shards hold four
+  bytes per supporting transaction of every itemset in the level.
+- **The host-side Apriori group prune (`prune_apriori`).** Any value raises.
+  The GPU miner counts every candidate its prefix groups generate instead of
+  subset-testing them on the host first; the results are the same. The prune
+  won no measured regime against `prune_apriori=False` (largest gap 0.31 s,
+  on `deep_sparse_large`), and on wide levels it cost more than the counting
+  it saved: `oom_regression` to K=3 mined in 37.62 s without it and 101.25 s
+  with it, and on `stress_k2` the Rust prune alone took 487 s at K=3. The
+  Rust function stays in `rust_ext`; nothing calls it.
+- **`ET_MINER_KERNEL_VARIANT`.** Setting it raises. The row-split miner picks
+  the kernel per prefix group at the measured crossover: tiled for groups of
+  at least 120 candidate pairs at K=3, falling to 23 at K≥8
+  (`TILED_MIN_GROUP_PAIRS`), per-candidate below, each set counted as its own
+  candidate space so the two never fragment each other's chunks.
+  `ET_MINER_TILED_MIN_GROUP_PAIRS` pins that choice (0 = tiled everywhere).
+  The wrappers lost `variant=`: `count_pairs_k2_allcounts` and
+  `count_k3plus_allcounts` are now `count_pairs_k2_per_candidate` and
+  `count_k3plus_per_candidate`. Measured before the change: the tiled K=2
+  kernel was 10× faster (`oom_regression` 7.64 s vs 82.49 s); at K≥3 the old
+  default tiled every group once the small-group routing fragmented its plan
+  and was 5× slower than per-candidate on `deep_sparse_large` (76.39 s vs
+  14.63 s), while per-candidate was 5× slower than tiled on `oom_regression`
+  to K=3 (492.21 s vs 93.08 s).
+- **`ET_MINER_ROW_BALANCE=nnz` and `balance="nnz"`.** Either raises; the
+  multi-GPU row split is by equal row counts (`rows`, the old default, stays
+  accepted as a no-op). Measured on two GPUs (2× RTX A4000 16 GB, NCCL with
+  P2P disabled, `bench/results/2026-09-28-consolidation-2gpu/`), the
+  nnz-balanced cut tied the rows split in both regimes built for it:
+  `skewed_rows` 1.07 s vs 1.07 s and `deep_sparse_large` 18.14 s vs 17.91 s
+  (medians of 3), so rule 5 keeps the smaller code. Gone with it: the
+  searchsorted cut and its "largest shard must fit the smallest device"
+  feasibility check.
+- **`ET_MINER_FILTER_IMPL`, the `compact_threshold` kernel and the
+  whole-array CPU filter.** Setting the knob raises. The dense survivor
+  filter is the sliced `cp.nonzero` path,
+  `et_miner.gpu.kernels.filter.threshold_filter` (`compact_threshold_filter`
+  and its `impl=` are gone), with a per-slice host fallback when a slice does
+  not fit the device. On two GPUs (2× RTX A4000 16 GB, NCCL with P2P
+  disabled, `bench/results/2026-09-28-consolidation-2gpu/`) the three
+  implementations tied in both regimes built for them: `stress_k2` K≤2
+  20.00 s (compact) vs 19.05 s (cupy) vs 19.99 s (cpu), `deep_sparse_large`
+  17.91 vs 18.49 vs 18.83 s (medians of 3), so rule 5 keeps the smallest: no
+  kernel, no host sort (48 B/survivor), no host-RAM probe. Six registered
+  kernels remain. Per 64M-element slice on an A4000 the filter takes 10 ms
+  at a 1% pass rate (500 ms when every element survives) and 1.1 B/element
+  of extra VRAM at 1% (12 B/element, 732 MiB, at 100%); at the
+  10B-candidate levels of the unmeasured AlphaFold regime that is about
+  1.6 s per level where the kernel took two passes over the array — the one
+  place it could have won.
+- **`et_miner.gpu.memory_budget`** (the `safe_threshold_filter` shim, imported
+  by nothing, which silently ignored `max_gpu_elements`): gone.
 
 ---
 

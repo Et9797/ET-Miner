@@ -11,7 +11,7 @@ ET-Miner implements the Apriori algorithm across three performance tiers, all be
 |------|-------|-------------|
 | **Tier 1** | Python + Polars | Vectorized boolean matrix operations. Zero dependencies beyond Polars. |
 | **Tier 2** | Rust via PyO3 | SIMD-vectorized CSR support counting (AVX2/AVX-512). 80--110x speedup. |
-| **Tier 3** | Multi-GPU CUDA | CSR bitvector encoding, fused popcount kernels, zero-transfer GPU-resident mining. |
+| **Tier 3** | CUDA, one or more GPUs | CSR-to-bitvector encoding and a row-split miner: shards of transactions per GPU, tiled and per-candidate counting kernels, counts summed across GPUs. |
 
 The streaming engine (SON algorithm) enables bounded-memory processing of arbitrarily large datasets — limited by storage, not RAM.
 
@@ -20,9 +20,9 @@ The streaming engine (SON algorithm) enables bounded-memory processing of arbitr
 ```
 src/et_miner/
 ├── core/        Apriori loop, candidate generation, matrix/sparse counting, rules
-├── gpu/         CUDA kernels (sources in gpu/kernels/_src/*.cu), bitvec mining,
-│                multi-GPU row-split, NCCL, dispatch heuristics
-├── streaming/   SON streaming (son), multi-GPU streaming, CUDA-streams pipeline, ramdisk
+├── gpu/         CUDA kernels (sources in gpu/kernels/_src/*.cu), the row-split
+│                miner (one or more GPUs), chunk planning, NCCL reduce
+├── streaming/   SON streaming (son), multi-GPU streaming, ramdisk
 ├── io/          parquet flush-to-disk, Google Cloud Storage upload
 ├── backends.py  single source of truth for CuPy/Rust capability detection
 └── _env.py      every ET_* environment knob, documented in one place
@@ -68,18 +68,10 @@ RUSTFLAGS="-C target-cpu=native" uv run maturin develop --release -m rust_ext/Ca
 ```
 
 "Optional" means the results are identical without it, not that the cost is.
-`prune_groups_apriori` and `build_k3plus_groups_from_flat` back candidate
-generation on the downward-closure row-split path, so a pipeline that mines
-there pays for its absence on every level. Measured on an 11.3M x 8 level
-with ~1.88M prefix groups and identical candidate counts either way:
-
-| | without | with |
-|---|---|---|
-| `build_k3plus_groups_from_flat` | 6.1 s | 0.3 s |
-| `prune_groups_apriori` | 32.8 s | 3.9 s |
-
-On a nine-level run (K=2..K=10) at that scale candidate generation was 93% of mining time,
-so the extension is worth about 5.9x on the whole mine.
+`build_k3plus_groups_from_flat` builds the prefix groups every GPU level
+counts, and `prune_non_free_flat` runs the free-set prune, so a pipeline that
+mines there pays for its absence on every level. Measured on an 11.3M x 8
+level with ~1.88M prefix groups: 6.1 s without the group build, 0.3 s with it.
 
 To depend on it from another project rather than building it by hand, install
 it from this repository's `rust_ext` subdirectory, pinned to the same revision
@@ -232,10 +224,9 @@ flush/upload pipeline are environment variables, documented in
 **GPU Acceleration**
 - CUDA kernel sources maintained as real `.cu` files (`src/et_miner/gpu/kernels/_src/`), compiled on first use via CuPy
 - Direct CSR-to-GPU bitvector conversion (bypasses dense matrix construction)
-- Fused CUDA kernels: candidate generation + support counting + filtering in a single launch
-- GPU-resident mining: zero PCIe transfers between K-levels (~264 bytes total across 22 levels)
-- Density-adaptive layout: `sparse_from_k="auto"` measures each level's mean support and switches from dense bitvectors to sparse CSR tidsets when tidsets become the smaller representation (mean support < n/32); an int pins the switch to a fixed K-level
-- Multi-GPU support with per-device work distribution (tested up to 8x H200)
+- One in-core GPU miner for one or many GPUs: each GPU counts its shard of the transactions, the counts are summed (NCCL, or a staged copy without it), and only the survivors leave the GPU
+- Candidates are enumerated inside the kernels from prefix groups built on the host; a tiled kernel shares each prefix across 32×32 suffix pairs, a per-candidate kernel serves small groups, and on one GPU a level too large for one dense count array is counted fused (count + threshold in one launch)
+- Multi-GPU by row split, from transactions or from prebuilt `bitvecs=` (tested up to 8x H200)
 
 ## AlphaFold Application
 
@@ -243,7 +234,7 @@ Applied to the AlphaFold Protein Structure Database, ET-Miner discovered **26.8 
 
 **Problem.** The AlphaFold Database contains predicted protein structures for over 200 million proteins. Which combinations of structural and functional features — Pfam domains, Gene Ontology terms, confidence scores — co-occur across the protein universe? A standard dense boolean matrix for this dataset requires 206 GB, exceeding even high-end GPU memory.
 
-**Solution.** ET-Miner constructs a CSR representation directly from transactions (~5 GB), converts to GPU-resident bitvectors (~26 GB), and performs all Apriori iterations on-GPU with zero PCIe transfers.
+**Solution.** ET-Miner constructs a CSR representation directly from transactions (~5 GB), converts to GPU-resident bitvectors (~26 GB), and performs all Apriori iterations on the GPU; only each level's frequent itemsets cross PCIe.
 
 ### Results
 

@@ -1,0 +1,32 @@
+START 2026-09-28T14:58:48Z
+p2poff-e4bb3ae rows #1 rc=0 :: OK 0.90s itemsets=246
+p2poff-e4bb3ae rows #2 rc=0 :: OK 0.88s itemsets=246
+p2poff-e4bb3ae rows #3 rc=0 :: OK 0.87s itemsets=246
+p2poff-e4bb3ae rows #4 rc=0 :: OK 0.87s itemsets=246
+p2poff-e4bb3ae rows #5 rc=0 :: OK 0.87s itemsets=246
+p2poff-e4bb3ae rows #6 rc=0 :: OK 0.87s itemsets=246
+p2poff-e4bb3ae rows #7 rc=0 :: OK 0.87s itemsets=246
+p2poff-e4bb3ae rows #8 rc=0 :: OK 0.88s itemsets=246
+p2poff-e4bb3ae rows #9 rc=0 :: OK 0.87s itemsets=246
+p2poff-e4bb3ae rows #10 rc=0 :: OK 0.86s itemsets=246
+p2poff-e4bb3ae nnz #1 rc=0 :: OK 0.89s itemsets=246
+p2poff-e4bb3ae nnz #2 rc=0 :: OK 0.88s itemsets=246
+p2poff-e4bb3ae nnz #3 rc=0 :: OK 0.89s itemsets=246
+p2poff-e4bb3ae nnz #4 rc=0 :: OK 0.89s itemsets=246
+p2poff-e4bb3ae nnz #5 rc=0 :: OK 0.89s itemsets=246
+p2poff-e4bb3ae nnz #6 rc=0 :: OK 0.88s itemsets=246
+p2poff-e4bb3ae nnz #7 rc=0 :: OK 0.89s itemsets=246
+p2poff-e4bb3ae nnz #8 rc=0 :: OK 0.89s itemsets=246
+p2poff-e4bb3ae nnz #9 rc=0 :: OK 0.89s itemsets=246
+p2poff-e4bb3ae nnz #10 rc=0 :: OK 0.89s itemsets=246
+p2poff-HEAD rows #1 rc=0 :: OK 0.86s itemsets=246
+p2poff-HEAD rows #2 rc=0 :: OK 0.87s itemsets=246
+p2poff-HEAD rows #3 rc=0 :: OK 0.87s itemsets=246
+p2poff-HEAD rows #4 rc=0 :: OK 0.87s itemsets=246
+p2poff-HEAD rows #5 rc=0 :: OK 0.86s itemsets=246
+p2poff-HEAD rows #6 rc=0 :: OK 0.88s itemsets=246
+p2poff-HEAD rows #7 rc=0 :: OK 0.87s itemsets=246
+p2poff-HEAD rows #8 rc=0 :: OK 0.88s itemsets=246
+p2poff-HEAD rows #9 rc=0 :: OK 0.88s itemsets=246
+p2poff-HEAD rows #10 rc=0 :: OK 0.86s itemsets=246
+END 2026-09-28T14:59:31Z

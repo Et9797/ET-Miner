@@ -405,37 +405,35 @@ def build_bitvecs_gpu_from_scipy(
     return build_bitvecs_gpu(indptr, indices, n_rows, n_cols, device_id, buffer_pool)
 
 
-def _row_split_cuts(indptr: np.ndarray, n_rows: int, n_gpus: int, balance: str = "rows") -> list[tuple[int, int]]:
-    """Contiguous [start, end) row ranges per GPU. Pure numpy — unit-tested.
+def _row_split_cuts(n_rows: int, n_gpus: int, balance: str = "rows") -> list[tuple[int, int]]:
+    """Contiguous [start, end) row ranges per GPU. Pure Python — unit-tested.
 
-    balance="rows" (default): equal row counts. Dense-kernel cost and bitvec
-    bytes scale with ROWS (every kernel strip-mines all ceil(rows/64) words),
-    so equal rows is the safe default.
-
-    balance="nnz": cuts at equal cumulative nnz via searchsorted (indptr IS
-    the cumulative nnz). For clustered data whose nnz skew starves the
-    warp-ballot early-exit on the dense shard — but note it can
-    ANTI-balance rows (the sparse-row GPU gets more rows, hence more words
-    and more VRAM); it is an opt-in measured by the skewed-rows benchmark.
-
-    Row ranges stay contiguous in both modes — round-robin would break the
-    row-contiguity that CSR slicing and tidset conversion depend on.
+    Equal row counts (``balance="rows"``, the only mode): dense-kernel cost
+    and bitvec bytes scale with ROWS (every kernel strip-mines all
+    ceil(rows/64) words). The nnz-balanced cut (``balance="nnz"``, equal
+    cumulative nnz per shard) was removed after it tied the rows split on
+    both regimes built for it (`bench/results/2026-09-28-consolidation-2gpu/`);
+    asking for it raises. Row ranges stay contiguous — round-robin would
+    break the row-contiguity that CSR slicing depends on.
     """
-    if balance not in ("rows", "nnz"):
-        raise ValueError(f"balance must be 'rows' or 'nnz', got {balance!r}")
+    _check_balance(balance)
     if n_rows <= 0 or n_gpus <= 0:
         return []
     n_gpus = min(n_gpus, n_rows)
-
-    if balance == "nnz" and n_gpus > 1 and int(indptr[-1]) > 0:
-        total_nnz = int(indptr[-1])
-        targets = [total_nnz * i // n_gpus for i in range(1, n_gpus)]
-        cuts = [0] + [int(np.searchsorted(indptr, t, side="left")) for t in targets] + [n_rows]
-    else:
-        rows_per_gpu = (n_rows + n_gpus - 1) // n_gpus
-        cuts = [min(i * rows_per_gpu, n_rows) for i in range(n_gpus + 1)]
-
+    rows_per_gpu = (n_rows + n_gpus - 1) // n_gpus
+    cuts = [min(i * rows_per_gpu, n_rows) for i in range(n_gpus + 1)]
     return [(s, e) for s, e in zip(cuts[:-1], cuts[1:]) if e > s]
+
+
+def _check_balance(balance) -> None:
+    if balance == "rows":
+        return
+    if balance == "nnz":
+        raise ValueError(
+            "balance='nnz' was removed: the multi-GPU row split is by equal row counts "
+            "(balance='rows', the default; nnz-balanced cuts won no regime). Pass 'rows' or None."
+        )
+    raise ValueError(f"balance must be 'rows' or None, got {balance!r} (the split is by equal row counts)")
 
 
 def build_bitvecs_row_split_from_arrays(
@@ -459,45 +457,31 @@ def build_bitvecs_row_split_from_arrays(
         n_rows: Number of rows (transactions).
         n_cols: Number of columns (items).
         n_gpus: Number of GPUs to distribute across.
-        balance: "rows" (equal row counts, default) or "nnz" (equal
-            cumulative nnz — see _row_split_cuts). None reads
-            ET_MINER_ROW_BALANCE. An "nnz" split whose largest shard would
-            not fit the smallest device falls back to "rows" with a warning.
+        balance: "rows" (equal row counts) or None (the same). "nnz" was
+            removed and raises (see _row_split_cuts).
 
     Returns:
         List of (bitvec_gpu, device_id, n_local_rows) tuples.
     """
     from concurrent.futures import ThreadPoolExecutor
 
-    import cupy as cp
-
     from et_miner import _env
+
+    balance = balance or "rows"
+    _check_balance(balance)
+    _env.reject_removed_knobs()
+
+    import cupy as cp
 
     available_gpus = cp.cuda.runtime.getDeviceCount()
     n_gpus = min(n_gpus, available_gpus)
-    balance = balance or _env.row_balance()
 
     if indptr.dtype != np.int64:
         indptr = indptr.astype(np.int64)
     if indices.dtype != np.int64:
         indices = indices.astype(np.int64)
 
-    ranges = _row_split_cuts(indptr, n_rows, n_gpus, balance=balance)
-
-    if balance == "nnz" and len(ranges) > 1:
-        # Feasibility: the largest shard's bitvec must fit the tightest device.
-        worst_rows = max(e - s for s, e in ranges)
-        worst_bytes = n_cols * ((worst_rows + 63) // 64) * 8
-        frees = []
-        for d in range(len(ranges)):
-            with cp.cuda.Device(d):
-                frees.append(cp.cuda.Device().mem_info[0])
-        if worst_bytes > 0.9 * min(frees):
-            logger.warning(
-                f"  nnz-balanced split infeasible (largest shard ~{worst_bytes / 1e9:.1f} GB "
-                f"vs {min(frees) / 1e9:.1f} GB free) — falling back to balance='rows'"
-            )
-            ranges = _row_split_cuts(indptr, n_rows, n_gpus, balance="rows")
+    ranges = _row_split_cuts(n_rows, n_gpus, balance=balance)
 
     def _build_shard(gpu_id, start, end):
         nnz_start = int(indptr[start])
@@ -525,12 +509,12 @@ def build_bitvecs_row_split(
     """Build row-split bitvecs across multiple GPUs from a scipy CSR matrix.
 
     Thin wrapper over build_bitvecs_row_split_from_arrays — see there for
-    the split semantics (balance="rows"|"nnz") and parallel shard builds.
+    the split semantics and parallel shard builds.
 
     Args:
         csr: scipy CSR matrix of shape (n_transactions, n_items).
         n_gpus: Number of GPUs to distribute across.
-        balance: "rows" | "nnz" | None (None reads ET_MINER_ROW_BALANCE).
+        balance: "rows" | None; "nnz" was removed and raises.
 
     Returns:
         List of (bitvec_gpu, device_id, n_local_rows) tuples.

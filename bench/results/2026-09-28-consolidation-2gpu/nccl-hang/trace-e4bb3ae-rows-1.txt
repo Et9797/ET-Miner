@@ -1,0 +1,39 @@
+2026-09-28 14:55:17.771 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /root/projects/etm-campaign/.venv/lib/libmkl_rt.so.3
+2026-09-28 14:55:17.771 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /root/projects/etm-campaign/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-09-28 14:55:17.812 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:539 - Direct CSR path: 20,000 transactions, min_count=400
+2026-09-28 14:55:17.814 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:562 - Direct CSR path: 67 frequent items
+2026-09-28 14:55:17.816 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:586 - Direct CSR path: 96,135 non-zeros
+2026-09-28 14:55:17.822 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:180 -   Row-split multi-GPU: 2 GPUs, min_count=400 (GPU-resident dense counting)
+2026-09-28 14:55:17.823 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 0] Building bitvec: 10,000 rows, 48,243 nnz, ~0.0 GB (rows-balanced)
+2026-09-28 14:55:17.823 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 1] Building bitvec: 10,000 rows, 47,892 nnz, ~0.0 GB (rows-balanced)
+2026-09-28 14:55:17.964 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:197 -   Bitvec build: 0.1s across 2 GPUs
+2026-09-28 14:55:18.195 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:230 -   NCCL: 2 communicators (ring all-reduce)
+2026-09-28 14:55:18.220 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:421 -   K=1: 67 frequent items in 0.0s
+2026-09-28 14:55:18.220 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:574 -   K=2: 2,211 total pairs, 1 chunk(s), dense output 0.00 GB/GPU per chunk
+[trace +  0.424s tid= 7776] rank 0: comm rank_id=0 comm_dev=0 arr dev=0 size=2211 dtype=int32 ptr=0x7c698b200200 stream=0x0[trace +  0.424s tid=22016] rank 1: comm rank_id=1 comm_dev=1 arr dev=1 size=2211 dtype=int32 ptr=0x7c698b400200 stream=0x0
+
+[trace +  0.431s tid=22016] rank 1: reduce enqueued
+[trace +  0.432s tid= 7776] rank 0: reduce enqueued
+[trace +  0.481s tid=22016] rank 1: sync done in 0.051s
+[trace + 20.432s tid= 7776] rank 0: SYNC TIMED OUT after 20 s (kernel never completed)
+[trace + 20.432s tid=20832] reduce results: ['timeout', 'ok']
+Traceback (most recent call last):
+  File "/tmp/claude-0/-root-projects-ET-Miner/1f88fc6e-215b-4f58-b175-c6bc8f7b2cdc/scratchpad/repro_nnz2.py", line 50, in <module>
+    res = apriori(df, use_gpu=True, n_gpus=2, min_support=0.02, max_length=3)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/projects/etm-campaign/src/et_miner/core/apriori.py", line 782, in apriori
+    return _apriori_row_split_multi_gpu(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/projects/etm-campaign/src/et_miner/gpu/row_split.py", line 590, in _apriori_row_split_multi_gpu
+    freq_pair_indices, freq_pair_counts = run_chunked_dense_level(
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/projects/etm-campaign/src/et_miner/gpu/row_split_chunks.py", line 322, in run_chunked_dense_level
+    reduce_sum_to_gpu0(gpu_results, device_ids, comms=nccl_comms if use_nccl else None)
+  File "/root/projects/etm-campaign/src/et_miner/gpu/nccl.py", line 189, in reduce_sum_to_gpu0
+    _nccl_reduce_sum_to_root(gpu_arrays, comms, device_ids)
+  File "/tmp/claude-0/-root-projects-ET-Miner/1f88fc6e-215b-4f58-b175-c6bc8f7b2cdc/scratchpad/repro_nnz2.py", line 43, in _traced_reduce_sum_to_root
+    raise RuntimeError("NCCL reduce hang detected (bounded sync)")
+RuntimeError: NCCL reduce hang detected (bounded sync)
+Timeout (0:01:00)!
+Thread 0x00007c6ad360e740 (most recent call first):
+  <no Python frame>

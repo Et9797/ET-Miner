@@ -1,9 +1,13 @@
 """Single source of truth for optional-backend detection (CuPy / Rust).
 
 Every module that needs to know whether the Rust extension or CuPy is
-available imports from here instead of probing on its own. This module
-imports nothing from et_miner, so it can be imported from anywhere in the
-package with no cycle risk.
+available imports from here instead of probing on its own. The only et_miner
+module it imports is `_env`, which imports nothing but the standard library,
+so it can be imported from anywhere in the package with no cycle risk.
+
+`ET_MINER_DISABLE_RUST=1` makes the Rust extension look absent. It is read
+once, here, and both `RUST_INSTALLED` and `get_rust_ext()` honour it, so
+every module that copies the flag at import sees the same answer.
 
 The module-scope try-imports below are the only places in the package where
 `cupy` or `et_miner_rust` is imported unguarded at module scope; call sites
@@ -13,6 +17,8 @@ lookup).
 """
 
 from __future__ import annotations
+
+from et_miner import _env
 
 # The one place the extension's build recipe is written in source. It was a
 # literal string at each warning site, and that is how a spelling change reached
@@ -40,7 +46,11 @@ except ImportError:
     CUPY_INSTALLED = False
     _CUPY_VERSION = None
 
+RUST_DISABLED = _env.disable_rust()
+
 try:
+    if RUST_DISABLED:
+        raise ImportError("disabled by ET_MINER_DISABLE_RUST=1")
     import et_miner_rust as _rust_ext
 
     RUST_INSTALLED = True
@@ -104,6 +114,7 @@ def rust_has(attr: str) -> bool:
 __all__ = [
     "BUILD_COMMAND",
     "CUPY_INSTALLED",
+    "RUST_DISABLED",
     "RUST_INSTALLED",
     "has_cupy",
     "get_gpu_count",

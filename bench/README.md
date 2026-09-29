@@ -17,9 +17,22 @@ while they run.
   too-small shm shows up as hangs or `NCCL WARN SHM` errors. `selfcheck.py`
   warns if `/dev/shm` is small; `NCCL_SHM_DISABLE=1` forces the socket
   transport as a last resort (slower but functional).
+  With P2P available through the CPU's host bridge only (`nvidia-smi topo -m`
+  shows `PHB`), NCCL's P2P transport hung about one two-GPU run in three at
+  the first collective on a Ryzen AM4 box with two RTX A4000s;
+  `NCCL_P2P_DISABLE=1` (the SHM transport) fixed it
+  (`results/2026-09-28-consolidation-2gpu/nccl-hang/README.md`). On the same
+  box plain device-to-device copies do not land either (small ones do, which
+  is why no probe can tell); the miner therefore stages every cross-device
+  copy through host memory (`gpu/nccl.py::copy_between_devices`,
+  `ET_MINER_DIRECT_D2D=1` opts back in) and creates NCCL under
+  `NCCL_P2P_LEVEL=NVL` unless you set `NCCL_P2P_LEVEL` or
+  `NCCL_P2P_DISABLE` yourself. The campaign runner sets `NCCL_P2P_DISABLE=1`
+  explicitly so every row uses one transport; that variable governs NCCL
+  only, CuPy copies from older revisions still write P2P.
 - **Disk ≥ 40 GB** (datasets + wheels + rust build), **host RAM ≥ 32 GB** —
-  the survivor filter sorts on the host (~48 B/survivor at peak) and its
-  valve stages count slices through host RAM.
+  a count slice that does not fit the device is filtered on the host
+  (up to 24 B/element per 64M-element slice).
 - Prefer "dedicated GPU" listings for benchmark stability.
 
 ## Quickstart
@@ -40,9 +53,10 @@ markdown report, and the environment capture. Datasets under
 ## What the gate enforces (see /CLAUDE.md)
 
 `run_smoke.sh` and `run_full.sh` FIRST run `tests/test_tier_equivalence.py`:
-Tier 1 Polars == Tier 2 Rust == single-GPU legacy == multi-GPU legacy ==
-shared multi-GPU == single-GPU sparse CSR (`sparse_from_k=3`) == multi-GPU
-sparse CSR == **efficient-apriori**, exact itemsets and counts, on the
+Tier 1 Polars == Tier 2 Rust == row-split 1 GPU (measured dispatch, tiled
+pinned, per-candidate pinned, forced chunks) == SON 1 GPU == row-split 2 GPUs
+(plain and forced chunks) == SON 2 GPUs == **efficient-apriori**, exact
+itemsets and counts, on the
 `smoke` synthetic preset. Any divergence aborts the run — no benchmark
 number is worth recording from a miner that disagrees with the oracle.
 
@@ -50,11 +64,52 @@ number is worth recording from a miner that disagrees with the oracle.
 
 | Env | Values | Meaning |
 |---|---|---|
-| `ET_MINER_KERNEL_VARIANT` | `auto`/`legacy`/`shared` | dense counting kernel A/B |
-| `ET_MINER_FILTER_IMPL` | `compact`/`cupy`/`cpu` | survivor filter A/B |
-| `ET_MINER_ROW_BALANCE` | `rows`/`nnz` | multi-GPU row split A/B |
 | `ET_MINER_DISABLE_NCCL` | `1` | force the staged D2D reduce |
 | `ET_MINER_MAX_CHUNK_CANDS` | int | force multi-chunk runs |
+| `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |
+| `ET_MINER_DISABLE_RUST` | `1` | every Rust role takes its fallback (read once, at import) |
+
+## Consolidation campaign
+
+`bench/runner.py --mode consolidation` runs the GPU-layer consolidation matrix
+(`bench/consolidation_matrix.py`; protocol and decision rule in
+`bench/consolidation/PROTOCOL.md`). That matrix is the record of the Phase 2
+campaign and runs only at its revision (`e4bb3ae`): the routes and parameters
+it compared are gone from the tree, and a config that names one fails.
+`--mode verify` is the re-run on the consolidated tree (the surviving routes,
+each kernel pinned where the dispatch picks); results and the decisions are in
+`bench/results/2026-09-2*-consolidation*/` and `bench/consolidation/REPORT.md`.
+Each config names its route (C, C-bitvecs, D, E, F — see
+`bench/consolidation_run.py`), pins every thread pool and kernel knob it
+depends on, warms up on every device it uses, and records
+per-level (per-pass for SON) times, per-device peak VRAM, peak RSS, throttle
+reasons, the result signature and any logged fallback (which fails the
+config). Every config of one (dataset, min_support, max_length, free-sets)
+group must produce the same signature.
+
+```bash
+uv run python -m et_miner.synthetic --preset all --out datasets/synth
+uv run python datasets/prepare_online_retail.py
+OUT=bench/results/$(date +%F)-consolidation
+uv run python bench/runner.py --mode consolidation --out $OUT --max-gpu-hours 7.5
+uv run python bench/consolidation_report.py --out $OUT
+```
+
+The Rust host roles are also timed per call on real level arrays:
+
+```bash
+export RAYON_NUM_THREADS=6
+MB=$(mktemp -d)   # level arrays; tens of MB, not committed
+uv run python bench/microbench_rust.py dump deep_sparse_large $MB
+uv run python bench/microbench_rust.py dump deep_sparse_large $MB --free-sets
+uv run python bench/microbench_rust.py dump stress_k2 $MB --max-length 2 --then-k3 --n-gpus 2
+uv run python bench/microbench_rust.py dump stress_k2 $MB --max-length 2 --free-sets --n-gpus 2
+uv run python bench/microbench_rust.py time $MB > $OUT/microbench.jsonl
+```
+
+`ET_BENCH_ALPHAFOLD=/path/to/base214m.parquet` (a parquet with an `items`
+list column) makes the dataset name `alphafold` available to consolidation
+configs; nothing in the matrix uses it unless a config names it.
 
 ## Troubleshooting
 

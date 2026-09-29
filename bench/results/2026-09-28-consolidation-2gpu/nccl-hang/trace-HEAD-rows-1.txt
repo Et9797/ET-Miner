@@ -1,0 +1,35 @@
+2026-09-28 14:57:19.522 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /root/projects/ET-Miner/.venv/lib/libmkl_rt.so.3
+2026-09-28 14:57:19.522 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /root/projects/ET-Miner/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-09-28 14:57:19.563 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:539 - Direct CSR path: 20,000 transactions, min_count=400
+2026-09-28 14:57:19.565 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:562 - Direct CSR path: 67 frequent items
+2026-09-28 14:57:19.567 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:586 - Direct CSR path: 96,135 non-zeros
+2026-09-28 14:57:19.572 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:192 -   Row-split multi-GPU: 2 GPUs, min_count=400 (GPU-resident dense counting)
+2026-09-28 14:57:19.573 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 0] Building bitvec: 10,000 rows, 48,243 nnz, ~0.0 GB (rows-balanced)
+2026-09-28 14:57:19.573 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 1] Building bitvec: 10,000 rows, 47,892 nnz, ~0.0 GB (rows-balanced)
+2026-09-28 14:57:19.707 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:202 -   Bitvec build: 0.1s across 2 GPUs
+2026-09-28 14:57:19.939 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:241 -   NCCL: 2 communicators (ring all-reduce)
+2026-09-28 14:57:19.969 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:488 -   K=1: 67 frequent items in 0.0s
+2026-09-28 14:57:19.977 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:533 -   K=2: 2,211 total pairs, 1 chunk(s), dense output 0.00 GB/GPU per chunk
+[trace +  0.430s tid=46496] rank 0: comm rank_id=0 comm_dev=0 arr dev=0 size=2211 dtype=int32 ptr=0x7099db200a00 stream=0x0
+[trace +  0.430s tid=60736] rank 1: comm rank_id=1 comm_dev=1 arr dev=1 size=2211 dtype=int32 ptr=0x7099db400a00 stream=0x0
+[trace +  0.436s tid=46496] rank 0: reduce enqueued
+[trace +  0.438s tid=60736] rank 1: reduce enqueued
+[trace +  0.488s tid=60736] rank 1: sync done in 0.051s
+[trace +  0.492s tid=46496] rank 0: sync done in 0.056s
+[trace +  0.492s tid= 4736] reduce results: ['ok', 'ok']
+2026-09-28 14:57:20.042 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:278 -   K=2 chunk 1/1 filtering: 2,211 candidates → 115 frequent (5.2% pass rate, min_count=400)
+2026-09-28 14:57:20.043 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:714 -   K=2: 115 frequent in 0.1s
+2026-09-28 14:57:20.043 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:623 -   K=3: 1,122 candidates — per-candidate 83, tiled 1,039; group data 0.0 GB, budget 2,577,880,270 cands/chunk
+[trace +  0.496s tid=46496] rank 0: comm rank_id=0 comm_dev=0 arr dev=0 size=83 dtype=int32 ptr=0x7099db200c00 stream=0x0[trace +  0.496s tid=60736] rank 1: comm rank_id=1 comm_dev=1 arr dev=1 size=83 dtype=int32 ptr=0x7099db400c00 stream=0x0
+
+[trace +  0.497s tid=60736] rank 1: reduce enqueued[trace +  0.497s tid=46496] rank 0: reduce enqueued
+
+[trace +  0.547s tid=60736] rank 1: sync done in 0.051s
+[trace + 20.500s tid=46496] rank 0: SYNC TIMED OUT after 20 s (kernel never completed)
+[trace + 20.500s tid= 4736] reduce results: ['timeout', 'ok']
+Timeout (0:01:00)!
+Thread 0x0000709b1fa8e740 (most recent call first):
+  File "/root/projects/ET-Miner/src/et_miner/gpu/row_split.py", line 422 in _count_dense
+  File "/root/projects/ET-Miner/src/et_miner/gpu/row_split.py", line 631 in _apriori_row_split_multi_gpu
+  File "/root/projects/ET-Miner/src/et_miner/core/apriori.py", line 662 in apriori
+  File "/tmp/claude-0/-root-projects-ET-Miner/1f88fc6e-215b-4f58-b175-c6bc8f7b2cdc/scratchpad/repro_nnz2.py", line 50 in <module>

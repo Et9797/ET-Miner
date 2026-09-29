@@ -30,7 +30,7 @@ from typing import Any, Literal
 import polars as pl
 from loguru import logger
 
-from et_miner.gpu.density import validate_sparse_from_k
+from et_miner import _env
 
 from .candidates import _generate_candidates
 from .matrix import (
@@ -76,6 +76,7 @@ def _validate_parameters(
     max_length: int | None,
     batch_size: int | None,
     sparse_from_k: int | str | None = None,
+    prune_apriori: bool | None = None,
 ) -> None:
     """Validate apriori parameters with clear error messages."""
     # min_support: must be numeric in [0.0, 1.0]
@@ -101,8 +102,18 @@ def _validate_parameters(
         if batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 
-    # sparse_from_k: int K-level, "auto", or None
-    validate_sparse_from_k(sparse_from_k)
+    if sparse_from_k is not None:
+        raise ValueError(
+            "sparse_from_k was removed: the GPU miner keeps dense bitvectors at every level "
+            "(the sparse CSR layout won no measured regime and ran out of memory where dense "
+            "did not). Drop the argument."
+        )
+    if prune_apriori is not None:
+        raise ValueError(
+            "prune_apriori was removed: the GPU miner counts every candidate its prefix groups "
+            "generate instead of subset-testing them on the host first (as fast or faster in "
+            "every measured regime, same results). Drop the argument."
+        )
 
 
 def _prune_equal_support(
@@ -225,7 +236,6 @@ def _validate_route_support(
     gpu_resident: bool,
     prune_equal_support: bool,
     use_generator_pruning: bool,
-    prune_apriori: bool,
     anchor_items: set | None,
     output_dir: str | None,
     resume_from_k: int | None,
@@ -233,8 +243,9 @@ def _validate_route_support(
 ) -> None:
     """Reject parameter/route combinations the chosen route cannot honour.
 
-    apriori() takes a wide parameter set and dispatches to one of six routes,
-    not all of which implement all of it. Every mismatch below used to be
+    apriori() takes a wide parameter set and dispatches to one of four routes
+    (the row-split GPU miner, single- and multi-GPU SON streaming, the CPU
+    miner), not all of which implement all of it. Every mismatch below used to be
     SILENT: the caller passed the parameter, the route dropped it, and nothing
     in the return value or the logs said so. Measured on a 400-row fixture:
 
@@ -247,14 +258,6 @@ def _validate_route_support(
                                                `result, session = apriori(...)`
                                                succeeds and hands back a column
                                                of itemsets and a column of floats
-      gpu_resident + prune_equal_support    -> the row-split result, because
-                                               _route_for_pruning is tested first
-      gpu_resident + n_gpus>1 (or anchors)  -> the same row-split result, by the
-                                               same test, with no pruning asked
-                                               for anywhere in the call
-      gpu_resident + streaming + n_gpus>1   -> the multi-GPU streaming result;
-                                               the single-GPU sibling is handed
-                                               the flag and this one is not
 
     The file already raised for one such combination (profile + pruning on a GPU
     path); this generalises that to every one of them. Raising is the right
@@ -262,10 +265,16 @@ def _validate_route_support(
     exactness should not quietly answer a different question.
 
     Where a route CAN honour a parameter it is forwarded instead -- output_dir
-    and resume_from_k on the bitvecs+pruning route, and memory_budget_gb on
-    multi-GPU streaming -- so this only fires where the capability genuinely
-    does not exist.
+    and resume_from_k on the bitvecs route, and memory_budget_gb on multi-GPU
+    streaming -- so this only fires where the capability genuinely does not
+    exist.
     """
+    if gpu_resident:
+        raise ValueError(
+            "gpu_resident was removed: use_gpu=True (or bitvecs=) mines on the row-split miner, "
+            "which keeps candidates and counts on the GPU. Drop the argument."
+        )
+
     # prune_equal_support / use_generator_pruning: the row-split miner alone
     # implements the gates, and it is only reachable via use_gpu or bitvecs=.
     if streaming and (prune_equal_support or use_generator_pruning):
@@ -280,65 +289,14 @@ def _validate_route_support(
             "the two, or mine without streaming."
         )
 
-    _routes_to_row_split = prune_equal_support and (use_gpu or has_bitvecs)
-
-    # gpu_resident exists on the single-GPU bitvec miner and on single-GPU /
-    # CPU streaming. Every other route drops it without a word.
-    #
-    # This guard used to be keyed on prune_equal_support alone, which caught
-    # one of the three doors into that. apriori() tests
-    # `n_gpus > 1 or anchor_items is not None or _route_for_pruning` BEFORE the
-    # `if gpu_resident:` branch, so an ordinary multi-GPU call --
-    # apriori(use_gpu=True, n_gpus=4, gpu_resident=True) with no pruning at all
-    # -- passed validation and landed on row-split. Multi-GPU streaming takes
-    # the third door: apriori_streaming_multi_gpu has no such parameter, while
-    # its single-GPU sibling is handed one.
-    if gpu_resident:
-        if _routes_to_row_split or (
-            use_gpu and not streaming and not has_bitvecs and (n_gpus > 1 or anchor_items is not None)
-        ):
-            raise ValueError(
-                "gpu_resident=True cannot be combined with a row-split GPU run "
-                "(n_gpus>1, anchor_items, or prune_equal_support): the row-split "
-                "miner has no GPU-resident mode, and its routing is decided "
-                "before the gpu_resident branch, so gpu_resident would be "
-                "silently ignored. Drop one of the two, or mine single-GPU."
-            )
-        # `not has_bitvecs` because the bitvecs branch returns before the
-        # `if streaming:` test is ever read, and it honours gpu_resident. Without
-        # the conjunct this clause refused apriori(bitvecs=..., streaming=True,
-        # n_gpus=2, gpu_resident=True) -- a call that works today -- naming a
-        # route it never reaches. A guard whose contract is exactness cannot
-        # refuse a working call, whatever the clause above it happens to do.
-        if streaming and n_gpus > 1 and not has_bitvecs:
-            raise ValueError(
-                "gpu_resident=True cannot be combined with streaming=True and "
-                "n_gpus>1: apriori_streaming_multi_gpu has no GPU-resident mode "
-                "and is not handed the flag, so it would be silently ignored. "
-                "Drop one of the two, or stream on one GPU."
-            )
-        if not use_gpu and not streaming and not has_bitvecs:
-            raise ValueError(
-                "gpu_resident=True requires a GPU route: without use_gpu, "
-                "bitvecs= or streaming= the call is served by the CPU miner, "
-                "which never sees the flag. Pass use_gpu=True."
-            )
-
-    # anchor_items is implemented by the row-split miner alone, so the test has
-    # to be "does this call RESOLVE to row-split", not "did the caller pass
-    # use_gpu". Keyed on use_gpu it missed the bitvecs route entirely:
-    # apriori(bitvecs=..., use_gpu=True, anchor_items={...}) passed validation
-    # and reached _apriori_from_bitvecs, which has no such parameter -- measured
-    # 210 itemsets returned with 136 of them UNANCHORED, i.e. defect #8's exact
-    # failure mode, in the guard written to close it.
-    #
-    # Note this REFUSES rather than forwarding. The bitvecs+pruning call below
-    # already forwards output_dir and resume_from_k, so teaching it to anchor
-    # would put anchoring on a route that also persists and resumes -- and an
-    # anchored per-K parquet is not a resumable mining state (see the
-    # resume_from_k check below). Refusing keeps everything that route flushes a
-    # complete level for a structural reason, rather than only while a second
-    # guard holds. Nothing in the tree pairs bitvecs= with anchor_items.
+    # anchor_items is implemented by the row-split miner for transactions
+    # input only. The bitvecs route REFUSES it rather than forwarding: that
+    # route forwards output_dir and resume_from_k, so anchoring there would put
+    # anchoring on a route that also persists and resumes -- and an anchored
+    # per-K parquet is not a resumable mining state (see the resume_from_k
+    # check below). Refusing keeps everything that route flushes a complete
+    # level for a structural reason, rather than only while a second guard
+    # holds. Nothing in the tree pairs bitvecs= with anchor_items.
     if anchor_items is not None and not (use_gpu and not streaming and not has_bitvecs):
         raise ValueError(
             "anchor_items requires the row-split miner, reached with "
@@ -347,23 +305,18 @@ def _validate_route_support(
             "would silently return the complete, differently-shaped lattice."
         )
 
-    # profile builds a ProfilingSession, which only the CPU loop, the single-GPU
-    # bitvec miner and single-GPU SON streaming do.
-    if profile:
-        if streaming and n_gpus > 1:
-            raise ValueError(
-                "profile=True cannot be combined with streaming=True and "
-                "n_gpus>1: the multi-GPU streaming path builds no "
-                "ProfilingSession and would return a bare DataFrame, which "
-                "unpacks silently into two Series."
-            )
-        if _routes_to_row_split or anchor_items is not None or (use_gpu and n_gpus > 1):
-            raise ValueError(
-                "profile=True cannot be combined with a row-split GPU run "
-                "(n_gpus>1, anchor_items, or prune_equal_support): the row-split "
-                "miner builds no ProfilingSession and would return a bare "
-                "DataFrame, which unpacks silently into two Series."
-            )
+    # profile builds a ProfilingSession, which every route but multi-GPU SON does.
+    if profile and streaming and n_gpus > 1 and not has_bitvecs:
+        raise ValueError(
+            "profile=True cannot be combined with streaming=True and "
+            "n_gpus>1: the multi-GPU streaming path builds no "
+            "ProfilingSession and would return a bare DataFrame, which "
+            "unpacks silently into two Series."
+        )
+
+    # The row-split miner serves bitvecs= (that branch runs first) and use_gpu
+    # without streaming.
+    reaches_row_split = has_bitvecs or (use_gpu and not streaming)
 
     # output_dir / resume_from_k are the row-split miner's per-K parquet flush.
     if output_dir is not None or resume_from_k is not None:
@@ -371,37 +324,14 @@ def _validate_route_support(
             n for n, v in (("output_dir", output_dir), ("resume_from_k", resume_from_k))
             if v is not None
         )
-        reaches_row_split = _routes_to_row_split or (
-            use_gpu and not streaming and (n_gpus > 1 or anchor_items is not None)
-        )
         if not reaches_row_split:
             raise ValueError(
-                f"{which} requires the row-split miner, reached with use_gpu=True "
-                "and one of n_gpus>1, anchor_items, or prune_equal_support (or "
-                "with bitvecs= and prune_equal_support). On this route the "
-                "per-K parquet flush does not run: output_dir would stay empty "
-                "and resume_from_k would silently re-mine from K=1."
+                f"{which} requires the row-split miner, reached with bitvecs= or "
+                "with use_gpu=True and streaming=False. On this route the per-K "
+                "parquet flush does not run: output_dir would stay empty and "
+                "resume_from_k would silently re-mine from K=1."
             )
 
-    # prune_apriori is the row-split miner's K>=3 subset test. The CPU route
-    # applies that test unconditionally and the single-GPU bitvec miner has no
-    # such step, so switching it OFF can only be honoured where the switch
-    # exists. (bitvecs= reaches the row-split miner through pruning alone: with
-    # the gate off it is served by the single-GPU bitvec miner whatever n_gpus
-    # says.)
-    if not prune_apriori:
-        reaches_row_split = _routes_to_row_split or (
-            use_gpu and not streaming and not has_bitvecs and (n_gpus > 1 or anchor_items is not None)
-        )
-        if not reaches_row_split:
-            raise ValueError(
-                "prune_apriori=False requires the row-split miner, reached with "
-                "use_gpu=True and one of n_gpus>1, anchor_items, or "
-                "prune_equal_support (or with bitvecs= and prune_equal_support). "
-                "The CPU route applies the Apriori subset test unconditionally "
-                "and the single-GPU bitvec miner has no such step, so on this "
-                "route the flag would be silently ignored."
-            )
 
     # A persisted K-level is a valid resume artifact IFF it is the complete
     # frequent level at that K -- resume reloads it as BOTH the generation base
@@ -453,7 +383,7 @@ def apriori(
     warn_complexity: bool = True,
     prune_equal_support: bool = False,
     use_generator_pruning: bool = False,
-    prune_apriori: bool = True,
+    prune_apriori: bool | None = None,
     sparse: bool | None = None,
     n_jobs: int = 1,
     enable_length_filter: bool = True,
@@ -464,7 +394,7 @@ def apriori(
     memory_budget_gb: float | None = None,
     progress_callback: Callable[[str, int, int, dict[str, Any]], None] | None = None,
     level_callback: Callable[[int, int, int, float], None] | None = None,
-    # GPU-resident mode (zero PCIe round trips)
+    # Removed: True raises ValueError
     gpu_resident: bool = False,
     # Pre-built bitvector input (GPU fast path)
     bitvecs: tuple | None = None,
@@ -475,7 +405,7 @@ def apriori(
     # Memory guard limits for exhaustive mining
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
-    # V3: dense→sparse CSR transition — int K-level, "auto" = measured density
+    # Removed: any value but None raises
     sparse_from_k: int | Literal["auto"] | None = None,
     # V3 B6: restrict candidates to anchor neighborhoods (two-phase mining)
     anchor_items: set | None = None,
@@ -489,7 +419,7 @@ def apriori(
         min_support: Minimum support threshold (0.0-1.0).
         max_length: Maximum itemset length (None = unlimited).
         item_col: Column name with item lists.
-        use_gpu: Use GPU acceleration if available (requires polars[gpu]).
+        use_gpu: Mine on the GPU with the row-split miner (requires CuPy).
         batch_size: Candidates per batch for memory control. None = no batching.
         profile: If True, return profiling metrics alongside results.
         show_progress: If True, display progress bar (requires tqdm).
@@ -503,24 +433,15 @@ def apriori(
             generated from, so the support of every omitted frequent itemset
             equals that of one of its subsets. False (default) returns the
             complete frequent lattice. This is NOT closed-itemset mining, which
-            asks about equal-support supersets. GPU runs take the row-split
-            path when this is on — the only one that implements the gates.
+            asks about equal-support supersets.
         use_generator_pruning: Infer support from (k-1)-subsets instead of counting.
             Pascal [Bastide et al. 2000]: a candidate with a non-free (k-1)-subset
             is itself non-free and its support is exactly the minimum of its
             (k-1)-subset supports, so it never has to be counted. Exact, no
             impact on results. CPU path only.
-        prune_apriori: Row-split miner only (reached with use_gpu=True and one
-            of n_gpus>1, anchor_items or prune_equal_support, or with bitvecs=
-            and prune_equal_support): run the exact Apriori subset test over
-            every K>=3 candidate group before counting, dropping the candidates
-            with an infrequent (k-1)-subset. Exact, so it changes candidate
-            counts and time, never the mined itemsets. Default True. It used to
-            follow prune_equal_support at the dispatch site, so a
-            complete-lattice run on that route mined with no downward closure
-            at all. The CPU route applies the subset test unconditionally and
-            the single-GPU bitvec miner has no such step, so False is refused
-            off the row-split miner rather than silently ignored.
+        prune_apriori: Removed; any value raises ValueError. The GPU miner
+            counts every candidate its prefix groups generate instead of
+            running a host-side subset test first (the results are the same).
         sparse: Scipy CSR matrix usage. True = force, False = Polars, None = auto
             (switches at >100K k=2 candidates or >500 items <10% density).
         n_jobs: Parallel workers for sparse k>2 counting. 1=sequential, -1=all CPUs.
@@ -530,7 +451,8 @@ def apriori(
         streaming: Use SON algorithm for chunked processing. Memory becomes
             O(chunk_size × n_items) instead of O(total × n_items).
         chunk_size: Transactions per chunk when streaming=True. Default 10M.
-        n_gpus: GPUs for multi-GPU streaming (default 1). Requires CuPy.
+        n_gpus: GPUs for the row-split miner and for streaming (default 1).
+            Requires CuPy.
         memory_budget_gb: Auto-calculate chunk_size to fit this budget.
             Overrides chunk_size. Only used when streaming=True.
         progress_callback: Streaming progress callback
@@ -540,10 +462,10 @@ def apriori(
 
             **n_candidates is route-dependent and the routes do not agree.**
             The CPU path applies the full per-candidate subset test before
-            counting, so it reports candidates that survived it. The GPU group
-            path prunes at suffix granularity, which over-approximates, so it
-            reports more candidates than the CPU path for the same input at the
-            same level. Both are honest counts of what that route was about to
+            counting, so it reports candidates that survived it. The GPU path
+            counts every candidate its prefix groups generate, so it reports
+            more candidates than the CPU path for the same input at the same
+            level. Both are honest counts of what that route was about to
             count; neither is "the" candidate count. A consumer doing per-level
             cost accounting should treat the figure as comparable within a
             route and not across routes.
@@ -554,16 +476,14 @@ def apriori(
             The array is READ-ONLY to the engine: ET-Miner writes only to
             bitvectors it builds itself, never to one it is handed, so the
             caller may reuse it after the call without copying it first.
-        sparse_from_k: GPU paths only — when to switch support counting from
-            dense bitvectors to sparse CSR tidsets. An int fixes the K-level;
-            "auto" transitions when the previous level's measured mean support
-            drops below n_transactions/32 (the point where tidsets become
-            smaller than bitvectors); None (default) never switches.
-        max_ram_gb / max_vram_gb: Memory guards for the single-GPU
-            exhaustive mining loop only (checked between K-levels via RSS
-            and the CuPy pool). The multi-GPU row-split path does not read
-            them — it sizes candidate chunks from measured free VRAM and
-            honors CuPy memory-pool limits instead.
+        sparse_from_k: Removed; any value other than None raises ValueError.
+            The GPU miner keeps dense bitvectors at every level.
+        max_ram_gb / max_vram_gb: Memory guards for the GPU routes
+            (use_gpu=True without streaming, or bitvecs=): MemoryError between
+            K-levels once host RSS or the largest device's CuPy pool exceeds
+            them. Candidate chunks are sized from measured free VRAM either way.
+        gpu_resident: Removed; True raises ValueError. The row-split miner
+            keeps candidates and counts on the GPU.
 
     Returns:
         DataFrame with itemset (List[Int64]) and support (Float64) columns.
@@ -589,7 +509,8 @@ def apriori(
         >>> result = apriori(df, min_support=0.0001, sparse=True, n_jobs=-1)
         >>> result = apriori(huge_df, min_support=0.001, streaming=True, n_gpus=8)
     """
-    _validate_parameters(min_support, max_length, batch_size, sparse_from_k)
+    _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)
+    _env.reject_removed_knobs()
 
     # Every parameter/route mismatch is rejected here, ABOVE the routing, so a
     # route cannot silently drop something the caller asked for. This has to run
@@ -604,19 +525,11 @@ def apriori(
         gpu_resident=gpu_resident,
         prune_equal_support=prune_equal_support,
         use_generator_pruning=use_generator_pruning,
-        prune_apriori=prune_apriori,
         anchor_items=anchor_items,
         output_dir=output_dir,
         resume_from_k=resume_from_k,
         memory_budget_gb=memory_budget_gb,
     )
-
-    # prune_equal_support is implemented by the row-split miner alone — both
-    # gates live there. Every other GPU route accepted the flag and dropped it
-    # on the floor, handing back the complete lattice while the caller believed
-    # it had asked for the free-sets. Route those calls instead of ignoring
-    # them; the row-split path runs on one GPU as happily as on many.
-    _route_for_pruning = bool(prune_equal_support) and (use_gpu or bitvecs is not None)
 
     # Route to bitvecs fast path if pre-built GPU bitvectors provided
     if bitvecs is not None:
@@ -657,58 +570,30 @@ def apriori(
                 f"col_to_item has {len(col_to_item)} keys but bitvecs_gpu has {bitvecs_gpu.shape[0]} columns"
             )
 
-        # Pruning requested → the only route that implements it.
-        if _route_for_pruning:
-            from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
-
-            return _apriori_row_split_multi_gpu(
-                None,
-                col_to_item,
-                n_trans,
-                min_support,
-                max_length,
-                n_gpus,
-                level_callback,
-                bitvecs_list=[(bitvecs_gpu, int(bitvecs_gpu.device.id), n_trans)],
-                prune_non_free=True,
-                prune_apriori=prune_apriori,
-                sparse_from_k=sparse_from_k,
-                # The sibling call below passes both; this one dropped them, so
-                # output_dir produced no flush and resume_from_k silently
-                # re-mined from K=1 on a multi-day campaign.
-                output_dir=output_dir,
-                resume_from_k=resume_from_k,
+        # The kernels index the array as col * n_u64s + word.
+        if bitvecs_gpu.dtype != "uint64" or not bitvecs_gpu.flags.c_contiguous:
+            raise ValueError(
+                f"bitvecs_gpu must be a C-contiguous uint64 array (cupy.ascontiguousarray), got "
+                f"{bitvecs_gpu.dtype}, c_contiguous={bitvecs_gpu.flags.c_contiguous}"
             )
 
-        # Route to GPU-resident or standard bitvecs fast path
-        if gpu_resident:
-            from et_miner.gpu.mining import _apriori_from_bitvecs_gpu_resident
+        from et_miner.gpu.row_split import _apriori_row_split_multi_gpu, shard_prebuilt_bitvecs
 
-            return _apriori_from_bitvecs_gpu_resident(
-                bitvecs_gpu,
-                col_to_item,
-                n_trans,
-                min_support,
-                max_length,
-                profile,
-                level_callback,
-                n_gpus=n_gpus,
-            )
-        from et_miner.gpu.mining import _apriori_from_bitvecs
-
-        return _apriori_from_bitvecs(
-            bitvecs_gpu,
+        return _apriori_row_split_multi_gpu(
+            None,
             col_to_item,
             n_trans,
             min_support,
             max_length,
-            batch_size,
-            profile,
+            max(1, n_gpus),
             level_callback,
-            n_gpus=n_gpus,
+            bitvecs_list=shard_prebuilt_bitvecs(bitvecs_gpu, n_trans, max(1, n_gpus)),
+            output_dir=output_dir,
+            resume_from_k=resume_from_k,
+            prune_non_free=prune_equal_support,
+            profile=profile,
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
-            sparse_from_k=sparse_from_k,
         )
 
     # Validate transactions is provided when bitvecs is not
@@ -762,8 +647,6 @@ def apriori(
     # Bypasses the dense boolean matrix entirely.
     # For 205M × 1006: ~5 GB CPU + ~25 GB GPU  instead of  206 GB CPU.
     if use_gpu:
-        from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
-
         from .matrix import _build_csr_from_transactions
 
         csr_result = _build_csr_from_transactions(lf, min_support, item_col)
@@ -774,58 +657,23 @@ def apriori(
 
         csr, idx_to_item, n_trans = csr_result
 
-        # Row-split path: multiple GPUs, anchor filtering, or free-set pruning
-        # (the single-GPU bitvec miner implements neither gate).
-        if n_gpus > 1 or anchor_items is not None or _route_for_pruning:
-            from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
+        from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
 
-            return _apriori_row_split_multi_gpu(
-                csr,
-                idx_to_item,
-                n_trans,
-                min_support,
-                max_length,
-                n_gpus,
-                level_callback,
-                output_dir=output_dir,
-                resume_from_k=resume_from_k,
-                prune_non_free=prune_equal_support,  # free-sets: emit == generate
-                prune_apriori=prune_apriori,  # exact subset test, its own switch
-                sparse_from_k=sparse_from_k,  # V3: density transition K-level
-                anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
-            )
-
-        bitvecs_gpu = _build_gpu_bitvec_matrix(csr)
-        del csr  # free CPU CSR memory
-
-        if gpu_resident:
-            from et_miner.gpu.mining import _apriori_from_bitvecs_gpu_resident
-
-            return _apriori_from_bitvecs_gpu_resident(
-                bitvecs_gpu,
-                idx_to_item,
-                n_trans,
-                min_support,
-                max_length,
-                profile,
-                level_callback,
-                n_gpus=n_gpus,
-            )
-        from et_miner.gpu.mining import _apriori_from_bitvecs
-
-        return _apriori_from_bitvecs(
-            bitvecs_gpu,
+        return _apriori_row_split_multi_gpu(
+            csr,
             idx_to_item,
             n_trans,
             min_support,
             max_length,
-            batch_size,
-            profile,
+            max(1, n_gpus),
             level_callback,
-            n_gpus=n_gpus,
+            output_dir=output_dir,
+            resume_from_k=resume_from_k,
+            prune_non_free=prune_equal_support,  # free-sets: emit == generate
+            anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
+            profile=profile,
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
-            sparse_from_k=sparse_from_k,
         )
 
     # ── CPU path: dense boolean matrix ─────────────────────────────────

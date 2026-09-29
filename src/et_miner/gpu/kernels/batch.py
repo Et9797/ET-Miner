@@ -4,73 +4,29 @@ from __future__ import annotations
 
 import numpy as np
 
-from .loader import get_cuda_kernel
+from .loader import _assert_bitvecs, get_cuda_kernel
 
 
-def count_itemsets_cuda(
-    bitvecs_gpu,  # CuPy array [n_cols, n_u64s]
-    itemsets: list[np.ndarray],
-    use_batch: bool = True,
-) -> np.ndarray:
-    """
-    Count itemset support using custom CUDA kernels.
-
-    10x faster than CuPy bitwise_and.reduce + unpackbits!
+def count_itemsets_cuda(bitvecs_gpu, itemsets: list[np.ndarray]) -> np.ndarray:
+    """Support count of every itemset, one batched AND + popcount launch.
 
     Args:
-        bitvecs_gpu: CuPy array of shape (n_cols, n_u64s)
-        itemsets: List of numpy arrays with item indices
-        use_batch: Use batched kernel (faster for many itemsets)
+        bitvecs_gpu: CuPy uint64 array of shape (n_cols, n_u64s).
+        itemsets: Non-empty int arrays of column indices, of any lengths.
 
     Returns:
-        Numpy array of counts
+        int64 NumPy array of counts, one per itemset.
     """
-
-    n_cols, n_u64s = bitvecs_gpu.shape
-    n_itemsets = len(itemsets)
-
-    if use_batch and n_itemsets > 10:
-        return _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s)
-    else:
-        return _count_single(bitvecs_gpu, itemsets, n_cols, n_u64s)
-
-
-def _count_single(bitvecs_gpu, itemsets, n_cols, n_u64s):
-    """Count itemsets one at a time."""
     import cupy as cp
 
-    kernel = get_cuda_kernel("count_itemset_fused")
-    counts = np.zeros(len(itemsets), dtype=np.int64)
-
-    # Kernel config
-    # Note: Kernel uses grid-stride loop, so all data is processed regardless of grid size.
-    # Higher grid size = more parallelism. CUDA x-dimension supports up to 2^31-1 blocks.
-    block_size = 256
-    blocks_needed = (n_u64s + block_size - 1) // block_size
-    # Cap at 2^20 (~1M blocks) for safety on older GPUs while allowing massive parallelism
-    grid_size = min(blocks_needed, 1 << 20)
-
-    # Cast to int64 to match kernel's long long parameter
-    n_u64s_i64 = np.int64(n_u64s)
-
-    for i, itemset in enumerate(itemsets):
-        if len(itemset) == 0:
-            continue
-
-        items_gpu = cp.array(itemset, dtype=cp.int32)
-        count_gpu = cp.zeros(1, dtype=cp.uint64)
-
-        kernel(
-            (grid_size,),
-            (block_size,),
-            (bitvecs_gpu, items_gpu, np.int32(len(itemset)), n_u64s_i64, np.int32(n_cols), count_gpu),
-        )
-
-        # CRITICAL: Synchronize before reading result to ensure kernel completion
-        cp.cuda.Stream.null.synchronize()
-        counts[i] = int(count_gpu.get()[0])
-
-    return counts
+    _assert_bitvecs("count_itemsets_cuda", bitvecs_gpu)
+    n_cols, n_u64s = bitvecs_gpu.shape
+    if any(len(s) == 0 for s in itemsets):
+        raise ValueError("count_itemsets_cuda: every itemset needs at least one item")
+    if not itemsets or n_u64s == 0:
+        return np.zeros(len(itemsets), dtype=np.int64)
+    with cp.cuda.Device(bitvecs_gpu.device.id):
+        return _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s)
 
 
 def _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s):
@@ -93,26 +49,6 @@ def _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s):
     return _launch_batch_kernel(
         bitvecs_gpu,
         all_items_gpu,
-        offsets_gpu,
-        n_itemsets,
-        n_u64s,
-    )
-
-
-def _count_batch_prebuilt(bitvecs_gpu, items_flat_np, offsets_np, n_itemsets, n_u64s):
-    """Count itemsets using pre-built flat numpy arrays (avoids Python loop).
-
-    For multi-GPU recount: build arrays ONCE, each GPU only does DMA transfer.
-    Eliminates O(N) Python list-building that was serialized by the GIL.
-    """
-    import cupy as cp
-
-    items_gpu = cp.array(items_flat_np, dtype=cp.int32)
-    offsets_gpu = cp.array(offsets_np, dtype=cp.int64)  # FIXED: int32 -> int64 for >2B elements
-
-    return _launch_batch_kernel(
-        bitvecs_gpu,
-        items_gpu,
         offsets_gpu,
         n_itemsets,
         n_u64s,

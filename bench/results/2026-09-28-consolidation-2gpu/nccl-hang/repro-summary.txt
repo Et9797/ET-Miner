@@ -1,0 +1,22 @@
+START 2026-09-28T14:50:24Z
+e4bb3ae nnz #1 rc=0 :: OK 0.89s itemsets=246
+e4bb3ae nnz #2 rc=0 :: OK 0.88s itemsets=246
+e4bb3ae nnz #3 rc=0 :: OK 0.87s itemsets=246
+e4bb3ae nnz #4 rc=1 :: 
+e4bb3ae nnz #5 rc=1 :: 
+e4bb3ae rows #1 rc=1 :: 
+e4bb3ae rows #2 rc=0 :: OK 0.86s itemsets=246
+e4bb3ae rows #3 rc=0 :: OK 0.86s itemsets=246
+e4bb3ae rows #4 rc=0 :: OK 0.86s itemsets=246
+e4bb3ae rows #5 rc=0 :: OK 0.86s itemsets=246
+HEAD nnz #1 rc=1 :: Traceback (most recent call last):
+HEAD nnz #2 rc=1 :: Traceback (most recent call last):
+HEAD nnz #3 rc=1 :: Traceback (most recent call last):
+HEAD nnz #4 rc=1 :: Traceback (most recent call last):
+HEAD nnz #5 rc=1 :: Traceback (most recent call last):
+HEAD rows #1 rc=1 :: Traceback (most recent call last):
+HEAD rows #2 rc=1 :: Traceback (most recent call last):
+HEAD rows #3 rc=1 :: Traceback (most recent call last):
+HEAD rows #4 rc=1 :: Traceback (most recent call last):
+HEAD rows #5 rc=1 :: Traceback (most recent call last):
+END 2026-09-28T14:52:55Z

@@ -2,9 +2,9 @@
 
 A blazing fast Apriori implementation with Python, Rust backend, and multi-GPU support.
 
-The top level exposes the mining API plus capability probes. GPU plumbing,
-ramdisk helpers, and benchmark harnesses live in their subpackages
-(``et_miner.gpu``, ``et_miner.streaming``) and are imported from there.
+The top level exposes the mining API plus capability probes. GPU plumbing
+and ramdisk helpers live in their subpackages (``et_miner.gpu``,
+``et_miner.streaming``) and are imported from there.
 
 Example:
     >>> from et_miner import apriori, generate_rules
@@ -71,9 +71,13 @@ if HAS_RUST:
 else:
 
     def apriori_from_csr(*args, **kwargs):
-        """Stub raised when the Rust extension is not built."""
+        """Stub raised when the Rust extension is not built or is disabled."""
         from et_miner.backends import BUILD_COMMAND
 
+        if backends.RUST_DISABLED:
+            raise MiningError(
+                "apriori_from_csr requires the Rust extension, which ET_MINER_DISABLE_RUST=1 disables."
+            )
         raise MiningError(
             f"apriori_from_csr requires the Rust extension. Build it with: "
             f"{BUILD_COMMAND} (see README, Tier 2)"

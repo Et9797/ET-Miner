@@ -28,82 +28,16 @@ def _get_device_lock(device_id: int) -> threading.Lock:
     return _cuda_device_locks[device_id]
 
 
-def _warn_result_truncation(
-    n_actual: int,
-    max_results: int,
-    context: str = "",
-    *,
-    k: int | None = None,
-    knob: str = "max_results",
-):
-    """Raise on result-buffer overflow. Never truncate silently.
-
-    This used to tolerate an overflow of up to 5% with a `logger.warning` and
-    return the truncated count. There is no percentage of silently-lost frequent
-    itemsets that is acceptable for a miner whose contract is exactness, and the
-    tolerance was worse than it looks on three counts:
-
-      - the kernels append via atomicAdd, so the DROPPED SET IS
-        NON-DETERMINISTIC. Three repeats at 3% overflow kept three different
-        sets, pairwise differing by 30-32 itemsets. Those routes disagreed with
-        the row-split path, with the CPU tiers, and with themselves run twice --
-        so the tier-equivalence chain CLAUDE.md mandates could not hold at that
-        scale even against itself.
-      - the truncated level feeds candidate generation, so the loss compounds at
-        every deeper K.
-      - a silent 60% loss cannot be caught by a log grep, and 5% of a 10M-result
-        buffer is 500,000 itemsets.
-
-    The raise lands hours into a run, so the message has to be actionable: it
-    names the level, the overflow, the exact knob to raise, and the K to resume
-    from. See `resume_from_k` on the row-split miner.
-    """
-    if n_actual <= max_results:
-        return n_actual
-
-    overflow_pct = (n_actual - max_results) / n_actual * 100
-    where = f" at K={k}" if k is not None else ""
-    # Name ONLY remedies reachable on the route that raises. These kernels are
-    # reached from _apriori_from_bitvecs / _apriori_from_bitvecs_gpu_resident,
-    # where `max_results` is not a public apriori() parameter and both
-    # `output_dir` and `resume_from_k` are refused by _validate_route_support --
-    # so an earlier version of this message advised two impossible things and
-    # one knob the caller cannot set.
-    raise RuntimeError(
-        f"Result truncation{where}: {n_actual:,} frequent itemsets found but the "
-        f"result buffer holds {max_results:,} ({overflow_pct:.1f}% would be lost, "
-        f"non-deterministically, because the kernels append via atomicAdd). "
-        f"{context} "
-        f"Re-run on the row-split miner, which sizes exactly to the survivor "
-        f"count and has no ceiling: pass n_gpus>1 or prune_equal_support=True to "
-        f"apriori(). That route also supports output_dir, so each level is "
-        f"flushed as it completes. Otherwise lower max_length"
-        + (f" (this is K={k})" if k is not None else "")
-        + "."
-    )
-
-
-#: Every K>=3 kernel caches the candidate in `__shared__ int s_items[64]`,
-#: immediately followed by `__shared__ unsigned long long warp_sums[8]`.
-#:
-#: The three GROUP kernels fill s_items under `threadIdx.x < prefix_len &&
-#: threadIdx.x < 62`, and thread 0 then separately writes s_items[prefix_len]
-#: and s_items[prefix_len+1] -- which at prefix_len == 62 land exactly on slots
-#: 62 and 63. So they are correct to K=64 and break at K=65, where slot 62 is
-#: never written but IS read as a column index, and s_items[prefix_len+1]
-#: writes index 64: one past the array, into warp_sums, corrupting the block
-#: reduction too.
-#:
-#: count_itemsets_fused_k3plus caches the whole itemset with no separate suffix
-#: write, and its guard `threadIdx.x < k && threadIdx.x < 62` leaves slots 62-63
-#: unwritten while the AND loop reads s_items[0..k-1] -- so it is correct only
-#: to K=62, as its own comment says.
-#:
-#: 62 is therefore the uniform host-side cap. It costs nothing: reaching K=63
-#: requires a frequent 62-itemset, i.e. all 2**62 of its subsets frequent, which
-#: no run completes. Enforcing it on the host is the whole fix -- do NOT widen
-#: the device guards, which buys unreachable capacity and leaves K>=65 silently
-#: corrupt while making the code look repaired.
+#: Host-side cap on K for every K>=3 kernel. The group kernels cache the
+#: candidate in `__shared__ int s_items[64]` (prefix under
+#: `threadIdx.x < prefix_len && threadIdx.x < 62`, then the two suffixes at
+#: s_items[prefix_len] and s_items[prefix_len+1]) and `shared_tiled.cu` stages
+#: the prefix in `s_pref[62]`, so every kernel is exact to K=64; at K=65 a
+#: prefix slot is read without being written and the second suffix lands one
+#: past the array, in the block reduction. The cap sits two below that bound.
+#: Reaching K=63 needs a frequent 62-itemset, which no run completes. The cap
+#: is enforced here, on the host: widening the device guards would buy
+#: unreachable capacity and leave K>=65 corrupt.
 MAX_SUPPORTED_K = 62
 
 
@@ -120,51 +54,18 @@ def _assert_k_supported(k: int | None, context: str = "") -> None:
 
 
 def _assert_home(context: str, **arrays) -> None:
-    """Raise before a wrapper aliases GPU arrays that do not share a device.
+    """Raise before a wrapper launches on GPU arrays that do not share a device.
 
     The FIRST keyword is the home device; every later one must match it. Pass
-    them by keyword because the keyword is what the error names, and pass only
-    arrays the caller supplied -- arrays derived from those follow by
-    construction, and naming a derived one points the error at an array the
-    caller never chose.
-
-    Two things depend on the inputs living together. The multi-GPU wrappers
-    alias the caller's arrays on one device and upload copies to the others.
-    The callers are exactly `gpu_resident._GUARDED_ENTRY_POINTS`, and they pin
-    in two ways: the single-GPU bodies pin their whole launch to the home
-    device, and the multi-GPU wrappers pin each worker to its own card and the
-    decode/merge tail back to home. `build_prefix_groups_gpu` -- exported
-    alongside them, listed in `gpu_resident._EXEMPT_ENTRY_POINTS` -- does NOT
-    call this function and pins to its own input's device instead. Named
-    against a tuple the tests check rather than quantified in prose: the count
-    was wrong twice, and the replacement was wrong a third time by saying
-    "every" and then naming an exception in the same sentence.
-    Mix the devices and the kernel is handed pointers from two cards --
-    CUDA_ERROR_ILLEGAL_ADDRESS, which poisons the context process-wide rather
-    than costing one level.
-
-    That pinning is NOT a module-wide property, and reading it as one is how
-    the K=2 twin of N20 shipped. `k2.py::count_pairs_fused_k2`,
-    `k3plus.py::count_itemsets_fused_k3plus`, `k3plus.py::count_k3plus_fully_fused`
-    and `shared_tiled.py::count_pairs_k2_shared_fused` all still allocate and
-    launch on the AMBIENT device; the last of those is what `gpu/dispatch.py`
-    selects by default when `ET_MINER_KERNEL_VARIANT` is unset, and both it and
-    the `k2.py` one were measured aborting with `cudaErrorIllegalAddress` from
-    ambient device 0 with bitvecs on device 1. They take host lists rather than
-    device arrays for their second argument, so they have no home to infer and
-    this function cannot guard them -- which is the reason they may be deferred
-    and equally the reason this docstring may not generalise over them.
+    them by keyword because the keyword is what the error names. Callers pin
+    their launch to the home device, so the check also catches a host array
+    reaching a device-only path, with a readable error instead of an
+    AttributeError. Mix the devices and the kernel is handed pointers from two
+    cards -- CUDA_ERROR_ILLEGAL_ADDRESS, which poisons the context
+    process-wide.
 
     It raises instead of transferring: a mixed-device call is a caller bug, and
-    repairing it with a hidden copy makes it unattributable. That is this
-    module's rule, not a project-wide one -- `gpu/csr_build.py` deliberately
-    repairs with `cp.asarray`, because it takes an explicit target `device_id`
-    ("put it here") where these wrappers infer home from the data.
-
-    Callers must invoke this ABOVE any routing. Below a
-    `if n_gpus <= 1: return ...` it never runs on a single-GPU host, which is
-    the placement mistake `core/apriori.py::_validate_route_support` already
-    records in its own comment.
+    repairing it with a hidden copy makes it unattributable.
     """
     home_name = home_id = None
     for name, arr in arrays.items():
@@ -193,17 +94,8 @@ def _assert_home(context: str, **arrays) -> None:
 def _assert_rank(context: str, **arrays) -> None:
     """Raise before a kernel indexes a device array of the wrong rank.
 
-    Each keyword is `name=(array, expected_ndim)`. The keyword is what the
-    error names, for the reason `_assert_home` gives; the rank travels with
-    the array because one call has to cover mixed ranks -- K=2 takes a 2-D
-    `bitvecs_gpu` beside a 1-D `freq_cols_gpu`.
-
-    A wrong-rank array is not a device fault, so no ordering of the device
-    guard can report it. A co-resident 1-D `prev_freq_gpu` passes
-    `_assert_home` legitimately and then trips `.shape[1]` inside
-    `_assert_k_supported` as `IndexError: tuple index out of range` -- the
-    "reads like a bug in the check" failure that the named ValueError exists
-    to remove. Hence a guard of its own, between the two.
+    Each keyword is `name=(array, expected_ndim)`; the keyword is what the
+    error names.
     """
     for name, spec in arrays.items():
         arr, want = spec
@@ -224,24 +116,10 @@ def _assert_dtype(context: str, **arrays) -> None:
     """Raise before a kernel reinterprets a device array of the wrong dtype.
 
     Each keyword is `name=(array, expected_dtype)`, the dtype written as the
-    string the error should print.
-
-    It RAISES rather than casting, per the rule stated on `_assert_home`: a
-    wrong-dtype call is a caller bug, and repairing it with a hidden `.astype`
-    makes it unattributable. Here that rule also has a second edge -- the
-    repair would silently double the array's footprint at the point the K>=3
-    path is already most VRAM-bound.
-
-    This is the guard with nothing behind it. A mixed-device call aborts
-    loudly. A wrong rank trips an IndexError somewhere downstream. A wrong
-    dtype does NEITHER: the K>=3 kernels read `prev_freq_gpu` through an
-    `int*` cast, so an int64 array of the correct shape is reinterpreted
-    pairwise and returns plausible garbage with no exception -- measured
-    on-device as 56 itemsets of [[0, 0, 0]] at a uniform count of 46, from an
-    entry point this package exports. What stands between those entry points
-    and that result today is one hand-written cast: `cp.where(freq_mask)[0]`
-    in `gpu/mining.py` is int64 natively and is `.astype(cp.int32)`'d on the
-    spot, untested and unguarded. This guard is the test.
+    string the error should print. It raises rather than casting, per the rule
+    stated on `_assert_home`, and because nothing else would catch it: the
+    kernels read the bitvecs through an `unsigned long long*`, so a uint32
+    array of the right shape counts plausible garbage without an exception.
     """
     for name, spec in arrays.items():
         arr, want = spec
@@ -256,6 +134,24 @@ def _assert_dtype(context: str, **arrays) -> None:
                 f"{context}: {name} must be {want}, got {got}. This route raises "
                 "rather than casting -- see `_assert_home` for why."
             )
+
+
+def _assert_bitvecs(context: str, bitvecs_gpu, **same_device) -> None:
+    """The input guards every bitvec kernel wrapper runs before it launches.
+
+    ``bitvecs_gpu`` must be a C-contiguous 2-D uint64 CuPy array (the kernels
+    index it as ``col * n_u64s + word``, so a strided view would be read as
+    other memory); any ``same_device`` array must live on its device, which is
+    the device the wrapper launches on.
+    """
+    _assert_home(context, bitvecs_gpu=bitvecs_gpu, **same_device)
+    _assert_rank(context, bitvecs_gpu=(bitvecs_gpu, 2))
+    _assert_dtype(context, bitvecs_gpu=(bitvecs_gpu, "uint64"))
+    if not bitvecs_gpu.flags.c_contiguous:
+        raise ValueError(
+            f"{context}: bitvecs_gpu must be C-contiguous (cupy.ascontiguousarray); "
+            "the kernels would read a strided view as other memory."
+        )
 
 
 _MAX_GRID_X = 2_147_483_647  # 2^31 - 1
@@ -273,24 +169,11 @@ def _grid_dims(n_blocks):
 
 # CUDA entry point -> .cu file in _src/ (cache keys are the entry-point names)
 _KERNEL_FILES: dict[str, str] = {
-    "count_itemset_fused": "itemset_count.cu",
     "count_itemsets_batch": "itemset_count.cu",
-    "count_pairs_fused_k2": "pairs_k2.cu",
-    "count_itemsets_fused_k3plus": "k3plus_fused.cu",
-    "count_k3plus_from_groups": "k3plus_fullyfused.cu",
-    "count_k3plus_gpu_resident": "k3plus_gpu_resident.cu",
-    "decode_candidates_gpu": "decode_candidates.cu",
     "count_pairs_k2_dense": "pairs_k2_dense.cu",
     "count_k3plus_dense": "k3plus_dense.cu",
-    "compact_threshold": "compact_threshold.cu",
     "count_shared_tiled_dense": "shared_tiled.cu",
     "count_shared_tiled_fused": "shared_tiled.cu",
-    "csr_count_range": "csr_warp.cu",
-    "csr_count_gather": "csr_warp.cu",
-    "csr_write_gather": "csr_warp.cu",
-    "bitvec_extract_tids": "bitvec_extract_tids.cu",
-    "fill_row_ids": "fill_row_ids.cu",
-    "bootstrap_copy": "bootstrap_copy.cu",
     "csr_to_bitvec": "csr_to_bitvec.cu",
 }
 
@@ -299,10 +182,6 @@ _KERNEL_FILES: dict[str, str] = {
 # kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
     "k3plus_dense.cu": ["_decode_common.cu"],
-    "k3plus_fullyfused.cu": ["_decode_common.cu"],
-    "k3plus_gpu_resident.cu": ["_decode_common.cu"],
-    "decode_candidates.cu": ["_decode_common.cu"],
-    "csr_warp.cu": ["_decode_common.cu"],
 }
 
 _source_cache: dict[str, str] = {}
@@ -331,7 +210,7 @@ def clear_kernel_cache():
         _kernel_cache = {}
 
 
-def get_cuda_kernel(name: str = "count_itemset_fused"):
+def get_cuda_kernel(name: str):
     """Get compiled CUDA kernel, caching for reuse. Thread-safe."""
     import cupy as cp
 
@@ -366,3 +245,21 @@ def get_popcount_kernel():
             )
     return _kernel_cache["popcount_u64"]
 
+
+def column_popcounts(bitvecs_gpu, max_temp_bytes: int = 1 << 28):
+    """Per-column set-bit counts of an (n_cols, n_u64s) bitvec matrix (device int64).
+
+    Popcounts a block of columns at a time, so the uint64 temporary stays
+    within ``max_temp_bytes`` (at least one column) instead of matching the
+    whole matrix. Allocates on the current device.
+    """
+    import cupy as cp
+
+    n_cols, n_u64s = bitvecs_gpu.shape
+    kernel = get_popcount_kernel()
+    cols_per_block = max(1, max_temp_bytes // max(1, n_u64s * 8))
+    out = cp.empty(n_cols, dtype=cp.int64)
+    for start in range(0, n_cols, cols_per_block):
+        end = min(start + cols_per_block, n_cols)
+        out[start:end] = kernel(bitvecs_gpu[start:end].view(cp.uint64)).sum(axis=1, dtype=cp.int64)
+    return out

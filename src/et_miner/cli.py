@@ -244,6 +244,7 @@ def cmd_info(args: argparse.Namespace, config: Config) -> int:
     from et_miner._compat import HAS_TQDM
     from et_miner.backends import (
         CUPY_INSTALLED,
+        RUST_DISABLED,
         get_cupy_version,
         get_gpu_count,
         get_rust_version,
@@ -256,7 +257,8 @@ def cmd_info(args: argparse.Namespace, config: Config) -> int:
     print(f"  polars: {pl.__version__}")
     print(f"  tqdm: {'installed' if HAS_TQDM else 'not installed'}")
     print("Backends:")
-    print(f"  rust: {get_rust_version() if has_rust_extension() else 'not built'}")
+    rust_state = "disabled (ET_MINER_DISABLE_RUST=1)" if RUST_DISABLED else "not built"
+    print(f"  rust: {get_rust_version() if has_rust_extension() else rust_state}")
     print(f"  cupy: {get_cupy_version() if CUPY_INSTALLED else 'not installed'} ({get_gpu_count()} GPUs)")
     print("Configuration:")
     print(f"  min_support: {config.apriori.min_support}")

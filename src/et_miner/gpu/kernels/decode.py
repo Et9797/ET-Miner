@@ -29,43 +29,6 @@ def decode_k2_pairs_flat(freq_indices, freq_cols):
     return result
 
 
-def decode_k3plus_candidates(freq_indices, groups_info):
-    """Vectorized decode of candidate indices to itemset tuples.
-
-    Uses numpy vectorized binary search + triangular inverse for the
-    group lookup, then Python loop for final tuple construction.
-
-    Args:
-        freq_indices: numpy array of candidate indices that passed threshold.
-        groups_info: K3PlusGroups namedtuple from build_k3plus_groups().
-
-    Returns:
-        list of tuples (column index tuples).
-    """
-    cp_np = groups_info.cumulative_pairs
-
-    # Vectorized binary search: find group for each index
-    group_indices = np.searchsorted(cp_np, freq_indices, side="right") - 1
-    pair_indices = freq_indices - cp_np[group_indices]
-
-    # Vectorized triangular inverse
-    pi_f = pair_indices.astype(np.float64)
-    j_vals = np.floor(0.5 + np.sqrt(0.25 + 2.0 * pi_f)).astype(np.int64)
-    i_vals = (pair_indices - j_vals * (j_vals - 1) // 2).astype(np.int64)
-
-    # Decode each candidate
-    candidates = []
-    for idx in range(len(freq_indices)):
-        g = int(group_indices[idx])
-        prefix = tuple(groups_info.prefix_items[groups_info.prefix_offsets[g] : groups_info.prefix_offsets[g + 1]])
-        suf_start = groups_info.suffix_offsets[g]
-        suffix_i = int(groups_info.suffixes[suf_start + int(i_vals[idx])])
-        suffix_j = int(groups_info.suffixes[suf_start + int(j_vals[idx])])
-        candidates.append(prefix + (suffix_i, suffix_j))
-
-    return candidates
-
-
 def decode_k3plus_flat(freq_indices, groups_info, k):
     """Vectorized decode of candidate indices to flat numpy array.
 
@@ -74,7 +37,7 @@ def decode_k3plus_flat(freq_indices, groups_info, k):
 
     Args:
         freq_indices: numpy array of candidate indices that passed threshold.
-        groups_info: K3PlusGroups namedtuple from build_k3plus_groups().
+        groups_info: K3PlusGroups namedtuple from build_k3plus_groups_from_flat().
         k: current itemset size.
 
     Returns:

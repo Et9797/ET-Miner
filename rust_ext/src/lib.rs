@@ -283,55 +283,6 @@ fn build_column_bitvecs_u64<'py>(
         .map_err(|e| PyValueError::new_err(format!("could not build bitvec array: {}", e)))
 }
 
-/// Convert bitvector AND results to CSR tid-sets (reverse direction).
-/// Takes flat 2D bitvec array and returns (offsets, indices) CSR arrays.
-#[pyfunction]
-fn bitvec_to_tidsets<'py>(
-    py: Python<'py>,
-    bitvecs: PyReadonlyArray2<'py, u64>,
-) -> (Bound<'py, PyArray1<i64>>, Bound<'py, PyArray1<i32>>) {
-    let shape = bitvecs.shape();
-    let n_itemsets = shape[0];
-    let n_u64s = shape[1];
-    let flat_owned: Vec<u64>;
-    let flat = match bitvecs.as_slice() {
-        Ok(sl) => sl,
-        Err(_) => {
-            flat_owned = bitvecs.as_array().iter().copied().collect();
-            &flat_owned
-        }
-    };
-
-    let (offsets, indices) = core::bitvec::bitvec_to_tidsets_raw(flat, n_itemsets, n_u64s);
-
-    (
-        PyArray1::from_vec(py, offsets),
-        PyArray1::from_vec(py, indices),
-    )
-}
-
-/// Generate random CSR matrix directly in Rust.
-#[pyfunction]
-fn generate_random_csr<'py>(
-    py: Python<'py>,
-    n_rows: usize,
-    n_cols: usize,
-    avg_items_per_row: usize,
-    seed: u64,
-) -> (Bound<'py, PyArray1<i64>>, Bound<'py, PyArray1<i64>>) {
-    let (indptr, indices) = core::matrix::generate_random_csr_raw(
-        n_rows,
-        n_cols,
-        avg_items_per_row,
-        seed,
-    );
-
-    (
-        PyArray1::from_vec(py, indptr),
-        PyArray1::from_vec(py, indices),
-    )
-}
-
 /// Get the number of threads Rayon will use for parallel operations.
 #[pyfunction]
 fn get_num_threads() -> usize {
@@ -521,119 +472,6 @@ fn prune_non_free_flat<'py>(
     Ok(PyArray1::from_vec(py, mask))
 }
 
-/// Compact variant: prune non-free itemsets and return pruned (flat, counts)
-/// arrays directly — eliminates the Python-side numpy fancy-index bottleneck.
-///
-/// Replaces the bool-mask roundtrip + Python
-/// `current_flat[mask]` with sequential Rust `extend_from_slice` compaction.
-/// Verified ~10-13× speedup on the materialization step (Auditor microbench).
-///
-/// Returns `(pruned_flat_1d, pruned_counts, n_kept)` where `pruned_flat_1d`
-/// is shape `(n_kept * k,)` int32 and the caller reshapes to `(n_kept, k)`.
-/// `n_kept` is returned explicitly so the Python wrapper avoids a redundant
-/// `mask.sum()` for logging.
-#[pyfunction]
-fn prune_non_free_flat_compact<'py>(
-    py: Python<'py>,
-    current_flat: PyReadonlyArray2<'py, i32>,
-    current_counts: PyReadonlyArray1<'py, i64>,
-    prev_flat: PyReadonlyArray2<'py, i32>,
-    prev_counts: PyReadonlyArray1<'py, i64>,
-) -> PyResult<(Bound<'py, PyArray1<i32>>, Bound<'py, PyArray1<i64>>, usize)> {
-    let n_current = current_flat.shape()[0];
-    let k = current_flat.shape()[1];
-    let n_prev = prev_flat.shape()[0];
-
-    // Get contiguous slices (zero-copy for C-contiguous, copy fallback)
-    let cur_flat_owned: Vec<i32>;
-    let cur_flat: &[i32] = match current_flat.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            cur_flat_owned = current_flat.as_array().iter().copied().collect();
-            &cur_flat_owned
-        }
-    };
-
-    let cur_counts_owned: Vec<i64>;
-    let cur_counts: &[i64] = match current_counts.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            cur_counts_owned = current_counts.as_array().iter().copied().collect();
-            &cur_counts_owned
-        }
-    };
-
-    let prev_flat_owned: Vec<i32>;
-    let prev_flat_slice: &[i32] = match prev_flat.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            prev_flat_owned = prev_flat.as_array().iter().copied().collect();
-            &prev_flat_owned
-        }
-    };
-
-    let prev_counts_owned: Vec<i64>;
-    let prev_counts_slice: &[i64] = match prev_counts.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            prev_counts_owned = prev_counts.as_array().iter().copied().collect();
-            &prev_counts_owned
-        }
-    };
-
-    if k >= 2 && !core::groups::is_sorted_by_row(prev_flat_slice, n_prev, k - 1) {
-        return Err(PyValueError::new_err(
-            "prev_flat must be sorted lexicographically by row for the free-set-prune binary search \
-             (K>=3 decode order is j-major within a group, not lex order — lexsort current_flat at level end)",
-        ));
-    }
-
-    #[allow(deprecated)]
-    let (out_flat, out_counts) = py.allow_threads(|| {
-        core::groups::prune_non_free_flat_compact_raw(
-            cur_flat,
-            cur_counts,
-            prev_flat_slice,
-            prev_counts_slice,
-            n_current,
-            n_prev,
-            k,
-        )
-    });
-
-    let n_kept = out_counts.len();
-    let flat_arr = PyArray1::from_vec(py, out_flat);
-    let counts_arr = PyArray1::from_vec(py, out_counts);
-    Ok((flat_arr, counts_arr, n_kept))
-}
-
-/// Parallel unique-column extraction from a flat
-/// int32 array. Replaces single-threaded `np.unique(current_flat)` which on
-/// (430M, 6) int32 = 2.58B elements was ~30-90s sequential sort+dedup. Used
-/// by apriori.py's `current_live_mgpu = set(...)` step between K-transitions.
-///
-/// Sub-second op 2.6B elements via Rayon atomic-bitset parallel mark.
-/// Returns sorted ascending Vec<i32> of unique column indices.
-#[pyfunction]
-fn unique_columns_from_flat<'py>(
-    py: Python<'py>,
-    flat: PyReadonlyArray1<'py, i32>,
-) -> Bound<'py, PyArray1<i32>> {
-    let flat_owned: Vec<i32>;
-    let flat_slice: &[i32] = match flat.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            flat_owned = flat.as_array().iter().copied().collect();
-            &flat_owned
-        }
-    };
-
-    #[allow(deprecated)]
-    let unique = py.allow_threads(|| core::groups::unique_columns_from_flat_raw(flat_slice));
-
-    PyArray1::from_vec(py, unique)
-}
-
 /// Apriori-prune prefix groups: remove suffix pairs whose candidates have
 /// non-frequent (k-1)-subsets.
 ///
@@ -727,10 +565,6 @@ fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // GPU acceleration support
     m.add_function(wrap_pyfunction!(build_column_bitvecs_u64, m)?)?;
-    m.add_function(wrap_pyfunction!(bitvec_to_tidsets, m)?)?;  // V3: reverse direction
-
-    // Fast CSR construction (synthetic-data generation for benchmarks)
-    m.add_function(wrap_pyfunction!(generate_random_csr, m)?)?;
 
     // Thread control
     m.add_function(wrap_pyfunction!(get_num_threads, m)?)?;
@@ -743,11 +577,7 @@ fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Phase 4: Pruning functions (K=4 regression elimination)
     m.add_function(wrap_pyfunction!(prune_non_free_flat, m)?)?;
-    m.add_function(wrap_pyfunction!(prune_non_free_flat_compact, m)?)?;
     m.add_function(wrap_pyfunction!(prune_groups_apriori, m)?)?;
-
-    // Parallel unique-column extraction
-    m.add_function(wrap_pyfunction!(unique_columns_from_flat, m)?)?;
 
     // Version info
     m.add("__version__", "0.3.0")?;

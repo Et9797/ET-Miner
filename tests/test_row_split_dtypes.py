@@ -3,10 +3,8 @@
 `_apriori_row_split_multi_gpu` has three return paths. Two gave
 `List(Int64)`; the PyArrow fast path -- the one that normally runs -- gave
 `List(Int32)`, because `col_to_item_arr` is `np.int32` and Arrow preserves it.
-The sibling route `_apriori_from_bitvecs` builds the same lookup as int64, so
-the two GPU routes disagreed with each other as well: a consumer that
-concatenated or joined frames from both got a schema error or a silent
-mismatch depending on the polars operation.
+A consumer that concatenated or joined frames from different runs got a schema
+error or a silent mismatch depending on the polars operation.
 
 The flushed parquet is deliberately NOT widened. That asymmetry is safe only
 because of a property of the current readers, so the property is asserted here

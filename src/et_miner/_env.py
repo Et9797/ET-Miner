@@ -2,8 +2,9 @@
 
 All ad-hoc environment reads in the package go through this module so the
 full knob surface is documented in one place. Getters read the environment
-at call time (never at import time) so `monkeypatch.setenv` in tests and
-late exports in job scripts both behave as expected.
+at call time so `monkeypatch.setenv` in tests and late exports in job scripts
+both behave as expected. One exception: ET_MINER_DISABLE_RUST is read once,
+when et_miner.backends is imported.
 
 Variables:
     ET_MINER_FLUSH_PARALLEL_THRESHOLD  int, rows above which parquet flush
@@ -22,24 +23,43 @@ Variables:
     ET_MINER_GCS_CREDENTIALS           path to a service-account JSON
     GCS_TOKEN                          raw OAuth token (alternative to creds)
     ET_MINER_LOG_DIR                   directory for optional file logging
-    ET_MINER_FILTER_IMPL               dense-count threshold filter impl:
-                                       "compact" (default) | "cupy" | "cpu"
-                                       (see et_miner.gpu.kernels.filter)
+    ET_MINER_FILTER_IMPL               removed: setting it raises ValueError
+                                       (the sliced CuPy filter in
+                                       et_miner.gpu.kernels.filter is the
+                                       one survivor filter)
     ET_MINER_MAX_CHUNK_CANDS           caps the measured dense-chunk budget
                                        (candidates per chunk) — lets tests
                                        force multi-chunk runs on small data
     ET_MINER_DISABLE_NCCL              "1" skips NCCL init and forces the
                                        staged D2D reduce fallback
-    ET_MINER_ROW_BALANCE               multi-GPU row-split mode: "rows"
-                                       (default, equal row counts) or "nnz"
-                                       (equal cumulative nnz cuts)
-    ET_MINER_KERNEL_VARIANT            dense counting kernel: "auto"
-                                       (default; currently = shared),
-                                       "legacy", or "shared" (tiled
-                                       prefix-sharing kernel)
-    ET_MINER_TILED_MIN_GROUP_PAIRS     groups with fewer candidate pairs
-                                       route to the legacy kernel even
-                                       under the shared variant (default 64)
+    ET_MINER_DIRECT_D2D                "1" lets the non-NCCL reduce and the
+                                       bitvecs= shard copy use direct
+                                       device-to-device copies; default:
+                                       through host memory (gpu/nccl.py:
+                                       a P2P copy that does not land
+                                       corrupts silently)
+    ET_MINER_ROW_BALANCE               removed: "nnz" (or any value but
+                                       "rows") raises ValueError; the
+                                       multi-GPU row split is by equal row
+                                       counts, and "rows" is a no-op
+    ET_MINER_KERNEL_VARIANT            removed: setting it raises ValueError
+                                       (the kernel is chosen per prefix
+                                       group; pin it with the next knob)
+    ET_MINER_TILED_MIN_GROUP_PAIRS     int, pins the candidate pairs a
+                                       prefix group needs for the tiled
+                                       kernel; smaller groups run on the
+                                       per-candidate kernel. 0 = tiled for
+                                       every group. Unset: the measured
+                                       crossover per K (see
+                                       et_miner.gpu.row_split_chunks). On
+                                       one GPU a level beyond one dense
+                                       chunk is counted fused on the tiled
+                                       kernel whatever the pin
+    ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
+                                       not built: every Rust role takes its
+                                       fallback. Read once, at import of
+                                       et_miner.backends, so set it before
+                                       importing et_miner.
 """
 
 from __future__ import annotations
@@ -97,10 +117,6 @@ def gcs_token() -> str | None:
     return os.environ.get("GCS_TOKEN")
 
 
-def filter_impl() -> str:
-    return os.environ.get("ET_MINER_FILTER_IMPL", "compact").strip().lower()
-
-
 def _int_env(name: str, default: int | None) -> int | None:
     v = os.environ.get(name)
     if not v:
@@ -119,16 +135,37 @@ def disable_nccl() -> bool:
     return os.environ.get("ET_MINER_DISABLE_NCCL", "").strip() == "1"
 
 
-def row_balance() -> str:
-    return os.environ.get("ET_MINER_ROW_BALANCE", "rows").strip().lower()
+def direct_d2d() -> bool:
+    return os.environ.get("ET_MINER_DIRECT_D2D", "").strip() == "1"
 
 
-def kernel_variant() -> str:
-    return os.environ.get("ET_MINER_KERNEL_VARIANT", "auto").strip().lower()
+def reject_removed_knobs() -> None:
+    """Raise for a knob that no longer exists rather than ignore it."""
+    if "ET_MINER_FILTER_IMPL" in os.environ:
+        raise ValueError(
+            "ET_MINER_FILTER_IMPL was removed: the sliced CuPy filter (et_miner.gpu.kernels.filter."
+            "threshold_filter) is the one survivor filter; the compact_threshold kernel and the "
+            "whole-array CPU path are gone. Unset it."
+        )
+    balance = os.environ.get("ET_MINER_ROW_BALANCE", "").strip()
+    if balance and balance.lower() != "rows":
+        raise ValueError(
+            f"ET_MINER_ROW_BALANCE={balance.lower()!r} was removed: the multi-GPU row split is by "
+            "equal row counts (the old 'rows' default; nnz-balanced cuts won no regime). Unset it."
+        )
+    if "ET_MINER_KERNEL_VARIANT" in os.environ:
+        raise ValueError(
+            "ET_MINER_KERNEL_VARIANT was removed: the row-split miner picks the tiled or the "
+            "per-candidate kernel per prefix group, at the measured crossover. "
+            "ET_MINER_TILED_MIN_GROUP_PAIRS pins that choice (0 = tiled for every group). Unset it."
+        )
 
 
-def tiled_min_group_pairs() -> int:
-    return _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", 64)
+def tiled_min_group_pairs() -> int | None:
+    v = _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", None)
+    if v is not None and v < 0:
+        raise ValueError(f"ET_MINER_TILED_MIN_GROUP_PAIRS must be >= 0, got {v}")
+    return v
 
 
 def log_dir() -> Path:
@@ -136,3 +173,7 @@ def log_dir() -> Path:
     if configured:
         return Path(configured)
     return Path.home() / ".cache" / "et-miner" / "logs"
+
+
+def disable_rust() -> bool:
+    return os.environ.get("ET_MINER_DISABLE_RUST", "").strip() == "1"

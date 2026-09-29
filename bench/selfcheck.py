@@ -2,8 +2,8 @@
 
 Compiles EVERY kernel registered in gpu/kernels/loader.py on every device
 (NVRTC compiles per compute capability — this is where an sm_86
-incompatibility would surface), smoke-launches the critical wrappers on
-tiny data, and prints the device/NCCL/P2P//dev/shm/rust matrix.
+incompatibility would surface), launches each of them on tiny data with a
+known answer, and prints the device/NCCL/P2P//dev/shm/rust matrix.
 
 Exit code 0 = ready for the campaign.
 """
@@ -97,55 +97,61 @@ def main() -> int:
         return 1
     print("  all kernels compiled")
 
-    # Smoke-launch the critical wrappers on tiny data (device 0)
-    with cp.cuda.Device(0):
-        try:
-            from et_miner.gpu.kernels import get_popcount_kernel
-
-            bv = cp.zeros((8, 4), dtype=cp.uint64)
-            bv[0, 0] = 0b1011
-            assert int(get_popcount_kernel()(bv.view(cp.uint64)).sum()) == 3
-
-            from et_miner.gpu.kernels import count_pairs_k2_allcounts
-
-            counts = count_pairs_k2_allcounts(bv, [0, 1, 2], 4)
-            assert counts.shape == (3,)
-
-            from et_miner.gpu.kernels.filter import compact_threshold_filter
-
-            arr = cp.asarray(np.array([5, 1, 7, 7, 0], dtype=np.int32))
-            idx, cnt = compact_threshold_filter(arr, 5, impl="compact")
-            assert idx.tolist() == [0, 2, 3] and cnt.tolist() == [5, 7, 7]
-
-            # CSR warp kernels (sparse path): rows [0,2,4], [0,4], [1,2,4];
-            # one group over the three rows -> candidates (r0,r1), (r0,r2), (r1,r2)
-            from et_miner.gpu.kernels.csr_warp import count_csr_gather, count_csr_range, write_csr_gather
-
-            off = cp.asarray(np.array([0, 3, 5, 8], dtype=np.int64))
-            tids = cp.asarray(np.array([0, 2, 4, 0, 4, 1, 2, 4], dtype=np.int32))
-            g = {
-                "cp": cp.asarray(np.array([0, 3], dtype=np.int64)),
-                "gso": cp.asarray(np.array([0, 3], dtype=np.int64)),
-                "gsr": cp.asarray(np.array([0, 1, 2], dtype=np.int64)),
-                "tc": 3,
-            }
-            assert count_csr_range(off, tids, g, 0, 3).tolist() == [2, 2, 1]
-            ids = cp.asarray(np.array([0, 2], dtype=np.int64))
-            cnt = count_csr_gather(off, tids, g, ids)
-            assert cnt.tolist() == [2, 1]
-            out_off = cp.zeros(3, dtype=cp.int64)
-            cp.cumsum(cnt.astype(cp.int64), out=out_off[1:])
-            out_idx = cp.empty(int(out_off[-1]), dtype=cp.int32)
-            write_csr_gather(off, tids, g, ids, out_off, out_idx)
-            assert out_off.tolist() == [0, 2, 3] and out_idx.tolist() == [0, 4, 4]
-
-            print("critical-wrapper smoke launches: OK")
-        except Exception as e:
-            print(f"CRITICAL WRAPPER LAUNCH FAILED: {type(e).__name__}: {e}")
-            return 1
+    # Smoke-launch every registered kernel on tiny data with a known answer,
+    # on every device (the loader compiles per device).
+    for d in range(n_dev):
+        with cp.cuda.Device(d):
+            try:
+                _smoke_launch(cp)
+            except Exception as e:
+                print(f"[dev {d}] KERNEL LAUNCH FAILED: {type(e).__name__}: {e}")
+                return 1
+    print(f"  every kernel launched with the expected answer on {n_dev} device(s)")
 
     print("selfcheck: READY")
     return 0
+
+
+def _smoke_launch(cp) -> None:
+    """One launch of each registered kernel (and the popcount ElementwiseKernel)."""
+    from et_miner.gpu.csr_bitvec import build_bitvecs_gpu
+    from et_miner.gpu.kernels import (
+        K3PlusGroups,
+        count_itemsets_cuda,
+        count_k3plus_per_candidate,
+        count_pairs_k2_per_candidate,
+        count_pairs_k2_shared,
+        count_shared_tiled_allcounts,
+        count_tiled_fused,
+        get_popcount_kernel,
+    )
+    from et_miner.gpu.kernels.loader import _KERNEL_FILES
+
+    launched = set()
+    # csr_to_bitvec: rows {0, 2}, {1}, {0, 1, 2}, {} over 3 columns
+    bv = build_bitvecs_gpu(np.array([0, 2, 3, 6, 6]), np.array([0, 2, 1, 0, 1, 2]), 4, 3,
+                           device_id=cp.cuda.Device().id)
+    assert bv[:, 0].get().tolist() == [0b0101, 0b0110, 0b0101]
+    launched.add("csr_to_bitvec")
+    assert int(get_popcount_kernel()(bv.view(cp.uint64)).sum()) == 6
+
+    full = cp.full((4, 4), 0xFFFFFFFFFFFFFFFF, dtype=cp.uint64)  # every row in every column: counts are 256
+    assert count_pairs_k2_per_candidate(full, [0, 1, 2], 4).tolist() == [256] * 3
+    launched.add("count_pairs_k2_dense")
+    assert count_pairs_k2_shared(full, [0, 1, 2], 4).tolist() == [256] * 3
+    launched.add("count_shared_tiled_dense")
+    groups = K3PlusGroups(np.array([0], np.int32), np.array([0, 1], np.int64), np.array([1, 2, 3], np.int32),
+                          np.array([0, 3], np.int64), np.array([0, 3], np.int64), 3, None)
+    assert count_k3plus_per_candidate(full, groups, 4).tolist() == [256] * 3
+    launched.add("count_k3plus_dense")
+    assert count_shared_tiled_allcounts(full, groups, 4).tolist() == [256] * 3
+    idx, cnt = count_tiled_fused(full, groups, 4, 1)
+    assert idx.tolist() == [0, 1, 2] and cnt.tolist() == [256] * 3
+    launched.add("count_shared_tiled_fused")
+    assert count_itemsets_cuda(full, [np.array([0, 1], np.int32), np.array([1, 2, 3], np.int32)]).tolist() == [256, 256]
+    launched.add("count_itemsets_batch")
+    missing = set(_KERNEL_FILES) - launched
+    assert not missing, f"registered kernels this selfcheck never launches: {sorted(missing)}"
 
 
 if __name__ == "__main__":

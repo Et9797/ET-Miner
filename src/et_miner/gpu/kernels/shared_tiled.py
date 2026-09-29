@@ -9,8 +9,9 @@ which the equivalence tests assert.
 Constraints the callers must honor:
 - the DENSE variant requires group-aligned candidate chunks (a tile-pair's
   candidates scatter across its whole group, so a partial group cannot be
-  served); `plan_group_chunks` guarantees this and routes oversized groups
-  to the legacy kernel;
+  served); `plan_group_chunks` guarantees this and routes groups larger than
+  a chunk to the per-candidate kernel, or, on one GPU, the row-split miner
+  counts them with the FUSED variant;
 - K <= 62 (same `s_items` cap as the legacy kernels — asserted here);
 - the FUSED variant uses the overflow-safe protocol: the kernel counts
   past capacity with writes dropped, and the wrapper re-allocates to the
@@ -21,7 +22,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .loader import _assert_k_supported, _grid_dims, get_cuda_kernel
+from .loader import _assert_bitvecs, _assert_k_supported, _grid_dims, get_cuda_kernel
 
 #: Suffixes per tile — fixed with the kernel's TILE_T (and blockDim 256).
 TILE_T = 32
@@ -69,7 +70,7 @@ def count_shared_tiled_allcounts(
     bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None
 ):
     """Dense counting via the tiled kernel — drop-in for
-    count_k3plus_allcounts on group-aligned chunks (int32, chunk-relative,
+    count_k3plus_per_candidate on group-aligned chunks (int32, chunk-relative,
     bit-identical candidate layout)."""
     import cupy as cp
 
@@ -77,44 +78,48 @@ def count_shared_tiled_allcounts(
     if chunk_size is None:
         chunk_size = tc - chunk_start
     _assert_k_cap(groups_info)
+    _assert_bitvecs(
+        "count_shared_tiled_allcounts", bitvecs_gpu, **({} if groups_gpu is None else {"groups_gpu": groups_gpu["gpi"]})
+    )
+    device_id = bitvecs_gpu.device.id
 
     if groups_gpu is None:
         from .k3plus import upload_k3plus_groups
 
-        groups_gpu = upload_k3plus_groups(groups_info, int(cp.cuda.Device()))
-    if "ctp" not in groups_gpu:
-        groups_gpu["ctp"] = cp.array(compute_cumulative_tilepairs(groups_info.suffix_offsets), dtype=cp.int64)
-
+        groups_gpu = upload_k3plus_groups(groups_info, device_id)
     ctp = compute_cumulative_tilepairs(groups_info.suffix_offsets)
     tp0, tp1 = _tilepair_range(groups_info, ctp, chunk_start, chunk_start + chunk_size)
 
-    result_counts = cp.zeros(chunk_size, dtype=cp.int32)
-    if tp1 > tp0:
-        kernel = get_cuda_kernel("count_shared_tiled_dense")
-        kernel(
-            _grid_dims(tp1 - tp0),
-            (_BLOCK,),
-            (
-                bitvecs_gpu,
-                groups_gpu["gpi"],
-                groups_gpu["gpo"],
-                groups_gpu["gs"],
-                groups_gpu["gso"],
-                groups_gpu["cp"],
-                groups_gpu["ctp"],
-                np.int64(n_u64s),
-                np.int64(len(groups_info.cumulative_pairs) - 1),
-                np.int64(tp0),
-                np.int64(tp1),
-                np.int64(chunk_start),
-                result_counts,
-            ),
-        )
-        cp.cuda.Stream.null.synchronize()
+    with cp.cuda.Device(device_id):
+        if "ctp" not in groups_gpu:
+            groups_gpu["ctp"] = cp.array(ctp, dtype=cp.int64)
+        result_counts = cp.zeros(chunk_size, dtype=cp.int32)
+        if tp1 > tp0:
+            kernel = get_cuda_kernel("count_shared_tiled_dense")
+            kernel(
+                _grid_dims(tp1 - tp0),
+                (_BLOCK,),
+                (
+                    bitvecs_gpu,
+                    groups_gpu["gpi"],
+                    groups_gpu["gpo"],
+                    groups_gpu["gs"],
+                    groups_gpu["gso"],
+                    groups_gpu["cp"],
+                    groups_gpu["ctp"],
+                    np.int64(n_u64s),
+                    np.int64(len(groups_info.cumulative_pairs) - 1),
+                    np.int64(tp0),
+                    np.int64(tp1),
+                    np.int64(chunk_start),
+                    result_counts,
+                ),
+            )
+            cp.cuda.Stream.null.synchronize()
     return result_counts
 
 
-def _k2_groups(freq_item_cols):
+def k2_groups(freq_item_cols):
     """K=2 as one synthetic empty-prefix group over the frequent items."""
     from .k3plus import K3PlusGroups
 
@@ -133,24 +138,38 @@ def _k2_groups(freq_item_cols):
 
 def count_pairs_k2_shared(bitvecs_gpu, freq_item_cols, n_u64s):
     """Tiled dense K=2 over the WHOLE pair space (single chunk only — a
-    partial pair range cannot be tile-served; multi-chunk K=2 stays on the
-    legacy kernel via the planner's use_legacy flag)."""
-    return count_shared_tiled_allcounts(bitvecs_gpu, _k2_groups(freq_item_cols), n_u64s)
+    partial pair range cannot be tile-served; a pair space chunked across
+    several GPUs runs on the per-candidate kernel, and on one GPU
+    count_tiled_fused counts it whole)."""
+    return count_shared_tiled_allcounts(bitvecs_gpu, k2_groups(freq_item_cols), n_u64s)
 
 
-def _run_fused(bitvecs_gpu, groups_info, n_u64s, min_count, initial_capacity):
+def count_tiled_fused(bitvecs_gpu, groups_info, n_u64s, min_count, initial_capacity=1 << 24):
+    """Fused tiled counting over whole groups: the survivors' candidate indices
+    (ascending, into ``groups_info``'s candidate space) and int64 counts.
+
+    Needs no dense count array, so a group of any size fits; the output grows
+    with the survivors only (12 B each), re-run once at the exact size when
+    ``initial_capacity`` is exceeded.
+    """
     import cupy as cp
 
     from .k3plus import upload_k3plus_groups
 
     _assert_k_cap(groups_info)
-    groups_gpu = upload_k3plus_groups(groups_info, int(cp.cuda.Device()))
-    if "ctp" not in groups_gpu:
-        groups_gpu["ctp"] = cp.array(compute_cumulative_tilepairs(groups_info.suffix_offsets), dtype=cp.int64)
+    _assert_bitvecs("count_tiled_fused", bitvecs_gpu)
     ctp = compute_cumulative_tilepairs(groups_info.suffix_offsets)
     tp_total = int(ctp[-1])
     if tp_total == 0:
         return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
+    device_id = bitvecs_gpu.device.id
+    groups_gpu = upload_k3plus_groups(groups_info, device_id)
+    with cp.cuda.Device(device_id):
+        return _run_fused(bitvecs_gpu, groups_info, groups_gpu, tp_total, n_u64s, min_count, initial_capacity)
+
+
+def _run_fused(bitvecs_gpu, groups_info, groups_gpu, tp_total, n_u64s, min_count, initial_capacity):
+    import cupy as cp
 
     kernel = get_cuda_kernel("count_shared_tiled_fused")
     capacity = max(1, min(int(initial_capacity), groups_info.total_candidates))
@@ -199,34 +218,3 @@ def _run_fused(bitvecs_gpu, groups_info, n_u64s, min_count, initial_capacity):
     cnt = out_cnt[:n].get().astype(np.int64)
     order = np.argsort(idx)
     return idx[order], cnt[order]
-
-
-def count_k3plus_shared_fused(bitvecs_gpu, prev_frequent, k, n_u64s, min_count, max_results=10_000_000):
-    """Fused K>=3 via the tiled kernel — return contract matches
-    count_k3plus_fully_fused: (list of candidate tuples, int64 counts)."""
-    from .decode import decode_k3plus_flat
-    from .k3plus import build_k3plus_groups
-
-    groups_info = build_k3plus_groups(prev_frequent)
-    if groups_info is None or groups_info.total_candidates == 0:
-        return [], np.array([], dtype=np.int64)
-    idx, cnt = _run_fused(bitvecs_gpu, groups_info, n_u64s, min_count, max_results)
-    if len(idx) == 0:
-        return [], np.array([], dtype=np.int64)
-    flat = decode_k3plus_flat(idx, groups_info, k)
-    return [tuple(int(x) for x in row) for row in flat], cnt
-
-
-def count_pairs_k2_shared_fused(bitvecs_gpu, freq_item_cols, n_u64s, min_count, max_results=10_000_000):
-    """Fused K=2 via the tiled kernel — return contract matches
-    count_pairs_fused_k2: (list of (col_i, col_j) pairs, int64 counts)."""
-    from .decode import decode_k2_pairs_flat
-
-    groups_info = _k2_groups(freq_item_cols)
-    if groups_info.total_candidates == 0:
-        return [], np.array([], dtype=np.int64)
-    idx, cnt = _run_fused(bitvecs_gpu, groups_info, n_u64s, min_count, max_results)
-    if len(idx) == 0:
-        return [], np.array([], dtype=np.int64)
-    pairs_flat = decode_k2_pairs_flat(idx, list(freq_item_cols))
-    return [(int(a), int(b)) for a, b in pairs_flat], cnt

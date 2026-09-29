@@ -222,8 +222,8 @@ def _spec_a_df() -> tuple[pl.DataFrame, float]:
     owns the lowest columns), plus a 1,000-row block [0..5] and 500
     single-item rows per block item. Block pairs are closed (1,000 vs 1,500
     singles) but every block triple equals its pairs (1,000), so closed
-    pruning removes the 20 triples at K=3 — a sparse level under
-    sparse_from_k=3 — from row positions 0..19, ahead of every survivor."""
+    pruning removes the 20 triples at K=3 from row positions 0..19, ahead of
+    every survivor."""
     df, _ = generate_transactions(PRUNE_BG_SPEC)
     dtype = df.schema["items"]
     background = df.select(pl.col("items").list.eval(pl.element() + 10).cast(dtype))
@@ -251,34 +251,30 @@ def _spec_b_df(m: int = 12) -> tuple[pl.DataFrame, float]:
     return df, 900 / df.height
 
 
-def _prune_legs(df: pl.DataFrame, min_support: float, *, sparse_from_k=3) -> tuple[set, set, set]:
+def _prune_legs(df: pl.DataFrame, min_support: float) -> tuple[set, set]:
     n = df.height
     kw = dict(min_support=min_support, item_col="items", prune_equal_support=True)
     cpu = _counted(apriori(df, **kw), n)
-    dense = _counted(apriori(df, use_gpu=True, n_gpus=2, **kw), n)
-    sparse = _counted(apriori(df, use_gpu=True, n_gpus=2, sparse_from_k=sparse_from_k, **kw), n)
-    return cpu, dense, sparse
+    gpu = _counted(apriori(df, use_gpu=True, n_gpus=2, **kw), n)
+    return cpu, gpu
 
 
 class TestClosedPruning:
-    def test_spec_a_sparse_misalignment(self):
+    def test_spec_a_pruned_rows_ahead_of_every_survivor(self):
         df, min_support = _spec_a_df()
-        cpu, dense, sparse = _prune_legs(df, min_support)
+        cpu, gpu = _prune_legs(df, min_support)
         assert len(cpu) > 0
-        assert dense == cpu, "dense+prune diverged from CPU+prune"
-        assert sparse == cpu, "sparse+prune diverged from CPU+prune (CSR rows misaligned after the free-set prune)"
+        assert gpu == cpu, "GPU+prune diverged from CPU+prune"
 
     def test_spec_b_dense_under_pruning(self):
         df, min_support = _spec_b_df()
-        cpu, dense, sparse = _prune_legs(df, min_support)
+        cpu, gpu = _prune_legs(df, min_support)
         assert len(cpu) > 0
-        assert dense == cpu, "dense+prune emitted itemsets CPU+prune never generates (closed-prune under-pruning)"
-        assert sparse == cpu, "sparse+prune diverged from CPU+prune"
+        assert gpu == cpu, "GPU+prune emitted itemsets CPU+prune never generates (closed-prune under-pruning)"
 
 
-class TestTwoPhaseSparse:
-    """The exact reported combination: mine_two_phase defaults to
-    sparse_from_k="auto" and forces prune_equal_support=True."""
+class TestTwoPhase:
+    """mine_two_phase forces prune_equal_support=True on both phases."""
 
     def test_auto_prune_matches_cpu(self, tmp_path):
         from et_miner.gpu.row_split import mine_two_phase

@@ -1,0 +1,6 @@
+START 2026-09-28T14:55:17Z
+e4bb3ae rows #1 rc=1 :: [trace + 20.432s tid= 7776] rank 0: SYNC TIMED OUT after 20 s (kernel never completed)
+e4bb3ae nnz #1 rc=0 :: OK 0.88s itemsets=246
+e4bb3ae nnz #2 rc=1 :: [trace + 20.434s tid= 1920] rank 0: SYNC TIMED OUT after 20 s (kernel never completed)
+HEAD rows #1 rc=1 :: [trace + 20.500s tid=46496] rank 0: SYNC TIMED OUT after 20 s (kernel never completed)
+END 2026-09-28T14:58:19Z

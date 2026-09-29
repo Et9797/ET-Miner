@@ -58,8 +58,8 @@ def main() -> int:
     lines.append(f"Runs: {len(ok)} ok, {len(bad)} failed/timeout. Raw data: `raw.jsonl`, env: `env.txt`.\n")
 
     lines.append("## Wall time by config (median over reps)\n")
-    lines.append("| config | preset | variant | filter | gpus | reps | median s | min s | peak VRAM MB | throttled |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|")
+    lines.append("| config | preset | gpus | reps | median s | min s | peak VRAM MB | throttled |")
+    lines.append("|---|---|---|---|---|---|---|---|")
     for base in sorted(by_config):
         rs = by_config[base]
         cfg = rs[0]["config"]
@@ -67,29 +67,10 @@ def main() -> int:
         peak = max((max(r.get("peak_vram_mb", {"0": 0}).values(), default=0) for r in rs), default=0)
         throttled = any(r.get("throttle_reasons") for r in rs)
         lines.append(
-            f"| {base} | {cfg['preset']} | {cfg['env'].get('ET_MINER_KERNEL_VARIANT', '-')} "
-            f"| {cfg['env'].get('ET_MINER_FILTER_IMPL', 'compact')} | {cfg.get('n_gpus')} "
+            f"| {base} | {cfg['preset']} | {cfg.get('n_gpus')} "
             f"| {len(rs)} | {_fmt_s(statistics.median(walls))} | {_fmt_s(min(walls))} "
             f"| {peak} | {'⚠' if throttled else ''} |"
         )
-    lines.append("")
-
-    # Shared-vs-legacy A/B per (preset, gpus)
-    lines.append("## Kernel variant A/B (legacy → shared, median wall)\n")
-    lines.append("| preset | gpus | legacy s | shared s | speedup |")
-    lines.append("|---|---|---|---|---|")
-    ab: dict[tuple, dict[str, float]] = defaultdict(dict)
-    for base, rs in by_config.items():
-        cfg = rs[0]["config"]
-        v = cfg["env"].get("ET_MINER_KERNEL_VARIANT")
-        if v in ("legacy", "shared") and len(cfg["env"]) == 1 and not cfg.get("two_phase"):
-            ab[(cfg["preset"], cfg.get("n_gpus"), cfg.get("max_length"))][v] = statistics.median(
-                [r["wall_s"] for r in rs]
-            )
-    for (preset, gpus, _ml), d in sorted(ab.items()):
-        if "legacy" in d and "shared" in d:
-            speed = d["legacy"] / d["shared"] if d["shared"] else float("nan")
-            lines.append(f"| {preset} | {gpus} | {_fmt_s(d['legacy'])} | {_fmt_s(d['shared'])} | {speed:.2f}× |")
     lines.append("")
 
     # Per-level breakdown for the slowest ok run of each preset

@@ -7,6 +7,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 1 GPU, tiled kernel pinned
         == row-split 1 GPU, per-candidate kernel pinned
         == row-split 1 GPU, forced chunks (the fused tiled kernel)
+        == ESCO 1 GPU, auto and fixed K=3, including forced chunks
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
         == SON 2 GPUs, forced chunks
@@ -305,6 +306,35 @@ def test_row_split_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_se
 def test_son_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "SON 1 GPU, four chunks", {},
              runs=("count_itemsets_cuda",), streaming=True, chunk_size=SPEC.n_rows // 4 + 1, show_progress=False)
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("sparse_from_k", ["auto", 3])
+@pytest.mark.parametrize("chunked", [False, True])
+def test_esco_one_gpu_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, chunked):
+    from et_miner.gpu import sparse_csr
+
+    calls = []
+    real = sparse_csr.count_csr_range
+
+    def spy(*a, **kw):
+        calls.append(1)
+        return real(*a, **kw)
+
+    monkeypatch.setattr(sparse_csr, "count_csr_range", spy)
+    env = {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK} if chunked else {}
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"ESCO 1 GPU ({sparse_from_k}, chunks={chunked})", env,
+             sparse_from_k=sparse_from_k, n_gpus=1)
+    assert calls, "ESCO leg must actually count sparse candidates"
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize("sparse_from_k", ["auto", 3])
+def test_esco_two_gpus_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k):
+    _needs_two_gpus()
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"ESCO 2 GPUs ({sparse_from_k})",
+             {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK}, sparse_from_k=sparse_from_k, n_gpus=2)
 
 
 @pytest.mark.gpu

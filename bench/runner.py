@@ -11,7 +11,7 @@ signatures — kernel variant, filter impl, GPU count, NCCL mode, row
 balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
-Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify [--out DIR]
+Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail [--out DIR]
        [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
 
 `consolidation` runs the GPU-layer consolidation matrix
@@ -20,6 +20,9 @@ and every (dataset, min_support, max_length, prune_equal_support) group must
 agree on its signature across GPU, SON and CPU routes alike. `supplement` runs
 the configs added after that campaign (`build_supplement_matrix`), and
 `verify` the reduced re-run on the consolidated tree (`build_verify_matrix`).
+`esco` compares dense dispatch and both pinned dense kernels against ESCO;
+`esco-retail` does so on Online Retail at 0.0001 and 0.00005 through K=2/3/4.
+`--cpu-only` selects just CPU/oracle configs and needs no CUDA device.
 """
 
 from __future__ import annotations
@@ -72,6 +75,10 @@ def _cfg(id_, preset, *, n_gpus=2,
 
 
 def build_matrix(mode: str, n_dev: int) -> list[dict]:
+    if mode in ("esco", "esco-retail"):
+        from consolidation_matrix import build_esco_matrix
+
+        return build_esco_matrix(n_dev, retail_low=mode == "esco-retail")
     if mode == "consolidation":
         from consolidation_matrix import build_consolidation_matrix
 
@@ -390,7 +397,7 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify"], required=True)
+    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,
@@ -398,6 +405,7 @@ def main() -> int:
                          "(subprocess time x devices the config uses; CPU configs count as one)")
     ap.add_argument("--only", default=None, help="run only configs whose id contains this")
     ap.add_argument("--skip", default=None, help="skip configs whose id contains this")
+    ap.add_argument("--cpu-only", action="store_true", help="run only CPU/oracle configs in the selected matrix")
     args = ap.parse_args()
 
     # The revision this invocation speaks for, read ONCE, before anything is
@@ -430,10 +438,15 @@ def main() -> int:
                 pass
 
     n_dev = _gpu_count()
-    if n_dev == 0:
+    if n_dev == 0 and not args.cpu_only:
         print("no CUDA devices — nothing to run")
         return 2
     matrix = build_matrix(args.mode, n_dev)
+    if args.cpu_only:
+        matrix = [c for c in matrix if c.get("route") in ("F", "EA", "cpu")]
+        if not matrix:
+            print("selected matrix contains no CPU/oracle configs")
+            return 2
 
     # ONE view of the config set, derived twice from the same matrix.
     #

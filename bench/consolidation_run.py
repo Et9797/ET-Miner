@@ -9,6 +9,7 @@ route is named explicitly rather than inferred from ``n_gpus``:
     D        SON, one GPU or CPU       apriori(streaming=True, chunk_size=...)
     E        SON, multi-GPU            apriori(streaming=True, n_gpus=N, chunk_size=...)
     F        CPU                       apriori(use_gpu=False, sparse=..., n_jobs=...)
+    EA       efficient-apriori          canonical oracle, explicit max_length
 
 Before the timed call the child compiles every registered kernel on each
 device the route uses and runs the same route on a 20,000-row slice of the
@@ -50,7 +51,7 @@ WARMUP_ROWS = 20_000
 
 
 def _devices(cfg: dict) -> list[int]:
-    if cfg["route"] == "F":
+    if cfg["route"] in ("F", "EA"):
         return []
     n = int(cfg.get("n_gpus", 1))
     return list(range(n))
@@ -93,17 +94,30 @@ def _mine(cfg: dict, df, min_support: float, max_length, level_cb, progress_cb, 
     route = cfg["route"]
     n_gpus = int(cfg.get("n_gpus", 1))
     common = dict(min_support=min_support, max_length=max_length)
+    if route == "EA":
+        import polars as pl
+        from efficient_apriori import apriori as ea_apriori
+        from et_miner.core.result import _min_count
+
+        itemsets, _ = ea_apriori(
+            df["items"].to_list(), min_support=(_min_count(min_support, df.height) - 0.5) / df.height,
+            min_confidence=1.0, max_length=max_length if max_length is not None else 100,
+        )
+        rows = [(list(key), count / df.height) for level in itemsets.values() for key, count in level.items()]
+        return pl.DataFrame(rows, schema={"itemset": pl.List(pl.Int64), "support": pl.Float64}, orient="row")
     if route == "C-bitvecs":
         t0 = time.perf_counter()
         bv, col_to_item, n = _bitvecs(df, min_support)
         timings["bitvec_build_s"] = round(time.perf_counter() - t0, 3)
         t0 = time.perf_counter()
-        res = apriori(bitvecs=(bv, col_to_item, n), n_gpus=n_gpus, level_callback=level_cb, **common)
+        res = apriori(bitvecs=(bv, col_to_item, n), n_gpus=n_gpus, level_callback=level_cb,
+                      sparse_from_k=cfg.get("sparse_from_k"), **common)
         timings["mine_s"] = round(time.perf_counter() - t0, 3)
         return res
     if route == "C":
         return apriori(df, use_gpu=True, n_gpus=n_gpus,
                        prune_equal_support=cfg.get("prune_equal_support", False),
+                       sparse_from_k=cfg.get("sparse_from_k"),
                        level_callback=level_cb, **common)
     if route in ("D", "E"):
         return apriori(df, streaming=True, chunk_size=int(cfg["chunk_size"]), n_gpus=n_gpus if route == "E" else 1,
@@ -118,7 +132,7 @@ def _mine(cfg: dict, df, min_support: float, max_length, level_cb, progress_cb, 
 def _warmup(cfg: dict) -> None:
     import polars as pl
 
-    if cfg["route"] != "F":
+    if cfg["route"] not in ("F", "EA"):
         import cupy as cp
 
         from et_miner.gpu.kernels.loader import _KERNEL_FILES, get_cuda_kernel
@@ -199,10 +213,13 @@ def run_consolidation(cfg: dict) -> int:
     import et_miner  # noqa: F401 -- import before replacing the sinks
 
     fallbacks: list[str] = []
+    transitions: list[str] = []
     allowed = re.compile("|".join(cfg["allow_fallback"]), re.IGNORECASE) if cfg.get("allow_fallback") else None
 
     def _sink(message):
         text = message.record["message"]
+        if "DENSITY TRANSITION" in text:
+            transitions.append(text)
         if _FALLBACK_RE.search(text) and not (allowed and allowed.search(text)):
             fallbacks.append(f"{message.record['level'].name}: {text[:300]}")
 
@@ -242,6 +259,9 @@ def run_consolidation(cfg: dict) -> int:
             raise RuntimeError(status)
         res = _mine(cfg, df, min_support, max_length, level_cb, progress_cb, timings)
         wall_s = time.perf_counter() - t0
+        timings["density_transitions"] = transitions
+        if cfg.get("expect_transition") and not transitions:
+            raise AssertionError("ESCO config completed without entering the sparse CSR path")
         bad = [list(x) for x in res["itemset"].head(100_000).to_list() if list(x) != sorted(x)]
         if bad:
             raise AssertionError(f"itemsets not ascending, e.g. {bad[:3]}")
@@ -274,6 +294,7 @@ def run_consolidation(cfg: dict) -> int:
             status = f"error: {type(e).__name__}: {e}"
         wall_s = time.perf_counter() - t0
     finally:
+        timings["density_transitions"] = transitions
         sampler.stop()
         sampler.join(timeout=3)
         logger.remove(sink_id)

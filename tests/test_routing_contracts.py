@@ -322,16 +322,11 @@ class TestRemovedParametersRaise:
         with pytest.raises(ValueError, match="prune_apriori was removed"):
             apriori(df, min_support=0.05, prune_apriori=value)
 
-    @pytest.mark.parametrize("value", [3, "auto"])
-    def test_sparse_from_k(self, df, value):
-        with pytest.raises(ValueError, match="sparse_from_k was removed"):
-            apriori(df, min_support=0.05, sparse_from_k=value)
-
     def test_mine_two_phase_refuses_before_creating_a_directory(self, df, tmp_path):
         from et_miner.gpu.row_split import mine_two_phase
 
-        with pytest.raises(ValueError, match="sparse_from_k was removed"):
-            mine_two_phase(df, output_dir=str(tmp_path / "out"), sparse_from_k="auto")
+        with pytest.raises(ValueError, match="sparse_from_k"):
+            mine_two_phase(df, output_dir=str(tmp_path / "out"), sparse_from_k="bogus")
         assert not (tmp_path / "out").exists()
 
 

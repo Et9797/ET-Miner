@@ -40,6 +40,11 @@ WORKLOADS = {
     "or003": ("online_retail", 0.003, None),
     "or002": ("online_retail", 0.002, None),
     "oom2ml3": ("oom_regression", 0.00003, 3),
+    **{
+        f"or{label}-{depth}": ("online_retail", support, max_length)
+        for label, support in (("0001", 0.0001), ("00005", 0.00005))
+        for depth, max_length in (("k2", 2), ("k3", 3), ("k4", 4))
+    },
 }
 
 DEEP = ("smoke", "deepk", "skew", "dsl", "or003", "or002")
@@ -231,3 +236,35 @@ def build_verify_matrix(n_dev: int) -> list[dict]:
                 continue
             cfgs.append({**c, "id": f"{c['base_id']}#r{rep}", "rep": rep})
     return cfgs
+
+
+def build_esco_matrix(n_dev: int, *, retail_low: bool = False) -> list[dict]:
+    """Dense and ESCO on the same workloads, repeats and result-signature gate.
+
+    Low-support Retail runs cover K=2, K=3 and K=4. Repeated baskets alone
+    imply at least 2**53-1 / 2**93-1 itemsets at the two supports, so the
+    comparison uses explicit depth limits. Shallow runs precede deeper ones;
+    OOM/timeouts fail the gate rather than count as wins.
+    """
+    if retail_low:
+        workloads = tuple(f"or{label}-{depth}" for depth in ("k2", "k3", "k4")
+                          for label in ("0001", "00005"))
+    else:
+        workloads = DEEP + ("wide",)
+    base = []
+    for w in workloads:
+        for n in ([1, 2] if n_dev >= 2 else [1]):
+            prefix = f"C{n}"
+            base.append(_cfg(f"{prefix}-dense", w, "C", n_gpus=n))
+            base.append(_cfg(f"{prefix}-dense-tiled", w, "C", n_gpus=n,
+                             env={"ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}))
+            base.append(_cfg(f"{prefix}-dense-percand", w, "C", n_gpus=n,
+                             env={"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP}))
+            base.append(_cfg(f"{prefix}-esco-auto", w, "C", n_gpus=n, sparse_from_k="auto"))
+            base.append(_cfg(f"{prefix}-esco-k3", w, "C", n_gpus=n, sparse_from_k=3,
+                             expect_transition=WORKLOADS[w][2] != 2))
+        if w in CPU or (retail_low and WORKLOADS[w][2] == 2):
+            base.append(_cfg("F-sparse", w, "F", sparse=True, n_jobs=6))
+        if retail_low and WORKLOADS[w][2] == 2:
+            base.append(_cfg("EA", w, "EA"))
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]

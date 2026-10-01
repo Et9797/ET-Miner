@@ -11,9 +11,10 @@ Guidance for Claude Code when working in this repository.
 
   Tier 1 Polars == Tier 2 Rust (`sparse=True`) == row-split 1 GPU ==
   row-split 1 GPU, tiled kernel pinned == row-split 1 GPU, per-candidate
-  kernel pinned == row-split 1 GPU, forced chunks (fused tiled) == SON 1 GPU,
-  forced chunks == row-split 2 GPUs == row-split 2 GPUs, forced chunks
-  (per-candidate sub-chunks) == SON 2 GPUs, forced chunks == efficient-apriori
+  kernel pinned == row-split 1 GPU, forced chunks (fused tiled) ==
+  ESCO 1 GPU (auto / K=3, plain / forced chunks) == SON 1 GPU, forced chunks ==
+  row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks) ==
+  ESCO 2 GPUs (auto / K=3, forced chunks) == SON 2 GPUs, forced chunks == efficient-apriori
 
   It is enforced by `tests/test_tier_equivalence.py` (exact itemsets AND
   absolute counts) and runs FIRST in `bench/run_smoke.sh` and
@@ -39,9 +40,8 @@ Guidance for Claude Code when working in this repository.
   sm_86 (RTX 3090) as well as sm_90 (H100/H200).
 - The rule is the *intent*, not the list: an intrinsic is allowed if it is
   **sm_60+ and NVRTC-compilable with no arch flags**. What is in the tree today
-  is `__popcll`, the 32-bit `__popc` (`_src/csr_warp.cu`,
-  `_src/compact_threshold.cu`), `__shfl_down_sync`, `__shfl_sync`,
-  `__ballot_sync`, `__activemask`, `__ffs` (`_src/compact_threshold.cu`),
+  is `__popcll`, the 32-bit `__popc` (`_src/csr_warp.cu`), `__shfl_down_sync`, `__shfl_sync`,
+  `__ballot_sync`, `__activemask`,
   `__ffsll` (`_src/bitvec_extract_tids.cu`), and 64-bit atomics
   (`atomicAdd`/`atomicOr` on `unsigned long long`). No CUB, no templates, no
   cooperative groups, no `memcpy_async`. Check a new one against the rule; do

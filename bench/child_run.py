@@ -120,7 +120,7 @@ def result_signatures(res, n_rows: int) -> dict:
 
 #: Config keys whose apriori() parameters were removed; a config that sets one
 #: measured a route that no longer exists, so it fails instead of running another.
-REMOVED_KEYS = ("sparse_from_k", "gpu_resident", "prune_apriori")
+REMOVED_KEYS = ("gpu_resident", "prune_apriori")
 
 
 def main() -> int:
@@ -130,6 +130,8 @@ def main() -> int:
     removed = sorted(k for k in REMOVED_KEYS if k in cfg)
     if removed:
         raise ValueError(f"config {cfg.get('id')} sets removed keys {removed}: its route no longer exists")
+    if cfg.get("sparse_from_k") is not None and cfg.get("route") in ("F", "EA", "cpu", "D", "E"):
+        raise ValueError("sparse_from_k requires an in-core GPU route; this config would ignore it")
 
     for k, v in cfg.get("env", {}).items():
         os.environ[k] = str(v)
@@ -179,6 +181,7 @@ def main() -> int:
                     item_col="items",
                     n_gpus=cfg.get("n_gpus", 2),
                     output_dir=td,
+                    sparse_from_k=cfg.get("sparse_from_k"),
                     level_callback=level_cb,
                 )
                 parts = sorted((Path(td) / "phase2").glob("frequent_k*.parquet"))
@@ -206,6 +209,7 @@ def main() -> int:
                 item_col="items",
                 use_gpu=True,
                 n_gpus=cfg.get("n_gpus", 2),
+                sparse_from_k=cfg.get("sparse_from_k"),
                 level_callback=level_cb,
             )
         wall_s = time.perf_counter() - t0

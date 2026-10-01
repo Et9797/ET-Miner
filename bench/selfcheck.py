@@ -118,6 +118,9 @@ def _smoke_launch(cp) -> None:
     from et_miner.gpu.kernels import (
         K3PlusGroups,
         count_itemsets_cuda,
+        count_csr_range,
+        count_csr_gather,
+        write_csr_gather,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
         count_pairs_k2_shared,
@@ -150,6 +153,31 @@ def _smoke_launch(cp) -> None:
     launched.add("count_shared_tiled_fused")
     assert count_itemsets_cuda(full, [np.array([0, 1], np.int32), np.array([1, 2, 3], np.int32)]).tolist() == [256, 256]
     launched.add("count_itemsets_batch")
+    # The sparse parents are {0,1}, {0,2}, {0,3}; all candidate
+    # intersections contain only transaction 0.
+    did = cp.cuda.Device().id
+    from et_miner.gpu.kernels import build_k3plus_groups_from_flat, get_cuda_kernel, upload_k3plus_groups
+
+    sparse_groups = build_k3plus_groups_from_flat(np.array([[0, 1], [0, 2], [0, 3]], np.int32), with_src_rows=True)
+    uploaded = upload_k3plus_groups(sparse_groups, did, with_src_rows=True)
+    offsets = cp.array([0, 2, 4, 6], dtype=cp.int64)
+    tids = cp.array([0, 1, 0, 2, 0, 3], dtype=cp.int32)
+    assert count_csr_range(offsets, tids, uploaded, 0, 3).tolist() == [1, 1, 1]
+    launched.add("csr_count_range")
+    ids = cp.array([2, 0, 1], dtype=cp.int64)
+    assert count_csr_gather(offsets, tids, uploaded, ids).tolist() == [1, 1, 1]
+    launched.add("csr_count_gather")
+    out_offsets = cp.arange(4, dtype=cp.int64)
+    out_tids = cp.empty(3, dtype=cp.int32)
+    write_csr_gather(offsets, tids, uploaded, ids, out_offsets, out_tids)
+    assert out_tids.tolist() == [0, 0, 0]
+    launched.add("csr_write_gather")
+    extracted = cp.empty(6, dtype=cp.int32)
+    get_cuda_kernel("bitvec_extract_tids")(
+        (1,), (256,), (bv, offsets, extracted, np.int64(3), np.int64(1), np.int64(0))
+    )
+    assert extracted.tolist() == [0, 2, 1, 2, 0, 2]
+    launched.add("bitvec_extract_tids")
     missing = set(_KERNEL_FILES) - launched
     assert not missing, f"registered kernels this selfcheck never launches: {sorted(missing)}"
 

@@ -169,6 +169,10 @@ def _grid_dims(n_blocks):
 
 # CUDA entry point -> .cu file in _src/ (cache keys are the entry-point names)
 _KERNEL_FILES: dict[str, str] = {
+    "csr_count_range": "csr_warp.cu",
+    "csr_count_gather": "csr_warp.cu",
+    "csr_write_gather": "csr_warp.cu",
+    "bitvec_extract_tids": "bitvec_extract_tids.cu",
     "count_itemsets_batch": "itemset_count.cu",
     "count_pairs_k2_dense": "pairs_k2_dense.cu",
     "count_k3plus_dense": "k3plus_dense.cu",
@@ -181,6 +185,7 @@ _KERNEL_FILES: dict[str, str] = {
 # snippets it needs. Keeps one copy of code that must stay identical across
 # kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
+    "csr_warp.cu": ["_decode_common.cu"],
     "k3plus_dense.cu": ["_decode_common.cu"],
 }
 

@@ -62,6 +62,12 @@ number is worth recording from a miner that disagrees with the oracle.
 
 ## Knobs the matrix drives (documented in `src/et_miner/_env.py`)
 
+ESCO's `sparse_from_k` argument is restored: `None` keeps dense bitvectors,
+`"auto"` switches below the measured n/32 mean-count crossover, and an int
+fixes the transition level (at least K=3). The transition is one-way.
+The `esco` and `esco-retail` comparison matrices and low-support Retail
+validation are described in [ESCO.md](ESCO.md).
+
 | Env | Values | Meaning |
 |---|---|---|
 | `ET_MINER_DISABLE_NCCL` | `1` | force the staged D2D reduce |

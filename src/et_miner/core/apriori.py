@@ -31,6 +31,7 @@ import polars as pl
 from loguru import logger
 
 from et_miner import _env
+from et_miner.gpu.density import validate_sparse_from_k
 
 from .candidates import _generate_candidates
 from .matrix import (
@@ -102,12 +103,7 @@ def _validate_parameters(
         if batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 
-    if sparse_from_k is not None:
-        raise ValueError(
-            "sparse_from_k was removed: the GPU miner keeps dense bitvectors at every level "
-            "(the sparse CSR layout won no measured regime and ran out of memory where dense "
-            "did not). Drop the argument."
-        )
+    validate_sparse_from_k(sparse_from_k)
     if prune_apriori is not None:
         raise ValueError(
             "prune_apriori was removed: the GPU miner counts every candidate its prefix groups "
@@ -405,7 +401,7 @@ def apriori(
     # Memory guard limits for exhaustive mining
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
-    # Removed: any value but None raises
+    # ESCO: dense→sparse CSR transition, fixed K or measured density
     sparse_from_k: int | Literal["auto"] | None = None,
     # V3 B6: restrict candidates to anchor neighborhoods (two-phase mining)
     anchor_items: set | None = None,
@@ -476,8 +472,11 @@ def apriori(
             The array is READ-ONLY to the engine: ET-Miner writes only to
             bitvectors it builds itself, never to one it is handed, so the
             caller may reuse it after the call without copying it first.
-        sparse_from_k: Removed; any value other than None raises ValueError.
-            The GPU miner keeps dense bitvectors at every level.
+        sparse_from_k: In-core GPU paths only — an int switches to sparse CSR
+            tidsets from that K (at least 3); "auto" switches when the previous
+            level's mean count falls below n_transactions/32. None (default)
+            keeps dense bitvectors. The transition is one-way. CPU mining
+            ignores this GPU setting; SON streaming rejects it.
         max_ram_gb / max_vram_gb: Memory guards for the GPU routes
             (use_gpu=True without streaming, or bitvecs=): MemoryError between
             K-levels once host RSS or the largest device's CuPy pool exceeds
@@ -511,6 +510,9 @@ def apriori(
     """
     _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)
     _env.reject_removed_knobs()
+
+    if streaming and bitvecs is None and sparse_from_k is not None:
+        raise ValueError("sparse_from_k requires in-core GPU mining; SON streaming does not implement the transition")
 
     # Every parameter/route mismatch is rejected here, ABOVE the routing, so a
     # route cannot silently drop something the caller asked for. This has to run
@@ -591,6 +593,7 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,
+            sparse_from_k=sparse_from_k,
             profile=profile,
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
@@ -670,6 +673,7 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,  # free-sets: emit == generate
+            sparse_from_k=sparse_from_k,
             anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
             profile=profile,
             max_ram_gb=max_ram_gb,
@@ -892,5 +896,4 @@ def apriori(
     if profile:
         return result_df, session
     return result_df
-
 

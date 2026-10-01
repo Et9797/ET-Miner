@@ -25,7 +25,9 @@ K3PlusGroups = namedtuple(
         "cumulative_pairs",
         "total_candidates",
         "groups",
+        "suffix_src_rows",
     ],
+    defaults=(None,),
 )
 
 _STALE_RUST_WARNED = False
@@ -113,15 +115,20 @@ def select_k3plus_groups(groups_info, keep):
         cumulative_pairs=cumulative_pairs,
         total_candidates=int(cumulative_pairs[-1]),
         groups=None,
+        suffix_src_rows=(
+            None if groups_info.suffix_src_rows is None
+            else np.asarray(groups_info.suffix_src_rows)[_gather(so[idx], s_len)]
+        ),
     )
 
 
-def upload_k3plus_groups(groups_info, device_id):
+def upload_k3plus_groups(groups_info, device_id, *, with_src_rows: bool = False):
     """Upload K3+ group data to GPU once, keep resident across chunks — ~40 GB at K=8.
 
     Includes "ctp" (cumulative tile-pairs) for the shared/tiled kernel;
     negligible extra bytes (one int64 per group + 1) for the legacy path.
-    "tc" carries total_candidates for range checks.
+    "tc" carries total_candidates for range checks. Sparse CSR kernels also
+    need "gsr", mapping each suffix slot to its previous-level tidset row.
     """
     import cupy as cp
 
@@ -137,6 +144,10 @@ def upload_k3plus_groups(groups_info, device_id):
             "ctp": cp.array(compute_cumulative_tilepairs(groups_info.suffix_offsets), dtype=cp.int64),
             "tc": int(groups_info.total_candidates),
         }
+        if with_src_rows:
+            if groups_info.suffix_src_rows is None:
+                raise ValueError("with_src_rows=True needs groups built with with_src_rows=True")
+            out["gsr"] = cp.array(groups_info.suffix_src_rows, dtype=cp.int64)
         return out
 
 
@@ -218,7 +229,7 @@ def count_k3plus_per_candidate(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, 
 
 
 
-def build_k3plus_groups_from_flat(freq_flat):
+def build_k3plus_groups_from_flat(freq_flat, *, with_src_rows: bool = False):
     """Build prefix group arrays from flat (n_freq, k) numpy array.
 
     Uses Rust/Rayon parallel sort when available (10-100x faster, 9x less memory).
@@ -227,6 +238,8 @@ def build_k3plus_groups_from_flat(freq_flat):
 
     Args:
         freq_flat: numpy int32 array of shape (n_freq, k).
+        with_src_rows: Preserve the original row index of each suffix slot
+            for the sparse CSR kernels (int64, 8 bytes per suffix).
 
     Returns:
         K3PlusGroups namedtuple or None if no valid groups.
@@ -245,7 +258,7 @@ def build_k3plus_groups_from_flat(freq_flat):
         if hasattr(et_miner_rust, "build_k3plus_groups_from_flat"):
             arr = np.ascontiguousarray(freq_flat, dtype=np.int32)
             try:
-                result = et_miner_rust.build_k3plus_groups_from_flat(arr, False)
+                result = et_miner_rust.build_k3plus_groups_from_flat(arr, with_src_rows)
             except TypeError:  # pre-0.2.0 wheel: no with_src_rows argument
                 result = None
                 _warn_stale_rust_once("build_k3plus_groups_from_flat has no with_src_rows")
@@ -256,7 +269,7 @@ def build_k3plus_groups_from_flat(freq_flat):
                     _warn_stale_rust_once("build_k3plus_groups_from_flat returned a 6-tuple")
                     result = None
             if result is not None:
-                prefix_items, prefix_offsets, suffixes, suffix_offsets, cumulative_pairs, _src_rows, total = result
+                prefix_items, prefix_offsets, suffixes, suffix_offsets, cumulative_pairs, src_rows, total = result
                 return K3PlusGroups(
                     prefix_items=prefix_items,
                     prefix_offsets=prefix_offsets,
@@ -265,6 +278,7 @@ def build_k3plus_groups_from_flat(freq_flat):
                     cumulative_pairs=cumulative_pairs,
                     total_candidates=int(total),
                     groups=None,
+                    suffix_src_rows=np.asarray(src_rows, dtype=np.int64) if with_src_rows else None,
                 )
     except Exception as exc:
         # (ImportError, Exception) was the same blanket catch written twice.
@@ -273,10 +287,10 @@ def build_k3plus_groups_from_flat(freq_flat):
         # longer hides the failure that made it necessary.
         _warn_rust_failed("build_k3plus_groups_from_flat", exc)
 
-    return _build_k3plus_groups_numpy(freq_flat)
+    return _build_k3plus_groups_numpy(freq_flat, with_src_rows=with_src_rows)
 
 
-def _build_k3plus_groups_numpy(freq_flat):
+def _build_k3plus_groups_numpy(freq_flat, *, with_src_rows: bool = False):
     """Vectorized numpy group builder (the no-Rust fallback; directly testable).
 
     Sorts by the FULL row (prefix columns, then suffix) like the Rust
@@ -347,4 +361,5 @@ def _build_k3plus_groups_numpy(freq_flat):
         cumulative_pairs=cumulative_pairs,
         total_candidates=total_candidates,
         groups=None,  # not needed for dense counting
+        suffix_src_rows=order[src_indices].astype(np.int64) if with_src_rows else None,
     )

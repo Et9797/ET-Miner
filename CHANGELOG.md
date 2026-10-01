@@ -12,6 +12,19 @@ All notable changes to ET-Miner are recorded here. Versions follow
 
 ## [Unreleased] — 0.2.0
 
+### ESCO restored (after kernel consolidation)
+
+- Restored the opt-in GPU dense→sparse CSR crossover via `sparse_from_k="auto"`
+  or an integer K, keeping dense mining as the default. This supersedes the
+  sparse-layout removal recorded under GPU-layer consolidation below.
+- Restored the warp intersection kernels, source-row mapping, ownership checks,
+  density tests and ESCO oracle-equivalence legs on one and two GPUs. The
+  current dense kernels, filtering and reduce paths serve both layouts.
+- Added `esco` / `esco-retail` benchmark modes comparing ESCO with the dense
+  dispatcher and both pinned dense kernels. Retail runs use supports 0.0001
+  and 0.00005 at explicit max_length 2/3/4; CPU and efficient-apriori K=2
+  controls can run without CUDA using `--cpu-only`. See `bench/ESCO.md`.
+
 Remediation of the 62 defects recorded in `BUGS_FOUND.md` (an adversarial
 four-reviewer review of `22cb1dc`), plus 19 further defects found while
 planning it. Landing across PRs 0–11; this section is filled in as they merge.

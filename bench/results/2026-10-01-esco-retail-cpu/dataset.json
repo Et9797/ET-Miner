@@ -1,0 +1,18 @@
+{
+  "n_rows": 36422,
+  "sha256": "3590afba40636203e6edef6087a20302f3fe3f8f50d39ff4058e982b9e4d931b",
+  "supports": {
+    "0.0001": {
+      "min_count": 4,
+      "repeated_basket_size": 53,
+      "basket_repetitions": 4,
+      "full_itemsets_lower_bound": "9007199254740991"
+    },
+    "5e-05": {
+      "min_count": 2,
+      "repeated_basket_size": 93,
+      "basket_repetitions": 2,
+      "full_itemsets_lower_bound": "9903520314283042199192993791"
+    }
+  }
+}

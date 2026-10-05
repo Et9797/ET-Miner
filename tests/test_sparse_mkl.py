@@ -254,10 +254,15 @@ class TestNJobsIsHonouredOnTheRustPath:
             out = rust.count_itemsets_simd(indptr, indices, n_rows, n_cols, itemsets, n_threads)
             return time.perf_counter() - t, int(out.sum())
 
-        t_unbounded, sum_unbounded = run(0)
-        t_one, sum_one = run(1)
+        # Warm up, then the best of three interleaved runs per setting: on a
+        # shared CI runner a single noisy run must not decide the ratio.
+        run(0)
+        runs = [(run(0), run(1)) for _ in range(3)]
+        t_unbounded = min(unbounded[0] for unbounded, _ in runs)
+        t_one = min(one[0] for _, one in runs)
+        sums = {r[1] for pair in runs for r in pair}
 
-        assert sum_one == sum_unbounded, "a thread budget must not change the counts"
+        assert len(sums) == 1, "a thread budget must not change the counts"
         assert t_one > t_unbounded * 1.5, (
             f"n_threads=1 took {t_one:.2f}s vs {t_unbounded:.2f}s unbounded -- "
             "the budget does not appear to be applied"

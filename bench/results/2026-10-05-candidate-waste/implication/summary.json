@@ -1,0 +1,19 @@
+{
+  "spec": {
+    "name": "implication_proto",
+    "n_rows": 200000,
+    "fanout": 8,
+    "depth": 2,
+    "base": "smoke"
+  },
+  "nnz_before": 1661031,
+  "nnz_after": 3018769,
+  "impl-C1": {
+    "wall_s": 0.561,
+    "n_itemsets": 790823
+  },
+  "impl-C1-free": {
+    "wall_s": 0.164,
+    "n_itemsets": 29651
+  }
+}

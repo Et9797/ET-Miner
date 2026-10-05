@@ -12,9 +12,14 @@ Guidance for Claude Code when working in this repository.
   Tier 1 Polars == Tier 2 Rust (`sparse=True`) == row-split 1 GPU ==
   row-split 1 GPU, tiled kernel pinned == row-split 1 GPU, per-candidate
   kernel pinned == row-split 1 GPU, forced chunks (fused tiled) ==
-  ESCO 1 GPU (auto / K=3, plain / forced chunks) == SON 1 GPU, forced chunks ==
+  row-split 1 GPU, no subset test (`prune_apriori=False`) ==
+  row-split 1 GPU, count inference (dispatch / tiled / per-candidate / forced chunks) ==
+  ESCO 1 GPU (auto / K=3, plain / forced chunks, with / without count inference) ==
+  SON 1 GPU, forced chunks ==
   row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks) ==
-  ESCO 2 GPUs (auto / K=3, forced chunks) == SON 2 GPUs, forced chunks == efficient-apriori
+  row-split 2 GPUs, count inference (plain / forced chunks) ==
+  ESCO 2 GPUs (auto / K=3, forced chunks, with / without count inference) ==
+  SON 2 GPUs, forced chunks == efficient-apriori
 
   It is enforced by `tests/test_tier_equivalence.py` (exact itemsets AND
   absolute counts) and runs FIRST in `bench/run_smoke.sh` and

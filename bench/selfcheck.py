@@ -153,6 +153,22 @@ def _smoke_launch(cp) -> None:
     launched.add("count_shared_tiled_fused")
     assert count_itemsets_cuda(full, [np.array([0, 1], np.int32), np.array([1, 2, 3], np.int32)]).tolist() == [256, 256]
     launched.add("count_itemsets_batch")
+    # The (k-1)-subset test: candidates 0+{1,2}, 0+{1,3}, 0+{2,3} against a level
+    # without {1,3} (one candidate skipped), without any suffix pair (the tile is
+    # skipped), and with {1,2} not free (that candidate's count is inferred).
+    from et_miner.gpu.kernels import SUBSET_INFER, SUBSET_PRUNE, upload_subset_index
+
+    dev = cp.cuda.Device().id
+    pairs = np.array([[0, 1], [0, 2], [0, 3], [1, 2], [2, 3]], np.int32)
+    partial = upload_subset_index(pairs, [256] * 5, mode=SUBSET_PRUNE, device_id=dev, write_inferred=True)
+    bare = upload_subset_index(pairs[:3], [256] * 3, mode=SUBSET_PRUNE, device_id=dev, write_inferred=True)
+    infer = upload_subset_index(np.vstack([pairs, [[1, 3]]])[[0, 1, 2, 3, 5, 4]], [256, 256, 256, 100, 256, 256],
+                                [True, True, True, False, True, True], mode=SUBSET_PRUNE | SUBSET_INFER,
+                                device_id=dev, write_inferred=True)
+    assert count_k3plus_per_candidate(full, groups, 4, index=partial).tolist() == [256, 0, 256]
+    assert count_k3plus_per_candidate(full, groups, 4, index=infer).tolist() == [100, 256, 256]
+    assert count_shared_tiled_allcounts(full, groups, 4, index=bare).tolist() == [0, 0, 0]
+    assert count_tiled_fused(full, groups, 4, 1, index=bare)[0].tolist() == []
     # The sparse parents are {0,1}, {0,2}, {0,3}; all candidate
     # intersections contain only transaction 0.
     did = cp.cuda.Device().id
@@ -163,6 +179,7 @@ def _smoke_launch(cp) -> None:
     offsets = cp.array([0, 2, 4, 6], dtype=cp.int64)
     tids = cp.array([0, 1, 0, 2, 0, 3], dtype=cp.int32)
     assert count_csr_range(offsets, tids, uploaded, 0, 3).tolist() == [1, 1, 1]
+    assert count_csr_range(offsets, tids, uploaded, 0, 3, index=partial).tolist() == [1, 0, 1]
     launched.add("csr_count_range")
     ids = cp.array([2, 0, 1], dtype=cp.int64)
     assert count_csr_gather(offsets, tids, uploaded, ids).tolist() == [1, 1, 1]

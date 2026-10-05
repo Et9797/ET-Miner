@@ -25,6 +25,11 @@
 //   s_sufA/s_sufB[T][TILE_W+1]     2x8448 B  (+1 pad kills bank conflicts)
 // total ~17.5 KB — within the 48 KB static limit, 2 blocks/SM on sm_86.
 //
+// With an index of the previous level (index_mode != 0, _subset_index.cu) a
+// block first classifies its pairs: a tile-pair with no pair to count skips
+// the word loop, emitting only inferred counts (on the device that writes
+// them) and leaving skipped pairs at zero.
+//
 // Constraints shared with the rest of _src/: plain C, extern "C",
 // sm_60+ intrinsics only, blockDim.x == 256.
 
@@ -136,6 +141,41 @@ extern "C" __device__ __forceinline__ void _stage_tiles(
     const int warp = (int)(threadIdx.x >> 5);                                                     \
     unsigned int acc0 = 0, acc1 = 0, acc2 = 0, acc3 = 0;                                          \
                                                                                                   \
+    /* subset test: the tile is counted when one pair needs counting; otherwise */                \
+    /* its inferred pairs are emitted and the skipped ones keep their zero      */                \
+    if (index_mode != 0) {                                                                        \
+        __shared__ int s_count_tile;                                                              \
+        volatile int* count_tile = &s_count_tile;                                                 \
+        if (threadIdx.x == 0) *count_tile = 0;                                                    \
+        __syncthreads();                                                                          \
+        int pair_status[4];                                                                       \
+        int pair_inferred[4];                                                                     \
+        const long long jq = tb * TILE_T + lane;                                                  \
+        for (int q = 0; q < 4; q++) {                                                             \
+            const int aq = warp + 8 * q;                                                          \
+            const long long iq = ta * TILE_T + aq;                                                \
+            pair_status[q] = CAND_SKIP;                                                           \
+            pair_inferred[q] = 0;                                                                 \
+            if (jq >= group_size || iq >= group_size || (ta == tb && aq >= lane)) continue;       \
+            if (*count_tile) { pair_status[q] = CAND_COUNT; continue; }                           \
+            pair_status[q] = _classify_candidate(index_rows, index_n, index_counts, index_free,   \
+                index_mode, s_pref, prefix_len, group_suffixes[suf_start + iq],                   \
+                group_suffixes[suf_start + jq], &pair_inferred[q]);                               \
+            if (pair_status[q] == CAND_COUNT) *count_tile = 1;                                    \
+        }                                                                                         \
+        __syncthreads();                                                                          \
+        if (*count_tile == 0) {                                                                   \
+            if (write_inferred) {                                                                 \
+                for (int q = 0; q < 4; q++) {                                                     \
+                    if (pair_status[q] != CAND_INFER) continue;                                   \
+                    const long long iq = ta * TILE_T + warp + 8 * q;                              \
+                    EMIT_PAIR(cumulative_pairs[g] + jq * (jq - 1) / 2 + iq, pair_inferred[q]);    \
+                }                                                                                 \
+            }                                                                                     \
+            return;                                                                               \
+        }                                                                                         \
+    }                                                                                             \
+                                                                                                  \
     for (long long word_base = 0; word_base < n_u64s; word_base += TILE_W) {                      \
         _stage_tiles(bitvecs, group_suffixes, suf_start, group_size, s_pref,                      \
                      prefix_len, ta, tb, word_base, n_u64s, s_pa, s_sufA, s_sufB);                \
@@ -188,7 +228,13 @@ void count_shared_tiled_dense(
     const long long tilepair_start,
     const long long tilepair_end,
     const long long cand_offset,          // chunk-relative output indexing
-    int* __restrict__ result_counts       // int32, one slot per chunk candidate
+    int* __restrict__ result_counts,      // int32, one slot per chunk candidate
+    const int* __restrict__ index_rows,           // previous level, sorted (_subset_index.cu)
+    const long long index_n,
+    const int* __restrict__ index_counts,
+    const unsigned char* __restrict__ index_free,
+    const int index_mode,                         // 0: count every candidate
+    const int write_inferred                      // this device writes inferred counts
 ) {
     // Each candidate is written by exactly one block (its tile-pair) — no
     // atomics; bit-identical layout to count_k3plus_dense for the chunk.
@@ -214,7 +260,13 @@ void count_shared_tiled_fused(
     long long* __restrict__ result_indices,  // global candidate ids of survivors
     int* __restrict__ result_counts,
     unsigned long long* __restrict__ n_results,
-    const long long capacity                 // counting continues past it (writes dropped)
+    const long long capacity,                // counting continues past it (writes dropped)
+    const int* __restrict__ index_rows,
+    const long long index_n,
+    const int* __restrict__ index_counts,
+    const unsigned char* __restrict__ index_free,
+    const int index_mode,
+    const int write_inferred
 ) {
     #define EMIT_FUSED(cand, count)                                                              \
         if ((int)(count) >= min_count) {                                                         \

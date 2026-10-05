@@ -151,7 +151,9 @@ def upload_k3plus_groups(groups_info, device_id, *, with_src_rows: bool = False)
         return out
 
 
-def count_k3plus_per_candidate(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None):
+def count_k3plus_per_candidate(
+    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None
+):
     """Dense K>=3 counting, one thread per candidate: support counts for a range.
 
     Unlike the tiled kernel it serves any candidate range, so it also counts a
@@ -180,11 +182,15 @@ def count_k3plus_per_candidate(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, 
         chunk_size: Number of candidates to process (default: all).
         groups_gpu: Pre-uploaded group data dict from upload_k3plus_groups().
             If None, uploads fresh.
+        index: Previous-level index from subset_index.upload_subset_index()
+            on this device: skipped candidates keep 0, inferred ones get the
+            inferred count. None counts every candidate.
 
     Returns:
         CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
     """
     from .shared_tiled import _assert_k_cap
+    from .subset_index import kernel_args
 
     _assert_k_cap(groups_info)
     import cupy as cp
@@ -220,6 +226,7 @@ def count_k3plus_per_candidate(bitvecs_gpu, groups_info, n_u64s, chunk_start=0, 
                 np.int64(chunk_start + chunk_size),
                 result_counts,
                 np.int64(chunk_start),
+                *kernel_args(index, device_id),
             ),
         )
         cp.cuda.Stream.null.synchronize()

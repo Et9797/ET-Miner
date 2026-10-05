@@ -15,6 +15,12 @@ Before the timed call the child compiles every registered kernel on each
 device the route uses and runs the same route on a 20,000-row slice of the
 ``smoke`` preset. A fallback logged during the timed call (see
 ``FALLBACK_PATTERNS``) fails the config unless the config allows it.
+
+Optional config keys: ``level_split`` records each level's time split on the
+row-split miner (``level_split.py``) under ``timings["level_split"]``;
+``dump_lattice`` writes the mined itemsets with their integer counts to
+``<base_id>.lattice.parquet`` (plus a ``.json`` sidecar) next to the result
+file, after the timed call.
 """
 
 from __future__ import annotations
@@ -117,6 +123,8 @@ def _mine(cfg: dict, df, min_support: float, max_length, level_cb, progress_cb, 
     if route == "C":
         return apriori(df, use_gpu=True, n_gpus=n_gpus,
                        prune_equal_support=cfg.get("prune_equal_support", False),
+                       prune_apriori=cfg.get("prune_apriori", True),
+                       use_generator_pruning=cfg.get("use_generator_pruning", False),
                        sparse_from_k=cfg.get("sparse_from_k"),
                        level_callback=level_cb, **common)
     if route in ("D", "E"):
@@ -188,6 +196,28 @@ def _group_stats(res) -> dict:
     return out
 
 
+def _dump_lattice(cfg: dict, res, n_rows: int) -> None:
+    """The mined itemsets with integer counts, for bench/candidate_waste.py."""
+    import polars as pl
+
+    from et_miner.core.result import _min_count
+
+    base = Path(cfg["result_path"]).parent / cfg["base_id"]
+    res.select(
+        pl.col("itemset").list.eval(pl.element().sort()).cast(pl.List(pl.Int64)),
+        (pl.col("support") * n_rows).round().cast(pl.Int64).alias("count"),
+    ).write_parquet(f"{base}.lattice.parquet")
+    meta = {
+        "dataset": cfg["dataset"],
+        "min_support": float(cfg["min_support"]),
+        "max_length": cfg.get("max_length"),
+        "prune_equal_support": bool(cfg.get("prune_equal_support")),
+        "n_rows": int(n_rows),
+        "min_count": _min_count(float(cfg["min_support"]), n_rows),
+    }
+    Path(f"{base}.lattice.json").write_text(json.dumps(meta, indent=2) + "\n")
+
+
 def _host() -> dict:
     model = ""
     try:
@@ -247,6 +277,13 @@ def run_consolidation(cfg: dict) -> int:
     def progress_cb(phase, chunk_idx, n_chunks, metrics):
         events.append((phase, int(chunk_idx), int(n_chunks), time.perf_counter()))
 
+    split = None
+    if cfg.get("level_split"):
+        from level_split import LevelSplit
+
+        split = LevelSplit()
+        level_cb = split.callback(level_cb)
+
     sink_id = logger.add(_sink, level="DEBUG")
     sampler = VramSampler()
     sampler.start()
@@ -257,8 +294,13 @@ def run_consolidation(cfg: dict) -> int:
     try:
         if status != "ok":
             raise RuntimeError(status)
+        if split is not None:
+            split.install()
         res = _mine(cfg, df, min_support, max_length, level_cb, progress_cb, timings)
         wall_s = time.perf_counter() - t0
+        if split is not None:
+            split.uninstall()
+            timings["level_split"] = split.levels
         timings["density_transitions"] = transitions
         if cfg.get("expect_transition") and not transitions:
             raise AssertionError("ESCO config completed without entering the sparse CSR path")
@@ -267,6 +309,8 @@ def run_consolidation(cfg: dict) -> int:
             raise AssertionError(f"itemsets not ascending, e.g. {bad[:3]}")
         signatures = result_signatures(res, n_rows)
         timings["group_stats"] = _group_stats(res)
+        if cfg.get("dump_lattice") and cfg.get("result_path"):
+            _dump_lattice(cfg, res, n_rows)
         if sidecar and sidecar.get("planted") and max_length is None and not cfg.get("prune_equal_support"):
             counts = {
                 tuple(sorted(int(i) for i in s)): round(sup * n_rows)
@@ -295,6 +339,8 @@ def run_consolidation(cfg: dict) -> int:
         wall_s = time.perf_counter() - t0
     finally:
         timings["density_transitions"] = transitions
+        if split is not None:
+            split.uninstall()
         sampler.stop()
         sampler.join(timeout=3)
         logger.remove(sink_id)

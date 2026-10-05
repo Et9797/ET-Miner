@@ -113,6 +113,12 @@ uv run python bench/microbench_rust.py dump stress_k2 $MB --max-length 2 --free-
 uv run python bench/microbench_rust.py time $MB > $OUT/microbench.jsonl
 ```
 
+`--mode waste` measures what the K≥3 levels count needlessly: each level's
+time split and the lattice dumps that `bench/candidate_waste.py` classifies
+(`results/2026-10-05-candidate-waste/FINDINGS.md` has the commands).
+`--mode pruning` compares the device-side subset test and count inference with
+counting every candidate (`pruning/PROTOCOL.md`, `pruning/REPORT.md`).
+
 `ET_BENCH_ALPHAFOLD=/path/to/base214m.parquet` (a parquet with an `items`
 list column) makes the dataset name `alphafold` available to consolidation
 configs; nothing in the matrix uses it unless a config names it.

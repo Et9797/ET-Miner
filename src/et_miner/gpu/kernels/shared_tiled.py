@@ -67,12 +67,14 @@ def _tilepair_range(groups_info, ctp: np.ndarray, chunk_start: int, chunk_end: i
 
 
 def count_shared_tiled_allcounts(
-    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None
+    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None
 ):
     """Dense counting via the tiled kernel — drop-in for
     count_k3plus_per_candidate on group-aligned chunks (int32, chunk-relative,
-    bit-identical candidate layout)."""
+    bit-identical candidate layout, the same ``index`` semantics)."""
     import cupy as cp
+
+    from .subset_index import kernel_args
 
     tc = groups_info.total_candidates
     if chunk_size is None:
@@ -113,6 +115,7 @@ def count_shared_tiled_allcounts(
                     np.int64(tp1),
                     np.int64(chunk_start),
                     result_counts,
+                    *kernel_args(index, device_id),
                 ),
             )
             cp.cuda.Stream.null.synchronize()
@@ -144,13 +147,14 @@ def count_pairs_k2_shared(bitvecs_gpu, freq_item_cols, n_u64s):
     return count_shared_tiled_allcounts(bitvecs_gpu, k2_groups(freq_item_cols), n_u64s)
 
 
-def count_tiled_fused(bitvecs_gpu, groups_info, n_u64s, min_count, initial_capacity=1 << 24):
+def count_tiled_fused(bitvecs_gpu, groups_info, n_u64s, min_count, initial_capacity=1 << 24, index=None):
     """Fused tiled counting over whole groups: the survivors' candidate indices
     (ascending, into ``groups_info``'s candidate space) and int64 counts.
 
     Needs no dense count array, so a group of any size fits; the output grows
     with the survivors only (12 B each), re-run once at the exact size when
-    ``initial_capacity`` is exceeded.
+    ``initial_capacity`` is exceeded. ``index`` as for
+    count_shared_tiled_allcounts (the one device writes inferred counts).
     """
     import cupy as cp
 
@@ -165,11 +169,13 @@ def count_tiled_fused(bitvecs_gpu, groups_info, n_u64s, min_count, initial_capac
     device_id = bitvecs_gpu.device.id
     groups_gpu = upload_k3plus_groups(groups_info, device_id)
     with cp.cuda.Device(device_id):
-        return _run_fused(bitvecs_gpu, groups_info, groups_gpu, tp_total, n_u64s, min_count, initial_capacity)
+        return _run_fused(bitvecs_gpu, groups_info, groups_gpu, tp_total, n_u64s, min_count, initial_capacity, index)
 
 
-def _run_fused(bitvecs_gpu, groups_info, groups_gpu, tp_total, n_u64s, min_count, initial_capacity):
+def _run_fused(bitvecs_gpu, groups_info, groups_gpu, tp_total, n_u64s, min_count, initial_capacity, index):
     import cupy as cp
+
+    from .subset_index import kernel_args
 
     kernel = get_cuda_kernel("count_shared_tiled_fused")
     capacity = max(1, min(int(initial_capacity), groups_info.total_candidates))
@@ -199,6 +205,7 @@ def _run_fused(bitvecs_gpu, groups_info, groups_gpu, tp_total, n_u64s, min_count
                 out_cnt,
                 n_results,
                 np.int64(capacity),
+                *kernel_args(index, bitvecs_gpu.device.id),
             ),
         )
         cp.cuda.Stream.null.synchronize()

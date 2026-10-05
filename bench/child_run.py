@@ -120,7 +120,7 @@ def result_signatures(res, n_rows: int) -> dict:
 
 #: Config keys whose apriori() parameters were removed; a config that sets one
 #: measured a route that no longer exists, so it fails instead of running another.
-REMOVED_KEYS = ("gpu_resident", "prune_apriori")
+REMOVED_KEYS = ("gpu_resident",)
 
 
 def main() -> int:

@@ -12,6 +12,55 @@ All notable changes to ET-Miner are recorded here. Versions follow
 
 ## [Unreleased] — 0.2.0
 
+### Candidate pruning on the GPU (supersedes the DP9 removal)
+
+- **`prune_apriori` is back, default `True`, as a device-side subset test.**
+  The K≥3 counting kernels (per-candidate, tiled dense and fused, sparse CSR)
+  get an index of the previous level and leave a candidate with a missing
+  (k−1)-subset uncounted (per candidate, or per 32×32 tile-pair in the tiled
+  kernels); candidate indices never change, so chunking, the multi-GPU reduce
+  and the decode are untouched. `False` counts every generated candidate and is
+  accepted only by the row-split miner. This supersedes the consolidation's DP9
+  removal of the host-side, suffix-granular prune: that prune reached 4–18 % of
+  the prunable candidates and cost 63.6 s on oom_regression to K=3, where the
+  device-side test (pre-registered campaign, `bench/pruning/REPORT.md`, 2× RTX
+  A4000) takes oom_regression to K=3 from 25.76 to 7.18 s on one GPU (17.21 →
+  8.16 s on two) and stress_k2 to K=3 from 496.27 to 52.77 s; every other
+  regime ties.
+- **`use_generator_pruning` now works on the row-split miner** (it needs
+  `prune_apriori`): a candidate with a non-free (k−1)-subset gets the minimum of
+  its subset counts instead of a count, written by one GPU so the reduce stays
+  exact. deep_sparse_large: 24.99 → 20.16 s on one GPU, 20.85 → 18.74 s on two.
+  Default unchanged (`False`).
+- **Free-set runs** test against the free level itself: a candidate with a
+  subset outside it is not free, survivors with one are dropped on the host
+  before the free-set test, and the complete generated level is no longer
+  kept. A run resumed from a free-set level is now exact (it could under-prune
+  before; still so with `prune_apriori=False`).
+- No mined output changes: every regime of the campaign has one signature
+  across all arms, equal to its earlier signature. Its first run caught one
+  (fixed before the deciding run): free-sets on the tiled kernels emitted 442
+  non-free itemsets of 204,972 on deep_sparse_large.
+- Tier chain: new legs without the subset test, with count inference (each
+  kernel pinned, forced chunks, ESCO, two GPUs); free-set runs checked against
+  free-sets derived from efficient-apriori's lattice.
+
+### Candidate-waste measurement (GPU candidate pruning, phase 0)
+
+- Added `bench/runner.py --mode waste`: the row-split miner on one GPU,
+  complete lattice and free-sets, with each level's time split into phases
+  (`bench/level_split.py`) and the lattice dumped for
+  `bench/candidate_waste.py`, an offline classifier that replays the route's
+  candidate generation and labels every candidate prunable (an infrequent
+  subset), inferable (a non-free subset) or countable. No miner code changed.
+- Findings in `bench/results/2026-10-05-candidate-waste/FINDINGS.md`: 34–99 %
+  of the K≥3 candidates the GPU counts have an infrequent subset; on the K=3
+  explosions (oom_regression and stress_k2 to K=3) about 97 % of the tiled
+  kernel's tile-pairs hold nothing else, while the removed suffix-granular
+  prune reached 4–18 % of them.
+- The runner's environment capture also records `uv pip freeze`; under uv,
+  `python -m pip freeze` printed nothing.
+
 ### ESCO restored (after kernel consolidation)
 
 - Restored the opt-in GPU dense→sparse CSR crossover via `sparse_from_k="auto"`

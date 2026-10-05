@@ -183,10 +183,12 @@ _KERNEL_FILES: dict[str, str] = {
 
 # Shared preludes prepended at NVRTC compile time: .cu file -> list of _src/
 # snippets it needs. Keeps one copy of code that must stay identical across
-# kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat).
+# kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat, and
+# the (k-1)-subset test of the counting kernels).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
-    "csr_warp.cu": ["_decode_common.cu"],
-    "k3plus_dense.cu": ["_decode_common.cu"],
+    "csr_warp.cu": ["_decode_common.cu", "_subset_index.cu"],
+    "k3plus_dense.cu": ["_decode_common.cu", "_subset_index.cu"],
+    "shared_tiled.cu": ["_subset_index.cu"],
 }
 
 _source_cache: dict[str, str] = {}

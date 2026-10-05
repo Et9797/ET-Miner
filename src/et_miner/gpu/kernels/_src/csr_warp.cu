@@ -101,6 +101,9 @@ static __device__ long long _intersect_rows(const int* __restrict__ tids, const 
 }
 
 // Partial counts for candidates [chunk_start, chunk_start + chunk_size) on this shard.
+// With an index of the previous level (index_mode != 0, _subset_index.cu) lane 0
+// classifies the candidate first: a skipped one keeps its zero, an inferred one
+// gets its count from the device that writes inferred counts.
 extern "C" __global__
 void csr_count_range(const int* __restrict__ tids,
                      const long long* __restrict__ offsets,
@@ -110,14 +113,38 @@ void csr_count_range(const int* __restrict__ tids,
                      const long long n_groups,
                      const long long chunk_start,
                      const long long chunk_size,
-                     int* __restrict__ out_counts)
+                     int* __restrict__ out_counts,
+                     const int* __restrict__ group_prefix_items,
+                     const long long* __restrict__ group_prefix_offsets,
+                     const int* __restrict__ group_suffixes,
+                     const int* __restrict__ index_rows,
+                     const long long index_n,
+                     const int* __restrict__ index_counts,
+                     const unsigned char* __restrict__ index_free,
+                     const int index_mode,
+                     const int write_inferred)
 {
     const long long w = _linear_warp();
     if (w >= chunk_size) return;                                   // whole warp leaves together
     const int lane = threadIdx.x & 31;
-    long long ra, rb, c = 0;
-    if (_decode_rows(cumulative_pairs, suffix_offsets, suffix_src_rows, n_groups, chunk_start + w, &ra, &rb)) {
-        c = _intersect_rows(tids, offsets, ra, rb, (int*)0, lane);
+    long long g, i, j, c = 0;
+    if (_decode_candidate(cumulative_pairs, suffix_offsets, n_groups, chunk_start + w, &g, &i, &j)) {
+        const long long s0 = suffix_offsets[g];
+        if (index_mode != 0) {
+            int status = CAND_COUNT, inferred = 0;
+            if (lane == 0) {
+                const long long p0 = group_prefix_offsets[g];
+                status = _classify_candidate(index_rows, index_n, index_counts, index_free, index_mode,
+                                             group_prefix_items + p0, (int)(group_prefix_offsets[g + 1] - p0),
+                                             group_suffixes[s0 + i], group_suffixes[s0 + j], &inferred);
+            }
+            status = __shfl_sync(0xFFFFFFFFu, status, 0);         // warp-uniform from here on
+            if (status != CAND_COUNT) {
+                if (lane == 0 && status == CAND_INFER && write_inferred) out_counts[w] = inferred;
+                return;
+            }
+        }
+        c = _intersect_rows(tids, offsets, suffix_src_rows[s0 + i], suffix_src_rows[s0 + j], (int*)0, lane);
     }
     if (lane == 0) out_counts[w] = (int)c;
 }

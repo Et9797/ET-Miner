@@ -314,13 +314,27 @@ class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
         assert mg._estimate_chunk_size_from_memory is son._estimate_chunk_size_from_memory
 
 
+class TestPruneApriori:
+    """prune_apriori=False is honoured by the row-split miner alone and refused elsewhere."""
+
+    def test_false_is_refused_off_the_row_split_miner(self, df):
+        with pytest.raises(ValueError, match="requires the row-split miner"):
+            apriori(df, min_support=0.05, prune_apriori=False)
+
+    def test_false_is_refused_on_son(self, df):
+        with pytest.raises(ValueError, match="requires the row-split miner"):
+            apriori(df, min_support=0.05, prune_apriori=False, streaming=True, chunk_size=10)
+
+    def test_non_bool_raises(self, df):
+        with pytest.raises(TypeError, match="prune_apriori must be bool"):
+            apriori(df, min_support=0.05, prune_apriori=None)
+
+    def test_true_is_the_cpu_default(self, df):
+        assert apriori(df, min_support=0.05, prune_apriori=True).equals(apriori(df, min_support=0.05))
+
+
 class TestRemovedParametersRaise:
     """A removed parameter raises on every route, naming its replacement."""
-
-    @pytest.mark.parametrize("value", [True, False])
-    def test_prune_apriori(self, df, value):
-        with pytest.raises(ValueError, match="prune_apriori was removed"):
-            apriori(df, min_support=0.05, prune_apriori=value)
 
     def test_mine_two_phase_refuses_before_creating_a_directory(self, df, tmp_path):
         from et_miner.gpu.row_split import mine_two_phase

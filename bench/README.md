@@ -118,6 +118,14 @@ time split and the lattice dumps that `bench/candidate_waste.py` classifies
 (`results/2026-10-05-candidate-waste/FINDINGS.md` has the commands).
 `--mode pruning` compares the device-side subset test and count inference with
 counting every candidate (`pruning/PROTOCOL.md`, `pruning/REPORT.md`).
+Phase A of the route optimizations (`optimizations/PROTOCOL.md`) runs in this
+order on a frozen tree, every step writing to the same per-revision directory:
+
+```bash
+uv run python bench/runner.py --mode optimizations-calibration
+uv run python bench/k2_crossover.py            # the K=2 sweep; prints r*
+uv run python bench/runner.py --mode optimizations --max-gpu-hours <what is left>
+```
 
 `ET_BENCH_ALPHAFOLD=/path/to/base214m.parquet` (a parquet with an `items`
 list column) makes the dataset name `alphafold` available to consolidation

@@ -11,7 +11,8 @@ signatures — kernel variant, filter impl, GPU count, NCCL mode, row
 balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
-Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail|waste|pruning [--out DIR]
+Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail|waste|pruning|
+                                     optimizations-calibration|optimizations [--out DIR]
        [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
 
 `consolidation` runs the GPU-layer consolidation matrix
@@ -26,6 +27,10 @@ the configs added after that campaign (`build_supplement_matrix`), and
 that `bench/candidate_waste.py` classifies (`build_waste_matrix`); `pruning`
 compares the device-side subset test and count inference with counting every
 candidate (`build_pruning_matrix`, bench/pruning/PROTOCOL.md).
+`optimizations` runs phase A of bench/optimizations/PROTOCOL.md
+(`build_optimizations_matrix`); it refuses to start until
+`optimizations-calibration` has recorded the dsl-esco calibration in the same
+directory, and admits dsl-esco at the GPU counts whose calibration is ok.
 `--cpu-only` selects just CPU/oracle configs and needs no CUDA device.
 """
 
@@ -78,7 +83,7 @@ def _cfg(id_, preset, *, n_gpus=2,
     }
 
 
-def build_matrix(mode: str, n_dev: int) -> list[dict]:
+def build_matrix(mode: str, n_dev: int, rows: list[dict] | None = None) -> list[dict]:
     if mode in ("esco", "esco-retail"):
         from consolidation_matrix import build_esco_matrix
 
@@ -103,6 +108,14 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
         from consolidation_matrix import build_pruning_matrix
 
         return build_pruning_matrix(n_dev)
+    if mode == "optimizations-calibration":
+        from consolidation_matrix import build_optimizations_calibration
+
+        return build_optimizations_calibration(n_dev)
+    if mode == "optimizations":
+        from consolidation_matrix import build_optimizations_matrix
+
+        return build_optimizations_matrix(n_dev, rows or [])
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -411,7 +424,8 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail", "waste", "pruning"], required=True)
+    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail",
+                                         "waste", "pruning", "optimizations-calibration", "optimizations"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,
@@ -455,7 +469,11 @@ def main() -> int:
     if n_dev == 0 and not args.cpu_only:
         print("no CUDA devices — nothing to run")
         return 2
-    matrix = build_matrix(args.mode, n_dev)
+    try:
+        matrix = build_matrix(args.mode, n_dev, rows)
+    except ValueError as e:
+        print(e)
+        return 2
     if args.cpu_only:
         matrix = [c for c in matrix if c.get("route") in ("F", "EA", "cpu")]
         if not matrix:

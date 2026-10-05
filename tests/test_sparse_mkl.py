@@ -224,12 +224,16 @@ class TestThePinnedMklIsTheOneLoaded:
         assert self._mapped_libmkl_rt(maps) == {want}
 
 class TestNJobsIsHonouredOnTheRustPath:
-    def test_thread_budget_changes_wall_time_and_not_results(self):
+    def test_thread_budget_bounds_busy_threads_and_not_results(self):
         """#18 -- _should_use_rust ignored both its arguments and the Rust path
         was taken before n_jobs was ever resolved, so rayon took every core
         regardless. A caller who set n_jobs=1 -- documented as "sequential
         execution" -- was silently oversubscribed, which on a shared box is the
-        difference between a bounded job and one that takes the machine."""
+        difference between a bounded job and one that takes the machine.
+
+        Measured as busy threads (process CPU time over wall time), not as a
+        speed-up: two hyperthreads of one core run the pool at about one
+        core's speed while both are busy."""
         rust = pytest.importorskip("et_miner_rust")
         if rust.get_num_threads() < 2:
             pytest.skip("needs a multi-thread rayon pool to observe a budget")
@@ -250,17 +254,23 @@ class TestNJobsIsHonouredOnTheRustPath:
         ][:3000]
 
         def run(n_threads):
-            t = time.perf_counter()
+            wall, cpu = time.perf_counter(), time.process_time()
             out = rust.count_itemsets_simd(indptr, indices, n_rows, n_cols, itemsets, n_threads)
-            return time.perf_counter() - t, int(out.sum())
+            busy = (time.process_time() - cpu) / (time.perf_counter() - wall)
+            return busy, int(out.sum())
 
-        t_unbounded, sum_unbounded = run(0)
-        t_one, sum_one = run(1)
+        run(0)
+        runs = [(run(0), run(1)) for _ in range(3)]
+        busy_unbounded = max(unbounded[0] for unbounded, _ in runs)
+        busy_one = max(one[0] for _, one in runs)
+        sums = {r[1] for pair in runs for r in pair}
 
-        assert sum_one == sum_unbounded, "a thread budget must not change the counts"
-        assert t_one > t_unbounded * 1.5, (
-            f"n_threads=1 took {t_one:.2f}s vs {t_unbounded:.2f}s unbounded -- "
-            "the budget does not appear to be applied"
+        assert len(sums) == 1, "a thread budget must not change the counts"
+        assert busy_unbounded > 1.5, (
+            f"the unbounded pool kept only {busy_unbounded:.2f} threads busy -- nothing to compare against"
+        )
+        assert busy_one < 1.25, (
+            f"n_threads=1 kept {busy_one:.2f} threads busy -- the budget does not appear to be applied"
         )
 
     def test_rust_min_itemsets_fossil_is_gone(self):

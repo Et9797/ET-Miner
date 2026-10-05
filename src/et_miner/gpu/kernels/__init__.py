@@ -16,7 +16,7 @@ from .shared_tiled import (
     count_tiled_fused,
     k2_groups,
 )
-from .k2 import count_pairs_k2_per_candidate
+from .k2 import K2_ROWS_SHARED_PAIRS, K2Rows, count_pairs_k2_per_candidate, count_pairs_k2_rows, upload_k2_rows
 from .k3plus import (
     K3PlusGroups,
     build_k3plus_groups_from_flat,
@@ -44,6 +44,10 @@ __all__ = [
     "get_popcount_kernel",
     "column_popcounts",
     "count_pairs_k2_per_candidate",
+    "count_pairs_k2_rows",
+    "upload_k2_rows",
+    "K2Rows",
+    "K2_ROWS_SHARED_PAIRS",
     "count_k3plus_per_candidate",
     "upload_k3plus_groups",
     "build_k3plus_groups_from_flat",

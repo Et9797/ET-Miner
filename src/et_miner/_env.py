@@ -55,6 +55,14 @@ Variables:
                                        one GPU a level beyond one dense
                                        chunk is counted fused on the tiled
                                        kernel whatever the pin
+    ET_MINER_K2_KERNEL                 "dense" or "rows": the row-split
+                                       miner's K=2 kernel. "rows" counts
+                                       each shard's rows (pairs of their
+                                       frequent columns) instead of ANDing
+                                       bitvec pairs; it needs the
+                                       transactions input, so bitvecs=
+                                       input counts dense whatever the
+                                       pin. Unset: dense
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -165,6 +173,18 @@ def tiled_min_group_pairs() -> int | None:
     v = _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", None)
     if v is not None and v < 0:
         raise ValueError(f"ET_MINER_TILED_MIN_GROUP_PAIRS must be >= 0, got {v}")
+    return v
+
+
+K2_KERNELS = ("dense", "rows")
+
+
+def k2_kernel() -> str | None:
+    v = os.environ.get("ET_MINER_K2_KERNEL", "").strip().lower()
+    if not v:
+        return None
+    if v not in K2_KERNELS:
+        raise ValueError(f"ET_MINER_K2_KERNEL must be one of {K2_KERNELS}, got {v!r}")
     return v
 
 

@@ -74,6 +74,61 @@ def _release_level_state(groups_gpu, sparse_state) -> None:
             logger.warning(f"    Cleanup failed while releasing {label}: {exc!r}")
 
 
+def _k2_row_shards(csr, freq_cols, shard_rows) -> list[tuple["np.ndarray", "np.ndarray"]]:
+    """Each shard's rows as a host CSR of frequent-column positions: (indptr int64, positions int32).
+
+    A column's position is its index in the ascending ``freq_cols``, so the
+    positions of a canonical CSR row stay ascending and unique. Shard ``i``
+    holds the next ``shard_rows[i]`` rows.
+    """
+    import numpy as np
+
+    if sum(shard_rows) != csr.shape[0]:
+        raise ValueError(f"shards hold {sum(shard_rows):,} rows, the CSR {csr.shape[0]:,}")
+    if not csr.has_canonical_format:
+        csr = csr.copy()
+        csr.sum_duplicates()
+    indptr = csr.indptr.astype(np.int64, copy=False)
+    n_cols = csr.shape[1]
+    if len(freq_cols) == n_cols:
+        pos = csr.indices.astype(np.int32, copy=False)
+    else:
+        pos_of_col = np.full(n_cols, -1, dtype=np.int32)
+        pos_of_col[freq_cols] = np.arange(len(freq_cols), dtype=np.int32)
+        mapped = pos_of_col[csr.indices]
+        keep = mapped >= 0
+        kept = np.zeros(len(keep) + 1, dtype=np.int64)
+        np.cumsum(keep, out=kept[1:])
+        indptr = kept[indptr]
+        pos = mapped[keep]
+    shards = []
+    r0 = 0
+    for n in shard_rows:
+        lo, hi = int(indptr[r0]), int(indptr[r0 + n])
+        shards.append((indptr[r0 : r0 + n + 1] - lo, pos[lo:hi]))
+        r0 += n
+    return shards
+
+
+def _upload_k2_rows(csr, freq_cols, bitvecs_list) -> tuple[dict, int]:
+    """Per-device rows for the row-wise K=2 kernel, and the level's row pairs Σ C(len, 2).
+
+    Shard ``i`` gets the rows of ``bitvecs_list[i]``, in order.
+    """
+    import numpy as np
+
+    from et_miner.gpu.kernels import upload_k2_rows
+
+    shards = _k2_row_shards(csr, freq_cols, [n for _, _, n in bitvecs_list])
+    row_pairs = 0
+    rows_gpu = {}
+    for (indptr, pos), (_, did, _) in zip(shards, bitvecs_list):
+        lens = np.diff(indptr)
+        row_pairs += int((lens * (lens - 1) // 2).sum())
+        rows_gpu[did] = upload_k2_rows(indptr, pos, did)
+    return rows_gpu, row_pairs
+
+
 def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, devices=None):
     """Row-split a caller's (n_cols, n_u64s) bitvecs across up to ``n_gpus`` devices.
 
@@ -154,6 +209,11 @@ def _apriori_row_split_multi_gpu(
     7.2 MB instead of the 2.4 GB dense array; the sliced filter keeps this
     guarantee at any survivor count.
 
+    With ``ET_MINER_K2_KERNEL=rows`` and transactions input, K=2 is counted
+    from each shard's rows instead: every row adds 1 to each pair of its
+    frequent columns in the same dense pair array, so the reduce, the filter
+    and the decode are unchanged.
+
     ``prune_apriori`` gives the K>=3 counting kernels an index of the previous
     level (sorted rows, counts, free flags; ``kernels/subset_index.py``): a
     candidate with a (k-1)-subset missing from it is not counted and keeps a
@@ -213,6 +273,7 @@ def _apriori_row_split_multi_gpu(
         upload_subset_index,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
+        count_pairs_k2_rows,
         count_pairs_k2_shared,
         count_shared_tiled_allcounts,
         count_tiled_fused,
@@ -249,10 +310,12 @@ def _apriori_row_split_multi_gpu(
     if bitvecs_list is None:
         t0 = time.perf_counter()
         bitvecs_list = build_bitvecs_row_split(csr, n_gpus)
+        _k2_csr = csr
         del csr
         build_time = time.perf_counter() - t0
         logger.info(f"  Bitvec build: {build_time:.1f}s across {len(bitvecs_list)} GPUs")
     else:
+        _k2_csr = None
         logger.info(f"  Pre-built bitvecs: {len(bitvecs_list)} GPUs")
 
     n_cols = max(col_to_item.keys()) + 1 if col_to_item else 0
@@ -502,6 +565,30 @@ def _apriori_row_split_multi_gpu(
                     del groups_gpu[did]
                     cp.get_default_memory_pool().free_all_blocks()
 
+    def _count_k2_rows(freq_cols, n_pairs):
+        """K=2 counted from each shard's rows: (pair indices, counts) of the frequent pairs."""
+        rows_gpu, row_pairs = _upload_k2_rows(_k2_csr, np.asarray(freq_cols, dtype=np.int64), bitvecs_list)
+        try:
+            budget = compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
+            chunks = plan_candidate_chunks(n_pairs, budget)
+            words = -(-n_transactions // 64)
+            logger.info(
+                f"  K=2: {n_pairs:,} total pairs, row-wise over {row_pairs:,} row pairs "
+                f"(r = {row_pairs / (n_pairs * words):.3g}), {len(chunks)} chunk(s)"
+            )
+
+            def _k2_rows_on_gpu(bitvec_gpu, device_id, chunk):
+                return count_pairs_k2_rows(rows_gpu[device_id], chunk.start, chunk.size)
+
+            return run_chunked_dense_level(
+                bitvecs_list, chunks, _k2_rows_on_gpu, min_count_threshold, nccl_comms, _use_nccl, level_label="K=2"
+            )
+        finally:
+            for did in list(rows_gpu):
+                with cp.cuda.Device(did):
+                    del rows_gpu[did]
+                    cp.get_default_memory_pool().free_all_blocks()
+
     # ── K=1: parallel popcount across GPUs, sum ────────────────────────
     if not _resume_active:
         _k1_start = time.perf_counter()
@@ -642,12 +729,18 @@ def _apriori_row_split_multi_gpu(
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
                 _n_cands_cb = n_pairs
 
-                # One synthetic group over the frequent items. Tiled when it is
+                # Row-wise needs the rows, one shard per device. Otherwise one
+                # synthetic group over the frequent items: tiled when it is
                 # large enough and fits one chunk; a pair space chunked across
                 # several GPUs runs per-candidate sub-chunks; on one GPU a pair
                 # space beyond one chunk is counted fused (survivors only).
-                _k2_budget = compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
-                if _one_device and n_pairs > _k2_budget:
+                _k2_rows = (
+                    _env.k2_kernel() == "rows" and _k2_csr is not None and len(set(device_ids)) == len(device_ids)
+                )
+                _k2_budget = 0 if _k2_rows else compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
+                if _k2_rows:
+                    freq_pair_indices, freq_pair_counts = _count_k2_rows(freq_cols, n_pairs)
+                elif _one_device and n_pairs > _k2_budget:
                     did0 = bitvecs_list[0][1]
                     logger.info(
                         f"  K=2: {n_pairs:,} total pairs exceed one dense chunk ({_k2_budget:,}); "
@@ -689,6 +782,7 @@ def _apriori_row_split_multi_gpu(
                         level_label="K=2",
                     )
 
+                _k2_csr = None
                 n_freq = len(freq_pair_indices)
                 if n_freq > 0:
                     current_flat = decode_k2_pairs_flat(freq_pair_indices, freq_cols)

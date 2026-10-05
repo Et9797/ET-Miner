@@ -20,6 +20,9 @@ Phases:
     group_build    build_k3plus_groups_from_flat, select_k3plus_groups
     group_upload   upload_k3plus_groups (host-to-device group arrays)
     budget         compute_chunk_budget (VRAM probe)
+    k2_input       the row-wise K=2 kernel's input: host CSR of frequent
+                   positions per shard, and its upload
+    count_rows     row-wise K=2 kernel launches (dense chunks)
     count_percand  per-candidate kernel launches (dense chunks)
     count_tiled    tiled kernel launches (dense chunks)
     count_fused    count_tiled_fused (one-GPU oversize groups; includes its filter)
@@ -39,11 +42,12 @@ import time
 from collections import defaultdict
 
 PHASES = (
-    "group_build", "group_upload", "budget", "count_percand", "count_tiled", "count_fused",
+    "group_build", "group_upload", "budget", "k2_input", "count_rows", "count_percand", "count_tiled", "count_fused",
     "reduce", "filter", "decode", "sort", "free_prune",
 )
 
 _MINER = "_apriori_row_split_multi_gpu"
+_ROWS_LAUNCH = "_k2_rows_on_gpu"
 
 
 def _union_length(intervals: list[tuple[float, float]]) -> float:
@@ -83,12 +87,15 @@ class LevelSplit:
         """Times each chunk launch inside run_chunked_dense_level, by kernel."""
 
         def wrapper(bitvecs_list, chunks, launch_chunk, *args, **kwargs):
+            rows = launch_chunk.__name__ == _ROWS_LAUNCH
+
             def timed_launch(bitvec_gpu, device_id, chunk):
                 t0 = time.perf_counter()
                 try:
                     return launch_chunk(bitvec_gpu, device_id, chunk)
                 finally:
-                    self._record("count_percand" if chunk.per_candidate else "count_tiled", t0)
+                    phase = "count_rows" if rows else "count_percand" if chunk.per_candidate else "count_tiled"
+                    self._record(phase, t0)
 
             return fn(bitvecs_list, chunks, timed_launch, *args, **kwargs)
 
@@ -127,6 +134,7 @@ class LevelSplit:
         self._patch(filter_mod, "threshold_filter", self._timed("filter", filter_mod.threshold_filter))
         self._patch(nccl, "reduce_sum_to_gpu0", self._timed("reduce", nccl.reduce_sum_to_gpu0))
         self._patch(row_split, "compute_chunk_budget", self._timed("budget", row_split.compute_chunk_budget))
+        self._patch(row_split, "_upload_k2_rows", self._timed("k2_input", row_split._upload_k2_rows))
         self._patch(row_split, "run_chunked_dense_level", self._timed_dense_level(row_split.run_chunked_dense_level))
         self._patch(row_split, "_rows_sorted", self._timed("sort", row_split._rows_sorted))
         self._patch(row_split, "_prune_non_free_mask", self._timed("free_prune", row_split._prune_non_free_mask))

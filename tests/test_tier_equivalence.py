@@ -7,9 +7,14 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 1 GPU, tiled kernel pinned
         == row-split 1 GPU, per-candidate kernel pinned
         == row-split 1 GPU, forced chunks (the fused tiled kernel)
-        == ESCO 1 GPU, auto and fixed K=3, including forced chunks
+        == row-split 1 GPU, no subset test
+        == row-split 1 GPU, count inference (measured dispatch, tiled, per-candidate,
+           forced chunks)
+        == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
+        == row-split 2 GPUs, count inference (plain and forced chunks)
+        == ESCO 2 GPUs, including count inference
         == SON 2 GPUs, forced chunks
         == efficient-apriori (the canonical oracle)
 
@@ -19,6 +24,10 @@ per-candidate (a pair count no group reaches) kernel for every prefix group,
 ET_MINER_MAX_CHUNK_CANDS forces chunking (on one GPU the pair space and every
 larger group then go to the fused tiled kernel; on two, to per-candidate
 sub-chunks), and a chunk_size below the row count forces SON to four chunks.
+Every row-split leg also asserts which previous-level index its K>=3 levels
+were given: the subset test by default, none with ``prune_apriori=False``, and
+the inferring index, written by exactly one device per level, with
+``use_generator_pruning=True``.
 
 Comparisons are exact on itemsets AND absolute counts — never weakened to
 count-only or tolerance checks. Oracle boundary handling: the miner keeps
@@ -249,8 +258,13 @@ _WRAPPERS = (
 )
 
 
-def _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, env, *, runs=(), never=(), **kwargs):
-    """One GPU leg; `runs` / `never` name the kernel wrappers the pin must reach / exclude."""
+def _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, env, *, runs=(), never=(), index_mode="prune",
+             **kwargs):
+    """One GPU leg; `runs` / `never` name the kernel wrappers the pin must reach / exclude.
+
+    `index_mode` is the previous-level index every K>=3 level must get: "prune",
+    "infer" or None (no index uploaded).
+    """
     from et_miner.gpu import kernels
 
     calls = dict.fromkeys(_WRAPPERS, 0)
@@ -260,6 +274,13 @@ def _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, env, *, runs=(), nev
             return _real(*a, **k)
 
         monkeypatch.setattr(kernels, name, spy)
+    uploads = []
+
+    def index_spy(*a, _real=kernels.upload_subset_index, **k):
+        uploads.append((k["mode"], k["device_id"], k["write_inferred"], len(a[0])))
+        return _real(*a, **k)
+
+    monkeypatch.setattr(kernels, "upload_subset_index", index_spy)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     df, _ = smoke_dataset
@@ -267,6 +288,16 @@ def _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, env, *, runs=(), nev
     _assert_counted_sets_equal(got, oracle_set, f"{label} vs efficient-apriori")
     assert all(calls[n] for n in runs), f"{label}: the pinned kernel did not run: {calls}"
     assert not any(calls[n] for n in never), f"{label}: a kernel the pin excludes ran: {calls}"
+    if index_mode is None:
+        assert not uploads, f"{label}: a subset index was uploaded: {uploads}"
+        return
+    want = kernels.SUBSET_PRUNE | (kernels.SUBSET_INFER if index_mode == "infer" else 0)
+    assert uploads, f"{label}: no level got a subset index"
+    assert {u[0] for u in uploads} == {want}, f"{label}: index modes {uploads}"
+    if not kwargs.get("streaming"):
+        n_dev = kwargs.get("n_gpus", 1)
+        writers = [u for u in uploads if u[2]]
+        assert len(uploads) == n_dev * len(writers), f"{label}: one writing device per level expected: {uploads}"
 
 
 def _needs_two_gpus():
@@ -303,6 +334,26 @@ def test_row_split_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_se
 
 
 @pytest.mark.gpu
+def test_row_split_one_gpu_without_subset_test_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, no subset test", {}, index_mode=None,
+             prune_apriori=False)
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("pin", ["dispatch", "tiled", "per-candidate", "forced chunks"])
+def test_row_split_one_gpu_count_inference_matches_oracle(smoke_dataset, oracle_set, monkeypatch, pin):
+    env, runs = {
+        "dispatch": ({}, ()),
+        "tiled": ({"ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}, ("count_shared_tiled_allcounts",)),
+        "per-candidate": ({"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP}, ("count_k3plus_per_candidate",)),
+        "forced chunks": ({"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
+                          ("count_tiled_fused",)),
+    }[pin]
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split 1 GPU, count inference ({pin})", env, runs=runs,
+             index_mode="infer", use_generator_pruning=True)
+
+
+@pytest.mark.gpu
 def test_son_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "SON 1 GPU, four chunks", {},
              runs=("count_itemsets_cuda",), streaming=True, chunk_size=SPEC.n_rows // 4 + 1, show_progress=False)
@@ -311,30 +362,36 @@ def test_son_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_set, mon
 @pytest.mark.gpu
 @pytest.mark.parametrize("sparse_from_k", ["auto", 3])
 @pytest.mark.parametrize("chunked", [False, True])
-def test_esco_one_gpu_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, chunked):
+@pytest.mark.parametrize("infer", [False, True])
+def test_esco_one_gpu_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, chunked, infer):
     from et_miner.gpu import sparse_csr
 
     calls = []
     real = sparse_csr.count_csr_range
 
     def spy(*a, **kw):
-        calls.append(1)
+        calls.append(kw.get("index"))
         return real(*a, **kw)
 
     monkeypatch.setattr(sparse_csr, "count_csr_range", spy)
     env = {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK} if chunked else {}
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"ESCO 1 GPU ({sparse_from_k}, chunks={chunked})", env,
-             sparse_from_k=sparse_from_k, n_gpus=1)
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch,
+             f"ESCO 1 GPU ({sparse_from_k}, chunks={chunked}, inference={infer})", env,
+             index_mode="infer" if infer else "prune", sparse_from_k=sparse_from_k, n_gpus=1,
+             use_generator_pruning=infer)
     assert calls, "ESCO leg must actually count sparse candidates"
+    assert all(index is not None for index in calls), "every sparse level must get the subset index"
 
 
 @pytest.mark.gpu
 @pytest.mark.multigpu
 @pytest.mark.parametrize("sparse_from_k", ["auto", 3])
-def test_esco_two_gpus_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k):
+@pytest.mark.parametrize("infer", [False, True])
+def test_esco_two_gpus_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, infer):
     _needs_two_gpus()
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"ESCO 2 GPUs ({sparse_from_k})",
-             {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK}, sparse_from_k=sparse_from_k, n_gpus=2)
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"ESCO 2 GPUs ({sparse_from_k}, inference={infer})",
+             {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK}, index_mode="infer" if infer else "prune",
+             sparse_from_k=sparse_from_k, n_gpus=2, use_generator_pruning=infer)
 
 
 @pytest.mark.gpu
@@ -353,6 +410,17 @@ def test_row_split_two_gpus_forced_chunks_matches_oracle(smoke_dataset, oracle_s
              {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
              runs=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"), never=("count_tiled_fused",),
              n_gpus=2)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize("chunked", [False, True])
+def test_row_split_two_gpus_count_inference_matches_oracle(smoke_dataset, oracle_set, monkeypatch, chunked):
+    """Inferred counts are written by one device, so the cross-GPU sum stays exact."""
+    _needs_two_gpus()
+    env = {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"} if chunked else {}
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split 2 GPUs, count inference (chunks={chunked})", env,
+             index_mode="infer", n_gpus=2, use_generator_pruning=True)
 
 
 @pytest.mark.gpu

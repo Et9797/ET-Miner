@@ -214,12 +214,14 @@ def free_groups(groups_gpu: dict[int, dict] | None) -> None:
             cp.get_default_memory_pool().free_all_blocks()
 
 
-def run_sparse_level(shards, groups_info, groups_gpu, min_count, *, nccl_comms, use_nccl, level_label=""):
+def run_sparse_level(shards, groups_info, groups_gpu, min_count, *, nccl_comms, use_nccl, level_label="",
+                     index_gpu=None):
     """Count every candidate on every shard, reduce, filter: ``(surv, counts)``.
 
     ``surv`` are ascending int64 candidate indices into the level's candidate
     space and ``counts`` their exact global counts (int64), both on host —
-    the same contract as the dense chunk loop.
+    the same contract as the dense chunk loop. ``index_gpu`` ({device_id:
+    subset index}) skips or infers candidates as in the dense kernels.
     """
     device_ids = [s.device_id for s in shards]
     tc = int(groups_info.total_candidates)
@@ -239,7 +241,10 @@ def run_sparse_level(shards, groups_info, groups_gpu, min_count, *, nccl_comms, 
         import cupy as cp
 
         with cp.cuda.Device(did):
-            return count_csr_range(shard.offsets, shard.indices, groups_gpu[did], chunk.start, chunk.size)
+            return count_csr_range(
+                shard.offsets, shard.indices, groups_gpu[did], chunk.start, chunk.size,
+                index=None if index_gpu is None else index_gpu[did],
+            )
 
     pseudo_bitvecs = [(s, s.device_id, s.n_rows_local) for s in shards]
     return run_chunked_dense_level(

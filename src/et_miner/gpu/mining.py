@@ -1,7 +1,8 @@
 """Host-side level helpers for the row-split GPU miner.
 
-The free-set (non-free) prune with its Rust fast path, the anchor output
-selector and the sortedness check. Import-safe without CuPy or the Rust
+The free-set (non-free) prune with its Rust fast path, the subset membership
+test of a level's survivors, the anchor output selector and the sortedness
+check. Import-safe without CuPy or the Rust
 extension.
 """
 
@@ -118,6 +119,24 @@ def _prune_non_free_mask(current_flat, current_counts, prev_flat, prev_counts):
     except (ImportError, AttributeError):
         pass
     return _prune_non_free_mask_python(current_flat, current_counts, prev_flat, prev_counts)
+
+
+def _all_subsets_in(current_flat, level_flat):
+    """Keep-mask: True where every (k-1)-subset of a row of ``current_flat`` is a
+    row of ``level_flat``. Host-side, for survivors only (rows as byte keys)."""
+    import numpy as np
+
+    n, k = current_flat.shape
+    if n == 0 or len(level_flat) == 0:
+        return np.zeros(n, dtype=bool)
+    key = np.dtype((np.void, 4 * (k - 1)))
+    level_keys = np.sort(np.ascontiguousarray(level_flat, dtype=np.int32).view(key).ravel())
+    keep = np.ones(n, dtype=bool)
+    for d in range(k):
+        q = np.ascontiguousarray(np.delete(current_flat, d, axis=1), dtype=np.int32).view(key).ravel()
+        pos = np.minimum(np.searchsorted(level_keys, q), len(level_keys) - 1)
+        keep &= level_keys[pos] == q
+    return keep
 
 
 def _anchor_keep_mask(current_flat, anchor_col_arr, k):

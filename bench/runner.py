@@ -11,7 +11,7 @@ signatures — kernel variant, filter impl, GPU count, NCCL mode, row
 balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
-Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail [--out DIR]
+Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail|waste|pruning [--out DIR]
        [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
 
 `consolidation` runs the GPU-layer consolidation matrix
@@ -22,6 +22,10 @@ the configs added after that campaign (`build_supplement_matrix`), and
 `verify` the reduced re-run on the consolidated tree (`build_verify_matrix`).
 `esco` compares dense dispatch and both pinned dense kernels against ESCO;
 `esco-retail` does so on Online Retail at 0.0001 and 0.00005 through K=2/3/4.
+`waste` times each level's phases on the row-split miner and dumps the lattices
+that `bench/candidate_waste.py` classifies (`build_waste_matrix`); `pruning`
+compares the device-side subset test and count inference with counting every
+candidate (`build_pruning_matrix`, bench/pruning/PROTOCOL.md).
 `--cpu-only` selects just CPU/oracle configs and needs no CUDA device.
 """
 
@@ -91,6 +95,14 @@ def build_matrix(mode: str, n_dev: int) -> list[dict]:
         from consolidation_matrix import build_verify_matrix
 
         return build_verify_matrix(n_dev)
+    if mode == "waste":
+        from consolidation_matrix import build_waste_matrix
+
+        return build_waste_matrix(n_dev)
+    if mode == "pruning":
+        from consolidation_matrix import build_pruning_matrix
+
+        return build_pruning_matrix(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -184,8 +196,10 @@ def capture_environment(out_dir: Path) -> None:
     blocks = []
     for cmd in (
         ["git", "rev-parse", "HEAD"],
+        ["nvidia-smi", "-L"],
         ["nvidia-smi"],
         [sys.executable, "-m", "pip", "freeze"],
+        ["uv", "pip", "freeze", "--python", sys.executable],
     ):
         try:
             blocks.append(f"$ {' '.join(cmd)}\n" + subprocess.run(
@@ -397,7 +411,7 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail"], required=True)
+    ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail", "waste", "pruning"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,

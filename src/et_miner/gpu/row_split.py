@@ -25,6 +25,7 @@ from et_miner.core.result import (
 )
 from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse, validate_sparse_from_k
 from et_miner.gpu.mining import (
+    _all_subsets_in,
     _anchor_keep_mask,
     _prune_non_free_mask,
     _rows_sorted,
@@ -124,6 +125,8 @@ def _apriori_row_split_multi_gpu(
     output_dir=None,  # Per-K Parquet flush: write frequent_k{k}.parquet per level
     resume_from_k: int | None = None,  # Resume from K=N+1, loading K=N from parquet
     prune_non_free: bool = False,  # keep only free-sets (generators) per level
+    prune_apriori: bool = True,  # skip candidates with a (k-1)-subset missing from the previous level
+    infer_counts: bool = False,  # infer counts of candidates with a non-free (k-1)-subset (complete lattice)
     sparse_from_k: int | str | None = None,  # ESCO, fixed K or "auto"
     anchor_items: set | None = None,  # V3 B6: two-phase anchor filtering
     profile: bool = False,
@@ -151,18 +154,35 @@ def _apriori_row_split_multi_gpu(
     7.2 MB instead of the 2.4 GB dense array; the sliced filter keeps this
     guarantee at any survivor count.
 
-    ``prune_non_free`` keeps two populations per level, and which one each
-    consumer gets is the whole correctness story:
+    ``prune_apriori`` gives the K>=3 counting kernels an index of the previous
+    level (sorted rows, counts, free flags; ``kernels/subset_index.py``): a
+    candidate with a (k-1)-subset missing from it is not counted and keeps a
+    zero count, which the threshold filter drops. Candidate indices never
+    change. In a complete-lattice run the index is the complete level and a
+    missing subset is infrequent; with ``infer_counts`` a candidate with a
+    non-free subset gets the minimum of its subset counts instead of a count
+    (Pascal), written by the first device only so the reduce stays exact. An
+    index larger than a quarter of a device's free VRAM is not uploaded and
+    that level counts every candidate.
+
+    ``prune_non_free`` keeps two populations per level:
 
       * ``prev_frequent_flat`` — the free-sets, i.e. what this level EMITS and
         what the next level's prefix join generates from. Emitting a level and
         then generating from a smaller one is what silently dropped frequent,
         apriori-valid itemsets from K=5 on: the output advertised itemsets the
         run would never extend.
-      * ``prev_full_flat`` — the complete frequent level, which every subset
-        test of the next level resolves against (both the apriori prune and the
-        free-set test). Testing against the pruned level instead misses subsets
-        that were themselves pruned, and under-prunes.
+      * ``prev_full_flat`` — the level the next level's free-set test resolves
+        against. Without ``prune_apriori`` it is every frequent candidate the
+        level counted (generated from free-sets); an equal-count witness of a
+        frequent non-free candidate always lies in it, while the free level
+        alone can miss one and under-prune. With ``prune_apriori`` the index
+        is the free level itself: a candidate with a subset outside it is
+        infrequent or not free, the kernels skip most of them, and the
+        survivors among the rest (a counted tile-pair counts all of its pairs)
+        are dropped on the host before the test, so every candidate the test
+        sees has its subsets in the free level and ``prev_full_flat`` is the
+        free level.
 
     With ``prune_non_free=False`` the two are the same array, so the unpruned
     path carries no extra cost and its output is the complete lattice.
@@ -186,7 +206,11 @@ def _apriori_row_split_multi_gpu(
 
     from et_miner.gpu.csr_bitvec import build_bitvecs_row_split
     from et_miner.gpu.kernels import (
+        SUBSET_INFER,
+        SUBSET_PRUNE,
         column_popcounts,
+        index_nbytes,
+        upload_subset_index,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
         count_pairs_k2_shared,
@@ -386,8 +410,8 @@ def _apriori_row_split_multi_gpu(
         else:
             prev_counts_flat = None  # counts unknown — the prune and auto transition wait one level
         del table, itemsets_col, flat_item_ids, flat_col_ids, item_to_col
-        if prune_non_free and not _rows_sorted(prev_frequent_flat):
-            # Parquet order is not row-sorted; the free-set binary search needs it.
+        if (prune_non_free or prune_apriori) and not _rows_sorted(prev_frequent_flat):
+            # Parquet order is not row-sorted; the binary searches need it.
             _order = np.lexsort(prev_frequent_flat[:, ::-1].T)
             prev_frequent_flat = prev_frequent_flat[_order]
             if prev_counts_flat is not None:
@@ -400,7 +424,8 @@ def _apriori_row_split_multi_gpu(
         # of the complete level, which can only under-prune (keep a few extra).
         prev_full_flat = prev_frequent_flat
         prev_full_counts = prev_counts_flat
-        if prune_non_free:
+        prev_full_free = None  # free flags of the loaded level are unknown: no inference on the first level
+        if prune_non_free and not prune_apriori:
             logger.warning(
                 f"  RESUME: K={resume_from_k} parquet holds the free-sets, not the complete level — "
                 f"the K={resume_from_k + 1} free-set test may under-prune slightly. "
@@ -420,7 +445,34 @@ def _apriori_row_split_multi_gpu(
         chosen = groups if keep.all() else select_k3plus_groups(groups, keep)
         return chosen if chosen.total_candidates > 0 else None
 
-    def _count_dense(groups, chunks, label):
+    def _subset_index(k_level):
+        """Per-device index of the previous level for level ``k_level``'s subset test, or None."""
+        if not prune_apriori or k_level < 3:
+            return None
+        if prune_non_free:
+            rows, counts = prev_frequent_flat, prev_counts_flat
+        else:
+            rows, counts = prev_full_flat, prev_full_counts
+        mode, free = SUBSET_PRUNE, None
+        if infer_counts and not prune_non_free and prev_full_free is not None and counts is not None:
+            mode, free = SUBSET_PRUNE | SUBSET_INFER, prev_full_free
+        if counts is None:
+            counts = np.zeros(len(rows), dtype=np.int64)
+        need = index_nbytes(len(rows), rows.shape[1])
+        free_vram = min(_device_available_bytes(did)[0] for did in device_ids)
+        if need > free_vram // 4:
+            logger.info(
+                f"  K={k_level}: subset test off: the K={k_level - 1} index needs {need / (1 << 30):.2f} GB, "
+                f"more than a quarter of the {free_vram / (1 << 30):.2f} GB free; every candidate is counted"
+            )
+            return None
+        first = device_ids[0]
+        return {
+            did: upload_subset_index(rows, counts, free, mode=mode, device_id=did, write_inferred=did == first)
+            for did in device_ids
+        }
+
+    def _count_dense(groups, chunks, label, index_gpu):
         """Count one candidate space on every shard, reduce, compact: (indices, counts)."""
         groups_gpu = {did: upload_k3plus_groups(groups, did) for _, did, _ in bitvecs_list}
 
@@ -434,6 +486,7 @@ def _apriori_row_split_multi_gpu(
                     chunk_start=chunk.start,
                     chunk_size=chunk.size,
                     groups_gpu=groups_gpu[device_id],
+                    index=None if index_gpu is None else index_gpu[device_id],
                 )
 
         # try/finally, because this is ~40 GB on a wide level and
@@ -482,8 +535,9 @@ def _apriori_row_split_multi_gpu(
         # makes the kept level exactly the free-sets at every K.
         prev_frequent_flat = prev_full_flat
         prev_counts_flat = prev_full_counts
+        prev_full_free = prev_full_counts < n_transactions
         if prune_non_free:
-            _k1_free = prev_full_counts < n_transactions
+            _k1_free = prev_full_free
             if not _k1_free.all():
                 prev_frequent_flat = prev_full_flat[_k1_free]
                 prev_counts_flat = prev_full_counts[_k1_free]
@@ -491,6 +545,8 @@ def _apriori_row_split_multi_gpu(
                     f"    Free-set pruning K=1: {len(prev_full_flat):,} → {len(prev_frequent_flat):,} "
                     "(items present in every transaction)"
                 )
+            if prune_apriori:
+                prev_full_flat, prev_full_counts = prev_frequent_flat, prev_counts_flat
 
         if len(prev_frequent_flat) > 0:
             # K=1 is emit-filtered too. _anchor_keep_mask used to return None
@@ -533,6 +589,7 @@ def _apriori_row_split_multi_gpu(
                 session.start_phase(f"k{k}")
             _surv = None
             _n_cands_cb = 0
+            _index_gpu = None
 
             _mean_count = None
             if sparse_from_k == SPARSE_AUTO and not sparse_state.active and prev_counts_flat is not None:
@@ -570,10 +627,11 @@ def _apriori_row_split_multi_gpu(
                 current_counts_raw = np.empty(0, dtype=np.int64)
                 if groups_info is not None:
                     _n_cands_cb = groups_info.total_candidates
+                    _index_gpu = _subset_index(k)
                     _sparse_groups_gpu = upload_groups_to_shards(groups_info, sparse_state.shards)
                     _surv, current_counts_raw = run_sparse_level(
                         sparse_state.shards, groups_info, _sparse_groups_gpu, min_count_threshold,
-                        nccl_comms=nccl_comms, use_nccl=_use_nccl, level_label=f"K={k}",
+                        nccl_comms=nccl_comms, use_nccl=_use_nccl, level_label=f"K={k}", index_gpu=_index_gpu,
                     )
                     n_freq = len(_surv)
                     if n_freq:
@@ -665,6 +723,8 @@ def _apriori_row_split_multi_gpu(
                         + len(groups_info.cumulative_pairs) * 8
                     )
 
+                    # Uploaded before the budget, so the measured headroom excludes it.
+                    _index_gpu = _subset_index(k)
                     max_cands_per_chunk = compute_chunk_budget(
                         device_ids, group_data_bytes=group_data_bytes, use_nccl=_use_nccl
                     )
@@ -693,7 +753,9 @@ def _apriori_row_split_multi_gpu(
                             with cp.cuda.Device(did0):
                                 parts.append(
                                     (fused_groups, *count_tiled_fused(
-                                        bitvecs_list[0][0], fused_groups, bitvecs_list[0][0].shape[1], min_count_threshold
+                                        bitvecs_list[0][0], fused_groups, bitvecs_list[0][0].shape[1],
+                                        min_count_threshold,
+                                        index=None if _index_gpu is None else _index_gpu[did0],
                                     ))
                                 )
                     logger.debug(
@@ -704,10 +766,10 @@ def _apriori_row_split_multi_gpu(
                     )
                     if small is not None:
                         chunks = plan_candidate_chunks(small.total_candidates, max_cands_per_chunk)
-                        parts.append((small, *_count_dense(small, chunks, f"K={k}")))
+                        parts.append((small, *_count_dense(small, chunks, f"K={k}", _index_gpu)))
                     if big is not None:
                         chunks = plan_group_chunks(big.cumulative_pairs, max_cands_per_chunk)
-                        parts.append((big, *_count_dense(big, chunks, f"K={k}")))
+                        parts.append((big, *_count_dense(big, chunks, f"K={k}", _index_gpu)))
 
                     parts = [part for part in parts if len(part[1]) > 0]
                     if parts:
@@ -725,18 +787,36 @@ def _apriori_row_split_multi_gpu(
             # order ((0,1),(0,2),(1,2),(0,3),...), which is not lex order once a
             # group has >= 4 suffixes. Skipped when already sorted
             # (_rows_sorted is O(n·k), no sort), and when nothing needs it.
-            if n_freq > 0 and (k == 2 or prune_non_free) and not _rows_sorted(current_flat):
+            if n_freq > 0 and (k == 2 or prune_non_free or prune_apriori) and not _rows_sorted(current_flat):
                 sort_idx = np.lexsort(current_flat[:, ::-1].T)
                 current_flat = current_flat[sort_idx]
                 current_counts_raw = current_counts_raw[sort_idx]
                 if _surv is not None:
                     _surv = _surv[sort_idx]
 
-            # The complete frequent level — what every subset test of K+1
-            # resolves against. Same object as the emitted level when the flag
-            # is off, so the unpruned path pays nothing for this.
+            # The free-set test below resolves against the free level only, so a
+            # survivor with a (k-1)-subset outside it has to go first: it is not
+            # free, and its equal-count subsets may all be outside the free level
+            # too. The index skips most of them on the device, but a counted
+            # tile-pair counts all of its pairs and a level without the index
+            # counts every candidate.
+            if prune_non_free and prune_apriori and k >= 3 and n_freq > 0:
+                _keep = _all_subsets_in(current_flat, prev_frequent_flat)
+                current_flat = current_flat[_keep]
+                current_counts_raw = current_counts_raw[_keep]
+                if _surv is not None:
+                    _surv = _surv[_keep]
+                n_freq = len(current_flat)
+
+            # Every frequent candidate of the level — what the free-set test of
+            # K+1 resolves against unless the subset index makes the free level
+            # enough. Same object as the emitted level when the flag is off, so
+            # the unpruned path pays nothing for this.
             full_flat = current_flat
             full_counts = current_counts_raw
+            full_free = None
+            if infer_counts and prune_apriori and not prune_non_free and n_freq > 0 and prev_full_counts is not None:
+                full_free = _prune_non_free_mask(full_flat, full_counts, prev_full_flat, prev_full_counts)
 
             # Free-set (generator) pruning: drop itemsets whose count equals a
             # (k-1)-subset's, tested against the COMPLETE previous level. What
@@ -811,8 +891,12 @@ def _apriori_row_split_multi_gpu(
 
             prev_frequent_flat = current_flat
             prev_counts_flat = current_counts_raw
-            prev_full_flat = full_flat
-            prev_full_counts = full_counts
+            if prune_non_free and prune_apriori:
+                prev_full_flat, prev_full_counts = current_flat, current_counts_raw
+            else:
+                prev_full_flat, prev_full_counts = full_flat, full_counts
+            prev_full_free = full_free
+            _index_gpu = None
             k += 1
     finally:
         _release_level_state(_sparse_groups_gpu, sparse_state)

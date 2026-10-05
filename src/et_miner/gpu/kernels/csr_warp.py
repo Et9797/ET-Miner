@@ -63,10 +63,16 @@ def _prepare_ids(cand_ids_gpu, groups_gpu):
     return ids, n
 
 
-def count_csr_range(offsets_gpu, indices_gpu, groups_gpu, chunk_start: int, chunk_size: int):
+def count_csr_range(offsets_gpu, indices_gpu, groups_gpu, chunk_start: int, chunk_size: int, index=None):
     """Partial intersection counts on this shard for candidates
-    ``[chunk_start, chunk_start + chunk_size)`` — CuPy int32 ``(chunk_size,)``."""
+    ``[chunk_start, chunk_start + chunk_size)`` — CuPy int32 ``(chunk_size,)``.
+
+    ``index`` (``subset_index.upload_subset_index`` on this device) skips or
+    infers candidates as in the dense kernels; None counts every candidate.
+    """
     import cupy as cp
+
+    from .subset_index import kernel_args
 
     _check_shard(offsets_gpu, indices_gpu)
     n = int(chunk_size)
@@ -80,7 +86,10 @@ def count_csr_range(offsets_gpu, indices_gpu, groups_gpu, chunk_start: int, chun
     get_cuda_kernel("csr_count_range")(
         _grid_for(n),
         _BLOCK,
-        (indices_gpu, offsets_gpu, cp_arr, gso, gsr, n_groups, np.int64(chunk_start), np.int64(n), out),
+        (
+            indices_gpu, offsets_gpu, cp_arr, gso, gsr, n_groups, np.int64(chunk_start), np.int64(n), out,
+            groups_gpu["gpi"], groups_gpu["gpo"], groups_gpu["gs"], *kernel_args(index, int(out.device.id)),
+        ),
     )
     cp.cuda.Stream.null.synchronize()
     return out

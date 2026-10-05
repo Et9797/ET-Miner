@@ -77,7 +77,7 @@ def _validate_parameters(
     max_length: int | None,
     batch_size: int | None,
     sparse_from_k: int | str | None = None,
-    prune_apriori: bool | None = None,
+    prune_apriori: bool = True,
 ) -> None:
     """Validate apriori parameters with clear error messages."""
     # min_support: must be numeric in [0.0, 1.0]
@@ -104,12 +104,8 @@ def _validate_parameters(
             raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 
     validate_sparse_from_k(sparse_from_k)
-    if prune_apriori is not None:
-        raise ValueError(
-            "prune_apriori was removed: the GPU miner counts every candidate its prefix groups "
-            "generate instead of subset-testing them on the host first (as fast or faster in "
-            "every measured regime, same results). Drop the argument."
-        )
+    if not isinstance(prune_apriori, bool):
+        raise TypeError(f"prune_apriori must be bool, got {type(prune_apriori).__name__}")
 
 
 def _prune_equal_support(
@@ -127,9 +123,11 @@ def _prune_equal_support(
 
     NOT closed-itemset mining: closed asks about equal-support *supersets*,
     this asks about equal-support *subsets*, and the two select different
-    itemsets. ``prev_counts`` must be the COMPLETE previous level (it is never
-    pruned in the caller) or the test misses subsets that were themselves
-    pruned and under-prunes.
+    itemsets. ``prev_counts`` must hold every frequent candidate of the
+    previous level, not just its free-sets (the caller never prunes it): an
+    equal-count (k-1)-subset of a candidate generated from free parents is
+    always among those candidates, while the free level alone can miss it and
+    under-prune.
 
     Compares raw integer counts, exactly as the GPU path does — a float
     comparison with a tolerance made the two tiers disagree at the boundary.
@@ -137,7 +135,7 @@ def _prune_equal_support(
     Args:
         current_frequent: Frequent k-itemsets from current iteration.
         current_counts: Integer counts for the current k-itemsets.
-        prev_counts: Integer counts for the COMPLETE (k-1)-itemset level.
+        prev_counts: Integer counts of every frequent candidate of the previous level.
 
     Returns:
         The free-sets, in input order.
@@ -189,7 +187,7 @@ def _infer_count_from_subsets(
 
     Args:
         candidate: Candidate k-itemset to check.
-        prev_counts: Integer counts for the COMPLETE (k-1)-itemset level.
+        prev_counts: Integer counts of every frequent candidate of the previous level.
         prev_free: The free (generator) (k-1)-itemsets. None disables inference.
 
     Returns:
@@ -236,6 +234,7 @@ def _validate_route_support(
     output_dir: str | None,
     resume_from_k: int | None,
     memory_budget_gb: float | None,
+    prune_apriori: bool = True,
 ) -> None:
     """Reject parameter/route combinations the chosen route cannot honour.
 
@@ -314,6 +313,20 @@ def _validate_route_support(
     # without streaming.
     reaches_row_split = has_bitvecs or (use_gpu and not streaming)
 
+    # The CPU route generates candidates with the subset test built in, and SON
+    # mines its chunks with the test on; only the row-split miner can skip it.
+    if use_generator_pruning and not prune_apriori:
+        raise ValueError(
+            "use_generator_pruning needs prune_apriori=True: on the row-split miner the count "
+            "inference runs inside the same subset test, and without it every candidate is counted."
+        )
+    if not prune_apriori and not reaches_row_split:
+        raise ValueError(
+            "prune_apriori=False requires the row-split miner, reached with bitvecs= or with "
+            "use_gpu=True and streaming=False: the CPU route and SON always test every "
+            "candidate's (k-1)-subsets, so the flag would be ignored there."
+        )
+
     # output_dir / resume_from_k are the row-split miner's per-K parquet flush.
     if output_dir is not None or resume_from_k is not None:
         which = " and ".join(
@@ -379,7 +392,7 @@ def apriori(
     warn_complexity: bool = True,
     prune_equal_support: bool = False,
     use_generator_pruning: bool = False,
-    prune_apriori: bool | None = None,
+    prune_apriori: bool = True,
     sparse: bool | None = None,
     n_jobs: int = 1,
     enable_length_filter: bool = True,
@@ -434,10 +447,18 @@ def apriori(
             Pascal [Bastide et al. 2000]: a candidate with a non-free (k-1)-subset
             is itself non-free and its support is exactly the minimum of its
             (k-1)-subset supports, so it never has to be counted. Exact, no
-            impact on results. CPU path only.
-        prune_apriori: Removed; any value raises ValueError. The GPU miner
-            counts every candidate its prefix groups generate instead of
-            running a host-side subset test first (the results are the same).
+            impact on results. CPU route and the row-split GPU miner; on the
+            GPU it needs ``prune_apriori`` and applies to complete-lattice
+            runs (in a free-set run such candidates are not free and are
+            skipped anyway).
+        prune_apriori: Skip candidates with an infrequent (k-1)-subset before
+            counting them (Apriori's subset test; exact, no impact on results).
+            The row-split GPU miner tests every K>=3 candidate on the device
+            against the previous level and leaves the ones it settles
+            uncounted; in a free-set run the test runs against the free level,
+            which also skips every candidate that cannot be free. False counts
+            every candidate the prefix groups generate, and is honoured only by
+            the row-split miner (the CPU route and SON always test).
         sparse: Scipy CSR matrix usage. True = force, False = Polars, None = auto
             (switches at >100K k=2 candidates or >500 items <10% density).
         n_jobs: Parallel workers for sparse k>2 counting. 1=sequential, -1=all CPUs.
@@ -459,12 +480,13 @@ def apriori(
             **n_candidates is route-dependent and the routes do not agree.**
             The CPU path applies the full per-candidate subset test before
             counting, so it reports candidates that survived it. The GPU path
-            counts every candidate its prefix groups generate, so it reports
-            more candidates than the CPU path for the same input at the same
-            level. Both are honest counts of what that route was about to
-            count; neither is "the" candidate count. A consumer doing per-level
-            cost accounting should treat the figure as comparable within a
-            route and not across routes.
+            reports every candidate its prefix groups generate, including the
+            ones its device-side subset test (``prune_apriori``) then leaves
+            uncounted, so it reports more candidates than the CPU path for the
+            same input at the same level. Both are honest counts of what that
+            route enumerated; neither is "the" candidate count. A consumer
+            doing per-level cost accounting should treat the figure as
+            comparable within a route and not across routes.
 
             n_frequent and duration_ms mean the same thing everywhere.
         bitvecs: Pre-built GPU bitvectors tuple (bitvecs_gpu, col_to_item, n_transactions).
@@ -527,6 +549,7 @@ def apriori(
         gpu_resident=gpu_resident,
         prune_equal_support=prune_equal_support,
         use_generator_pruning=use_generator_pruning,
+        prune_apriori=prune_apriori,
         anchor_items=anchor_items,
         output_dir=output_dir,
         resume_from_k=resume_from_k,
@@ -593,6 +616,8 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,
+            prune_apriori=prune_apriori,
+            infer_counts=use_generator_pruning,
             sparse_from_k=sparse_from_k,
             profile=profile,
             max_ram_gb=max_ram_gb,
@@ -673,6 +698,8 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,  # free-sets: emit == generate
+            prune_apriori=prune_apriori,
+            infer_counts=use_generator_pruning,
             sparse_from_k=sparse_from_k,
             anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
             profile=profile,
@@ -852,8 +879,9 @@ def apriori(
                 current_supports[itemset] = count / n_trans
                 current_counts[itemset] = count
 
-        # Free-set (generator) pruning, resolved against the COMPLETE previous
-        # level — prev_counts is never pruned, only prev_frequent is. What
+        # Free-set (generator) pruning, resolved against every frequent
+        # candidate of the previous level — prev_counts is never pruned, only
+        # prev_frequent is. What
         # survives is both what this level emits and what K+1 generates from:
         # emitting a level and then generating from a smaller one advertises
         # itemsets the run will never extend, which is how apriori-valid

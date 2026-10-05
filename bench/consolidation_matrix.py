@@ -238,6 +238,77 @@ def build_verify_matrix(n_dev: int) -> list[dict]:
     return cfgs
 
 
+#: Workloads of the candidate-waste measurement; oom_regression to K=3 follows, and stress_k2
+#: to K=3 runs once, last.
+WASTE = ("smoke", "deepk", "skew", "or003", "or002", "dsl")
+
+
+def build_waste_matrix(n_dev: int) -> list[dict]:
+    """The candidate-waste measurement (`--mode waste`).
+
+    The row-split miner on one GPU at its default dispatch, complete lattice
+    and free-sets, each level's time split recorded (`level_split.py`). Rep 0
+    of every config dumps its lattice for `bench/candidate_waste.py`.
+    """
+    base = []
+    for w in WASTE:
+        base.append(_cfg("C1-split", w, "C", level_split=True))
+        base.append(_cfg("C1-split-free", w, "C", level_split=True, prune_equal_support=True))
+    base.append(_cfg("C1-split", "oom2ml3", "C", level_split=True))
+    base.append(_cfg("C1-split", "sk2ml3", "C", level_split=True, timeout_s=3600, single_rep=True))
+    cfgs = []
+    for rep in range(REPS):
+        for c in base:
+            if rep and c.get("single_rep"):
+                continue
+            dump = {"dump_lattice": True} if rep == 0 else {}
+            cfgs.append({**c, **dump, "id": f"{c['base_id']}#r{rep}", "rep": rep})
+    return cfgs
+
+
+#: The three arms of the pruning campaign (bench/pruning/PROTOCOL.md).
+PRUNING_ARMS = {
+    "off": {"prune_apriori": False},
+    "prune": {"prune_apriori": True},
+    "infer": {"prune_apriori": True, "use_generator_pruning": True},
+}
+
+
+def build_pruning_matrix(n_dev: int) -> list[dict]:
+    """The candidate-pruning campaign (`--mode pruning`, bench/pruning/PROTOCOL.md).
+
+    Every config records its level split. Rep-major; within a rep the short
+    workloads run first; the single-rep configs run in rep 0 only.
+    """
+
+    def arm(name: str, workload: str, a: str, *, n_gpus: int = 1, free: bool = False, **kw) -> dict:
+        extra = {"prune_equal_support": True} if free else {}
+        return _cfg(name, workload, "C", n_gpus=n_gpus, level_split=True, **PRUNING_ARMS[a], **extra, **kw)
+
+    short, long_ = [], []
+    for w in ("smoke", "deepk", "skew", "or003", "or002"):
+        short += [arm(f"C1-{a}", w, a) for a in PRUNING_ARMS]
+        short += [arm(f"C1-free-{a}", w, a, free=True) for a in ("off", "prune")]
+    for w in ("deepk", "or002"):
+        short += [arm(f"C1-esco-{a}", w, a, sparse_from_k=3, expect_transition=True) for a in PRUNING_ARMS]
+    long_ += [arm(f"C1-{a}", "dsl", a) for a in PRUNING_ARMS]
+    long_ += [arm(f"C1-free-{a}", "dsl", a, free=True) for a in ("off", "prune")]
+    long_ += [arm(f"C1-{a}", "oom2ml3", a) for a in PRUNING_ARMS]
+    long_.append(arm("C1-prune", "sk2ml3", "prune", timeout_s=3600))
+    long_.append(arm("C1-off", "sk2ml3", "off", timeout_s=3600, single_rep=True))
+    if n_dev >= 2:
+        long_ += [arm(f"C2-{a}", "dsl", a, n_gpus=2) for a in PRUNING_ARMS]
+        long_ += [arm(f"C2-{a}", "oom2ml3", a, n_gpus=2) for a in ("off", "prune")]
+        long_.append(arm("C2-prune", "sk2ml3", "prune", n_gpus=2, timeout_s=3600, single_rep=True))
+    cfgs = []
+    for rep in range(REPS):
+        for c in short + long_:
+            if rep and c.get("single_rep"):
+                continue
+            cfgs.append({**c, "id": f"{c['base_id']}#r{rep}", "rep": rep})
+    return cfgs
+
+
 def build_esco_matrix(n_dev: int, *, retail_low: bool = False) -> list[dict]:
     """Dense and ESCO on the same workloads, repeats and result-signature gate.
 

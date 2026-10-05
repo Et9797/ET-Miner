@@ -24,6 +24,7 @@ from .k3plus import (
     select_k3plus_groups,
     upload_k3plus_groups,
 )
+from .subset_index import SUBSET_INFER, SUBSET_PRUNE, index_nbytes, upload_subset_index
 from .loader import (
     clear_kernel_cache,
     column_popcounts,
@@ -56,4 +57,8 @@ __all__ = [
     "count_pairs_k2_shared",
     "count_tiled_fused",
     "k2_groups",
+    "SUBSET_PRUNE",
+    "SUBSET_INFER",
+    "index_nbytes",
+    "upload_subset_index",
 ]

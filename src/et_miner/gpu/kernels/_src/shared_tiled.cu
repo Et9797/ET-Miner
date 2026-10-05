@@ -27,8 +27,9 @@
 //
 // With an index of the previous level (index_mode != 0, _subset_index.cu) a
 // block first classifies its pairs: a tile-pair with no pair to count skips
-// the word loop, emitting only inferred counts (on the device that writes
-// them) and leaving skipped pairs at zero.
+// the word loop, emitting only its inferred pairs (the inferred count on the
+// device that writes them, 0 on the others) and leaving skipped pairs
+// unwritten, so every device writes the same entries.
 //
 // Constraints shared with the rest of _src/: plain C, extern "C",
 // sm_60+ intrinsics only, blockDim.x == 256.
@@ -165,12 +166,11 @@ extern "C" __device__ __forceinline__ void _stage_tiles(
         }                                                                                         \
         __syncthreads();                                                                          \
         if (*count_tile == 0) {                                                                   \
-            if (write_inferred) {                                                                 \
-                for (int q = 0; q < 4; q++) {                                                     \
-                    if (pair_status[q] != CAND_INFER) continue;                                   \
-                    const long long iq = ta * TILE_T + warp + 8 * q;                              \
-                    EMIT_PAIR(cumulative_pairs[g] + jq * (jq - 1) / 2 + iq, pair_inferred[q]);    \
-                }                                                                                 \
+            for (int q = 0; q < 4; q++) {                                                         \
+                if (pair_status[q] != CAND_INFER) continue;                                       \
+                const long long iq = ta * TILE_T + warp + 8 * q;                                  \
+                EMIT_PAIR(cumulative_pairs[g] + jq * (jq - 1) / 2 + iq,                           \
+                          write_inferred ? pair_inferred[q] : 0);                                 \
             }                                                                                     \
             return;                                                                               \
         }                                                                                         \

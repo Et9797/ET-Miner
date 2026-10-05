@@ -17,7 +17,8 @@ and filter survivors per chunk. This module owns:
   K=2 and K>=3 branches of ``row_split``.
 
 Byte model per chunk candidate: 4 B for the int32 dense counts on every
-GPU (plus slack), and for the non-NCCL reduce a fixed staging buffer on
+GPU (plus slack), 1 bit on GPU 0 for the compacted reduce's mask of written
+entries, and for the non-NCCL reduce a fixed staging buffer on
 GPU 0 (``gpu.nccl.STAGING_BYTES``) instead of any per-candidate term. Survivor
 filtering is deliberately *not* budgeted per candidate: the filter works
 in 64M-element slices whose worst case (13 B/element, every element
@@ -37,6 +38,9 @@ from et_miner import _env
 
 #: int32 dense counts — one per candidate per GPU.
 CHUNK_BYTES_PER_CANDIDATE = 4
+
+#: The compacted reduce's packed mask of written entries, on the reducing GPU.
+COMPACT_MASK_BITS_PER_CANDIDATE = 1
 
 #: Pairs per prefix group at which the tiled kernel becomes faster than the
 #: per-candidate kernel, per K. Measured by bench/kernel_crossover.py
@@ -83,6 +87,7 @@ def chunk_budget_from_bytes(
     use_nccl: bool = True,
     staging_bytes: int | None = None,
     env_cap: int | None = None,
+    compact_reduce: bool = False,
 ) -> int:
     """Max candidates per dense chunk — the pure byte model.
 
@@ -98,6 +103,8 @@ def chunk_budget_from_bytes(
             means ``gpu.nccl.STAGING_BYTES`` (0 with NCCL).
         env_cap: ``ET_MINER_MAX_CHUNK_CANDS`` — caps (never raises) the
             computed budget so tests can force multi-chunk runs.
+        compact_reduce: The chunks are reduced compacted, which keeps a
+            1-bit mask per candidate on GPU 0.
 
     Returns:
         Maximum candidates per chunk (>= 1).
@@ -114,7 +121,8 @@ def chunk_budget_from_bytes(
     margin = min(margin, max(0, avail_bytes) // 4)
     usable = avail_bytes - group_data_bytes - margin - (0 if use_nccl else staging_bytes)
     per_candidate = CHUNK_BYTES_PER_CANDIDATE + 2  # counts + slack for allocator fragmentation
-    max_cands = max(1, int(usable // per_candidate))
+    per_candidate_bits = 8 * per_candidate + (COMPACT_MASK_BITS_PER_CANDIDATE if compact_reduce else 0)
+    max_cands = max(1, int(max(0, usable) * 8 // per_candidate_bits))
     if env_cap is not None:
         max_cands = max(1, min(max_cands, env_cap))
     return max_cands
@@ -145,6 +153,7 @@ def compute_chunk_budget(
     group_data_bytes: int = 0,
     use_nccl: bool = True,
     staging_bytes: int | None = None,
+    compact_reduce: bool = False,
 ) -> int:
     """Measure per-device headroom and apply the byte model.
 
@@ -167,6 +176,7 @@ def compute_chunk_budget(
         use_nccl=use_nccl,
         staging_bytes=staging_bytes,
         env_cap=_env.max_chunk_candidates(),
+        compact_reduce=compact_reduce,
     )
 
 
@@ -227,6 +237,7 @@ def run_chunked_dense_level(
     nccl_comms,
     use_nccl: bool,
     level_label: str = "",
+    compact: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Count → reduce → compact each chunk; return global survivors.
 
@@ -237,6 +248,13 @@ def run_chunked_dense_level(
     chunks are processed in ascending order, so the concatenated result
     keeps the global ascending-index contract.
 
+    With ``compact`` the launches leave the entries they do not write at
+    ``filter.UNTOUCHED`` and write the same entries on every GPU (the subset
+    test is a function of the shared index). Each GPU moves its written
+    entries to the front of its array, and only that prefix is reduced; GPU 0
+    maps the survivors back through its mask of the written entries. GPUs that
+    wrote different entries raise RuntimeError before the collective.
+
     Returns:
         ``(indices, counts)`` — int64 NumPy arrays over the full candidate
         space (indices already offset by each chunk's start).
@@ -245,7 +263,7 @@ def run_chunked_dense_level(
 
     import cupy as cp
 
-    from et_miner.gpu.kernels.filter import threshold_filter
+    from et_miner.gpu.kernels.filter import compact_written, threshold_filter, threshold_filter_compacted
     from et_miner.gpu.nccl import reduce_sum_to_gpu0
 
     device_ids = [did for _, did, _ in bitvecs_list]
@@ -266,23 +284,47 @@ def run_chunked_dense_level(
 
             # Sum partials onto GPU 0: ncclReduce to root, or the bounded
             # staged D2D fallback (never a full peer copy).
-            reduce_sum_to_gpu0(gpu_results, device_ids, comms=nccl_comms if use_nccl else None)
+            kept = None
+            if compact:
+
+                def _compact(i, counts):
+                    with cp.cuda.Device(device_ids[i]):
+                        return compact_written(counts, keep_mask=i == 0)
+
+                packed = list(pool.map(_compact, range(len(gpu_results)), gpu_results))
+                kept = packed[0]
+                if any(p.n != kept.n or not np.array_equal(p.slice_counts, kept.slice_counts) for p in packed[1:]):
+                    raise RuntimeError(
+                        f"{level_label} chunk {chunk_idx + 1}/{len(chunks)}: the GPUs wrote different entries "
+                        f"({[p.n for p in packed]}); the compacted reduce needs the same entries on every GPU"
+                    )
+                del packed
+                if kept.n:
+                    reduce_sum_to_gpu0(
+                        [r[: kept.n] for r in gpu_results], device_ids, comms=nccl_comms if use_nccl else None
+                    )
+            else:
+                reduce_sum_to_gpu0(gpu_results, device_ids, comms=nccl_comms if use_nccl else None)
 
             with cp.cuda.Device(device_ids[0]):
                 global_counts = gpu_results[0]
-                freq_idx, freq_cnt = threshold_filter(global_counts, min_count)
+                if kept is None:
+                    freq_idx, freq_cnt = threshold_filter(global_counts, min_count)
+                else:
+                    freq_idx, freq_cnt = threshold_filter_compacted(global_counts, kept, min_count)
                 n_freq_chunk = len(freq_idx)
                 pass_rate = 100 * n_freq_chunk / chunk.size if chunk.size else 0.0
                 logger.info(
                     f"  {level_label} chunk {chunk_idx + 1}/{len(chunks)} filtering: "
                     f"{chunk.size:,} candidates → {n_freq_chunk:,} frequent "
                     f"({pass_rate:.1f}% pass rate, min_count={min_count:,})"
+                    + ("" if kept is None else f", {kept.n:,} reduced compacted")
                 )
                 if n_freq_chunk > 0:
                     all_indices.append(freq_idx + chunk.start)
                     all_counts.append(freq_cnt)
 
-                del global_counts
+                del global_counts, kept
                 for i in range(len(gpu_results)):
                     gpu_results[i] = None
                 del gpu_results

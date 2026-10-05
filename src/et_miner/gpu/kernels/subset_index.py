@@ -3,7 +3,8 @@
 The K>=3 counting kernels (per-candidate, tiled dense and fused, sparse CSR)
 take the previous level as sorted int32 rows with per-row counts and free
 flags (``_src/_subset_index.cu``). With ``SUBSET_PRUNE`` a candidate with a
-(k-1)-subset missing from the index is not counted and keeps a zero count;
+(k-1)-subset missing from the index is not counted and keeps the output's fill
+(zero, or the dense wrappers' ``untouched`` marker);
 with ``SUBSET_INFER`` as well, a candidate with a non-free (k-1)-subset gets
 the minimum of its subset counts instead of a count. Candidate indices never
 change, so chunk plans, the cross-GPU reduce and the decode are unaffected.
@@ -16,7 +17,8 @@ Options:
     mode            SUBSET_PRUNE, optionally | SUBSET_INFER (needs ``free``)
     free            per-row free flags (bool), required by SUBSET_INFER
     write_inferred  whether this device writes inferred counts; exactly one
-                    device of a reduce does, the others leave zeros
+                    device of a reduce does, the others write 0 there, so
+                    every device writes the same entries
 """
 
 from __future__ import annotations

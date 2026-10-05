@@ -63,6 +63,14 @@ Variables:
                                        transactions input, so bitvecs=
                                        input counts dense whatever the
                                        pin. Unset: dense
+    ET_MINER_REDUCE                    "dense" or "compact": the row-split
+                                       miner's multi-GPU reduce of a K>=3
+                                       level with a subset index. "compact"
+                                       sums only the entries the kernels
+                                       counted or inferred; K=2, levels
+                                       without an index, ESCO levels and
+                                       one GPU reduce dense whatever the
+                                       pin. Unset: dense
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -185,6 +193,18 @@ def k2_kernel() -> str | None:
         return None
     if v not in K2_KERNELS:
         raise ValueError(f"ET_MINER_K2_KERNEL must be one of {K2_KERNELS}, got {v!r}")
+    return v
+
+
+REDUCE_MODES = ("dense", "compact")
+
+
+def reduce_mode() -> str | None:
+    v = os.environ.get("ET_MINER_REDUCE", "").strip().lower()
+    if not v:
+        return None
+    if v not in REDUCE_MODES:
+        raise ValueError(f"ET_MINER_REDUCE must be one of {REDUCE_MODES}, got {v!r}")
     return v
 
 

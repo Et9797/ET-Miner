@@ -225,6 +225,11 @@ def _apriori_row_split_multi_gpu(
     index larger than a quarter of a device's free VRAM is not uploaded and
     that level counts every candidate.
 
+    With ``ET_MINER_REDUCE=compact`` a dense K>=3 level with an index on
+    several GPUs reduces only the entries the kernels wrote (counted or
+    inferred, the same entries on every GPU) instead of whole chunk arrays
+    (``run_chunked_dense_level``).
+
     ``prune_non_free`` keeps two populations per level:
 
       * ``prev_frequent_flat`` — the free-sets, i.e. what this level EMITS and
@@ -268,6 +273,7 @@ def _apriori_row_split_multi_gpu(
     from et_miner.gpu.kernels import (
         SUBSET_INFER,
         SUBSET_PRUNE,
+        UNTOUCHED,
         column_popcounts,
         index_nbytes,
         upload_subset_index,
@@ -535,9 +541,10 @@ def _apriori_row_split_multi_gpu(
             for did in device_ids
         }
 
-    def _count_dense(groups, chunks, label, index_gpu):
+    def _count_dense(groups, chunks, label, index_gpu, compact):
         """Count one candidate space on every shard, reduce, compact: (indices, counts)."""
         groups_gpu = {did: upload_k3plus_groups(groups, did) for _, did, _ in bitvecs_list}
+        untouched = UNTOUCHED if compact else 0
 
         def _launch(bitvec_gpu, device_id, chunk):
             with cp.cuda.Device(device_id):
@@ -550,6 +557,7 @@ def _apriori_row_split_multi_gpu(
                     chunk_size=chunk.size,
                     groups_gpu=groups_gpu[device_id],
                     index=None if index_gpu is None else index_gpu[device_id],
+                    untouched=untouched,
                 )
 
         # try/finally, because this is ~40 GB on a wide level and
@@ -557,7 +565,8 @@ def _apriori_row_split_multi_gpu(
         # resident on every device for the rest of the run.
         try:
             return run_chunked_dense_level(
-                bitvecs_list, chunks, _launch, min_count_threshold, nccl_comms, _use_nccl, level_label=label
+                bitvecs_list, chunks, _launch, min_count_threshold, nccl_comms, _use_nccl, level_label=label,
+                compact=compact,
             )
         finally:
             for did in list(groups_gpu):
@@ -819,8 +828,9 @@ def _apriori_row_split_multi_gpu(
 
                     # Uploaded before the budget, so the measured headroom excludes it.
                     _index_gpu = _subset_index(k)
+                    _compact = _index_gpu is not None and not _one_device and _env.reduce_mode() == "compact"
                     max_cands_per_chunk = compute_chunk_budget(
-                        device_ids, group_data_bytes=group_data_bytes, use_nccl=_use_nccl
+                        device_ids, group_data_bytes=group_data_bytes, use_nccl=_use_nccl, compact_reduce=_compact
                     )
 
                     # Kernel per prefix group, at the measured crossover: small
@@ -857,13 +867,14 @@ def _apriori_row_split_multi_gpu(
                         f"{0 if small is None else small.total_candidates:,}, tiled "
                         f"{0 if big is None else big.total_candidates:,}; group data "
                         f"{group_data_bytes / (1 << 30):.1f} GB, budget {max_cands_per_chunk:,} cands/chunk"
+                        + ("; compacted reduce" if _compact else "")
                     )
                     if small is not None:
                         chunks = plan_candidate_chunks(small.total_candidates, max_cands_per_chunk)
-                        parts.append((small, *_count_dense(small, chunks, f"K={k}", _index_gpu)))
+                        parts.append((small, *_count_dense(small, chunks, f"K={k}", _index_gpu, _compact)))
                     if big is not None:
                         chunks = plan_group_chunks(big.cumulative_pairs, max_cands_per_chunk)
-                        parts.append((big, *_count_dense(big, chunks, f"K={k}", _index_gpu)))
+                        parts.append((big, *_count_dense(big, chunks, f"K={k}", _index_gpu, _compact)))
 
                     parts = [part for part in parts if len(part[1]) > 0]
                     if parts:

@@ -26,8 +26,11 @@ Phases:
     count_percand  per-candidate kernel launches (dense chunks)
     count_tiled    tiled kernel launches (dense chunks)
     count_fused    count_tiled_fused (one-GPU oversize groups; includes its filter)
+    compact        compact_written (the compacted reduce moving each GPU's
+                   written entries to the front of its chunk array)
     reduce         reduce_sum_to_gpu0 (no-op on one GPU)
-    filter         threshold_filter (survivors to the host)
+    filter         threshold_filter, threshold_filter_compacted (survivors
+                   to the host)
     decode         decode_k2_pairs_flat, decode_k3plus_flat
     sort           _rows_sorted and the level-end lexsort
     free_prune     _prune_non_free_mask
@@ -43,7 +46,7 @@ from collections import defaultdict
 
 PHASES = (
     "group_build", "group_upload", "budget", "k2_input", "count_rows", "count_percand", "count_tiled", "count_fused",
-    "reduce", "filter", "decode", "sort", "free_prune",
+    "compact", "reduce", "filter", "decode", "sort", "free_prune",
 )
 
 _MINER = "_apriori_row_split_multi_gpu"
@@ -132,6 +135,10 @@ class LevelSplit:
         for name in ("decode_k2_pairs_flat", "decode_k3plus_flat"):
             self._patch(kernels, name, self._timed("decode", getattr(kernels, name)))
         self._patch(filter_mod, "threshold_filter", self._timed("filter", filter_mod.threshold_filter))
+        self._patch(
+            filter_mod, "threshold_filter_compacted", self._timed("filter", filter_mod.threshold_filter_compacted)
+        )
+        self._patch(filter_mod, "compact_written", self._timed("compact", filter_mod.compact_written))
         self._patch(nccl, "reduce_sum_to_gpu0", self._timed("reduce", nccl.reduce_sum_to_gpu0))
         self._patch(row_split, "compute_chunk_budget", self._timed("budget", row_split.compute_chunk_budget))
         self._patch(row_split, "_upload_k2_rows", self._timed("k2_input", row_split._upload_k2_rows))

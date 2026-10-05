@@ -178,6 +178,45 @@ def test_tiled_dense_kernel(level, mode_name, write_inferred):
 
 
 @pytest.mark.gpu
+@pytest.mark.parametrize("kernel", ["per-candidate", "tiled"])
+@pytest.mark.parametrize("mode_name", ["prune", "infer"])
+def test_untouched_marks_the_same_entries_on_every_device(level, kernel, mode_name):
+    """With ``untouched=UNTOUCHED`` the writer flag changes values, never which
+    entries are written (the compacted reduce relies on it); the written values
+    are the zero-filled output's, and only prunable candidates stay unwritten
+    (all of them on the per-candidate kernel, those of skipped tile-pairs on the
+    tiled one)."""
+    import cupy as cp
+
+    from et_miner.gpu.kernels import (
+        SUBSET_INFER,
+        SUBSET_PRUNE,
+        UNTOUCHED,
+        count_k3plus_per_candidate,
+        count_shared_tiled_allcounts,
+    )
+
+    k, m, prev, prev_counts, prev_free, groups, labels = level
+    mode = SUBSET_PRUNE | (SUBSET_INFER if mode_name == "infer" else 0)
+    count = count_k3plus_per_candidate if kernel == "per-candidate" else count_shared_tiled_allcounts
+    bv = cp.asarray(_bitvecs(m))
+    written = None
+    for writer in (True, False):
+        index = _index(prev, prev_counts, prev_free, mode, writer)
+        marked = count(bv, groups, bv.shape[1], index=index, untouched=UNTOUCHED).get()
+        zero_filled = count(bv, groups, bv.shape[1], index=index).get()
+        if written is None:
+            written = marked != UNTOUCHED
+        np.testing.assert_array_equal(marked != UNTOUCHED, written)
+        np.testing.assert_array_equal(np.where(written, marked, 0), zero_filled)
+    assert (~written).any()
+    if kernel == "per-candidate":
+        np.testing.assert_array_equal(~written, labels["P"])
+    else:
+        assert labels["P"][~written].all()
+
+
+@pytest.mark.gpu
 @pytest.mark.parametrize("mode_name", ["prune", "infer"])
 def test_tiled_fused_kernel(level, mode_name):
     import cupy as cp

@@ -152,7 +152,7 @@ def upload_k3plus_groups(groups_info, device_id, *, with_src_rows: bool = False)
 
 
 def count_k3plus_per_candidate(
-    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None
+    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None, untouched=0
 ):
     """Dense K>=3 counting, one thread per candidate: support counts for a range.
 
@@ -183,8 +183,12 @@ def count_k3plus_per_candidate(
         groups_gpu: Pre-uploaded group data dict from upload_k3plus_groups().
             If None, uploads fresh.
         index: Previous-level index from subset_index.upload_subset_index()
-            on this device: skipped candidates keep 0, inferred ones get the
-            inferred count. None counts every candidate.
+            on this device: skipped candidates are not written, inferred ones
+            get the inferred count (0 on a device that does not write them).
+            None counts every candidate.
+        untouched: Fill of the entries the kernel does not write. 0 sums
+            correctly across devices; a negative marker (``filter.UNTOUCHED``)
+            lets the compacted reduce find the written ones.
 
     Returns:
         CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
@@ -205,7 +209,9 @@ def count_k3plus_per_candidate(
         groups_gpu = upload_k3plus_groups(groups_info, device_id)
 
     with cp.cuda.Device(device_id):
-        result_counts = cp.zeros(chunk_size, dtype=cp.int32)
+        result_counts = (
+            cp.zeros(chunk_size, dtype=cp.int32) if untouched == 0 else cp.full(chunk_size, untouched, dtype=cp.int32)
+        )
 
         kernel = get_cuda_kernel("count_k3plus_dense")
         block_size = 256

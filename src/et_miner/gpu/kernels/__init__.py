@@ -8,7 +8,7 @@ Import-safe without CuPy.
 from .batch import count_itemsets_cuda
 from .csr_warp import count_csr_gather, count_csr_range, write_csr_gather
 from .decode import decode_k2_pairs_flat, decode_k3plus_flat
-from .filter import threshold_filter
+from .filter import UNTOUCHED, threshold_filter
 from .shared_tiled import (
     compute_cumulative_tilepairs,
     count_pairs_k2_shared,
@@ -56,6 +56,7 @@ __all__ = [
     "decode_k2_pairs_flat",
     "decode_k3plus_flat",
     "threshold_filter",
+    "UNTOUCHED",
     "compute_cumulative_tilepairs",
     "count_shared_tiled_allcounts",
     "count_pairs_k2_shared",

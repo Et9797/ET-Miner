@@ -22,6 +22,7 @@ Guidance for Claude Code when working in this repository.
   row-split 2 GPUs, row-wise K=2 (plain / forced chunks) ==
   row-split 2 GPUs, compacted reduce (plain / forced chunks, with / without count inference) ==
   ESCO 2 GPUs (auto / K=3, forced chunks, with / without count inference) ==
+  ESCO 1 GPU / 2 GPUs, materialization reuse (auto / K=3, with / without count inference) ==
   SON 2 GPUs, forced chunks == efficient-apriori
 
   It is enforced by `tests/test_tier_equivalence.py` (exact itemsets AND

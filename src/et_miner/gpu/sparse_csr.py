@@ -15,10 +15,16 @@ are materialized by a second kernel pass in survivor order — row *i* of the
 new shard ≡ row *i* of the survivor table on every GPU, by construction.
 Single-GPU mining is the one-shard case (no reduce).
 
+The new tidsets are sized either by counting the survivors on every shard once
+more ("recount") or from the count pass's per-shard counts ("reuse",
+``ET_MINER_ESCO_MATERIALIZE``), with a write that never exceeds a slot and
+reports the true lengths.
+
 Two exact checks guard the row alignment on every run and raise instead of
 warning: at the transition the per-shard row lengths must sum to the dense
 counts of the previous level, and at every materialization the per-shard
-survivor lengths must sum to the survivor counts.
+survivor lengths must sum to the survivor counts (and, under reuse, equal the
+slots they were written into).
 """
 
 from __future__ import annotations
@@ -215,13 +221,15 @@ def free_groups(groups_gpu: dict[int, dict] | None) -> None:
 
 
 def run_sparse_level(shards, groups_info, groups_gpu, min_count, *, nccl_comms, use_nccl, level_label="",
-                     index_gpu=None):
+                     index_gpu=None, peer_counts=False):
     """Count every candidate on every shard, reduce, filter: ``(surv, counts)``.
 
     ``surv`` are ascending int64 candidate indices into the level's candidate
     space and ``counts`` their exact global counts (int64), both on host —
     the same contract as the dense chunk loop. ``index_gpu`` ({device_id:
     subset index}) skips or infers candidates as in the dense kernels.
+    ``peer_counts`` adds the survivors' counts on ``shards[1:]`` (see
+    ``run_chunked_dense_level``) for ``materialize_survivors``.
     """
     device_ids = [s.device_id for s in shards]
     tc = int(groups_info.total_candidates)
@@ -248,7 +256,8 @@ def run_sparse_level(shards, groups_info, groups_gpu, min_count, *, nccl_comms, 
 
     pseudo_bitvecs = [(s, s.device_id, s.n_rows_local) for s in shards]
     return run_chunked_dense_level(
-        pseudo_bitvecs, chunks, launch, min_count, nccl_comms, use_nccl, level_label=f"{level_label} CSR"
+        pseudo_bitvecs, chunks, launch, min_count, nccl_comms, use_nccl, level_label=f"{level_label} CSR",
+        peer_counts=peer_counts,
     )
 
 
@@ -265,12 +274,35 @@ def _preflight(shards, need_bytes: int, n_surv: int, level_label: str) -> None:
             )
 
 
-def materialize_survivors(shards, groups_gpu, surv, expected_counts, *, level_label=""):
+def _shard_lengths(expected, peer_counts, level_label):
+    """Per-shard tidset lengths of the survivors from the count pass, and the survivors to recount.
+
+    ``peer_counts`` are the counts on every shard but the first; the first
+    shard's are the global counts minus them. A survivor with a zero on every
+    other shard is recounted everywhere: an inferred count is written on the
+    first shard only, so its per-shard split is unknown (a counted survivor
+    with no rows elsewhere is recounted too, at no harm).
+    """
+    lengths = np.empty((len(peer_counts) + 1, len(expected)), dtype=np.int64)
+    lengths[1:] = peer_counts
+    lengths[0] = expected - peer_counts.sum(axis=0)
+    if (lengths < 0).any():
+        raise RuntimeError(f"{level_label}: the per-shard counts of the count pass exceed the survivors' counts")
+    if len(peer_counts) == 0:
+        return lengths, np.empty(0, dtype=np.int64)
+    return lengths, np.nonzero((peer_counts == 0).all(axis=0))[0]
+
+
+def materialize_survivors(shards, groups_gpu, surv, expected_counts, *, level_label="", peer_counts=None):
     """New shards holding the survivors' tidsets, in ``surv`` order, on every GPU.
 
     ``expected_counts`` are the survivors' global counts; the per-shard
     lengths written must sum to them exactly (RuntimeError otherwise — the
-    kernel/host candidate decode would have drifted).
+    kernel/host candidate decode would have drifted). ``peer_counts`` (int64
+    ``(len(shards) - 1, n)``, the survivors' counts on ``shards[1:]`` from the
+    count pass) sizes the new tidsets without counting them again; every
+    survivor's written length must then equal its slot. None counts every
+    survivor on every shard first.
     """
     import cupy as cp
 
@@ -279,14 +311,24 @@ def materialize_survivors(shards, groups_gpu, surv, expected_counts, *, level_la
     n = int(len(surv))
     if len(expected) != n:
         raise ValueError(f"{level_label}: {n} survivors but {len(expected)} counts")
+    lengths = recount = None
+    if peer_counts is not None:
+        peer_counts = np.asarray(peer_counts, dtype=np.int64).reshape(len(shards) - 1, n)
+        lengths, recount = _shard_lengths(expected, peer_counts, level_label)
     # Exact upper bound: a shard's nnz is at most the global count sum.
     _preflight(shards, 4 * int(expected.sum()) + 8 * (n + 1), n, level_label)
 
-    def _one(shard):
+    def _one(s, shard):
         did = shard.device_id
         with cp.cuda.Device(did):
             ids = cp.asarray(surv)
-            cnt = count_csr_gather(shard.offsets, shard.indices, groups_gpu[did], ids)
+            if lengths is None:
+                cnt = count_csr_gather(shard.offsets, shard.indices, groups_gpu[did], ids)
+            else:
+                cnt = cp.asarray(lengths[s])
+                if len(recount):
+                    sub = cp.asarray(recount)
+                    cnt[sub] = count_csr_gather(shard.offsets, shard.indices, groups_gpu[did], ids[sub])
             new_off = cp.zeros(n + 1, dtype=cp.int64)
             if n:
                 cp.cumsum(cnt.astype(cp.int64), out=new_off[1:])
@@ -298,20 +340,36 @@ def materialize_survivors(shards, groups_gpu, surv, expected_counts, *, level_la
                     f"but only {free_b / 1e9:.2f} GB is free"
                 )
             new_idx = cp.empty(nnz, dtype=cp.int32)
-            if n and nnz:
-                write_csr_gather(shard.offsets, shard.indices, groups_gpu[did], ids, new_off, new_idx)
+            written = None
+            if lengths is None:
+                if n and nnz:
+                    write_csr_gather(shard.offsets, shard.indices, groups_gpu[did], ids, new_off, new_idx)
+            elif n:
+                written = write_csr_gather(
+                    shard.offsets, shard.indices, groups_gpu[did], ids, new_off, new_idx, checked=True
+                )
             cp.cuda.Device(did).synchronize()
-            host_cnt = cnt.get()
-            del cnt, ids
+            host_cnt = cnt.get().astype(np.int64)
+            if written is not None:
+                host_written = written.get().astype(np.int64)
+                bad = np.nonzero(host_written != host_cnt)[0]
+                if len(bad):
+                    i = int(bad[0])
+                    raise RuntimeError(
+                        f"{level_label}: GPU {did}: {len(bad):,} of {n:,} survivors' tidsets do not fill the slots "
+                        f"sized from the count pass (survivor {i}: {int(host_written[i])} tids for a slot of "
+                        f"{int(host_cnt[i])})"
+                    )
+            del cnt, ids, written
             return CsrShard(did, shard.n_rows_local, new_off, new_idx), host_cnt
 
     with ThreadPoolExecutor(max_workers=len(shards)) as pool:
-        results = list(pool.map(_one, shards))
+        results = list(pool.map(_one, range(len(shards)), shards))
     new_shards = [r[0] for r in results]
 
     total = np.zeros(n, dtype=np.int64)
     for _, hc in results:
-        total += hc.astype(np.int64)
+        total += hc
     bad = np.nonzero(total != expected)[0]
     if len(bad):
         for s in new_shards:

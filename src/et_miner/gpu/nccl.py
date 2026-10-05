@@ -256,13 +256,19 @@ def _staged_reduce_to_gpu0(gpu_arrays, device_ids):
         del staging
 
 
+def keeps_peer_arrays(comms) -> bool:
+    """Whether ``reduce_sum_to_gpu0`` with these ``comms`` leaves the non-root arrays unchanged."""
+    return comms is None or hasattr(comms[0], "reduce")
+
+
 def reduce_sum_to_gpu0(gpu_arrays, device_ids, comms=None):
     """Sum per-GPU partial arrays into ``gpu_arrays[0]`` (in place).
 
     With ``comms``: ncclReduce to root 0, falling back to in-place
     allReduce when the binding lacks ``reduce``. Without: the bounded
-    staged D2D fallback. Non-root arrays are left in an unspecified state
-    — callers must only consume ``gpu_arrays[0]`` afterwards.
+    staged D2D fallback. ncclReduce and the staged fallback leave the
+    non-root arrays unchanged (``keeps_peer_arrays``); the allReduce
+    fallback overwrites them with the sum.
 
     A single array is already the sum: return without touching NCCL or the
     staged fallback (which would otherwise allocate up to STAGING_BYTES on

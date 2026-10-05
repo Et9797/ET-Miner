@@ -231,3 +231,37 @@ def test_end_to_end_with_real_builder():
             [np.intersect1d(rows[row_of[(p, si)]], rows[row_of[(p, sj)]], assume_unique=True) for p, si, sj in decoded.tolist()]
         ).astype(np.int32),
     )
+
+
+def test_checked_write_matches_the_unchecked_one_on_exact_slots(fx):
+    ids = np.random.default_rng(4).integers(0, fx["tc"], size=91)
+    out_off, out_idx = _materialize(fx, ids)
+    got = cp.full(len(out_idx), -1, dtype=cp.int32)
+    lengths = write_csr_gather(fx["off"], fx["idx"], fx["ggpu"], cp.asarray(ids), cp.asarray(out_off), got,
+                               checked=True)
+    np.testing.assert_array_equal(got.get(), out_idx)
+    np.testing.assert_array_equal(lengths.get(), np.diff(out_off))
+
+
+def test_checked_write_stays_in_its_slots_and_reports_the_true_lengths(fx):
+    """Slots one tid short or one long: nothing lands outside a slot, and the
+    reported lengths are the intersections' (so the caller sees the mismatch)."""
+    true = _ref_counts(fx)
+    ids = np.nonzero(true >= 2)[0][:40]
+    slots = true[ids].astype(np.int64) + np.where(np.arange(len(ids)) % 2, 1, -1)
+    off = np.zeros(len(ids) + 1, np.int64)
+    np.cumsum(slots, out=off[1:])
+    got = cp.full(int(off[-1]) + 16, -7, dtype=cp.int32)
+    lengths = write_csr_gather(fx["off"], fx["idx"], fx["ggpu"], cp.asarray(ids), cp.asarray(off), got[: int(off[-1])],
+                               checked=True)
+    np.testing.assert_array_equal(lengths.get(), true[ids])
+    host = got.get()
+    assert (host[int(off[-1]) :] == -7).all(), "a write left the slots"
+    for k, i in enumerate(ids):
+        seg = host[off[k] : off[k + 1]]
+        ref = fx["ref"][i]
+        if slots[k] < len(ref):
+            np.testing.assert_array_equal(seg, ref[: slots[k]])
+        else:
+            np.testing.assert_array_equal(seg[: len(ref)], ref)
+            assert (seg[len(ref) :] == -7).all()

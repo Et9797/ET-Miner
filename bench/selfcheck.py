@@ -202,6 +202,12 @@ def _smoke_launch(cp) -> None:
     write_csr_gather(offsets, tids, uploaded, ids, out_offsets, out_tids)
     assert out_tids.tolist() == [0, 0, 0]
     launched.add("csr_write_gather")
+    # Slots of 1, 0, 1: the empty slot is not written, its length still reported.
+    out_tids = cp.full(2, -1, dtype=cp.int32)
+    lengths = write_csr_gather(offsets, tids, uploaded, ids, cp.array([0, 1, 1, 2], dtype=cp.int64), out_tids,
+                               checked=True)
+    assert lengths.tolist() == [1, 1, 1] and out_tids.tolist() == [0, 0]
+    launched.add("csr_write_gather_checked")
     extracted = cp.empty(6, dtype=cp.int32)
     get_cuda_kernel("bitvec_extract_tids")(
         (1,), (256,), (bv, offsets, extracted, np.int64(3), np.int64(1), np.int64(0))

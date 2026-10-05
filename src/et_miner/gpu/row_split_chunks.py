@@ -238,7 +238,8 @@ def run_chunked_dense_level(
     use_nccl: bool,
     level_label: str = "",
     compact: bool = False,
-) -> tuple[np.ndarray, np.ndarray]:
+    peer_counts: bool = False,
+) -> tuple:
     """Count → reduce → compact each chunk; return global survivors.
 
     For every chunk, each GPU counts the same candidate range against its
@@ -255,20 +256,37 @@ def run_chunked_dense_level(
     maps the survivors back through its mask of the written entries. GPUs that
     wrote different entries raise RuntimeError before the collective.
 
+    With ``peer_counts`` (dense reduce only) the result gains the survivors'
+    partial counts on every GPU but the first: int64 ``(len(bitvecs_list) - 1,
+    n)``, read from those GPUs' arrays after the reduce, or None when the
+    reduce in use overwrites them (``nccl.keeps_peer_arrays``).
+
     Returns:
         ``(indices, counts)`` — int64 NumPy arrays over the full candidate
-        space (indices already offset by each chunk's start).
+        space (indices already offset by each chunk's start) — and the peer
+        counts as a third element with ``peer_counts``.
     """
     from concurrent.futures import ThreadPoolExecutor
 
     import cupy as cp
 
     from et_miner.gpu.kernels.filter import compact_written, threshold_filter, threshold_filter_compacted
-    from et_miner.gpu.nccl import reduce_sum_to_gpu0
+    from et_miner.gpu.nccl import keeps_peer_arrays, reduce_sum_to_gpu0
 
+    if peer_counts and compact:
+        raise ValueError("peer_counts needs the dense reduce: the compacted one moves the peers' entries")
     device_ids = [did for _, did, _ in bitvecs_list]
+    n_peers = len(bitvecs_list) - 1
+    keep_peers = peer_counts and keeps_peer_arrays(nccl_comms if use_nccl else None)
+    if peer_counts and not keep_peers:
+        logger.warning(f"  {level_label}: the allReduce fallback overwrites the per-GPU partial counts; none kept")
     all_indices: list[np.ndarray] = []
     all_counts: list[np.ndarray] = []
+    all_peers: list[np.ndarray] = []
+
+    def _gather(counts, device_id, idx):
+        with cp.cuda.Device(device_id):
+            return counts[cp.asarray(idx)].get().astype(np.int64)
 
     with ThreadPoolExecutor(max_workers=len(bitvecs_list)) as pool:
         for chunk_idx, chunk in enumerate(chunks):
@@ -323,6 +341,11 @@ def run_chunked_dense_level(
                 if n_freq_chunk > 0:
                     all_indices.append(freq_idx + chunk.start)
                     all_counts.append(freq_cnt)
+                    if keep_peers:
+                        all_peers.append(
+                            np.stack([_gather(gpu_results[i], device_ids[i], freq_idx) for i in range(1, n_peers + 1)])
+                            if n_peers else np.empty((0, n_freq_chunk), dtype=np.int64)
+                        )
 
                 del global_counts, kept
                 for i in range(len(gpu_results)):
@@ -332,6 +355,11 @@ def run_chunked_dense_level(
                     with cp.cuda.Device(did):
                         cp.get_default_memory_pool().free_all_blocks()
 
-    if not all_indices:
-        return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
-    return np.concatenate(all_indices), np.concatenate(all_counts)
+    indices = np.concatenate(all_indices) if all_indices else np.empty(0, dtype=np.int64)
+    counts = np.concatenate(all_counts) if all_counts else np.empty(0, dtype=np.int64)
+    if not peer_counts:
+        return indices, counts
+    if not keep_peers:
+        return indices, counts, None
+    peers = np.concatenate(all_peers, axis=1) if all_peers else np.empty((n_peers, 0), dtype=np.int64)
+    return indices, counts, peers

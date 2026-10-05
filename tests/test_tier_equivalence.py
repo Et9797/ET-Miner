@@ -19,6 +19,8 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 2 GPUs, compacted reduce (plain and forced chunks, with and
            without count inference)
         == ESCO 2 GPUs, including count inference
+        == ESCO 1 and 2 GPUs, materialization sized from the count pass (with and
+           without count inference)
         == SON 2 GPUs, forced chunks
         == efficient-apriori (the canonical oracle)
 
@@ -29,7 +31,8 @@ ET_MINER_MAX_CHUNK_CANDS forces chunking (on one GPU the pair space and every
 larger group then go to the fused tiled kernel; on two, to per-candidate
 sub-chunks; a row-wise K=2 counts every chunk from the rows),
 ET_MINER_K2_KERNEL=rows pins the row-wise K=2 kernel, ET_MINER_REDUCE=compact pins the
-compacted multi-GPU reduce, and a chunk_size below the row count forces SON to four chunks.
+compacted multi-GPU reduce, ET_MINER_ESCO_MATERIALIZE=reuse sizes the ESCO tidsets from the
+count pass, and a chunk_size below the row count forces SON to four chunks.
 Every row-split leg also asserts which previous-level index its K>=3 levels
 were given: the subset test by default, none with ``prune_apriori=False``, and
 the inferring index, written by exactly one device per level, with
@@ -434,6 +437,55 @@ def test_esco_two_gpus_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sp
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"ESCO 2 GPUs ({sparse_from_k}, inference={infer})",
              {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK}, index_mode="infer" if infer else "prune",
              sparse_from_k=sparse_from_k, n_gpus=2, use_generator_pruning=infer)
+
+
+def _esco_reuse_leg(smoke_dataset, oracle_set, monkeypatch, label, env, *, n_gpus, **kwargs):
+    """An ESCO leg whose every materialization is sized from the count pass."""
+    from et_miner.gpu import row_split, sparse_csr
+
+    sized = []
+
+    def spy(*a, _real=row_split.materialize_survivors, **k):
+        sized.append(k.get("peer_counts") is not None)
+        return _real(*a, **k)
+
+    gathered = []
+
+    def gather_spy(*a, _real=sparse_csr.count_csr_gather):
+        gathered.append(int(a[3].size))
+        return _real(*a)
+
+    monkeypatch.setattr(row_split, "materialize_survivors", spy)
+    monkeypatch.setattr(sparse_csr, "count_csr_gather", gather_spy)
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, {"ET_MINER_ESCO_MATERIALIZE": "reuse", **env},
+             n_gpus=n_gpus, **kwargs)
+    assert sized and all(sized), f"{label}: materializations sized from the count pass: {sized}"
+    if n_gpus == 1:
+        assert not gathered, f"{label}: one shard recounted survivors: {gathered}"
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("sparse_from_k", ["auto", 3])
+@pytest.mark.parametrize("infer", [False, True])
+def test_esco_one_gpu_reuse_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, infer):
+    _esco_reuse_leg(smoke_dataset, oracle_set, monkeypatch,
+                    f"ESCO 1 GPU, reuse ({sparse_from_k}, inference={infer})", {}, n_gpus=1,
+                    index_mode="infer" if infer else "prune", sparse_from_k=sparse_from_k,
+                    use_generator_pruning=infer)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize("sparse_from_k", ["auto", 3])
+@pytest.mark.parametrize("infer", [False, True])
+def test_esco_two_gpus_reuse_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, infer):
+    """Each shard's tidsets are sized from its partial counts, kept per chunk before the next chunk runs."""
+    _needs_two_gpus()
+    _esco_reuse_leg(smoke_dataset, oracle_set, monkeypatch,
+                    f"ESCO 2 GPUs, reuse ({sparse_from_k}, inference={infer})",
+                    {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK}, n_gpus=2,
+                    index_mode="infer" if infer else "prune", sparse_from_k=sparse_from_k,
+                    use_generator_pruning=infer)
 
 
 @pytest.mark.gpu

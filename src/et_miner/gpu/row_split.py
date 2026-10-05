@@ -228,7 +228,9 @@ def _apriori_row_split_multi_gpu(
     With ``ET_MINER_REDUCE=compact`` a dense K>=3 level with an index on
     several GPUs reduces only the entries the kernels wrote (counted or
     inferred, the same entries on every GPU) instead of whole chunk arrays
-    (``run_chunked_dense_level``).
+    (``run_chunked_dense_level``). With ``ET_MINER_ESCO_MATERIALIZE=reuse`` an
+    ESCO level sizes its survivors' new tidsets from the count pass's
+    per-shard counts instead of counting them again (``materialize_survivors``).
 
     ``prune_non_free`` keeps two populations per level:
 
@@ -684,6 +686,7 @@ def _apriori_row_split_multi_gpu(
             if session:
                 session.start_phase(f"k{k}")
             _surv = None
+            _peer_counts = None
             _n_cands_cb = 0
             _index_gpu = None
 
@@ -725,10 +728,13 @@ def _apriori_row_split_multi_gpu(
                     _n_cands_cb = groups_info.total_candidates
                     _index_gpu = _subset_index(k)
                     _sparse_groups_gpu = upload_groups_to_shards(groups_info, sparse_state.shards)
-                    _surv, current_counts_raw = run_sparse_level(
+                    _surv, current_counts_raw, *_peers = run_sparse_level(
                         sparse_state.shards, groups_info, _sparse_groups_gpu, min_count_threshold,
                         nccl_comms=nccl_comms, use_nccl=_use_nccl, level_label=f"K={k}", index_gpu=_index_gpu,
+                        peer_counts=_env.esco_materialize() == "reuse",
                     )
+                    if _peers and _peers[0] is not None:
+                        _peer_counts = (_surv, _peers[0])  # keyed by the level's ascending survivors
                     n_freq = len(_surv)
                     if n_freq:
                         current_flat = decode_k3plus_flat(_surv, groups_info, k)
@@ -987,8 +993,13 @@ def _apriori_row_split_multi_gpu(
                 # Keep tidsets in the same row order as the generation base,
                 # including every sort and free-set mask above.
                 if k < effective_max_length and n_freq > k and _surv is not None:
+                    _kept_peers = None
+                    if _peer_counts is not None:
+                        _level_surv, _by_peer = _peer_counts
+                        _kept_peers = _by_peer[:, np.searchsorted(_level_surv, _surv)]
                     sparse_state.replace(materialize_survivors(
-                        sparse_state.shards, _sparse_groups_gpu, _surv, current_counts_raw, level_label=f"K={k}"
+                        sparse_state.shards, _sparse_groups_gpu, _surv, current_counts_raw, level_label=f"K={k}",
+                        peer_counts=_kept_peers,
                     ))
                     log_new_shards(sparse_state.shards, n_freq)
                 free_groups(_sparse_groups_gpu)

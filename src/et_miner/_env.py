@@ -71,6 +71,14 @@ Variables:
                                        without an index, ESCO levels and
                                        one GPU reduce dense whatever the
                                        pin. Unset: dense
+    ET_MINER_ESCO_MATERIALIZE          "recount" or "reuse": how an ESCO
+                                       level sizes its survivors' new
+                                       tidsets. "recount" intersects them
+                                       once more to count; "reuse" takes
+                                       the count pass's per-shard counts
+                                       (recounting only survivors with no
+                                       counted rows outside GPU 0). Unset:
+                                       recount
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -205,6 +213,18 @@ def reduce_mode() -> str | None:
         return None
     if v not in REDUCE_MODES:
         raise ValueError(f"ET_MINER_REDUCE must be one of {REDUCE_MODES}, got {v!r}")
+    return v
+
+
+ESCO_MATERIALIZE_MODES = ("recount", "reuse")
+
+
+def esco_materialize() -> str | None:
+    v = os.environ.get("ET_MINER_ESCO_MATERIALIZE", "").strip().lower()
+    if not v:
+        return None
+    if v not in ESCO_MATERIALIZE_MODES:
+        raise ValueError(f"ET_MINER_ESCO_MATERIALIZE must be one of {ESCO_MATERIALIZE_MODES}, got {v!r}")
     return v
 
 

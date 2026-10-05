@@ -31,8 +31,8 @@ static __device__ long long _lower_bound(const int* __restrict__ S, long long lo
 }
 
 // |A ∩ B| for strictly increasing A and B. When `out` is non-null the sorted
-// intersection is also written to out[0..count). All 32 lanes of the warp
-// must call this with identical arguments.
+// intersection is also written to out[0..min(count, cap)). All 32 lanes of the
+// warp must call this with identical arguments.
 //
 // The smaller set is probed 32 elements per chunk (coalesced loads); every
 // lane binary-searches its element in the larger set inside a window bounded
@@ -43,7 +43,7 @@ static __device__ long long _lower_bound(const int* __restrict__ S, long long lo
 // passes are deterministic and agree exactly.
 static __device__ long long _warp_intersect(const int* __restrict__ A, long long nA,
                                             const int* __restrict__ B, long long nB,
-                                            int* out, int lane) {
+                                            int* out, long long cap, int lane) {
     const int* P = A;
     long long nP = nA;
     const int* S = B;
@@ -66,7 +66,8 @@ static __device__ long long _warp_intersect(const int* __restrict__ A, long long
         const int found = valid && (pos < hi) && (S[pos] == key);
         const unsigned int ballot = __ballot_sync(0xFFFFFFFFu, found);
         if (out != 0 && found) {
-            out[count + __popc(ballot & ((1u << lane) - 1u))] = key;
+            const long long slot = count + __popc(ballot & ((1u << lane) - 1u));
+            if (slot < cap) out[slot] = key;
         }
         count += __popc(ballot);
         cur = ub;                                                  // next chunk's keys are > kmax
@@ -94,11 +95,13 @@ static __device__ long long _linear_warp(void) {
 }
 
 static __device__ long long _intersect_rows(const int* __restrict__ tids, const long long* __restrict__ offsets,
-                                            long long ra, long long rb, int* out, int lane) {
+                                            long long ra, long long rb, int* out, long long cap, int lane) {
     const long long a0 = offsets[ra];
     const long long b0 = offsets[rb];
-    return _warp_intersect(tids + a0, offsets[ra + 1] - a0, tids + b0, offsets[rb + 1] - b0, out, lane);
+    return _warp_intersect(tids + a0, offsets[ra + 1] - a0, tids + b0, offsets[rb + 1] - b0, out, cap, lane);
 }
+
+#define NO_CAP 0x7FFFFFFFFFFFFFFFLL
 
 // Partial counts for candidates [chunk_start, chunk_start + chunk_size) on this shard.
 // With an index of the previous level (index_mode != 0, _subset_index.cu) lane 0
@@ -144,7 +147,7 @@ void csr_count_range(const int* __restrict__ tids,
                 return;
             }
         }
-        c = _intersect_rows(tids, offsets, suffix_src_rows[s0 + i], suffix_src_rows[s0 + j], (int*)0, lane);
+        c = _intersect_rows(tids, offsets, suffix_src_rows[s0 + i], suffix_src_rows[s0 + j], (int*)0, 0, lane);
     }
     if (lane == 0) out_counts[w] = (int)c;
 }
@@ -166,7 +169,7 @@ void csr_count_gather(const int* __restrict__ tids,
     const int lane = threadIdx.x & 31;
     long long ra, rb, c = 0;
     if (_decode_rows(cumulative_pairs, suffix_offsets, suffix_src_rows, n_groups, cand_ids[w], &ra, &rb)) {
-        c = _intersect_rows(tids, offsets, ra, rb, (int*)0, lane);
+        c = _intersect_rows(tids, offsets, ra, rb, (int*)0, 0, lane);
     }
     if (lane == 0) out_counts[w] = (int)c;
 }
@@ -191,6 +194,34 @@ void csr_write_gather(const int* __restrict__ tids,
     const int lane = threadIdx.x & 31;
     long long ra, rb;
     if (_decode_rows(cumulative_pairs, suffix_offsets, suffix_src_rows, n_groups, cand_ids[w], &ra, &rb)) {
-        _intersect_rows(tids, offsets, ra, rb, out_indices + out_offsets[w], lane);
+        _intersect_rows(tids, offsets, ra, rb, out_indices + out_offsets[w], NO_CAP, lane);
     }
+}
+
+// csr_write_gather for slots sized from counts this shard did not produce:
+// survivor w writes at most out_offsets[w+1] - out_offsets[w] tids and reports
+// its intersection's length in out_lengths[w], so a slot that does not match
+// the shard is detected instead of overrun.
+extern "C" __global__
+void csr_write_gather_checked(const int* __restrict__ tids,
+                              const long long* __restrict__ offsets,
+                              const long long* __restrict__ cumulative_pairs,
+                              const long long* __restrict__ suffix_offsets,
+                              const long long* __restrict__ suffix_src_rows,
+                              const long long n_groups,
+                              const long long* __restrict__ cand_ids,
+                              const long long n,
+                              const long long* __restrict__ out_offsets,
+                              int* __restrict__ out_indices,
+                              int* __restrict__ out_lengths)
+{
+    const long long w = _linear_warp();
+    if (w >= n) return;
+    const int lane = threadIdx.x & 31;
+    long long ra, rb, c = 0;
+    if (_decode_rows(cumulative_pairs, suffix_offsets, suffix_src_rows, n_groups, cand_ids[w], &ra, &rb)) {
+        c = _intersect_rows(tids, offsets, ra, rb, out_indices + out_offsets[w], out_offsets[w + 1] - out_offsets[w],
+                            lane);
+    }
+    if (lane == 0) out_lengths[w] = (int)c;
 }

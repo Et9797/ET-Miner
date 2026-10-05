@@ -9,7 +9,13 @@ and run by `bench/runner.py --mode optimizations`; the K=2 crossover sweep is
 
 The row-split miner (route C, transactions input) at its default dispatch and
 `prune_apriori=True`. Three decisions, each an A/B against one shared `base`
-arm. Every arm pins all three knobs, so `base` is the tree as merged (0b2f068):
+arm. Every arm pins all three knobs, so `base` is the tree as merged (0b2f068)
+with one exception (amended 2026-10-05, before the first timed run, on the
+owner's decision): O2 needs every GPU to write the same entries, so the K≥3
+kernels (tiled, per-candidate, sparse CSR) write an inferred candidate on every
+GPU, its inferred count on the GPU that writes them and 0 on the others, where
+the merged tree left it unwritten on the others. The results are identical; the
+cost is one int32 write per inferred candidate per further GPU.
 
 | arm | `ET_MINER_K2_KERNEL` | `ET_MINER_REDUCE` | `ET_MINER_ESCO_MATERIALIZE` |
 |---|---|---|---|
@@ -137,11 +143,20 @@ or times out cannot win.
 ## Decisions
 
 - **DP-O1: the K=2 kernel.** `rows` against `base`, in every regime.
-  - `rows` wins a regime and loses none: `rows` counts K=2 wherever the miner
-    has the transactions; `dense` stays for `bitvecs=` input and as the pin.
-  - Both win regimes: rule 4 with `r` and the sweep's `r*` (`rows` below `r*`).
-    The rule must pick the winner in every regime that has one; a regime it
-    misclassifies is a (must-fix) finding and the decision waits for it.
+  (Amended 2026-10-05, before the first timed run, on the owner's decision.)
+  - The sweep places `r*` inside its grid and `rows` wins a regime: the
+    dispatch is implemented (rule 4 with `r` and `r*`, `rows` below `r*`) even
+    when `rows` loses no regime. Reason: rule 2's 10 % bar can hide a loss of
+    seconds on a long workload (dsl, r = 1.39: `rows` about 1.7 s slower at
+    K=2 in an unwarmed run), and a tie must not make the slower kernel the
+    default there. The campaign checks the dispatch: the arm it picks must not
+    lose a regime (rule 2) to the other; a regime it misclassifies is a
+    (must-fix) finding and the decision waits for it.
+  - No crossover inside the grid, `rows` wins a regime and loses none: `rows`
+    counts K=2 wherever the miner has the transactions; `dense` stays for
+    `bitvecs=` input and as the pin.
+  - No crossover inside the grid and both win regimes: the sweep contradicts
+    the campaign; a (must-fix) finding, and the decision waits for it.
   - `base` wins and `rows` wins none, or ties everywhere: the row-wise kernel
     is removed.
 - **DP-O2: the multi-GPU reduce.** `compact` against `base`, in the two-GPU

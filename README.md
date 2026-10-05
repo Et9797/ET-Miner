@@ -1,353 +1,119 @@
 # ET-Miner
 
-**Efficient Transaction Miner** — High-performance frequent itemset mining with a Python/Polars frontend, Rust backend, and multi-GPU CUDA acceleration. Designed for billion-scale datasets with bounded memory via streaming.
+**Efficient Transaction Miner** — exact frequent itemset mining (Apriori) and
+association rules with a Polars frontend, an optional Rust backend and a CUDA
+miner for one or more GPUs. Every route returns the same itemsets and counts;
+`tests/test_tier_equivalence.py` checks each of them against efficient-apriori.
 
+| Route | Stack | Selected by |
+|-------|-------|-------------|
+| CPU | Polars; sparse CSR counting in the optional Rust extension | default |
+| GPU | CuPy kernels on transaction shards, one per GPU, counts summed with NCCL | `use_gpu=True`, `n_gpus=` |
+| Streaming | SON two-pass chunked mining, memory bounded by the chunk size | `streaming=True`, `chunk_size=` |
 
-## Overview
-
-ET-Miner implements the Apriori algorithm across three performance tiers, all behind a unified API:
-
-| Tier | Stack | Description |
-|------|-------|-------------|
-| **Tier 1** | Python + Polars | Vectorized boolean matrix operations. Zero dependencies beyond Polars. |
-| **Tier 2** | Rust via PyO3 | SIMD-vectorized CSR support counting (AVX2/AVX-512). 80--110x speedup. |
-| **Tier 3** | CUDA, one or more GPUs | CSR-to-bitvector encoding and a row-split miner: shards of transactions per GPU, tiled and per-candidate counting kernels, counts summed across GPUs. |
-
-The streaming engine (SON algorithm) enables bounded-memory processing of arbitrarily large datasets — limited by storage, not RAM.
-
-## Package layout
-
-```
-src/et_miner/
-├── core/        Apriori loop, candidate generation, matrix/sparse counting, rules
-├── gpu/         CUDA kernels (sources in gpu/kernels/_src/*.cu), the row-split
-│                miner (one or more GPUs), chunk planning, NCCL reduce
-├── streaming/   SON streaming (son), multi-GPU streaming, ramdisk
-├── io/          parquet flush-to-disk, Google Cloud Storage upload
-├── backends.py  single source of truth for CuPy/Rust capability detection
-└── _env.py      every ET_* environment knob, documented in one place
-```
+On the GPU, K≥3 candidates are enumerated inside the kernels from prefix
+groups. A candidate with an infrequent (k−1)-subset is skipped on the device
+(`prune_apriori`, on by default), a candidate whose count follows from a
+non-free subset can be inferred instead of counted (`use_generator_pruning`),
+and deep levels can switch from bitvectors to sparse tidsets (`sparse_from_k`).
 
 ## Installation
 
-### Tier 1 — pure Python (works everywhere)
-
 ```bash
-uv pip install git+https://github.com/Et9797/et-miner.git
+uv pip install git+https://github.com/Et9797/et-miner.git                    # CPU (Polars)
+uv pip install "et-miner[gpu] @ git+https://github.com/Et9797/et-miner.git"  # + CuPy, NCCL
 ```
 
-This installs the Polars-based implementation only. The Rust extension is
-**not** built by a plain pip/uv install — see Tier 2.
-
-### Tier 2 — Rust backend (local build)
-
-Requires a Rust toolchain (`rustup`) and [maturin](https://maturin.rs)
-(included in the dev dependency group):
+The Rust extension is built locally, from the repository root (a cwd inside
+`rust_ext` makes `uv` build a second virtualenv; in a conda shell prefix the
+build with `env -u CONDA_PREFIX`):
 
 ```bash
-git clone https://github.com/Et9797/et-miner.git
-cd et-miner
-uv venv
-uv sync                                 # installs package + dev group (incl. maturin)
+git clone https://github.com/Et9797/et-miner.git && cd et-miner
+uv sync                                                   # package + dev group
 uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
 
-Build from the repo root, not from inside `rust_ext`. `rust_ext` carries its
-own `pyproject.toml`, so maturin reads that; a cwd inside it would make `uv`
-discover it as a separate project and build a second virtualenv there. In a
-conda-ambient shell prefix the build with `env -u CONDA_PREFIX` — `uv` exports
-`VIRTUAL_ENV` and maturin refuses when both are set (`CONDA_PREFIX=` still
-counts as set).
+It changes no result, only the time: in the consolidation campaign
+(`bench/consolidation/REPORT.md`) the CPU sparse route's K≥3 levels were 4–36×
+slower without it, and the GPU route's host steps 2–27× slower per call.
+Another project depends on it explicitly, pinned to the engine's revision:
+`uv add "et_miner_rust @ git+https://github.com/Et9797/et-miner.git@<rev>#subdirectory=rust_ext"`.
 
-When the extension is installed, ET-Miner automatically uses it for k>2
-support counting. The default build is portable; for a machine-tuned build
-(AVX-512 etc.) opt in with:
-
-```bash
-RUSTFLAGS="-C target-cpu=native" uv run maturin develop --release -m rust_ext/Cargo.toml
-```
-
-"Optional" means the results are identical without it, not that the cost is.
-`build_k3plus_groups_from_flat` builds the prefix groups every GPU level
-counts, and `prune_non_free_flat` runs the free-set prune, so a pipeline that
-mines there pays for its absence on every level. Measured on an 11.3M x 8
-level with ~1.88M prefix groups: 6.1 s without the group build, 0.3 s with it.
-
-To depend on it from another project rather than building it by hand, install
-it from this repository's `rust_ext` subdirectory, pinned to the same revision
-as the engine:
-
-```bash
-uv add "et_miner_rust @ git+https://github.com/Et9797/et-miner.git@<rev>#subdirectory=rust_ext"
-```
-
-A consumer has to declare this itself: `uv` honours `[tool.uv.sources]` only
-in the root project, never in a dependency's own metadata, so ET-Miner cannot
-pull the extension in on a consumer's behalf.
-
-### Tier 3 — GPU
-
-```bash
-uv pip install "et-miner[gpu] @ git+https://github.com/Et9797/et-miner.git"
-```
-
-| Extra | Packages | Purpose |
-|-------|----------|---------|
-| `gpu` | cupy-cuda12x, nvidia-nccl-cu12 | CUDA acceleration + multi-GPU all-reduce |
-| `gcs` | google-cloud-storage | Uploading flushed results to GCS |
-
-The dev tooling (pytest, ruff, maturin, efficient-apriori, matplotlib,
-psutil, tqdm, sparse-dot-mkl, mkl) lives in the PEP 735 `dev` dependency
-group: `uv sync` installs it by default; with pip use `pip install --group dev .`.
-
-## Quick Start
+## Quick start
 
 ```python
 import polars as pl
 from et_miner import apriori, generate_rules
 
-# Transaction data
-transactions = pl.DataFrame({
-    "items": [
-        [1, 2, 3],
-        [2, 3, 4],
-        [1, 3, 5],
-        [2, 3],
-    ]
-})
-
-# Find frequent itemsets (minimum 50% support)
+transactions = pl.DataFrame({"items": [[1, 2, 3], [2, 3, 4], [1, 3, 5], [2, 3]]})
 itemsets = apriori(transactions, min_support=0.5)
-print(itemsets)
-# shape: (5, 2)
-# ┌───────────┬─────────┐
-# │ itemset   ┆ support │
-# │ list[i64] ┆ f64     │
-# ╞═══════════╪═════════╡
-# │ [3]       ┆ 1.0     │
-# │ [2]       ┆ 0.75    │
-# │ [1]       ┆ 0.5     │
-# │ [2, 3]    ┆ 0.75    │
-# │ [1, 3]    ┆ 0.5     │
-# └───────────┴─────────┘
+# itemset  support
+# [1]      0.5
+# [2]      0.75
+# [3]      1.0
+# [1, 3]   0.5
+# [2, 3]   0.75
 
-# Generate association rules (minimum 70% confidence)
-rules = generate_rules(itemsets, min_confidence=0.7)
-for rule in rules:
+for rule in generate_rules(itemsets, min_confidence=0.7):
     print(f"{rule.lhs} -> {rule.rhs}: conf={rule.confidence:.2f}, lift={rule.lift:.2f}")
+# [1] -> [3]: conf=1.00, lift=1.00
+# [2] -> [3]: conf=1.00, lift=1.00
+# [3] -> [2]: conf=0.75, lift=1.00
 ```
 
-### Scaling Up
+`apriori()` returns `itemset` (`List[Int64]`, items ascending) and `support`
+(`Float64`). The main options (all documented in its docstring):
 
-All tiers share the same API -- just add flags:
+| Option | Effect |
+|--------|--------|
+| `min_support`, `max_length` | threshold (count ≥ ⌈support·N⌉) and depth |
+| `use_gpu`, `n_gpus`, `bitvecs=` | GPU route; prebuilt bitvectors skip the CSR build |
+| `streaming`, `chunk_size` | SON on chunks, on the CPU or the GPU |
+| `prune_equal_support` | return the free-sets (generators) instead of the complete lattice |
+| `prune_apriori`, `use_generator_pruning` | device-side subset test (default on), count inference |
+| `sparse_from_k` | GPU dense→sparse transition (`"auto"` or a level) |
+| `output_dir`, `resume_from_k` | flush each level to parquet, resume from a flushed level |
 
-```python
-from et_miner import apriori, apriori_streaming_multi_gpu
-
-# Tier 1: Pure Python + Polars
-result = apriori(df, min_support=0.01)
-
-# Tier 2: Rust backend (automatic if installed)
-result = apriori(df, min_support=0.01)
-
-# Tier 3: Single GPU
-result = apriori(df, min_support=0.01, use_gpu=True)
-
-# Tier 3: Multi-GPU streaming
-result = apriori_streaming_multi_gpu(df, min_support=0.001, n_gpus=8, chunk_size=100_000_000)
-
-# Streaming mode for datasets larger than memory
-result = apriori(
-    pl.scan_parquet("huge_dataset/*.parquet"),
-    min_support=0.001,
-    streaming=True,
-    chunk_size=10_000_000,
-    show_progress=True,
-)
-```
-
-Capability probes tell you what the current environment actually supports:
-
-```python
-import et_miner
-et_miner.HAS_RUST        # Rust extension importable
-et_miner.HAS_GPU         # CuPy installed
-et_miner.has_cupy()      # CuPy installed AND a CUDA device is usable
-et_miner.get_gpu_count() # visible CUDA devices
-```
-
-Or from the shell: `et-miner info`.
+`et_miner.HAS_RUST`, `et_miner.HAS_GPU`, `et_miner.has_cupy()` and
+`et_miner.get_gpu_count()` report what the environment supports; so does
+`et-miner info`.
 
 ## CLI
 
 ```bash
 et-miner mine -i transactions.parquet -o rules.json --min-support 0.01 --min-confidence 0.6
-et-miner info          # version, dependency, and backend status
-python -m et_miner …   # same entry point
+et-miner info
 ```
 
-## Configuration
+Configuration comes from `et-miner.toml`, `~/.config/et-miner/config.toml` and
+`ET_MINER_*` variables; every `ET_*` knob is documented in `src/et_miner/_env.py`.
 
-File- and environment-based configuration via `et-miner.toml` /
-`~/.config/et-miner/config.toml` and `ET_MINER_*` variables
-(`from et_miner import Config, load_config`). Operational knobs for the
-flush/upload pipeline are environment variables, documented in
-`src/et_miner/_env.py` — the important ones:
+## Measurements
 
-| Variable | Meaning (default) |
-|----------|-------------------|
-| `ET_MINER_FLUSH_PARALLEL_THRESHOLD` | rows above which parquet flush partitions in parallel (1e8) |
-| `ET_FLUSH_COMPRESSION` / `ET_FLUSH_CHUNK_SIZE` / `ET_FLUSH_THREADS` | parquet flush tuning (zstd / 5e7 / 4) |
-| `ET_PARQUET_TMPDIR` | staging dir for flushes (system temp dir) |
-| `ET_UPLOAD_GCS` | "1" enables GCS upload of flushed results |
-| `ET_MINER_GCS_BUCKET` | destination bucket (gs://et-miner-results) |
-| `ET_MINER_GCS_CREDENTIALS` | path to a service-account/ADC JSON |
-| `ET_MINER_LOG_DIR` | file-log directory (~/.cache/et-miner/logs) |
+Each campaign in `bench/results/` carries its protocol, raw rows and
+environment (`bench/README.md`). From the pruning campaign
+(`bench/pruning/REPORT.md`, 2× RTX A4000, median of 3 runs, stress_k2 without
+the subset test one run):
 
-## Features
-
-**Algorithm**
-- Apriori with anti-monotone pruning and batched candidate generation
-- Association rule generation with confidence, lift, and support metrics
-- Arrow-native `List[Int64]` storage throughout (~20 bytes/itemset vs ~300 bytes for Python frozensets)
-
-**Streaming Engine**
-- SON (Savasere-Omiecinski-Navathe) algorithm for two-pass chunked mining
-- Memory bounded by O(chunk_size x n_items), not O(total_transactions x n_items)
-- Processes arbitrarily large datasets with constant memory
-
-**Rust Backend**
-- Zero-copy CSR matrix operations via PyO3
-- SIMD vectorization (AVX2/AVX-512) for boolean intersection and popcount
-- 80--110x speedup over pure Python path
-
-**GPU Acceleration**
-- CUDA kernel sources maintained as real `.cu` files (`src/et_miner/gpu/kernels/_src/`), compiled on first use via CuPy
-- Direct CSR-to-GPU bitvector conversion (bypasses dense matrix construction)
-- One in-core GPU miner for one or many GPUs: each GPU counts its shard of the transactions, the counts are summed (NCCL, or a staged copy without it), and only the survivors leave the GPU
-- Candidates are enumerated inside the kernels from prefix groups built on the host; a tiled kernel shares each prefix across 32×32 suffix pairs, a per-candidate kernel serves small groups, and on one GPU a level too large for one dense count array is counted fused (count + threshold in one launch)
-- Multi-GPU by row split, from transactions or from prebuilt `bitvecs=` (tested up to 8x H200)
-
-## AlphaFold Application
-
-Applied to the AlphaFold Protein Structure Database, ET-Miner discovered **26.8 million co-occurrence patterns** across **~76M predicted protein structures**, reaching feature combinations of size K=22 in 7.3 minutes on a single H100 GPU.
-
-**Problem.** The AlphaFold Database contains predicted protein structures for over 200 million proteins. Which combinations of structural and functional features — Pfam domains, Gene Ontology terms, confidence scores — co-occur across the protein universe? A standard dense boolean matrix for this dataset requires 206 GB, exceeding even high-end GPU memory.
-
-**Solution.** ET-Miner constructs a CSR representation directly from transactions (~5 GB), converts to GPU-resident bitvectors (~26 GB), and performs all Apriori iterations on the GPU; only each level's frequent itemsets cross PCIe.
-
-### Results
-
-| Metric | Value |
-|--------|-------|
-| Proteins processed | 214M total, 76.9M with multiple annotations |
-| Feature vocabulary | 1,002 items (Pfam domains, GO terms, pLDDT bins) |
-| Itemsets discovered | 26.8 million |
-| Maximum K | 22 (mathematically proven ceiling) |
-| Mining time (deepest tier) | 7.3 minutes on single H100 |
-| Support range | 0.1% down to 0.00001% |
-
-## Benchmarks
-
-> Historical measurements from the author's machines (environments noted per
-> table); the harnesses used are not part of this repository, so treat the
-> numbers as indicative rather than reproducible.
-
-### Billion-Scale Streaming
-
-| Metric | Value |
-|--------|-------|
-| Transactions | 1,000,000,000 |
-| Time | 25.9 minutes |
-| Throughput | 643,139 tx/sec |
-| Peak memory | 14.76 GB |
-| Itemsets found | 326 |
-| Hardware | Intel Core Ultra 9 275HX (24 cores), 134 GB RAM |
-
-### vs. efficient-apriori (819K transactions)
-
-> System: AMD Ryzen 5 4600G (12 cores), 30 GB RAM, CPython 3.14 free-threading build, Polars 1.37, MKL sparse enabled
-
-| Support | Itemsets | efficient-apriori | et-miner | Speedup |
-|---------|----------|-------------------|----------|---------|
-| 0.005 | 9 | 1.21s / 641 MB | 0.24s / 329 MB | 5.0x |
-| 0.001 | 326 | 3.5s / 644 MB | 2.15s / 475 MB | 1.6x |
-| 0.0005 | 1,151 | 16.0s / 691 MB | 6.2s / 1113 MB | 2.6x |
-| 0.0001 | 11,159 | 214.2s / 2693 MB | 179.9s / 9186 MB | 1.2x |
-
-### vs. efficient-apriori (2.5M transactions)
-
-| Support | Itemsets | efficient-apriori | et-miner | Speedup |
-|---------|----------|-------------------|----------|---------|
-| 0.005 | 9 | 3.9s / 1663 MB | 0.37s / 539 MB | 10.5x |
-| 0.001 | 336 | 12.0s / 1671 MB | 3.5s / 1476 MB | 3.4x |
-| 0.0005 | 1,153 | 53.7s / 1704 MB | 12.1s / 2369 MB | 4.4x |
-| 0.0001 | 10,894 | 589.4s / 3758 MB | 262.7s / 12163 MB | 2.2x |
-
-ET-Miner is faster across all dataset sizes, with the advantage growing at scale (2-10x).
-
-## API Reference
-
-### `apriori()`
-
-```python
-def apriori(
-    transactions: pl.DataFrame | pl.LazyFrame,
-    min_support: float = 0.5,
-    max_length: int | None = None,
-    item_col: str = "items",
-    use_gpu: bool = False,
-    batch_size: int = 10_000,
-    sparse: bool | None = None,
-    n_jobs: int = 1,
-    streaming: bool = False,
-    chunk_size: int = 10_000_000,
-    memory_budget_gb: float | None = None,
-    show_progress: bool = False,
-) -> pl.DataFrame
-```
-
-Returns a DataFrame with columns `itemset` (`List[Int64]`) and `support` (`Float64`).
-
-### `generate_rules()`
-
-```python
-def generate_rules(
-    frequent_itemsets: pl.DataFrame,
-    min_confidence: float = 0.5,
-) -> list[Rule]
-```
-
-Returns a list of `Rule` objects with `lhs`, `rhs`, `support`, `confidence`, and `lift`.
+| Workload | Without subset test | With subset test | With count inference |
+|----------|---------------------|------------------|----------------------|
+| oom_regression to K=3 (500K rows), 1 GPU | 25.8 s | 7.2 s | 7.2 s |
+| stress_k2 to K=3 (2M rows), 1 GPU | 496.3 s | 52.8 s | — |
+| deep_sparse_large (20M rows, K=16), 1 GPU | 24.4 s | 25.0 s | 20.2 s |
 
 ## Development
 
 ```bash
-git clone https://github.com/Et9797/et-miner.git
-cd et-miner
-uv venv
-uv sync                                    # package + dev group
-uv run maturin develop --release -m rust_ext/Cargo.toml   # optional: Tier 2
-
-# Tests (Python >= 3.10; CI-tested on 3.10-3.12)
-pytest tests/
+uv sync
+uv run pytest -q -m "not slow"     # gpu-marked tests skip without a CUDA device
+uv run ruff check src tests bench
+python datasets/prepare_online_retail.py              # Online Retail II for the smoke tests
+uv run python -m et_miner.synthetic --preset all --out datasets/synth
 ```
 
-GPU-dependent tests carry the `gpu` marker and skip automatically when no
-CUDA device is present; long-running cases carry `slow`
-(deselect with `-m "not slow"`).
-
-### Test dataset
-
-The correctness smoke tests use the UCI Online Retail II dataset, which is
-generated locally (parquet files are gitignored):
-
-```bash
-python datasets/prepare_online_retail.py
-```
-
-This downloads the source zip from the UCI archive on first run and writes
-`datasets/online_retail_ii/transactions.parquet`.
+Python ≥ 3.10. Contributor rules (the correctness oracle, kernel constraints)
+are in `CLAUDE.md`; the GPU benchmark campaign in `bench/README.md`.
 
 ## License
 

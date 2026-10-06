@@ -1,0 +1,2 @@
+== ../2026-10-05-candidate-waste/oom2ml3/oom2ml3-C1-split.lattice N=500,000 F3=97,198 K=3 tidsets=0.01 GB; K=4 generated 48,003,920, after subset test 170,021; dense bytes 1.06e+10, sparse merge bytes 3.08e+08
+== ../2026-10-05-candidate-waste/sk2ml3-C1-split.lattice N=2,000,000 F3=1,310,438 K=3 tidsets=0.38 GB; K=4 generated 3,135,256,758, after subset test 4,677,419; dense bytes 1.17e+12, sparse merge bytes 4.40e+10

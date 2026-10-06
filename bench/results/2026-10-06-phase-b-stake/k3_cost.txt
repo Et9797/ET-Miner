@@ -1,0 +1,4 @@
+== ../2026-10-05-candidate-waste/oom2ml3/oom2ml3-C1-split.lattice N=500,000 words=7,813 F2=422,486 mean K=2 count=39 (N/32=15,625) conversion=0.07 GB (fit bound 0.13 GB)
+   K=3 after subset test 15,817,779 (F3=97,198); dense bytes 9.89e+11, sparse merge bytes 3.74e+10, ratio 3.8e-02
+== ../2026-10-05-candidate-waste/sk2ml3-C1-split.lattice N=2,000,000 words=31,250 F2=1,660,332 mean K=2 count=103 (N/32=62,500) conversion=0.68 GB (fit bound 1.37 GB)
+   K=3 after subset test 144,951,409 (F3=1,310,438); dense bytes 3.62e+13, sparse merge bytes 1.13e+12, ratio 3.1e-02

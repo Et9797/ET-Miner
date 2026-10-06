@@ -286,14 +286,18 @@ def test_row_split_matches_the_reference_across_chunks(monkeypatch, prune, subse
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, 2])
-@pytest.mark.parametrize("tiles", ["0", None])
+@pytest.mark.parametrize("tiles", ["0", None, "group"])
 def test_free_sets_on_wide_groups_match_the_efficient_apriori_lattice(monkeypatch, n_gpus, tiles):
     """Prefix groups wider than one 32-suffix tile, with implications: a counted
     tile-pair also counts its pairs that have a subset outside the free level, and
-    those must still not be emitted. `tiles="0"` pins every group on the tiled kernel."""
+    those must still not be emitted. `tiles="0"` pins every group on the tiled kernel,
+    `"group"` every group of at most 64 suffixes on the group kernel."""
     if n_gpus > _gpu_count():
         pytest.skip(f"needs {n_gpus} GPUs")
-    if tiles is not None:
+    if tiles == "group":
+        monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "group")
+        monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", str(10**12))
+    elif tiles is not None:
         monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", tiles)
     rng = np.random.default_rng(3)
     weights = 1.0 / np.arange(1, 71) ** 0.9
@@ -327,7 +331,7 @@ def _hidden_witness_fixture():
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, 2])
-@pytest.mark.parametrize("path", ["dispatch", "tiled", "per-candidate", "no index", "no subset test", "esco"])
+@pytest.mark.parametrize("path", ["dispatch", "tiled", "per-candidate", "group", "no index", "no subset test", "esco"])
 def test_free_sets_with_hidden_witnesses(monkeypatch, n_gpus, path):
     """{1, 2, 3, 4} must not be emitted on any path: the tiled kernels count it
     whenever its tile-pair holds a pair to count ({1, 2, 3, 5}), a level whose
@@ -347,6 +351,10 @@ def test_free_sets_with_hidden_witnesses(monkeypatch, n_gpus, path):
         monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", "0")
     elif path == "per-candidate":
         monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", str(10**12))
+        monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "percand")
+    elif path == "group":
+        monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", str(10**12))
+        monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "group")
     elif path == "no index":
         monkeypatch.setattr(row_split, "_device_available_bytes", lambda did: (0, 1 << 34))
     elif path == "no subset test":

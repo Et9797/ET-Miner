@@ -121,6 +121,7 @@ def _smoke_launch(cp) -> None:
         count_csr_range,
         count_csr_gather,
         write_csr_gather,
+        count_group_pairs,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
         count_pairs_k2_rows,
@@ -180,6 +181,10 @@ def _smoke_launch(cp) -> None:
                                 device_id=dev, write_inferred=True)
     assert count_k3plus_per_candidate(full, groups, 4, index=partial).tolist() == [256, 0, 256]
     assert count_k3plus_per_candidate(full, groups, 4, index=infer).tolist() == [100, 256, 256]
+    assert count_group_pairs(full, groups, 4).tolist() == [256] * 3
+    assert count_group_pairs(full, groups, 4, index=partial).tolist() == [256, 0, 256]
+    assert count_group_pairs(full, groups, 4, index=infer).tolist() == [100, 256, 256]
+    launched.add("count_group_pairs")
     assert count_shared_tiled_allcounts(full, groups, 4, index=bare).tolist() == [0, 0, 0]
     assert count_tiled_fused(full, groups, 4, 1, index=bare)[0].tolist() == []
     # The sparse parents are {0,1}, {0,2}, {0,3}; all candidate

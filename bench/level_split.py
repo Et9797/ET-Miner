@@ -25,6 +25,7 @@ Phases:
                    positions per shard, and its upload
     count_rows     row-wise K=2 kernel launches (dense chunks)
     count_percand  per-candidate kernel launches (dense chunks)
+    count_group    group kernel launches (dense chunks)
     count_tiled    tiled kernel launches (dense chunks)
     count_fused    count_tiled_fused (one-GPU oversize groups; includes its filter)
     transition     convert_shards_to_csr (the dense-to-ESCO switch: tidsets
@@ -52,7 +53,8 @@ import time
 from collections import defaultdict
 
 PHASES = (
-    "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "count_rows", "count_percand", "count_tiled", "count_fused",
+    "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "count_rows", "count_percand", "count_group", "count_tiled",
+    "count_fused",
     "transition", "count_csr", "compact", "reduce", "filter", "decode", "sort", "free_prune",
 )
 #: Phases that run after the level's callback, credited to the level just closed.
@@ -72,6 +74,14 @@ def _union_length(intervals: list[tuple[float, float]]) -> float:
         total += hi - max(lo, end)
         end = hi
     return total
+
+
+def _kernel_phase(chunk, rows: bool) -> str:
+    if rows:
+        return "count_rows"
+    if chunk.per_candidate:
+        return "count_percand"
+    return "count_group" if chunk.group else "count_tiled"
 
 
 class LevelSplit:
@@ -119,8 +129,7 @@ class LevelSplit:
                 try:
                     return launch_chunk(bitvec_gpu, device_id, chunk)
                 finally:
-                    kernel = "count_rows" if rows else "count_percand" if chunk.per_candidate else "count_tiled"
-                    self._record(phase or kernel, t0)
+                    self._record(phase or _kernel_phase(chunk, rows), t0)
 
             return fn(bitvecs_list, chunks, timed_launch, *args, **kwargs)
 

@@ -1,6 +1,6 @@
 """The counting kernels' (k-1)-subset test, against counts computed with NumPy.
 
-Each K>=3 counting kernel (per-candidate, tiled dense, tiled fused, sparse CSR)
+Each K>=3 counting kernel (per-candidate, group, tiled dense, tiled fused, sparse CSR)
 counts one level of a small dataset in which items imply their parents, with an
 index of the complete previous level. With SUBSET_PRUNE a candidate with an
 infrequent (k-1)-subset is not counted; with SUBSET_INFER a candidate with a
@@ -214,6 +214,36 @@ def test_untouched_marks_the_same_entries_on_every_device(level, kernel, mode_na
         np.testing.assert_array_equal(~written, labels["P"])
     else:
         assert labels["P"][~written].all()
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("mode_name,write_inferred", MODES)
+@pytest.mark.parametrize("untouched", [0, -1])
+def test_group_kernel_writes_the_per_candidate_kernels_entries(level, mode_name, write_inferred, untouched):
+    """On the groups within its cap, the group kernel writes exactly what the per-candidate
+    kernel writes: the same values and, with an ``untouched`` marker, the same entries."""
+    import cupy as cp
+
+    from et_miner.gpu.kernels import (
+        GROUP_MAX_SUFFIXES,
+        SUBSET_INFER,
+        SUBSET_PRUNE,
+        count_group_pairs,
+        count_k3plus_per_candidate,
+        select_k3plus_groups,
+    )
+
+    k, m, prev, prev_counts, prev_free, groups, labels = level
+    mode = SUBSET_PRUNE | (SUBSET_INFER if mode_name == "infer" else 0)
+    capped = select_k3plus_groups(groups, np.diff(groups.suffix_offsets) <= GROUP_MAX_SUFFIXES)
+    assert 0 < capped.total_candidates
+    bv = cp.asarray(_bitvecs(m))
+    index = _index(prev, prev_counts, prev_free, mode, write_inferred)
+    want = count_k3plus_per_candidate(bv, capped, bv.shape[1], index=index, untouched=untouched).get()
+    got = count_group_pairs(bv, capped, bv.shape[1], index=index, untouched=untouched).get()
+    np.testing.assert_array_equal(got, want)
+    if untouched:
+        assert (got == untouched).any(), "no candidate was skipped"
 
 
 @pytest.mark.gpu

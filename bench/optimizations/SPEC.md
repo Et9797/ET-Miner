@@ -39,7 +39,7 @@ what is not measured.
 |---|---|---|
 | A | O1, O2, O3 | measured stakes of seconds to tens of seconds per run |
 | B | O5 (O4 deferred, see O4) | ESCO: a transition rule that wins |
-| C | O6, O7 | smaller, partly measured |
+| C | O6 (O7 dropped, see O7) | smaller, partly measured |
 | research | O8 | no evidence yet; measure offline before building |
 
 ## O1 — K=2 counted from the rows
@@ -198,6 +198,30 @@ serves all pairs of a small group; then re-measure the per-K crossover
 **Acceptance.** Identical signatures; pinned tier legs for the new kernel; the
 crossover table regenerated.
 
+**Amendment (2026-10-06, owner's decision): the group kernel.** Offline stakes
+(`bench/results/2026-10-06-phase-c-stake/`) put O6's stake on deep_sparse_large
+only (K≥3 counting elsewhere ≤ 0.04 s, or a K=3 explosion where smaller tiles
+cut the counted slots by 12–24 %). There, at the current defaults on one GPU,
+the per-candidate kernel takes 5.17 s and the tiled kernel 4.11 s of 20.17 s:
+
+- The tiled kernel's time follows its counted 32×32 tile-pairs (1.97–2.19 ns
+  each per word at K=5–10), and their slots are 3.4 % counted pairs: dsl's
+  groups have ≤ 85 suffixes.
+- The per-candidate kernel reads k rows per counted candidate (1.38–1.50 TB/s,
+  mostly cache hits); dsl's per-candidate groups hold 3.0 counted candidates
+  each, so even an 8×8 tile is 95 % empty there.
+
+A small-tile variant reaches only the tiled groups. A group-per-block kernel
+whose work follows the counted pairs reaches both: one block per prefix group
+of at most 64 suffixes classifies the group's pairs with the subset test,
+keeps a list of the pairs to count, stages the prefix AND and the suffix rows
+one word tile at a time in shared memory, and counts only the listed pairs. It
+is built; the small-tile variant is not. At today's rates the model gives
+−3.2 s on the per-candidate groups and up to −3.4 s on the tiled groups (one
+GPU), optimistic since fewer redundant reads mean fewer cache hits. A sweep
+sets the per-K dispatch (per-candidate, group, tiled), and
+`bench/optimizations/PROTOCOL-C.md` decides.
+
 ## O7 — three small items from the pruning report
 
 - **(a) Free-set host filter.** `_all_subsets_in` runs on every survivor of a
@@ -212,6 +236,20 @@ crossover table regenerated.
 - **(c) K=3 frequent-pair bitmap** (n_items² bits: 153 MB at 35,000 items)
   instead of the binary search; estimate ≈ 1–2 s of stress_k2's 18.9 s K=3
   level.
+
+**Amendment (2026-10-06, owner's decision): dropped.** None of the three can
+win a regime under rule 2 (`bench/results/2026-10-06-phase-c-stake/README.md`):
+
+- (a) 0.22–0.24 s per free-set run (dsl 17.83 s, or002 0.50 s), below 1 s.
+- (b) +0.05 s (or002), +0.14 s (or002 ESCO), +0.18 s (or002 free sets), below
+  1 s.
+- (c) ≤ 1.37 s on stress_k2 to K=3 on one GPU (20.68 s; rule 2 needs 2.07 s),
+  bounded from an exact census of the counted tile-pairs (376,436 of
+  11,571,649) and their cost without the subset test (39.9 µs each). Every GPU
+  classifies every candidate, so two GPUs keep about the same ≤ 1.4 s of
+  16.11 s.
+
+A tie goes to rule 5, which keeps the code without the item.
 
 ## O8 — research: row order and early tile skips
 

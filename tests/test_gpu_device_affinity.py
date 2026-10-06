@@ -59,6 +59,7 @@ def _groups():
 def _entry_points():
     """(name, call(bitvecs) -> host ndarray of counts) for every bitvec wrapper."""
     from et_miner.gpu.kernels import (
+        count_group_pairs,
         count_itemsets_cuda,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
@@ -76,6 +77,7 @@ def _entry_points():
         ("count_pairs_k2_shared", lambda bv: count_pairs_k2_shared(bv, cols, n_u64s).get()),
         ("count_k3plus_per_candidate", lambda bv: count_k3plus_per_candidate(bv, groups, n_u64s).get()),
         ("count_shared_tiled_allcounts", lambda bv: count_shared_tiled_allcounts(bv, groups, n_u64s).get()),
+        ("count_group_pairs", lambda bv: count_group_pairs(bv, groups, n_u64s).get()),
         ("count_tiled_fused", lambda bv: np.concatenate(count_tiled_fused(bv, groups, n_u64s, MIN_COUNT))),
         ("count_itemsets_cuda", lambda bv: count_itemsets_cuda(bv, itemsets)),
     ]
@@ -106,7 +108,7 @@ def test_wrappers_follow_their_inputs_not_the_ambient_device(name):
 @pytest.mark.gpu
 @pytest.mark.multigpu
 @needs_two
-@pytest.mark.parametrize("wrapper", ["count_k3plus_per_candidate", "count_shared_tiled_allcounts"])
+@pytest.mark.parametrize("wrapper", ["count_k3plus_per_candidate", "count_shared_tiled_allcounts", "count_group_pairs"])
 def test_groups_on_another_device_raise_rather_than_being_repaired(wrapper):
     from et_miner.gpu import kernels
 

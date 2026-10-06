@@ -73,6 +73,7 @@ validation are described in [ESCO.md](ESCO.md).
 | `ET_MINER_DISABLE_NCCL` | `1` | force the staged D2D reduce |
 | `ET_MINER_MAX_CHUNK_CANDS` | int | force multi-chunk runs |
 | `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |
+| `ET_MINER_SMALL_GROUP_KERNEL` | `percand`, `group` | pins the kernel for the K≥3 groups below the tiled crossover (unset = the measured three-way dispatch) |
 | `ET_MINER_DISABLE_RUST` | `1` | every Rust role takes its fallback (read once, at import) |
 
 ## Consolidation campaign
@@ -130,6 +131,14 @@ uv run python bench/optimizations/decide.py <campaign raw.jsonl> <final raw.json
 ```
 
 The outcome is `optimizations/REPORT.md`.
+
+Phase C (`optimizations/PROTOCOL-C.md`, the group kernel) runs the same way:
+
+```bash
+uv run python bench/group_crossover.py --max-gpu-hours <budget>   # the K>=3 sweep; prints the table
+uv run python bench/runner.py --mode o6 --max-gpu-hours <what is left>   # on the tree with the table
+uv run python bench/runner.py --mode o6-final                            # on the decided tree
+```
 
 `ET_BENCH_ALPHAFOLD=/path/to/base214m.parquet` (a parquet with an `items`
 list column) makes the dataset name `alphafold` available to consolidation

@@ -23,6 +23,7 @@ def _entry_points():
     """(name, call) for every guarded wrapper, each on a 2-group K=3 level over 8 columns."""
     from et_miner.gpu.kernels import (
         K3PlusGroups,
+        count_group_pairs,
         count_itemsets_cuda,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
@@ -46,6 +47,7 @@ def _entry_points():
         ("count_pairs_k2_shared", lambda bv: count_pairs_k2_shared(bv, cols, 4)),
         ("count_k3plus_per_candidate", lambda bv: count_k3plus_per_candidate(bv, groups, 4)),
         ("count_shared_tiled_allcounts", lambda bv: count_shared_tiled_allcounts(bv, groups, 4)),
+        ("count_group_pairs", lambda bv: count_group_pairs(bv, groups, 4)),
         ("count_tiled_fused", lambda bv: count_tiled_fused(bv, groups, 4, 1)),
         ("count_itemsets_cuda", lambda bv: count_itemsets_cuda(bv, [np.array([0, 1], dtype=np.int32)])),
     ]

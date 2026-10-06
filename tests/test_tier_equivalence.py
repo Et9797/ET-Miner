@@ -6,6 +6,8 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 1 GPU (measured kernel dispatch)
         == row-split 1 GPU, tiled kernel pinned
         == row-split 1 GPU, per-candidate kernel pinned
+        == row-split 1 GPU, group kernel pinned (plain, forced chunks, count inference, no subset
+           test)
         == row-split 1 GPU, forced chunks (the fused tiled kernel)
         == row-split 1 GPU, no subset test
         == row-split 1 GPU, count inference (measured dispatch, tiled, per-candidate,
@@ -15,6 +17,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
+        == row-split 2 GPUs, group kernel pinned (plain, forced chunks, count inference)
         == row-split 2 GPUs, count inference (plain and forced chunks)
         == row-split 2 GPUs, row-wise K=2 (plain and forced chunks)
         == row-split 2 GPUs, compacted reduce (the default) and dense reduce pinned (plain
@@ -24,8 +27,10 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == efficient-apriori (the canonical oracle)
 
 Every surviving counting kernel is pinned by the leg's own environment, not by
-a default: ET_MINER_TILED_MIN_GROUP_PAIRS pins the tiled (0) or the
-per-candidate (a pair count no group reaches) kernel for every prefix group,
+a default: ET_MINER_TILED_MIN_GROUP_PAIRS pins the tiled (0) kernel for every
+prefix group, or with a pair count no group reaches the small-group kernel that
+ET_MINER_SMALL_GROUP_KERNEL names (per-candidate or group; groups of more than
+64 suffixes stay tiled),
 ET_MINER_MAX_CHUNK_CANDS forces chunking (on one GPU the pair space and every
 larger group then go to the fused tiled kernel; on two, to per-candidate
 sub-chunks; a row-wise K=2 counts every chunk from the rows),
@@ -254,6 +259,10 @@ def test_fpgrowth_second_oracle_agrees(smoke_dataset):
 _NO_GROUP = str(10**12)
 #: A chunk budget far below the smoke preset's pair space and largest groups.
 _TINY_CHUNK = "40"
+#: Every prefix group runs per-candidate.
+_PER_CANDIDATE = {"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP, "ET_MINER_SMALL_GROUP_KERNEL": "percand"}
+#: Every prefix group of at most 64 suffixes runs on the group kernel.
+_GROUP = {"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP, "ET_MINER_SMALL_GROUP_KERNEL": "group"}
 
 
 _WRAPPERS = (
@@ -262,6 +271,7 @@ _WRAPPERS = (
     "count_pairs_k2_rows",
     "count_shared_tiled_allcounts",
     "count_k3plus_per_candidate",
+    "count_group_pairs",
     "count_tiled_fused",
     "count_itemsets_cuda",
 )
@@ -316,22 +326,52 @@ def _needs_two_gpus():
 
 @pytest.mark.gpu
 def test_row_split_one_gpu_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU", {})
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU", {}, runs=("count_group_pairs",))
 
 
 @pytest.mark.gpu
 def test_row_split_one_gpu_tiled_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, tiled", {"ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
-             runs=("count_pairs_k2_shared", "count_shared_tiled_allcounts"),
-             never=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate", "count_tiled_fused"))
+    _gpu_leg(
+        smoke_dataset,
+        oracle_set,
+        monkeypatch,
+        "row-split 1 GPU, tiled",
+        {"ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
+        runs=("count_pairs_k2_shared", "count_shared_tiled_allcounts"),
+        never=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate", "count_group_pairs", "count_tiled_fused"),
+    )
 
 
 @pytest.mark.gpu
 def test_row_split_one_gpu_per_candidate_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, per-candidate",
-             {"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP},
-             runs=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"),
-             never=("count_pairs_k2_shared", "count_shared_tiled_allcounts", "count_tiled_fused"))
+    _gpu_leg(
+        smoke_dataset,
+        oracle_set,
+        monkeypatch,
+        "row-split 1 GPU, per-candidate",
+        _PER_CANDIDATE,
+        runs=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"),
+        never=("count_pairs_k2_shared", "count_shared_tiled_allcounts", "count_group_pairs", "count_tiled_fused"),
+    )
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference", "no subset test"])
+def test_row_split_one_gpu_group_kernel_matches_oracle(smoke_dataset, oracle_set, monkeypatch, variant):
+    """The group kernel for every prefix group of at most 64 suffixes; with forced chunks a group
+    beyond one chunk runs per-candidate sub-chunks (and the K=2 pair space fused)."""
+    env, kwargs = dict(_GROUP), {}
+    pins = {"runs": ("count_group_pairs",), "never": ("count_tiled_fused",)}
+    if variant == "forced chunks":
+        env["ET_MINER_MAX_CHUNK_CANDS"] = _TINY_CHUNK
+        pins = {"runs": ("count_group_pairs", "count_k3plus_per_candidate")}
+    elif variant == "count inference":
+        kwargs = {"index_mode": "infer", "use_generator_pruning": True}
+    elif variant == "no subset test":
+        kwargs = {"index_mode": None, "prune_apriori": False}
+    _gpu_leg(
+        smoke_dataset, oracle_set, monkeypatch, f"row-split 1 GPU, group kernel ({variant})", env, **pins, **kwargs
+    )
 
 
 @pytest.mark.gpu
@@ -354,7 +394,7 @@ def test_row_split_one_gpu_count_inference_matches_oracle(smoke_dataset, oracle_
     env, runs = {
         "dispatch": ({}, ()),
         "tiled": ({"ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}, ("count_shared_tiled_allcounts",)),
-        "per-candidate": ({"ET_MINER_TILED_MIN_GROUP_PAIRS": _NO_GROUP}, ("count_k3plus_per_candidate",)),
+        "per-candidate": (_PER_CANDIDATE, ("count_k3plus_per_candidate",)),
         "forced chunks": ({"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
                           ("count_tiled_fused",)),
     }[pin]
@@ -470,6 +510,31 @@ def test_row_split_two_gpus_forced_chunks_matches_oracle(smoke_dataset, oracle_s
              {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
              runs=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"), never=("count_tiled_fused",),
              n_gpus=2)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference"])
+def test_row_split_two_gpus_group_kernel_matches_oracle(smoke_dataset, oracle_set, monkeypatch, variant):
+    """Every GPU writes the group kernel's entries for its rows; the compacted reduce sums them."""
+    _needs_two_gpus()
+    env, kwargs = dict(_GROUP), {}
+    if variant == "forced chunks":
+        env["ET_MINER_MAX_CHUNK_CANDS"] = _TINY_CHUNK
+    elif variant == "count inference":
+        kwargs = {"index_mode": "infer", "use_generator_pruning": True}
+    runs = ("count_group_pairs", "count_k3plus_per_candidate") if variant == "forced chunks" else ("count_group_pairs",)
+    _gpu_leg(
+        smoke_dataset,
+        oracle_set,
+        monkeypatch,
+        f"row-split 2 GPUs, group kernel ({variant})",
+        env,
+        runs=runs,
+        never=("count_tiled_fused",),
+        n_gpus=2,
+        **kwargs,
+    )
 
 
 @pytest.mark.gpu

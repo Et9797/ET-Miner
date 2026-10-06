@@ -1,5 +1,5 @@
-"""Phase A and B campaign tooling: the matrices pin what bench/optimizations/PROTOCOL.md and PROTOCOL-B.md fix,
-the K=2 sweep's r* rule, and the level split's CSR phase."""
+"""Phase A, B and C campaign tooling: the matrices pin what bench/optimizations/PROTOCOL.md, PROTOCOL-B.md and
+PROTOCOL-C.md fix, the K=2 sweep's r* rule, the K>=3 sweep's table, and the level split's CSR and group phases."""
 
 import math
 import sys
@@ -13,14 +13,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bench"))
 
 from consolidation_matrix import (
     O5_ESCO_CAP_S,
+    O6_ARMS,
     OPTIMIZATION_ARMS,
     WORKLOADS,
     build_o5_calibration_matrix,
+    build_o6_final,
+    build_o6_matrix,
     build_optimizations_calibration,
     build_optimizations_final,
     build_optimizations_matrix,
     calibration_id,
 )
+from group_crossover import SUFFIXES, table, word_check
 from k2_crossover import N_ROWS, check_points, crossover, generate_rows, grid, r_of
 from level_split import LevelSplit
 from runner import build_matrix
@@ -226,3 +230,145 @@ def test_copy_bandwidth_is_positive_on_a_device():
     from copy_bandwidth import measure
 
     assert measure(0, nbytes=1 << 24, reps=2) > 0
+
+
+def _o6_regime(c):
+    w, rest = c["base_id"].split("-C", 1)
+    label = rest.split("-", 1)[1].rsplit("-", 1)[0] if rest.count("-") > 1 else ""
+    return f"{w}-{label}" if label else w, c["n_gpus"]
+
+
+def _o6_arm(c):
+    return "base" if c["env"].get("ET_MINER_SMALL_GROUP_KERNEL") == "percand" else "group"
+
+
+def test_o6_matrix_has_the_protocol_regimes_and_arms():
+    matrix = build_o6_matrix(2)
+    assert build_matrix("o6", 2) == matrix
+    assert len({c["id"] for c in matrix}) == len(matrix)
+    arms: dict[tuple, set] = {}
+    for c in matrix:
+        arms.setdefault(_o6_regime(c), set()).add(_o6_arm(c))
+    expected = {(w, 1) for w in ("smoke", "deepk", "skew", "or003", "or002", "dsl-free")}
+    expected |= {(w, n) for w in ("dsl", "dsl-infer", "oom2ml3", "sk2ml3") for n in (1, 2)}
+    assert arms == dict.fromkeys(expected, {"base", "group"})
+    assert {c["rep"] for c in matrix} == {0, 1, 2}
+    assert {_o6_regime(c) for c in build_o6_matrix(1)} == {r for r in expected if r[1] == 1}
+
+
+def test_o6_arms_pin_threads_devices_and_only_the_small_group_kernel():
+    for c in build_o6_matrix(2):
+        w = c["base_id"].split("-C", 1)[0]
+        assert (c["dataset"], c["min_support"], c["max_length"]) == WORKLOADS[w]
+        assert c["env"].get("ET_MINER_SMALL_GROUP_KERNEL") == O6_ARMS[_o6_arm(c)].get("ET_MINER_SMALL_GROUP_KERNEL")
+        assert not any(k in c["env"] for k in (*KNOBS, "ET_MINER_TILED_MIN_GROUP_PAIRS")), c["id"]
+        assert all(c["env"][t] == "6" for t in THREADS), c["id"]
+        assert c["env"]["NCCL_P2P_DISABLE"] == "1" and c["level_split"] and c["route"] == "C"
+        assert c["timeout_s"] == 600
+        regime = _o6_regime(c)[0]
+        assert bool(c.get("use_generator_pruning")) == (regime == "dsl-infer"), c["id"]
+        assert bool(c.get("prune_equal_support")) == (regime == "dsl-free"), c["id"]
+        if c["n_gpus"] == 1:
+            assert c["env"]["CUDA_VISIBLE_DEVICES"] == "0" and c["env"]["ET_MINER_DISABLE_NCCL"] == "1"
+        else:
+            assert "CUDA_VISIBLE_DEVICES" not in c["env"] and "ET_MINER_DISABLE_NCCL" not in c["env"]
+
+
+def test_o6_order_is_rep_major_short_then_dsl_then_the_explosions():
+    matrix = build_o6_matrix(2)
+    assert [c["rep"] for c in matrix] == sorted(c["rep"] for c in matrix)
+    rank = {"dsl": 1, "dsl-infer": 2, "dsl-free": 3, "oom2ml3": 4, "sk2ml3": 5}
+    rep0 = [(rank.get(_o6_regime(c)[0], 0), _o6_regime(c)[1]) for c in matrix if c["rep"] == 0]
+    assert [r for r, _ in rep0] == sorted(r for r, _ in rep0)
+    for r in set(rank.values()):
+        gpus = [n for q, n in rep0 if q == r]
+        assert gpus == sorted(gpus)
+
+
+def test_o6_final_runs_every_campaign_regime_once_with_the_knobs_unset():
+    final = build_o6_final(2)
+    assert build_matrix("o6-final", 2) == final
+    regimes = [_o6_regime(c) for c in final]
+    assert len(set(regimes)) == len(regimes) and set(regimes) == {_o6_regime(c) for c in build_o6_matrix(2)}
+    assert all(c["rep"] == 0 and c["level_split"] for c in final)
+    assert not any("ET_MINER_SMALL_GROUP_KERNEL" in c["env"] for c in final)
+
+
+def _sweep_rows(k, words, med):
+    """Sweep rows of one line from {m: {kernel: seconds}}."""
+    return [
+        {"status": "ok", "k": k, "n_u64s": words, "suffixes": m, "pairs": m * (m - 1) // 2, "median_s": t}
+        for m, t in med.items()
+    ]
+
+
+def _line(group_tiled_cross, percand_cross, k=3, words=312_500):
+    """Group faster than tiled below m = group_tiled_cross, per-candidate faster than group below percand_cross."""
+    med = {}
+    for m in SUFFIXES:
+        t = {"group": 1.0, "tiled": 2.0 if m < group_tiled_cross else 0.5}
+        if m <= 24:
+            t["percand"] = 0.5 if m < percand_cross else 3.0
+        med[m] = t
+    return _sweep_rows(k, words, med)
+
+
+def test_the_table_takes_the_geometric_mean_of_the_first_crossing():
+    rows = [r for k in (3, 4, 5, 6, 8) for r in _line(20, 4, k=k)]
+    got = table(rows)
+    # group/tiled flips between m = 16 (120 pairs) and 20 (190); percand/group between 3 (3) and 4 (6)
+    assert got["GROUP_TILED_MIN_PAIRS"][3] == round(math.sqrt(120 * 190))
+    assert got["GROUP_MIN_PAIRS"][3] == round(math.sqrt(3 * 6))
+    assert got["GROUP_TILED_MIN_PAIRS"][7] == round(
+        math.sqrt(got["GROUP_TILED_MIN_PAIRS"][6] * got["GROUP_TILED_MIN_PAIRS"][8])
+    )
+    assert not got["notes"]
+
+
+def test_the_table_handles_a_kernel_that_wins_everywhere():
+    from et_miner.gpu.row_split_chunks import TILED_MIN_GROUP_PAIRS
+
+    always_group = table(_line(10**6, 0))  # the group kernel beats both everywhere
+    assert always_group["GROUP_MIN_PAIRS"][3] == 0
+    assert always_group["GROUP_TILED_MIN_PAIRS"][3] == 64 * 65 // 2  # above the cap: groups > 64 suffixes tiled
+    never_group = table(_line(0, 0))  # the tiled kernel beats the group kernel from m = 2
+    assert never_group["GROUP_MIN_PAIRS"][3] == never_group["GROUP_TILED_MIN_PAIRS"][3] == TILED_MIN_GROUP_PAIRS[3]
+    assert any("never beats" in n for n in never_group["notes"])
+
+
+def test_a_second_crossing_is_a_finding():
+    rows = _line(20, 4)
+    for r in rows:
+        if r["suffixes"] == 48:
+            r["median_s"]["tiled"] = 2.0  # the group kernel wins again
+    assert any(n.startswith("(should) K=3") for n in table(rows)["notes"])
+
+
+def test_the_word_check_flags_a_crossover_that_moves_more_than_one_grid_step():
+    near = _line(20, 4) + _line(24, 4, words=31_250)
+    assert not word_check(near)
+    far = _line(20, 4) + _line(48, 4, words=31_250)
+    assert any("(must-fix) K=3 group/tiled" in f for f in word_check(far))
+
+
+def test_level_split_times_group_chunks_as_count_group(monkeypatch):
+    import et_miner.gpu.row_split as row_split
+    from et_miner.gpu.row_split_chunks import ChunkPlan
+
+    def chunk_loop(bitvecs_list, chunks, launch_chunk, *args, **kwargs):
+        for chunk in chunks:
+            launch_chunk(None, 0, chunk)
+
+    monkeypatch.setattr(row_split, "run_chunked_dense_level", chunk_loop)
+    split = LevelSplit()
+    split.install()
+    try:
+        row_split.run_chunked_dense_level(
+            [],
+            [ChunkPlan(0, 1, group=True), ChunkPlan(1, 1), ChunkPlan(2, 1, per_candidate=True)],
+            lambda bv, did, chunk: time.sleep(0.01),
+        )
+        split.callback()(3, 3, 1, 100.0)
+    finally:
+        split.uninstall()
+    assert all(split.levels[3][p] >= 0.01 for p in ("count_group", "count_tiled", "count_percand"))

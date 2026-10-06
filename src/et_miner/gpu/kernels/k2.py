@@ -1,10 +1,14 @@
-"""K=2 dense pair counting on the per-candidate kernel (the tiled one is in shared_tiled)."""
+"""K=2 pair counting: the per-candidate kernel over bitvecs, and the row-wise kernel over
+each shard's rows (the tiled bitvec kernel is in shared_tiled)."""
 
 from __future__ import annotations
 
+import math
+from typing import NamedTuple
+
 import numpy as np
 
-from .loader import _assert_bitvecs, _grid_dims, get_cuda_kernel
+from .loader import _assert_bitvecs, _assert_dtype, _assert_home, _grid_dims, get_cuda_kernel
 
 
 def count_pairs_k2_per_candidate(bitvecs_gpu, freq_item_cols, n_u64s, chunk_start=0, chunk_size=None):
@@ -61,3 +65,77 @@ def count_pairs_k2_per_candidate(bitvecs_gpu, freq_item_cols, n_u64s, chunk_star
     return result_counts  # stays in VRAM — no .get()
 
 
+
+
+#: Pair range up to which ``count_pairs_k2_rows`` privatizes the counters in
+#: shared memory (``K2_ROWS_SHARED_PAIRS`` in ``_src/pairs_k2_rows.cu``: 44 KB
+#: of int32, under the 48 KB static limit). A larger range uses global atomics.
+K2_ROWS_SHARED_PAIRS = 11264
+
+
+class K2Rows(NamedTuple):
+    """One shard's rows as frequent-column positions, on its device."""
+
+    row_ptr: object  # CuPy int64 (n_rows + 1,)
+    pos: object  # CuPy int32 (nnz,), ascending within each row
+    n_rows: int
+
+
+def upload_k2_rows(row_ptr, pos, device_id: int) -> K2Rows:
+    """Copy one shard's host CSR of frequent-column positions to ``device_id``."""
+    import cupy as cp
+
+    with cp.cuda.Device(device_id):
+        return K2Rows(
+            cp.asarray(np.ascontiguousarray(row_ptr, dtype=np.int64)),
+            cp.asarray(np.ascontiguousarray(pos, dtype=np.int32)),
+            len(row_ptr) - 1,
+        )
+
+
+def pair_j(pair_idx: int) -> int:
+    """The larger position b of pair index ``pair_idx`` (b*(b-1)/2 <= pair_idx < b*(b+1)/2), exactly."""
+    return (1 + math.isqrt(1 + 8 * int(pair_idx))) // 2
+
+
+def count_pairs_k2_rows(rows: K2Rows, chunk_start: int, chunk_size: int):
+    """Row-wise K=2 counting of the pair range [chunk_start, chunk_start + chunk_size).
+
+    Every row of the shard adds 1 to each pair of its positions inside the
+    range; the counts are chunk-relative, in the pair layout of
+    ``count_pairs_k2_per_candidate``, so the per-GPU arrays sum to the global
+    counts the same way. A range of at most ``K2_ROWS_SHARED_PAIRS`` pairs is
+    counted in shared memory per block, a larger one with global atomics.
+
+    Returns:
+        CuPy int32 array of shape (chunk_size,) on the shard's device.
+    """
+    import cupy as cp
+
+    _assert_home("count_pairs_k2_rows", row_ptr=rows.row_ptr, pos=rows.pos)
+    _assert_dtype("count_pairs_k2_rows", row_ptr=(rows.row_ptr, "int64"), pos=(rows.pos, "int32"))
+    with cp.cuda.Device(rows.row_ptr.device.id):
+        out = cp.zeros(chunk_size, dtype=cp.int32)
+        if chunk_size <= 0 or rows.n_rows == 0:
+            return out
+        shared = chunk_size <= K2_ROWS_SHARED_PAIRS
+        kernel = get_cuda_kernel("count_pairs_k2_rows_shared" if shared else "count_pairs_k2_rows")
+        n_sm = cp.cuda.Device().attributes["MultiProcessorCount"]
+        warps_per_block = 256 // 32
+        blocks = max(1, min(-(-rows.n_rows // warps_per_block), n_sm * (2 if shared else 32)))
+        kernel(
+            (blocks,),
+            (256,),
+            (
+                rows.row_ptr,
+                rows.pos,
+                np.int64(rows.n_rows),
+                np.int64(chunk_start),
+                np.int64(chunk_size),
+                np.int64(pair_j(chunk_start)),
+                np.int64(pair_j(chunk_start + chunk_size - 1)),
+                out,
+            ),
+        )
+        cp.cuda.Stream.null.synchronize()
+    return out

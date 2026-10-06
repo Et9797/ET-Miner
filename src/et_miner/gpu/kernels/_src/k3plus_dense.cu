@@ -50,7 +50,9 @@ void count_k3plus_dense(
     }
     __syncthreads();
 
-    // A skipped candidate keeps its zero (the caller zero-fills the output).
+    // A skipped candidate is not written (it keeps the caller's fill); an
+    // inferred one gets the inferred count on the device that writes them and
+    // 0 on the others, so every device writes the same entries.
     if (index_mode != 0) {
         if (threadIdx.x == 0) {
             int inferred = 0;
@@ -60,8 +62,8 @@ void count_k3plus_dense(
         }
         __syncthreads();
         if (s_status != CAND_COUNT) {
-            if (threadIdx.x == 0 && s_status == CAND_INFER && write_inferred) {
-                result_counts[cand_idx - candidate_offset] = s_inferred;
+            if (threadIdx.x == 0 && s_status == CAND_INFER) {
+                result_counts[cand_idx - candidate_offset] = write_inferred ? s_inferred : 0;
             }
             return;
         }

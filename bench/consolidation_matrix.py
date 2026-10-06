@@ -339,3 +339,89 @@ def build_esco_matrix(n_dev: int, *, retail_low: bool = False) -> list[dict]:
         if retail_low and WORKLOADS[w][2] == 2:
             base.append(_cfg("EA", w, "EA"))
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+#: The four arms of phase A (bench/optimizations/PROTOCOL.md); every arm pins all three knobs.
+OPTIMIZATION_ARMS = {
+    "base": {"ET_MINER_K2_KERNEL": "dense", "ET_MINER_REDUCE": "dense", "ET_MINER_ESCO_MATERIALIZE": "recount"},
+    "rows": {"ET_MINER_K2_KERNEL": "rows", "ET_MINER_REDUCE": "dense", "ET_MINER_ESCO_MATERIALIZE": "recount"},
+    "compact": {"ET_MINER_K2_KERNEL": "dense", "ET_MINER_REDUCE": "compact", "ET_MINER_ESCO_MATERIALIZE": "recount"},
+    "reuse": {"ET_MINER_K2_KERNEL": "dense", "ET_MINER_REDUCE": "dense", "ET_MINER_ESCO_MATERIALIZE": "reuse"},
+}
+#: The calibration cap, and the cap of the dsl-esco configs it admits (a calibrated run up to the
+#: cap must not time out in the campaign on noise).
+CALIBRATION_TIMEOUT_S = 600
+DSL_ESCO_TIMEOUT_S = 900
+#: Every other config: the longest (sk2ml3 on one GPU) took about a minute in the pruning campaign.
+OPTIMIZATION_TIMEOUT_S = 600
+
+
+def _opt(name: str, workload: str, a: str, *, n_gpus: int = 1, label: str | None = None,
+         timeout_s: int = OPTIMIZATION_TIMEOUT_S, **kw) -> dict:
+    env = {**OPTIMIZATION_ARMS[a], "NCCL_P2P_DISABLE": "1"}
+    return _cfg(f"C{n_gpus}-{name}{label or a}", workload, "C", n_gpus=n_gpus, env=env, level_split=True,
+                timeout_s=timeout_s, **kw)
+
+
+def calibration_id(n_gpus: int) -> str:
+    return f"dsl-C{n_gpus}-esco-cal#r0"
+
+
+def build_optimizations_calibration(n_dev: int) -> list[dict]:
+    """dsl-esco on `base`, once per GPU count, capped (`--mode optimizations-calibration`)."""
+    out = []
+    for n in [1, 2] if n_dev >= 2 else [1]:
+        c = _opt("esco-", "dsl", "base", n_gpus=n, label="cal", sparse_from_k="auto",
+                 timeout_s=CALIBRATION_TIMEOUT_S)
+        out.append({**c, "id": calibration_id(n), "rep": 0})
+    return out
+
+
+def build_optimizations_matrix(n_dev: int, rows: list[dict]) -> list[dict]:
+    """The phase A campaign (`--mode optimizations`, bench/optimizations/PROTOCOL.md).
+
+    `rows` are the rows already recorded in the campaign directory: dsl-esco
+    joins at a GPU count only if its calibration row there is ok, and the
+    campaign refuses to start (ValueError) while a calibration has not run.
+    Rep-major; within a rep the short configs, then the ESCO configs, then
+    dsl, oom2ml3, sk2ml3.
+    """
+    gpus = [1, 2] if n_dev >= 2 else [1]
+    latest = {r["id"]: r for r in rows}
+    missing = [calibration_id(n) for n in gpus if calibration_id(n) not in latest]
+    if missing:
+        raise ValueError(f"run `--mode optimizations-calibration` first: no row for {', '.join(missing)}")
+    short = [_opt("", w, a) for w in ("smoke", "deepk", "skew", "or003", "or002") for a in ("base", "rows")]
+    esco = [_opt("esco-", w, a, n_gpus=n, sparse_from_k=3, expect_transition=True)
+            for w in ("deepk", "or002") for n in gpus for a in ("base", "reuse")]
+    esco += [_opt("esco-", "dsl", a, n_gpus=n, sparse_from_k="auto", timeout_s=DSL_ESCO_TIMEOUT_S)
+             for n in gpus if latest[calibration_id(n)].get("status") == "ok" for a in ("base", "reuse")]
+    long_ = []
+    for w in ("dsl", "oom2ml3", "sk2ml3"):
+        long_ += [_opt("", w, a) for a in ("base", "rows")]
+        if n_dev >= 2:
+            long_ += [_opt("", w, a, n_gpus=2) for a in ("base", "rows", "compact")]
+        if w == "dsl" and n_dev >= 2:
+            long_ += [_opt("infer-", w, a, n_gpus=2, use_generator_pruning=True) for a in ("base", "compact")]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in short + esco + long_]
+
+
+def build_optimizations_final(n_dev: int) -> list[dict]:
+    """The final check (`--mode optimizations-final`): one rep of every campaign regime with the knobs unset.
+
+    dsl-esco is not one: its calibration ran out of memory on one and on two GPUs.
+    """
+    gpus = [1, 2] if n_dev >= 2 else [1]
+
+    def final(name: str, workload: str, *, n_gpus: int = 1, **kw) -> dict:
+        return _cfg(f"C{n_gpus}-{name}final", workload, "C", n_gpus=n_gpus, env={"NCCL_P2P_DISABLE": "1"},
+                    level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S, **kw)
+
+    out = [final("", w) for w in ("smoke", "deepk", "skew", "or003", "or002")]
+    out += [final("esco-", w, n_gpus=n, sparse_from_k=3, expect_transition=True) for w in ("deepk", "or002")
+            for n in gpus]
+    out += [final("", "dsl", n_gpus=n) for n in gpus]
+    if n_dev >= 2:
+        out.append(final("infer-", "dsl", n_gpus=2, use_generator_pruning=True))
+    out += [final("", w, n_gpus=n) for w in ("oom2ml3", "sk2ml3") for n in gpus]
+    return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]

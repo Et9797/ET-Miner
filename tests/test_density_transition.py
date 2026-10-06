@@ -170,6 +170,11 @@ class TestAprioriParameterWiring:
         auto = apriori(df, min_support=0.5, sparse_from_k=SPARSE_AUTO).sort("support", "itemset")
         assert base.equals(auto)
 
+    def test_the_materialization_knob_is_refused_before_any_mining(self, df, monkeypatch):
+        monkeypatch.setenv("ET_MINER_ESCO_MATERIALIZE", "recount")
+        with pytest.raises(ValueError, match="ET_MINER_ESCO_MATERIALIZE was removed"):
+            apriori(df, min_support=0.5)
+
     @pytest.mark.parametrize("n_gpus", [1, 2])
     def test_streaming_refuses_the_unsupported_transition(self, df, n_gpus):
         with pytest.raises(ValueError, match="sparse_from_k.*SON streaming"):

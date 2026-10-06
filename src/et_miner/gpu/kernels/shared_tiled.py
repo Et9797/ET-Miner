@@ -67,11 +67,12 @@ def _tilepair_range(groups_info, ctp: np.ndarray, chunk_start: int, chunk_end: i
 
 
 def count_shared_tiled_allcounts(
-    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None
+    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None, untouched=0
 ):
     """Dense counting via the tiled kernel — drop-in for
     count_k3plus_per_candidate on group-aligned chunks (int32, chunk-relative,
-    bit-identical candidate layout, the same ``index`` semantics)."""
+    bit-identical candidate layout, the same ``index`` and ``untouched``
+    semantics). A counted tile-pair writes every one of its pairs."""
     import cupy as cp
 
     from .subset_index import kernel_args
@@ -95,7 +96,9 @@ def count_shared_tiled_allcounts(
     with cp.cuda.Device(device_id):
         if "ctp" not in groups_gpu:
             groups_gpu["ctp"] = cp.array(ctp, dtype=cp.int64)
-        result_counts = cp.zeros(chunk_size, dtype=cp.int32)
+        result_counts = (
+            cp.zeros(chunk_size, dtype=cp.int32) if untouched == 0 else cp.full(chunk_size, untouched, dtype=cp.int32)
+        )
         if tp1 > tp0:
             kernel = get_cuda_kernel("count_shared_tiled_dense")
             kernel(

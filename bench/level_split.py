@@ -20,16 +20,28 @@ Phases:
     group_build    build_k3plus_groups_from_flat, select_k3plus_groups
     group_upload   upload_k3plus_groups (host-to-device group arrays)
     budget         compute_chunk_budget (VRAM probe)
+    k2_dispatch    _k2_row_pairs (the K=2 dispatch's r from the host CSR)
+    k2_input       the row-wise K=2 kernel's input: host CSR of frequent
+                   positions per shard, and its upload
+    count_rows     row-wise K=2 kernel launches (dense chunks)
     count_percand  per-candidate kernel launches (dense chunks)
     count_tiled    tiled kernel launches (dense chunks)
     count_fused    count_tiled_fused (one-GPU oversize groups; includes its filter)
+    transition     convert_shards_to_csr (the dense-to-ESCO switch: tidsets
+                   built from the bitvecs)
+    compact        compact_written (the compacted reduce moving each GPU's
+                   written entries to the front of its chunk array)
     reduce         reduce_sum_to_gpu0 (no-op on one GPU)
-    filter         threshold_filter (survivors to the host)
+    filter         threshold_filter, threshold_filter_compacted (survivors
+                   to the host)
     decode         decode_k2_pairs_flat, decode_k3plus_flat
     sort           _rows_sorted and the level-end lexsort
     free_prune     _prune_non_free_mask
     other          the level's time minus every phase above
     level          the level's time as level_callback reports it
+    materialize    materialize_survivors (an ESCO level's survivors' tidsets),
+                   which runs after the level's callback: outside ``level``
+                   and ``other``, added to the level it materializes
 """
 
 from __future__ import annotations
@@ -39,11 +51,14 @@ import time
 from collections import defaultdict
 
 PHASES = (
-    "group_build", "group_upload", "budget", "count_percand", "count_tiled", "count_fused",
-    "reduce", "filter", "decode", "sort", "free_prune",
+    "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "count_rows", "count_percand", "count_tiled", "count_fused",
+    "transition", "compact", "reduce", "filter", "decode", "sort", "free_prune",
 )
+#: Phases that run after the level's callback, credited to the level just closed.
+AFTER_LEVEL = ("materialize",)
 
 _MINER = "_apriori_row_split_multi_gpu"
+_ROWS_LAUNCH = "_k2_rows_on_gpu"
 
 
 def _union_length(intervals: list[tuple[float, float]]) -> float:
@@ -65,6 +80,7 @@ class LevelSplit:
         self.levels: dict[int, dict[str, float]] = {}
         self._pending: dict[str, list[tuple[float, float]]] = defaultdict(list)
         self._saved: list[tuple[object, str, object]] = []
+        self._closed: int | None = None
 
     def _record(self, phase: str, t0: float) -> None:
         self._pending[phase].append((t0, time.perf_counter()))
@@ -79,16 +95,31 @@ class LevelSplit:
 
         return wrapper
 
+    def _timed_after_level(self, phase: str, fn):
+        def wrapper(*args, **kwargs):
+            t0 = time.perf_counter()
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                if self._closed is not None:
+                    level = self.levels[self._closed]
+                    level[phase] = round(level[phase] + time.perf_counter() - t0, 6)
+
+        return wrapper
+
     def _timed_dense_level(self, fn):
         """Times each chunk launch inside run_chunked_dense_level, by kernel."""
 
         def wrapper(bitvecs_list, chunks, launch_chunk, *args, **kwargs):
+            rows = launch_chunk.__name__ == _ROWS_LAUNCH
+
             def timed_launch(bitvec_gpu, device_id, chunk):
                 t0 = time.perf_counter()
                 try:
                     return launch_chunk(bitvec_gpu, device_id, chunk)
                 finally:
-                    self._record("count_percand" if chunk.per_candidate else "count_tiled", t0)
+                    phase = "count_rows" if rows else "count_percand" if chunk.per_candidate else "count_tiled"
+                    self._record(phase, t0)
 
             return fn(bitvecs_list, chunks, timed_launch, *args, **kwargs)
 
@@ -125,8 +156,19 @@ class LevelSplit:
         for name in ("decode_k2_pairs_flat", "decode_k3plus_flat"):
             self._patch(kernels, name, self._timed("decode", getattr(kernels, name)))
         self._patch(filter_mod, "threshold_filter", self._timed("filter", filter_mod.threshold_filter))
+        self._patch(
+            filter_mod, "threshold_filter_compacted", self._timed("filter", filter_mod.threshold_filter_compacted)
+        )
+        self._patch(filter_mod, "compact_written", self._timed("compact", filter_mod.compact_written))
         self._patch(nccl, "reduce_sum_to_gpu0", self._timed("reduce", nccl.reduce_sum_to_gpu0))
         self._patch(row_split, "compute_chunk_budget", self._timed("budget", row_split.compute_chunk_budget))
+        self._patch(row_split, "_k2_row_pairs", self._timed("k2_dispatch", row_split._k2_row_pairs))
+        self._patch(row_split, "_k2_row_shards", self._timed("k2_input", row_split._k2_row_shards))
+        self._patch(row_split, "_upload_k2_rows", self._timed("k2_input", row_split._upload_k2_rows))
+        self._patch(row_split, "convert_shards_to_csr", self._timed("transition", row_split.convert_shards_to_csr))
+        self._patch(
+            row_split, "materialize_survivors", self._timed_after_level("materialize", row_split.materialize_survivors)
+        )
         self._patch(row_split, "run_chunked_dense_level", self._timed_dense_level(row_split.run_chunked_dense_level))
         self._patch(row_split, "_rows_sorted", self._timed("sort", row_split._rows_sorted))
         self._patch(row_split, "_prune_non_free_mask", self._timed("free_prune", row_split._prune_non_free_mask))
@@ -145,7 +187,9 @@ class LevelSplit:
             level_s = ms / 1000.0
             phases["other"] = round(level_s - sum(phases.values()), 6)
             phases["level"] = round(level_s, 6)
+            phases.update(dict.fromkeys(AFTER_LEVEL, 0.0))
             self.levels[int(k)] = phases
+            self._closed = int(k)
             self._pending = defaultdict(list)
             if level_cb is not None:
                 level_cb(k, n_candidates, n_frequent, ms)

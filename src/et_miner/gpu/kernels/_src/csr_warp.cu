@@ -103,7 +103,7 @@ static __device__ long long _intersect_rows(const int* __restrict__ tids, const 
 // Partial counts for candidates [chunk_start, chunk_start + chunk_size) on this shard.
 // With an index of the previous level (index_mode != 0, _subset_index.cu) lane 0
 // classifies the candidate first: a skipped one keeps its zero, an inferred one
-// gets its count from the device that writes inferred counts.
+// gets its count on the device that writes inferred counts and 0 on the others.
 extern "C" __global__
 void csr_count_range(const int* __restrict__ tids,
                      const long long* __restrict__ offsets,
@@ -140,7 +140,7 @@ void csr_count_range(const int* __restrict__ tids,
             }
             status = __shfl_sync(0xFFFFFFFFu, status, 0);         // warp-uniform from here on
             if (status != CAND_COUNT) {
-                if (lane == 0 && status == CAND_INFER && write_inferred) out_counts[w] = inferred;
+                if (lane == 0 && status == CAND_INFER) out_counts[w] = write_inferred ? inferred : 0;
                 return;
             }
         }

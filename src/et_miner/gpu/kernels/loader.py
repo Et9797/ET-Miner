@@ -180,6 +180,7 @@ _KERNEL_FILES: dict[str, str] = {
     "count_k3plus_dense": "k3plus_dense.cu",
     "count_shared_tiled_dense": "shared_tiled.cu",
     "count_shared_tiled_fused": "shared_tiled.cu",
+    "count_group_pairs": "group_pairs.cu",
     "csr_to_bitvec": "csr_to_bitvec.cu",
 }
 
@@ -191,6 +192,7 @@ _KERNEL_PRELUDES: dict[str, list[str]] = {
     "csr_warp.cu": ["_decode_common.cu", "_subset_index.cu"],
     "k3plus_dense.cu": ["_decode_common.cu", "_subset_index.cu"],
     "shared_tiled.cu": ["_subset_index.cu"],
+    "group_pairs.cu": ["_subset_index.cu"],
 }
 
 _source_cache: dict[str, str] = {}

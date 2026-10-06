@@ -45,6 +45,7 @@ from et_miner.gpu.row_split_chunks import (
     K2_ROWS_MAX_R,
     _device_available_bytes,
     compute_chunk_budget,
+    group_kernels,
     k2_counts_rows,
     plan_candidate_chunks,
     plan_group_chunks,
@@ -290,6 +291,7 @@ def _apriori_row_split_multi_gpu(
         column_popcounts,
         index_nbytes,
         upload_subset_index,
+        count_group_pairs,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
         count_pairs_k2_rows,
@@ -561,7 +563,13 @@ def _apriori_row_split_multi_gpu(
 
         def _launch(bitvec_gpu, device_id, chunk):
             with cp.cuda.Device(device_id):
-                count = count_k3plus_per_candidate if chunk.per_candidate else count_shared_tiled_allcounts
+                count = (
+                    count_k3plus_per_candidate
+                    if chunk.per_candidate
+                    else count_group_pairs
+                    if chunk.group
+                    else count_shared_tiled_allcounts
+                )
                 return count(
                     bitvec_gpu,
                     groups,
@@ -862,13 +870,17 @@ def _apriori_row_split_multi_gpu(
                         device_ids, group_data_bytes=group_data_bytes, use_nccl=_use_nccl, compact_reduce=_compact
                     )
 
-                    # Kernel per prefix group, at the measured crossover: small
-                    # groups per-candidate, the rest tiled. The two sets are
-                    # separate candidate spaces with their own chunk plans, so
-                    # neither kernel's chunks fragment the other's.
-                    tiled = np.diff(groups_info.cumulative_pairs) >= tiled_min_group_pairs(k)
-                    small = _subset(groups_info, ~tiled)
-                    big = _subset(groups_info, tiled)
+                    # Kernel per prefix group, at the measured crossovers: the
+                    # smallest groups per-candidate, then the group kernel, the
+                    # rest tiled. The sets are separate candidate spaces with
+                    # their own chunk plans, so no kernel's chunks fragment
+                    # another's.
+                    kernels_of = group_kernels(
+                        k, np.diff(groups_info.cumulative_pairs), np.diff(groups_info.suffix_offsets)
+                    )
+                    small = _subset(groups_info, kernels_of.per_candidate)
+                    mid = _subset(groups_info, kernels_of.group)
+                    big = _subset(groups_info, kernels_of.tiled)
                     del groups_info  # the split holds copies; do not keep the whole level twice
                     # (groups, survivor indices into them, counts) per counted part
                     parts = []
@@ -893,7 +905,8 @@ def _apriori_row_split_multi_gpu(
                                 )
                     logger.debug(
                         f"  K={k}: {tc:,} candidates — per-candidate "
-                        f"{0 if small is None else small.total_candidates:,}, tiled "
+                        f"{0 if small is None else small.total_candidates:,}, group "
+                        f"{0 if mid is None else mid.total_candidates:,}, tiled "
                         f"{0 if big is None else big.total_candidates:,}; group data "
                         f"{group_data_bytes / (1 << 30):.1f} GB, budget {max_cands_per_chunk:,} cands/chunk"
                         + ("; compacted reduce" if _compact else "")
@@ -901,6 +914,9 @@ def _apriori_row_split_multi_gpu(
                     if small is not None:
                         chunks = plan_candidate_chunks(small.total_candidates, max_cands_per_chunk)
                         parts.append((small, *_count_dense(small, chunks, f"K={k}", _index_gpu, _compact)))
+                    if mid is not None:
+                        chunks = plan_group_chunks(mid.cumulative_pairs, max_cands_per_chunk, group=True)
+                        parts.append((mid, *_count_dense(mid, chunks, f"K={k}", _index_gpu, _compact)))
                     if big is not None:
                         chunks = plan_group_chunks(big.cumulative_pairs, max_cands_per_chunk)
                         parts.append((big, *_count_dense(big, chunks, f"K={k}", _index_gpu, _compact)))

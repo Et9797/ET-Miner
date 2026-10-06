@@ -8,11 +8,11 @@ and filter survivors per chunk. This module owns:
   AlphaFold-scale numbers without a GPU),
 - the VRAM measurement that honors per-device CuPy memory-pool limits
   (``compute_chunk_budget``),
-- which kernel counts a prefix group (``tiled_min_group_pairs``, the
-  measured crossover),
+- which kernel counts a prefix group (``group_kernels``, at the measured
+  crossovers),
 - chunk planning (plain candidate ranges for the per-candidate kernel;
-  group-aligned ranges for the tiled kernel, which needs whole prefix groups
-  per chunk),
+  group-aligned ranges for the tiled and group kernels, which need whole
+  prefix groups per chunk),
 - the chunk loop itself (``run_chunked_dense_level``), shared by both the
   K=2 and K>=3 branches of ``row_split``.
 
@@ -52,8 +52,23 @@ COMPACT_MASK_BITS_PER_CANDIDATE = 1
 TILED_MIN_GROUP_PAIRS = {2: 120, 3: 120, 4: 91, 5: 66, 6: 45, 7: 32, 8: 23}
 
 
+#: Pairs per prefix group at which the tiled kernel becomes faster than the
+#: group kernel, per K. Not yet measured: today's per-candidate crossover.
+GROUP_TILED_MIN_PAIRS = dict(TILED_MIN_GROUP_PAIRS)
+
+#: Pairs per prefix group below which the per-candidate kernel is faster than
+#: the group kernel, per K. Not yet measured: 0, the group kernel everywhere.
+GROUP_MIN_PAIRS = {k: 0 for k in TILED_MIN_GROUP_PAIRS}
+
+
+def _per_k(table: dict[int, int], k: int) -> int:
+    return table.get(k, table[max(table)])
+
+
 def tiled_min_group_pairs(k: int) -> int:
-    """Pairs a prefix group needs to be counted by the tiled kernel at level ``k``.
+    """Pairs a prefix group needs to be counted by the tiled kernel at level ``k``
+    when the per-candidate kernel takes the smaller groups (K=2, and K>=3 with
+    ``ET_MINER_SMALL_GROUP_KERNEL=percand``).
 
     ``ET_MINER_TILED_MIN_GROUP_PAIRS`` pins it for every level (0 = tiled for
     every group); unset, it is the measured crossover.
@@ -61,7 +76,42 @@ def tiled_min_group_pairs(k: int) -> int:
     pinned = _env.tiled_min_group_pairs()
     if pinned is not None:
         return pinned
-    return TILED_MIN_GROUP_PAIRS.get(k, TILED_MIN_GROUP_PAIRS[max(TILED_MIN_GROUP_PAIRS)])
+    return _per_k(TILED_MIN_GROUP_PAIRS, k)
+
+
+class GroupKernels(NamedTuple):
+    """Which kernel counts each prefix group of a level: one boolean mask per kernel."""
+
+    per_candidate: np.ndarray
+    group: np.ndarray
+    tiled: np.ndarray
+
+
+def group_kernels(k: int, pairs, sizes) -> GroupKernels:
+    """The kernel of each prefix group of level ``k`` from its pairs and suffixes.
+
+    Groups of more than ``GROUP_MAX_SUFFIXES`` suffixes are tiled. Below the
+    tiled crossover, ``ET_MINER_SMALL_GROUP_KERNEL`` pins the per-candidate
+    kernel (with ``TILED_MIN_GROUP_PAIRS``) or the group kernel (with
+    ``GROUP_TILED_MIN_PAIRS``); unset, groups below ``GROUP_MIN_PAIRS`` go
+    per-candidate and the rest to the group kernel. ``ET_MINER_TILED_MIN_GROUP_PAIRS``
+    pins the tiled crossover in every mode.
+    """
+    from et_miner.gpu.kernels.group_pairs import GROUP_MAX_SUFFIXES
+
+    pairs = np.asarray(pairs, dtype=np.int64)
+    sizes = np.asarray(sizes, dtype=np.int64)
+    mode = _env.small_group_kernel()
+    none = np.zeros(len(pairs), dtype=bool)
+    if mode == "percand":
+        tiled = pairs >= tiled_min_group_pairs(k)
+        return GroupKernels(~tiled, none, tiled)
+    pinned = _env.tiled_min_group_pairs()
+    tiled_from = pinned if pinned is not None else _per_k(GROUP_TILED_MIN_PAIRS, k)
+    tiled = (pairs >= tiled_from) | (sizes > GROUP_MAX_SUFFIXES)
+    floor = 0 if mode == "group" else _per_k(GROUP_MIN_PAIRS, k)
+    per_candidate = ~tiled & (pairs < floor)
+    return GroupKernels(per_candidate, ~tiled & ~per_candidate, tiled)
 
 
 #: K=2 is counted from the rows below this r = Σ_rows C(len, 2) / (pairs ×
@@ -99,6 +149,8 @@ class ChunkPlan(NamedTuple):
     #: True when this range runs on the per-candidate kernel rather than the
     #: tiled one (small groups, or a group too large for group-aligned chunks).
     per_candidate: bool = False
+    #: True when this group-aligned range runs on the group kernel.
+    group: bool = False
 
 
 def chunk_budget_from_bytes(
@@ -212,11 +264,12 @@ def plan_candidate_chunks(total_candidates: int, max_cands: int) -> list[ChunkPl
     ]
 
 
-def plan_group_chunks(cumulative_pairs, max_cands: int) -> list[ChunkPlan]:
-    """Group-aligned contiguous ranges over a candidate space, for the tiled kernel.
+def plan_group_chunks(cumulative_pairs, max_cands: int, group: bool = False) -> list[ChunkPlan]:
+    """Group-aligned contiguous ranges over a candidate space, for the tiled
+    kernel (or with ``group`` the group kernel).
 
-    Every chunk boundary lands on a prefix-group boundary, which the tiled
-    kernel requires. A group larger than ``max_cands`` cannot be group-aligned
+    Every chunk boundary lands on a prefix-group boundary, which both kernels
+    require. A group larger than ``max_cands`` cannot be group-aligned
     and is split into plain candidate ranges on the per-candidate kernel.
 
     The plan is a deterministic function of its inputs, so every GPU in a
@@ -245,7 +298,7 @@ def plan_group_chunks(cumulative_pairs, max_cands: int) -> list[ChunkPlan]:
         j = int(np.searchsorted(cp_arr, start + max_cands, side="right")) - 1
         j = min(max(j, g + 1), n_groups)
         if int(cp_arr[j]) - start > 0:
-            plans.append(ChunkPlan(start, int(cp_arr[j]) - start))
+            plans.append(ChunkPlan(start, int(cp_arr[j]) - start, group=group))
         g = j
     return plans
 
@@ -297,7 +350,7 @@ def run_chunked_dense_level(
                 logger.debug(
                     f"    {level_label} chunk {chunk_idx + 1}/{len(chunks)}: "
                     f"candidates [{chunk.start:,}, {chunk.start + chunk.size:,})"
-                    + (" (per-candidate)" if chunk.per_candidate else "")
+                    + (" (per-candidate)" if chunk.per_candidate else " (group)" if chunk.group else "")
                 )
 
             futures = [pool.submit(launch_chunk, bv, did, chunk) for bv, did, _ in bitvecs_list]

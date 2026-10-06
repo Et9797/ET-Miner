@@ -16,6 +16,7 @@ from .shared_tiled import (
     count_tiled_fused,
     k2_groups,
 )
+from .group_pairs import GROUP_MAX_SUFFIXES, count_group_pairs
 from .k2 import K2_ROWS_SHARED_PAIRS, K2Rows, count_pairs_k2_per_candidate, count_pairs_k2_rows, upload_k2_rows
 from .k3plus import (
     K3PlusGroups,
@@ -49,6 +50,8 @@ __all__ = [
     "K2Rows",
     "K2_ROWS_SHARED_PAIRS",
     "count_k3plus_per_candidate",
+    "count_group_pairs",
+    "GROUP_MAX_SUFFIXES",
     "upload_k3plus_groups",
     "build_k3plus_groups_from_flat",
     "select_k3plus_groups",

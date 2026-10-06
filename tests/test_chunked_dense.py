@@ -10,11 +10,14 @@ import numpy as np
 import pytest
 
 from et_miner.gpu.kernels.filter import SLICE_ELEMS, WORST_CASE_BYTES_PER_ELEMENT
+from et_miner.gpu.kernels.group_pairs import GROUP_MAX_SUFFIXES
 from et_miner.gpu.row_split_chunks import (
     CHUNK_BYTES_PER_CANDIDATE,
+    GROUP_TILED_MIN_PAIRS,
     TILED_MIN_GROUP_PAIRS,
     ChunkPlan,
     chunk_budget_from_bytes,
+    group_kernels,
     plan_candidate_chunks,
     plan_group_chunks,
     tiled_min_group_pairs,
@@ -192,6 +195,14 @@ class TestPlanGroupChunks:
         assert all(p.per_candidate for p in plans)
         assert sum(p.size for p in plans) == 5
 
+    def test_group_kernel_chunks_are_marked_and_splits_are_not(self):
+        plans = plan_group_chunks(_cum([40, 250, 40]), 100, group=True)
+        assert [p for p in plans if not p.per_candidate] == [
+            ChunkPlan(0, 40, group=True),
+            ChunkPlan(290, 40, group=True),
+        ]
+        assert all(not p.group for p in plans if p.per_candidate)
+
     def test_k2_synthetic_single_group(self):
         """The K=2 pair space is one synthetic group: tiled when it fits one
         chunk, per-candidate sub-chunks when it exceeds the budget."""
@@ -241,6 +252,75 @@ class TestTiledThreshold:
         monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", "-1")
         with pytest.raises(ValueError, match=">= 0"):
             tiled_min_group_pairs(3)
+
+
+class TestGroupKernels:
+    """Which of the three kernels counts each prefix group: the measured dispatch, or the pins."""
+
+    @staticmethod
+    def _groups(k):
+        sizes = np.array([2, 3, 5, 8, 12, 16, 20, 40, 64, 65, 90])
+        return sizes * (sizes - 1) // 2, sizes
+
+    @staticmethod
+    def _unpin(monkeypatch):
+        monkeypatch.delenv("ET_MINER_TILED_MIN_GROUP_PAIRS", raising=False)
+        monkeypatch.delenv("ET_MINER_SMALL_GROUP_KERNEL", raising=False)
+
+    @pytest.mark.parametrize("mode", [None, "percand", "group"])
+    @pytest.mark.parametrize("k", [3, 5, 8, 12])
+    def test_every_group_gets_exactly_one_kernel(self, monkeypatch, mode, k):
+        self._unpin(monkeypatch)
+        if mode:
+            monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", mode)
+        masks = group_kernels(k, *self._groups(k))
+        total = masks.per_candidate.astype(int) + masks.group.astype(int) + masks.tiled.astype(int)
+        assert (total == 1).all()
+
+    def test_percand_is_the_two_kernel_dispatch(self, monkeypatch):
+        self._unpin(monkeypatch)
+        monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "percand")
+        pairs, sizes = self._groups(4)
+        masks = group_kernels(4, pairs, sizes)
+        np.testing.assert_array_equal(masks.tiled, pairs >= TILED_MIN_GROUP_PAIRS[4])
+        assert not masks.group.any()
+
+    def test_group_pins_the_group_kernel_below_its_crossover(self, monkeypatch):
+        self._unpin(monkeypatch)
+        monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "group")
+        pairs, sizes = self._groups(4)
+        masks = group_kernels(4, pairs, sizes)
+        np.testing.assert_array_equal(masks.tiled, (pairs >= GROUP_TILED_MIN_PAIRS[4]) | (sizes > GROUP_MAX_SUFFIXES))
+        assert not masks.per_candidate.any()
+
+    def test_unset_sends_groups_below_the_floor_per_candidate(self, monkeypatch):
+        from et_miner.gpu import row_split_chunks
+
+        self._unpin(monkeypatch)
+        monkeypatch.setitem(row_split_chunks.GROUP_MIN_PAIRS, 5, 10)
+        monkeypatch.setitem(row_split_chunks.GROUP_TILED_MIN_PAIRS, 5, 500)
+        pairs, sizes = self._groups(5)
+        masks = group_kernels(5, pairs, sizes)
+        np.testing.assert_array_equal(masks.per_candidate, pairs < 10)
+        np.testing.assert_array_equal(masks.tiled, (pairs >= 500) | (sizes > GROUP_MAX_SUFFIXES))
+        np.testing.assert_array_equal(masks.group, (pairs >= 10) & (pairs < 500) & (sizes <= GROUP_MAX_SUFFIXES))
+
+    @pytest.mark.parametrize("mode", [None, "percand", "group"])
+    def test_the_tiled_pin_holds_in_every_mode(self, monkeypatch, mode):
+        self._unpin(monkeypatch)
+        if mode:
+            monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", mode)
+        monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", "0")
+        assert group_kernels(6, *self._groups(6)).tiled.all()
+        monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", str(10**12))
+        pairs, sizes = self._groups(6)
+        want = np.zeros(len(sizes), dtype=bool) if mode == "percand" else sizes > GROUP_MAX_SUFFIXES
+        np.testing.assert_array_equal(group_kernels(6, pairs, sizes).tiled, want)
+
+    def test_an_unknown_kernel_is_refused(self, monkeypatch):
+        monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "tiled")
+        with pytest.raises(ValueError, match="ET_MINER_SMALL_GROUP_KERNEL must be one of"):
+            group_kernels(3, *self._groups(3))
 
 
 class TestEnvCapAccessor:

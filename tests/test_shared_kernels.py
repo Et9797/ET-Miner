@@ -1,4 +1,4 @@
-"""GPU equivalence tests: shared/tiled kernels vs the per-candidate kernels.
+"""GPU equivalence tests: shared/tiled and group kernels vs the per-candidate kernels.
 
 The tiled dense kernel must be BIT-IDENTICAL to the per-candidate one (same
 candidate indexing, same int32 array), and the fused tiled kernel must return
@@ -14,6 +14,7 @@ cp = pytest.importorskip("cupy", reason="cupy not installed")
 
 pytestmark = pytest.mark.gpu
 
+from et_miner.gpu.kernels.group_pairs import GROUP_MAX_SUFFIXES, count_group_pairs
 from et_miner.gpu.kernels.k2 import count_pairs_k2_per_candidate
 from et_miner.gpu.kernels.k3plus import K3PlusGroups, count_k3plus_per_candidate
 from et_miner.gpu.kernels.shared_tiled import (
@@ -164,3 +165,61 @@ class TestFusedEquivalence:
         tiny_idx, tiny_cnt = count_tiled_fused(bv, groups, 4, 1, initial_capacity=3)
         np.testing.assert_array_equal(tiny_idx, base_idx)
         np.testing.assert_array_equal(tiny_cnt, base_cnt)
+
+
+#: Group sizes around the group kernel's layouts (<= 16 suffixes: lanes are words; 17+: threads
+#: are pairs) and its 64-suffix cap.
+GROUP_SIZES = [0, 1, 2, 3, 5, 16, 17, 31, 32, 33, 48, 63, GROUP_MAX_SUFFIXES]
+
+
+class TestGroupKernelEquivalence:
+    """The group kernel writes exactly the per-candidate kernel's array."""
+
+    @pytest.mark.parametrize("n_u64s", [1, 31, 32, 33, 65])
+    @pytest.mark.parametrize("prefix_len", [0, 1, 3])
+    def test_bit_equal_across_word_tails_and_layouts(self, n_u64s, prefix_len):
+        bv = _random_bitvecs(300, n_u64s, seed=n_u64s)
+        groups = _groups_from_sizes(GROUP_SIZES, prefix_len=prefix_len, n_cols=300, seed=prefix_len + 2)
+        legacy = count_k3plus_per_candidate(bv, groups, n_u64s).get()
+        np.testing.assert_array_equal(count_group_pairs(bv, groups, n_u64s).get(), legacy)
+
+    def test_all_zero_prefix_tiles_count_zero(self):
+        bv = _random_bitvecs(80, 70, seed=5)
+        bv[3, :40] = 0  # the prefix column: the first word tile is all zero, the second partly
+        groups = _groups_from_sizes([6, 40], prefix_len=0, n_cols=80, seed=9)
+        groups = groups._replace(
+            prefix_items=np.array([3, 3], dtype=np.int32), prefix_offsets=np.array([0, 1, 2], dtype=np.int64)
+        )
+        legacy = count_k3plus_per_candidate(bv, groups, 70).get()
+        np.testing.assert_array_equal(count_group_pairs(bv, groups, 70).get(), legacy)
+
+    def test_group_aligned_chunks_bit_equal(self):
+        bv = _random_bitvecs(300, 12, seed=6)
+        groups = _groups_from_sizes([10, 33, 64, 1, 5, 20], prefix_len=2, n_cols=300, seed=7)
+        cp_arr = np.asarray(groups.cumulative_pairs)
+        full = count_k3plus_per_candidate(bv, groups, 12).get()
+        for a in range(len(cp_arr) - 1):
+            for b in range(a + 1, len(cp_arr)):
+                start, end = int(cp_arr[a]), int(cp_arr[b])
+                if end <= start:
+                    continue
+                got = count_group_pairs(bv, groups, 12, chunk_start=start, chunk_size=end - start).get()
+                np.testing.assert_array_equal(got, full[start:end])
+
+    def test_unaligned_chunk_rejected(self):
+        bv = _random_bitvecs(100, 4)
+        groups = _groups_from_sizes([10, 10], prefix_len=1, n_cols=100)
+        with pytest.raises(ValueError, match="group-aligned"):
+            count_group_pairs(bv, groups, 4, chunk_start=3, chunk_size=10)
+
+    def test_a_group_over_the_cap_is_rejected(self):
+        bv = _random_bitvecs(200, 4)
+        groups = _groups_from_sizes([5, GROUP_MAX_SUFFIXES + 1], prefix_len=1, n_cols=200)
+        with pytest.raises(ValueError, match=f"at most {GROUP_MAX_SUFFIXES} suffixes"):
+            count_group_pairs(bv, groups, 4)
+        # a chunk of the groups within the cap is served
+        first = int(groups.cumulative_pairs[1])
+        np.testing.assert_array_equal(
+            count_group_pairs(bv, groups, 4, chunk_start=0, chunk_size=first).get(),
+            count_k3plus_per_candidate(bv, groups, 4, chunk_start=0, chunk_size=first).get(),
+        )

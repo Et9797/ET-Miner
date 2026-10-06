@@ -48,13 +48,27 @@ Variables:
     ET_MINER_TILED_MIN_GROUP_PAIRS     int, pins the candidate pairs a
                                        prefix group needs for the tiled
                                        kernel; smaller groups run on the
-                                       per-candidate kernel. 0 = tiled for
-                                       every group. Unset: the measured
-                                       crossover per K (see
+                                       small-group kernels (next knob). 0 =
+                                       tiled for every group. Unset: the
+                                       measured crossover per K (see
                                        et_miner.gpu.row_split_chunks). On
                                        one GPU a level beyond one dense
                                        chunk is counted fused on the tiled
                                        kernel whatever the pin
+    ET_MINER_SMALL_GROUP_KERNEL        "percand" or "group": which kernel
+                                       counts the K>=3 prefix groups below
+                                       the tiled crossover. "percand": the
+                                       per-candidate kernel, tiled from
+                                       TILED_MIN_GROUP_PAIRS. "group": the
+                                       group kernel (one block per group)
+                                       for every such group, tiled from
+                                       GROUP_TILED_MIN_PAIRS. Groups of more
+                                       than 64 suffixes are tiled whatever
+                                       the pin. Unset: the measured
+                                       dispatch, per-candidate below
+                                       GROUP_MIN_PAIRS, the group kernel up
+                                       to GROUP_TILED_MIN_PAIRS (all in
+                                       et_miner.gpu.row_split_chunks)
     ET_MINER_K2_KERNEL                 "dense" or "rows": the row-split
                                        miner's K=2 kernel. "rows" counts
                                        each shard's rows (pairs of their
@@ -190,6 +204,18 @@ def tiled_min_group_pairs() -> int | None:
     v = _int_env("ET_MINER_TILED_MIN_GROUP_PAIRS", None)
     if v is not None and v < 0:
         raise ValueError(f"ET_MINER_TILED_MIN_GROUP_PAIRS must be >= 0, got {v}")
+    return v
+
+
+SMALL_GROUP_KERNELS = ("percand", "group")
+
+
+def small_group_kernel() -> str | None:
+    v = os.environ.get("ET_MINER_SMALL_GROUP_KERNEL", "").strip().lower()
+    if not v:
+        return None
+    if v not in SMALL_GROUP_KERNELS:
+        raise ValueError(f"ET_MINER_SMALL_GROUP_KERNEL must be one of {SMALL_GROUP_KERNELS}, got {v!r}")
     return v
 
 

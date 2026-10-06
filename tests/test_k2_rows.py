@@ -157,3 +157,67 @@ def test_k2_kernel_knob_rejects_unknown_values(monkeypatch):
     monkeypatch.setenv("ET_MINER_K2_KERNEL", "atomic")
     with pytest.raises(ValueError, match="ET_MINER_K2_KERNEL"):
         _env.k2_kernel()
+
+
+def test_row_pairs_count_the_frequent_columns_of_each_row():
+    """The dispatch's Σ C(len, 2) equals the one of the shards the row-wise kernel gets."""
+    from scipy.sparse import csr_matrix
+
+    from et_miner.gpu.row_split import _k2_row_pairs, _k2_row_shards
+
+    rows = [[0, 2, 3], [1], [0, 1, 2, 3], [], [3, 2]]
+    indptr = np.cumsum([0] + [len(r) for r in rows])
+    csr = csr_matrix((np.ones(indptr[-1]), np.concatenate([np.array(r, dtype=np.int64) for r in rows]), indptr),
+                     shape=(5, 4))
+    for freq, want in ((np.array([0, 2, 3]), 3 + 0 + 3 + 0 + 1), (np.arange(4), 3 + 0 + 6 + 0 + 1)):
+        assert _k2_row_pairs(csr, freq) == want
+        shard_lens = [np.diff(p) for p, _ in _k2_row_shards(csr, freq, [2, 3])]
+        assert sum(int((n * (n - 1) // 2).sum()) for n in shard_lens) == want
+
+
+def test_dispatch_counts_rows_strictly_below_the_crossover(monkeypatch):
+    from et_miner.gpu import row_split_chunks
+    from et_miner.gpu.row_split_chunks import k2_counts_rows
+
+    monkeypatch.delenv("ET_MINER_K2_KERNEL", raising=False)
+    monkeypatch.setattr(row_split_chunks, "K2_ROWS_MAX_R", 0.004)
+    # 1,000 pairs over 128 rows (2 words): rows below 8 row pairs.
+    assert k2_counts_rows(7, 1_000, 128)
+    assert not k2_counts_rows(8, 1_000, 128)
+    assert not k2_counts_rows(0, 0, 128)
+
+
+@pytest.mark.parametrize(("pin", "row_pairs", "want"), [("dense", 0, False), ("rows", 10**12, True)])
+def test_the_pin_overrides_the_dispatch(monkeypatch, pin, row_pairs, want):
+    from et_miner.gpu.row_split_chunks import k2_counts_rows
+
+    monkeypatch.setenv("ET_MINER_K2_KERNEL", pin)
+    assert k2_counts_rows(row_pairs, 1_000, 128) is want
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize(("n_items", "row_len", "want"), [(300, 2, "rows"), (12, 5, "dense")])
+def test_unpinned_k2_follows_r(monkeypatch, n_items, row_len, want):
+    """r = 1.4e-3 (300 items, pairs per row 1) counts row-wise, r = 9.5 (12 items) dense."""
+    pytest.importorskip("cupy")
+    import polars as pl
+
+    from et_miner import apriori
+    from et_miner.gpu import kernels
+
+    rows = [sorted({(i * (7 * j + 1) + j) % n_items for j in range(row_len)}) for i in range(1_000)]
+    rows = [r for r in rows if len(r) == row_len]
+    calls = []
+    for name in ("count_pairs_k2_rows", "count_pairs_k2_shared", "count_pairs_k2_per_candidate"):
+        def spy(*a, _real=getattr(kernels, name), _name=name, **k):
+            calls.append("rows" if _name == "count_pairs_k2_rows" else "dense")
+            return _real(*a, **k)
+
+        monkeypatch.setattr(kernels, name, spy)
+    monkeypatch.delenv("ET_MINER_K2_KERNEL", raising=False)
+    df = pl.DataFrame({"items": rows})
+    got = apriori(df, min_support=0.5 / len(rows), use_gpu=True, max_length=2)
+    want_set = apriori(df, min_support=0.5 / len(rows), max_length=2)
+    assert calls and set(calls) == {want}, calls
+    assert sorted(zip(map(tuple, got["itemset"].to_list()), got["support"].to_list())) == sorted(
+        zip(map(tuple, want_set["itemset"].to_list()), want_set["support"].to_list()))

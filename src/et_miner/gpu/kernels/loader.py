@@ -172,7 +172,6 @@ _KERNEL_FILES: dict[str, str] = {
     "csr_count_range": "csr_warp.cu",
     "csr_count_gather": "csr_warp.cu",
     "csr_write_gather": "csr_warp.cu",
-    "csr_write_gather_checked": "csr_warp.cu",
     "bitvec_extract_tids": "bitvec_extract_tids.cu",
     "count_itemsets_batch": "itemset_count.cu",
     "count_pairs_k2_dense": "pairs_k2_dense.cu",

@@ -41,8 +41,10 @@ from et_miner.gpu.sparse_csr import (
     upload_groups_to_shards,
 )
 from et_miner.gpu.row_split_chunks import (
+    K2_ROWS_MAX_R,
     _device_available_bytes,
     compute_chunk_budget,
+    k2_counts_rows,
     plan_candidate_chunks,
     plan_group_chunks,
     run_chunked_dense_level,
@@ -110,23 +112,31 @@ def _k2_row_shards(csr, freq_cols, shard_rows) -> list[tuple["np.ndarray", "np.n
     return shards
 
 
-def _upload_k2_rows(csr, freq_cols, bitvecs_list) -> tuple[dict, int]:
-    """Per-device rows for the row-wise K=2 kernel, and the level's row pairs Σ C(len, 2).
+def _k2_row_pairs(csr, freq_cols) -> int:
+    """Σ C(len, 2) over the CSR's rows restricted to ``freq_cols``: the pair increments a row-wise K=2 makes.
 
-    Shard ``i`` gets the rows of ``bitvecs_list[i]``, in order.
+    Read from the row pointers alone when every column is frequent; a column
+    repeated within a row (a CSR that is not canonical) only raises it.
     """
     import numpy as np
 
+    indptr = csr.indptr.astype(np.int64, copy=False)
+    if len(freq_cols) == csr.shape[1]:
+        lens = np.diff(indptr)
+    else:
+        keep = np.zeros(csr.shape[1], dtype=np.int64)
+        keep[freq_cols] = 1
+        kept = np.zeros(len(csr.indices) + 1, dtype=np.int64)
+        np.cumsum(keep[csr.indices], out=kept[1:])
+        lens = np.diff(kept[indptr])
+    return int((lens * (lens - 1) // 2).sum())
+
+
+def _upload_k2_rows(shards, bitvecs_list) -> dict:
+    """Per-device rows for the row-wise K=2 kernel: shard ``i`` on ``bitvecs_list[i]``'s device."""
     from et_miner.gpu.kernels import upload_k2_rows
 
-    shards = _k2_row_shards(csr, freq_cols, [n for _, _, n in bitvecs_list])
-    row_pairs = 0
-    rows_gpu = {}
-    for (indptr, pos), (_, did, _) in zip(shards, bitvecs_list):
-        lens = np.diff(indptr)
-        row_pairs += int((lens * (lens - 1) // 2).sum())
-        rows_gpu[did] = upload_k2_rows(indptr, pos, did)
-    return rows_gpu, row_pairs
+    return {did: upload_k2_rows(indptr, pos, did) for (indptr, pos), (_, did, _) in zip(shards, bitvecs_list)}
 
 
 def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, devices=None):
@@ -209,10 +219,12 @@ def _apriori_row_split_multi_gpu(
     7.2 MB instead of the 2.4 GB dense array; the sliced filter keeps this
     guarantee at any survivor count.
 
-    With ``ET_MINER_K2_KERNEL=rows`` and transactions input, K=2 is counted
-    from each shard's rows instead: every row adds 1 to each pair of its
-    frequent columns in the same dense pair array, so the reduce, the filter
-    and the decode are unchanged.
+    With transactions input and r = Σ_rows C(len, 2) / (pairs × words) below
+    the measured crossover (``row_split_chunks.k2_counts_rows``;
+    ``ET_MINER_K2_KERNEL`` pins either kernel), K=2 is counted from each
+    shard's rows instead: every row adds 1 to each pair of its frequent columns
+    in the same dense pair array, so the reduce, the filter and the decode are
+    unchanged.
 
     ``prune_apriori`` gives the K>=3 counting kernels an index of the previous
     level (sorted rows, counts, free flags; ``kernels/subset_index.py``): a
@@ -225,12 +237,10 @@ def _apriori_row_split_multi_gpu(
     index larger than a quarter of a device's free VRAM is not uploaded and
     that level counts every candidate.
 
-    With ``ET_MINER_REDUCE=compact`` a dense K>=3 level with an index on
-    several GPUs reduces only the entries the kernels wrote (counted or
-    inferred, the same entries on every GPU) instead of whole chunk arrays
-    (``run_chunked_dense_level``). With ``ET_MINER_ESCO_MATERIALIZE=reuse`` an
-    ESCO level sizes its survivors' new tidsets from the count pass's
-    per-shard counts instead of counting them again (``materialize_survivors``).
+    A dense K>=3 level with an index on several GPUs reduces only the entries
+    the kernels wrote (counted or inferred, the same entries on every GPU)
+    instead of whole chunk arrays (``run_chunked_dense_level``);
+    ``ET_MINER_REDUCE=dense`` pins the whole-array reduce.
 
     ``prune_non_free`` keeps two populations per level:
 
@@ -576,9 +586,11 @@ def _apriori_row_split_multi_gpu(
                     del groups_gpu[did]
                     cp.get_default_memory_pool().free_all_blocks()
 
-    def _count_k2_rows(freq_cols, n_pairs):
+    def _count_k2_rows(freq_cols, row_pairs, n_pairs):
         """K=2 counted from each shard's rows: (pair indices, counts) of the frequent pairs."""
-        rows_gpu, row_pairs = _upload_k2_rows(_k2_csr, np.asarray(freq_cols, dtype=np.int64), bitvecs_list)
+        shards = _k2_row_shards(_k2_csr, np.asarray(freq_cols, dtype=np.int64), [n for _, _, n in bitvecs_list])
+        rows_gpu = _upload_k2_rows(shards, bitvecs_list)
+        del shards
         try:
             budget = compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
             chunks = plan_candidate_chunks(n_pairs, budget)
@@ -686,7 +698,6 @@ def _apriori_row_split_multi_gpu(
             if session:
                 session.start_phase(f"k{k}")
             _surv = None
-            _peer_counts = None
             _n_cands_cb = 0
             _index_gpu = None
 
@@ -728,13 +739,10 @@ def _apriori_row_split_multi_gpu(
                     _n_cands_cb = groups_info.total_candidates
                     _index_gpu = _subset_index(k)
                     _sparse_groups_gpu = upload_groups_to_shards(groups_info, sparse_state.shards)
-                    _surv, current_counts_raw, *_peers = run_sparse_level(
+                    _surv, current_counts_raw = run_sparse_level(
                         sparse_state.shards, groups_info, _sparse_groups_gpu, min_count_threshold,
                         nccl_comms=nccl_comms, use_nccl=_use_nccl, level_label=f"K={k}", index_gpu=_index_gpu,
-                        peer_counts=_env.esco_materialize() == "reuse",
                     )
-                    if _peers and _peers[0] is not None:
-                        _peer_counts = (_surv, _peers[0])  # keyed by the level's ascending survivors
                     n_freq = len(_surv)
                     if n_freq:
                         current_flat = decode_k3plus_flat(_surv, groups_info, k)
@@ -744,17 +752,24 @@ def _apriori_row_split_multi_gpu(
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
                 _n_cands_cb = n_pairs
 
-                # Row-wise needs the rows, one shard per device. Otherwise one
-                # synthetic group over the frequent items: tiled when it is
-                # large enough and fits one chunk; a pair space chunked across
-                # several GPUs runs per-candidate sub-chunks; on one GPU a pair
-                # space beyond one chunk is counted fused (survivors only).
-                _k2_rows = (
-                    _env.k2_kernel() == "rows" and _k2_csr is not None and len(set(device_ids)) == len(device_ids)
-                )
+                # Row-wise needs the rows, one shard per device, and r below the
+                # measured crossover (k2_counts_rows). Otherwise one synthetic
+                # group over the frequent items: tiled when it is large enough
+                # and fits one chunk; a pair space chunked across several GPUs
+                # runs per-candidate sub-chunks; on one GPU a pair space beyond
+                # one chunk is counted fused (survivors only).
+                _k2_rows = False
+                if _k2_csr is not None and len(set(device_ids)) == len(device_ids) and _env.k2_kernel() != "dense":
+                    _k2_pairs = _k2_row_pairs(_k2_csr, np.asarray(freq_cols, dtype=np.int64))
+                    _k2_rows = k2_counts_rows(_k2_pairs, n_pairs, n_transactions)
+                    if not _k2_rows and n_pairs:
+                        logger.info(
+                            f"  K=2: r = {_k2_pairs / (n_pairs * -(-n_transactions // 64)):.3g} is not below "
+                            f"the row-wise crossover {K2_ROWS_MAX_R:.3g}; dense"
+                        )
                 _k2_budget = 0 if _k2_rows else compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
                 if _k2_rows:
-                    freq_pair_indices, freq_pair_counts = _count_k2_rows(freq_cols, n_pairs)
+                    freq_pair_indices, freq_pair_counts = _count_k2_rows(freq_cols, _k2_pairs, n_pairs)
                 elif _one_device and n_pairs > _k2_budget:
                     did0 = bitvecs_list[0][1]
                     logger.info(
@@ -834,7 +849,7 @@ def _apriori_row_split_multi_gpu(
 
                     # Uploaded before the budget, so the measured headroom excludes it.
                     _index_gpu = _subset_index(k)
-                    _compact = _index_gpu is not None and not _one_device and _env.reduce_mode() == "compact"
+                    _compact = _index_gpu is not None and not _one_device and _env.reduce_mode() != "dense"
                     max_cands_per_chunk = compute_chunk_budget(
                         device_ids, group_data_bytes=group_data_bytes, use_nccl=_use_nccl, compact_reduce=_compact
                     )
@@ -993,13 +1008,8 @@ def _apriori_row_split_multi_gpu(
                 # Keep tidsets in the same row order as the generation base,
                 # including every sort and free-set mask above.
                 if k < effective_max_length and n_freq > k and _surv is not None:
-                    _kept_peers = None
-                    if _peer_counts is not None:
-                        _level_surv, _by_peer = _peer_counts
-                        _kept_peers = _by_peer[:, np.searchsorted(_level_surv, _surv)]
                     sparse_state.replace(materialize_survivors(
-                        sparse_state.shards, _sparse_groups_gpu, _surv, current_counts_raw, level_label=f"K={k}",
-                        peer_counts=_kept_peers,
+                        sparse_state.shards, _sparse_groups_gpu, _surv, current_counts_raw, level_label=f"K={k}"
                     ))
                     log_new_shards(sparse_state.shards, n_freq)
                 free_groups(_sparse_groups_gpu)

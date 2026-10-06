@@ -114,36 +114,27 @@ def count_csr_gather(offsets_gpu, indices_gpu, groups_gpu, cand_ids_gpu):
     return out
 
 
-def write_csr_gather(
-    offsets_gpu, indices_gpu, groups_gpu, cand_ids_gpu, out_offsets_gpu, out_indices_gpu, *, checked=False
-):
+def write_csr_gather(offsets_gpu, indices_gpu, groups_gpu, cand_ids_gpu, out_offsets_gpu, out_indices_gpu):
     """Write the sorted intersections of explicit candidate ids into a new CSR.
 
     ``out_offsets_gpu`` (int64, ``n + 1``) must be the exclusive scan of
     ``count_csr_gather`` over the same ids on the same shard, and
     ``out_indices_gpu`` (int32) must hold ``out_offsets_gpu[-1]`` entries.
-
-    ``checked=True`` is for offsets this shard did not count: each id writes at
-    most its slot, and the call returns the intersections' lengths (CuPy int32
-    ``(n,)``) for the caller to compare with the slots. Otherwise returns None.
     """
     import cupy as cp
 
     _check_shard(offsets_gpu, indices_gpu)
     ids, n = _prepare_ids(cand_ids_gpu, groups_gpu)
     if n == 0:
-        return cp.zeros(0, dtype=cp.int32) if checked else None
+        return
     if out_offsets_gpu.dtype != cp.int64 or int(out_offsets_gpu.size) != n + 1:
         raise ValueError(f"out_offsets must be int64 of length n+1={n + 1}, got {out_offsets_gpu.dtype}/{out_offsets_gpu.size}")
     if out_indices_gpu.dtype != cp.int32:
         raise TypeError(f"out_indices must be int32, got {out_indices_gpu.dtype}")
     cp_arr, gso, gsr, n_groups = _group_args(groups_gpu)
-    args = (indices_gpu, offsets_gpu, cp_arr, gso, gsr, n_groups, ids, np.int64(n), out_offsets_gpu, out_indices_gpu)
-    lengths = None
-    if checked:
-        lengths = cp.empty(n, dtype=cp.int32)
-        get_cuda_kernel("csr_write_gather_checked")(_grid_for(n), _BLOCK, (*args, lengths))
-    else:
-        get_cuda_kernel("csr_write_gather")(_grid_for(n), _BLOCK, args)
+    get_cuda_kernel("csr_write_gather")(
+        _grid_for(n),
+        _BLOCK,
+        (indices_gpu, offsets_gpu, cp_arr, gso, gsr, n_groups, ids, np.int64(n), out_offsets_gpu, out_indices_gpu),
+    )
     cp.cuda.Stream.null.synchronize()
-    return lengths

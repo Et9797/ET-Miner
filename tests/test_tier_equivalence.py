@@ -10,17 +10,16 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 1 GPU, no subset test
         == row-split 1 GPU, count inference (measured dispatch, tiled, per-candidate,
            forced chunks)
-        == row-split 1 GPU, row-wise K=2 (shared-memory / global atomics, plain / forced chunks)
+        == row-split 1 GPU, row-wise K=2 (shared-memory / global atomics, plain / forced chunks;
+           and selected by the r dispatch)
         == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
         == row-split 2 GPUs, count inference (plain and forced chunks)
         == row-split 2 GPUs, row-wise K=2 (plain and forced chunks)
-        == row-split 2 GPUs, compacted reduce (plain and forced chunks, with and
-           without count inference)
+        == row-split 2 GPUs, compacted reduce (the default) and dense reduce pinned (plain
+           and forced chunks, with and without count inference)
         == ESCO 2 GPUs, including count inference
-        == ESCO 1 and 2 GPUs, materialization sized from the count pass (with and
-           without count inference)
         == SON 2 GPUs, forced chunks
         == efficient-apriori (the canonical oracle)
 
@@ -30,9 +29,9 @@ per-candidate (a pair count no group reaches) kernel for every prefix group,
 ET_MINER_MAX_CHUNK_CANDS forces chunking (on one GPU the pair space and every
 larger group then go to the fused tiled kernel; on two, to per-candidate
 sub-chunks; a row-wise K=2 counts every chunk from the rows),
-ET_MINER_K2_KERNEL=rows pins the row-wise K=2 kernel, ET_MINER_REDUCE=compact pins the
-compacted multi-GPU reduce, ET_MINER_ESCO_MATERIALIZE=reuse sizes the ESCO tidsets from the
-count pass, and a chunk_size below the row count forces SON to four chunks.
+ET_MINER_K2_KERNEL=rows pins the row-wise K=2 kernel (the r dispatch picks it on smoke only
+with its crossover raised), ET_MINER_REDUCE=dense pins the whole-array multi-GPU reduce, and a
+chunk_size below the row count forces SON to four chunks.
 Every row-split leg also asserts which previous-level index its K>=3 levels
 were given: the subset test by default, none with ``prune_apriori=False``, and
 the inferring index, written by exactly one device per level, with
@@ -367,8 +366,14 @@ def test_row_split_one_gpu_count_inference_matches_oracle(smoke_dataset, oracle_
 _K2_DENSE = ("count_pairs_k2_shared", "count_pairs_k2_per_candidate")
 
 
-def _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, *, atomics, chunked, **kwargs):
-    """A leg with K=2 pinned to the row-wise kernel, on shared-memory or global atomics."""
+def _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, *, atomics, chunked, dispatch=False,
+                     **kwargs):
+    """A leg with K=2 on the row-wise kernel, on shared-memory or global atomics.
+
+    Pinned by ET_MINER_K2_KERNEL, or with ``dispatch`` picked by the r dispatch
+    with its crossover raised above smoke's r (0.14).
+    """
+    from et_miner.gpu import row_split_chunks
     from et_miner.gpu.kernels import k2
 
     if atomics == "global":
@@ -381,6 +386,10 @@ def _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, *, atomics, 
 
     monkeypatch.setattr(k2, "get_cuda_kernel", kernel_spy)
     env = {"ET_MINER_K2_KERNEL": "rows"}
+    if dispatch:
+        monkeypatch.delenv("ET_MINER_K2_KERNEL", raising=False)
+        monkeypatch.setattr(row_split_chunks, "K2_ROWS_MAX_R", 1.0)
+        env = {}
     if chunked:
         env["ET_MINER_MAX_CHUNK_CANDS"] = _TINY_CHUNK
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, env, runs=("count_pairs_k2_rows",), never=_K2_DENSE,
@@ -396,6 +405,12 @@ def test_row_split_one_gpu_row_wise_k2_matches_oracle(smoke_dataset, oracle_set,
     _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch,
                      f"row-split 1 GPU, row-wise K=2 ({atomics} atomics, chunks={chunked})",
                      atomics=atomics, chunked=chunked)
+
+
+@pytest.mark.gpu
+def test_row_split_one_gpu_row_wise_k2_by_dispatch_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, row-wise K=2 by the r dispatch",
+                     atomics="shared", chunked=False, dispatch=True)
 
 
 @pytest.mark.gpu
@@ -439,55 +454,6 @@ def test_esco_two_gpus_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sp
              sparse_from_k=sparse_from_k, n_gpus=2, use_generator_pruning=infer)
 
 
-def _esco_reuse_leg(smoke_dataset, oracle_set, monkeypatch, label, env, *, n_gpus, **kwargs):
-    """An ESCO leg whose every materialization is sized from the count pass."""
-    from et_miner.gpu import row_split, sparse_csr
-
-    sized = []
-
-    def spy(*a, _real=row_split.materialize_survivors, **k):
-        sized.append(k.get("peer_counts") is not None)
-        return _real(*a, **k)
-
-    gathered = []
-
-    def gather_spy(*a, _real=sparse_csr.count_csr_gather):
-        gathered.append(int(a[3].size))
-        return _real(*a)
-
-    monkeypatch.setattr(row_split, "materialize_survivors", spy)
-    monkeypatch.setattr(sparse_csr, "count_csr_gather", gather_spy)
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, {"ET_MINER_ESCO_MATERIALIZE": "reuse", **env},
-             n_gpus=n_gpus, **kwargs)
-    assert sized and all(sized), f"{label}: materializations sized from the count pass: {sized}"
-    if n_gpus == 1:
-        assert not gathered, f"{label}: one shard recounted survivors: {gathered}"
-
-
-@pytest.mark.gpu
-@pytest.mark.parametrize("sparse_from_k", ["auto", 3])
-@pytest.mark.parametrize("infer", [False, True])
-def test_esco_one_gpu_reuse_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, infer):
-    _esco_reuse_leg(smoke_dataset, oracle_set, monkeypatch,
-                    f"ESCO 1 GPU, reuse ({sparse_from_k}, inference={infer})", {}, n_gpus=1,
-                    index_mode="infer" if infer else "prune", sparse_from_k=sparse_from_k,
-                    use_generator_pruning=infer)
-
-
-@pytest.mark.gpu
-@pytest.mark.multigpu
-@pytest.mark.parametrize("sparse_from_k", ["auto", 3])
-@pytest.mark.parametrize("infer", [False, True])
-def test_esco_two_gpus_reuse_matches_oracle(smoke_dataset, oracle_set, monkeypatch, sparse_from_k, infer):
-    """Each shard's tidsets are sized from its partial counts, kept per chunk before the next chunk runs."""
-    _needs_two_gpus()
-    _esco_reuse_leg(smoke_dataset, oracle_set, monkeypatch,
-                    f"ESCO 2 GPUs, reuse ({sparse_from_k}, inference={infer})",
-                    {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK}, n_gpus=2,
-                    index_mode="infer" if infer else "prune", sparse_from_k=sparse_from_k,
-                    use_generator_pruning=infer)
-
-
 @pytest.mark.gpu
 @pytest.mark.multigpu
 def test_row_split_two_gpus_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
@@ -529,10 +495,12 @@ def test_row_split_two_gpus_count_inference_matches_oracle(smoke_dataset, oracle
 
 @pytest.mark.gpu
 @pytest.mark.multigpu
+@pytest.mark.parametrize("reduce", [None, "dense"])
 @pytest.mark.parametrize("chunked", [False, True])
 @pytest.mark.parametrize("infer", [False, True])
-def test_row_split_two_gpus_compacted_reduce_matches_oracle(smoke_dataset, oracle_set, monkeypatch, chunked, infer):
-    """The K>=3 levels reduce only the entries the kernels wrote, compacted on both GPUs."""
+def test_row_split_two_gpus_reduce_matches_oracle(smoke_dataset, oracle_set, monkeypatch, reduce, chunked, infer):
+    """By default the K>=3 levels reduce only the entries the kernels wrote, compacted on both
+    GPUs; ET_MINER_REDUCE=dense pins the whole-array reduce."""
     _needs_two_gpus()
     from et_miner.gpu.kernels import filter as filter_mod
 
@@ -543,14 +511,18 @@ def test_row_split_two_gpus_compacted_reduce_matches_oracle(smoke_dataset, oracl
         return _real(counts, keep_mask=keep_mask)
 
     monkeypatch.setattr(filter_mod, "compact_written", spy)
-    env = {"ET_MINER_REDUCE": "compact"}
+    monkeypatch.delenv("ET_MINER_REDUCE", raising=False)
+    env = {"ET_MINER_REDUCE": reduce} if reduce else {}
     pins = {}
     if chunked:
         env |= {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}
         pins = {"runs": ("count_k3plus_per_candidate",), "never": ("count_tiled_fused",)}
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch,
-             f"row-split 2 GPUs, compacted reduce (chunks={chunked}, inference={infer})", env,
+             f"row-split 2 GPUs, {reduce or 'compacted'} reduce (chunks={chunked}, inference={infer})", env,
              index_mode="infer" if infer else "prune", n_gpus=2, use_generator_pruning=infer, **pins)
+    if reduce == "dense":
+        assert not compacted, f"the dense pin compacted {compacted}"
+        return
     assert compacted, "no chunk was reduced compacted"
     per_device = {d: sum(1 for c, _ in compacted if c == d) for d in (0, 1)}
     assert per_device[0] == per_device[1] == len(compacted) // 2, f"compacted on {compacted}"

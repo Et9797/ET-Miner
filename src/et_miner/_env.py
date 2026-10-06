@@ -62,7 +62,11 @@ Variables:
                                        bitvec pairs; it needs the
                                        transactions input, so bitvecs=
                                        input counts dense whatever the
-                                       pin. Unset: dense
+                                       pin. Unset: rows below the measured
+                                       crossover in r = Σ_rows C(len, 2) /
+                                       (pairs × words), dense at and above
+                                       it (et_miner.gpu.row_split_chunks.
+                                       K2_ROWS_MAX_R)
     ET_MINER_REDUCE                    "dense" or "compact": the row-split
                                        miner's multi-GPU reduce of a K>=3
                                        level with a subset index. "compact"
@@ -70,15 +74,7 @@ Variables:
                                        counted or inferred; K=2, levels
                                        without an index, ESCO levels and
                                        one GPU reduce dense whatever the
-                                       pin. Unset: dense
-    ET_MINER_ESCO_MATERIALIZE          "recount" or "reuse": how an ESCO
-                                       level sizes its survivors' new
-                                       tidsets. "recount" intersects them
-                                       once more to count; "reuse" takes
-                                       the count pass's per-shard counts
-                                       (recounting only survivors with no
-                                       counted rows outside GPU 0). Unset:
-                                       recount
+                                       pin. Unset: compact
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -183,6 +179,11 @@ def reject_removed_knobs() -> None:
             "per-candidate kernel per prefix group, at the measured crossover. "
             "ET_MINER_TILED_MIN_GROUP_PAIRS pins that choice (0 = tiled for every group). Unset it."
         )
+    if "ET_MINER_ESCO_MATERIALIZE" in os.environ:
+        raise ValueError(
+            "ET_MINER_ESCO_MATERIALIZE was removed: an ESCO level counts its survivors' new tidsets "
+            "before writing them (sizing them from the count pass won no regime). Unset it."
+        )
 
 
 def tiled_min_group_pairs() -> int | None:
@@ -213,18 +214,6 @@ def reduce_mode() -> str | None:
         return None
     if v not in REDUCE_MODES:
         raise ValueError(f"ET_MINER_REDUCE must be one of {REDUCE_MODES}, got {v!r}")
-    return v
-
-
-ESCO_MATERIALIZE_MODES = ("recount", "reuse")
-
-
-def esco_materialize() -> str | None:
-    v = os.environ.get("ET_MINER_ESCO_MATERIALIZE", "").strip().lower()
-    if not v:
-        return None
-    if v not in ESCO_MATERIALIZE_MODES:
-        raise ValueError(f"ET_MINER_ESCO_MATERIALIZE must be one of {ESCO_MATERIALIZE_MODES}, got {v!r}")
     return v
 
 

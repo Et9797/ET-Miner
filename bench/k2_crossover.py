@@ -4,13 +4,13 @@ Synthetic K=2-only problems on one GPU: N rows of L distinct items each, drawn
 uniformly from F items (or with Zipf(1.0) popularity), mined with
 `max_length=2` at `min_count` = the rarest item's count, so every item is
 frequent and `r = Σ_rows C(L, 2) / (C(F, 2) × ceil(N / 64))`. One process per
-point, pinned to device 0 with NCCL off, the other two phase A knobs at
-`dense`/`recount` and the thread pools at 6: an untimed warm-up run of each
-kernel, then 3 interleaved reps (dense, rows, dense, rows, ...). The K=2 level
-time (`level_callback`) of each run is recorded; the point's value is the
-median. Every run must mine the same pairs with the same counts, the miner
-must log the row-wise K=2 exactly on the `rows` runs, and no run may log a
-fallback (`consolidation_run.FALLBACK_PATTERNS`, NCCL being off aside).
+point, pinned to device 0 with NCCL off, `ET_MINER_REDUCE=dense` and the
+thread pools at 6: an untimed warm-up run of each kernel, then 3 interleaved
+reps (dense, rows, dense, rows, ...). The K=2 level time (`level_callback`)
+of each run is recorded; the point's value is the median. Every run must mine
+the same pairs with the same counts, the miner must log the row-wise K=2
+exactly on the `rows` runs, and no run may log a fallback
+(`consolidation_run.FALLBACK_PATTERNS`, NCCL being off aside).
 
 The N = 1M grid runs first; `r*` follows the protocol (`crossover`). Then the
 two uniform points whose r values bracket the crossover (without one, the two
@@ -51,7 +51,6 @@ ENV = {
     "CUDA_VISIBLE_DEVICES": "0",
     "ET_MINER_DISABLE_NCCL": "1",
     "ET_MINER_REDUCE": "dense",
-    "ET_MINER_ESCO_MATERIALIZE": "recount",
     "POLARS_MAX_THREADS": "6",
     "RAYON_NUM_THREADS": "6",
     "MKL_NUM_THREADS": "6",

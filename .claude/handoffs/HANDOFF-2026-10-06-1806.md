@@ -1,20 +1,20 @@
 # Session Handoff: ET-Miner, 2026-10-06 18:06
 
-**Branch:** `main` @ the commit that adds this handoff (parent `63a59e2`); phase C lives on `perf/route-optimizations-c` @ `823ddb1` (in sync with origin, PR #24 open)
+**Branch:** `main` @ the commit that adds this handoff (on top of `061d35d`, the merge of PR #24, phase C)
 **Tree:** clean apart from the 28 untracked lattice dumps in `bench/results/2026-10-05-candidate-waste/` (deliberately uncommitted, regenerable with `--mode waste`)
 **Focus:** the remaining items of `bench/optimizations/SPEC.md` after phase C
 **Reason:** end of session (the owner asked for a handoff for the remaining SPEC items, committed on main)
 
 ## Verify on Resume
-Run `git status --short --branch` and `git rev-parse --short HEAD`. HEAD should be the handoff commit on `main` (parent `63a59e2`) and the tree should match "Tree" above. If not, the state moved after this handoff: read the diff before trusting "Current State". Check PR #24 (`gh pr view 24`): work that builds on the group kernel branches from main only after it is merged.
+Run `git status --short --branch` and `git rev-parse --short HEAD`. HEAD should be the latest handoff commit on `main` (on top of `061d35d`) and the tree should match "Tree" above. If not, the state moved after this handoff: read the diff before trusting "Current State".
 
 ## Current State
-- Phase C (O6) is done and reported: `bench/optimizations/REPORT-C.md` on `perf/route-optimizations-c`; PR #24 open, mergeable, gate green. Nothing runs, nothing is mid-edit.
+- Phase C (O6) is done, reported (`bench/optimizations/REPORT-C.md`) and merged into main as PR #24 (`061d35d`). Nothing runs, nothing is mid-edit.
 - O7 a/b/c dropped by SPEC amendment (`SPEC.md`, O7 section). O5 ended in phase B, O4 deferred.
 - The owner asked "are there open questions in the spec?"; the five open items are the Next Steps below.
 
 ## Next Steps
-1. Ask the owner about PR #24 (merge is the owner's call). Then branch from main.
+1. Ask the owner which item goes first; branch it from main.
 2. **O6 follow-up** (REPORT-C finding 1, should): on dsl the per-candidate kernel still takes 3.23 s on 1 GPU, in groups below `GROUP_MIN_PAIRS` (9 pairs from K=4, i.e. ≤ 4 suffixes; 20 at K=3). The sweep counted every pair; dsl skips 35–45 %. Cheap check: dsl with `ET_MINER_SMALL_GROUP_KERNEL=group` (≈17 s per GPU count) against the campaign's `group` arm (`bench/results/2026-10-06-group-kernel/raw.jsonl`). Agree the protocol (3 reps rep-major, alternate arm order) and budget first.
 3. **O8** (`SPEC.md`, O8; research, offline first): fraction of all-zero 32-word prefix tiles per level, before and after a candidate row reordering. Both the tiled kernel (`_src/shared_tiled.cu`, `s_skip`) and the group kernel (`_src/group_pairs.cu`, per-warp ballot on the staged prefix AND) skip such tiles, so O8 now reaches both. Data: regenerate the synthetic presets (`et_miner.synthetic`); groups from the lattice dumps. Exact counts if cheap, else a stated sample.
 4. **"ESCO on K=3 explosions"**: the owner decides whether it becomes a SPEC item. Content from `REPORT-B.md` (findings 1–2, "Open"): a skip of prunable candidates in the CSR kernel, the conversion from the row-wise K=2 CSR instead of the bitvecs, and a compacted sparse reduce on 2 GPUs. Phase C adds: generating K=3 candidates as triangles of the frequent-pair graph (145 M of 11.8 B on sk2ml3) would also let the dense tiled kernel launch only the 376,436 counted tile-pairs of 11,571,649 (`bench/results/2026-10-06-phase-c-stake/k3_tiles.txt`).
@@ -51,16 +51,14 @@ Run `git status --short --branch` and `git rev-parse --short HEAD`. HEAD should 
 - Remaining dsl budget after O6: per-candidate 3.23 s, group 2.74 s, tiled 0.06 s (1 GPU, K≥3).
 
 ## Blockers & Pending Decisions
-- PR #24 merge (owner).
 - Whether "ESCO on K=3 explosions" becomes a SPEC item, and the order of items 2–6 (owner).
 
 ## Test Status
 Gate on `238e95a` (`NCCL_P2P_DISABLE=1`, 2026-10-06 ~17:30): `ruff check src tests bench` clean; `pytest -q -m "not slow"` with the 4 known `test_smoke_correctness` ids deselected: 1064 passed, 12 deselected; `tests/test_tier_equivalence.py`: 54 passed; `-m "gpu and slow"`: 5 passed; `-m "gpu and multigpu"`: 53 passed; `bench/selfcheck.py`: READY (13 kernels).
 
 ## What Was Done
-- Merged PR #23 (phase B, `63a59e2`); phase C protocol, kernel, dispatch, tests, tooling, sweep (0.155 GPU-h), campaign (0.384), final check (0.062): 0.601 of 1.5.
+- Merged PR #23 (phase B, `63a59e2`); the owner merged PR #24 (`061d35d`). Phase C protocol, kernel, dispatch, tests, tooling, sweep (0.155 GPU-h), campaign (0.384), final check (0.062): 0.601 of 1.5.
 - `src/et_miner/gpu/kernels/_src/group_pairs.cu`, `kernels/group_pairs.py`, `row_split_chunks.py` (`group_kernels`, `GROUP_MIN_PAIRS`, `GROUP_TILED_MIN_PAIRS`), `_env.small_group_kernel`.
-- PR #24 opened.
 
 ## Commits This Session
 - `823ddb1` bench: phase C report (O6: the group kernel wins dsl, loses nothing)
@@ -83,4 +81,3 @@ Gate on `238e95a` (`NCCL_P2P_DISABLE=1`, 2026-10-06 ~17:30): `ruff check src tes
 
 ## Extra Context
 - Remaining SPEC items: O8, "ESCO on K=3 explosions", O4, the O6 follow-up, the `use_generator_pruning` default. This handoff is committed on main at the owner's request (`git add -f`, since handoffs are excluded locally).
-- The phase C files (`REPORT-C.md` etc.) exist on main only after PR #24 is merged; until then read them on `perf/route-optimizations-c` (`git show perf/route-optimizations-c:bench/optimizations/REPORT-C.md`).

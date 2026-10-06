@@ -68,6 +68,16 @@ Guidance for Claude Code when working in this repository.
   `n_transactions`, guarded to < 2³¹) — keep new dense outputs int32 and
   widen on the host after filtering.
 
+## Git
+
+- Commit and push often: after every finished, verified step (a kernel with its
+  tests and a green gate, a measurement's evidence, a report), commit on the
+  working branch and push it. Do not let work sit uncommitted.
+- Never during a timed run: the runner stamps each row with the tree's digest
+  as it finishes, so a commit or an edit to a tracked file mid-run mislabels
+  rows. Wait for the run to end.
+- Not on `main`, no force-push; a PR or a merge still needs the owner's word.
+
 ## Dev commands
 
 - Environment: `uv venv && uv sync` (dev group included).

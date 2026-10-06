@@ -33,6 +33,7 @@ from et_miner.gpu.mining import (
 from et_miner.gpu.nccl import _init_nccl
 from et_miner.gpu.sparse_csr import (
     SparseMiningState,
+    TidsetFitError,
     convert_shards_to_csr,
     free_groups,
     log_new_shards,
@@ -709,14 +710,20 @@ def _apriori_row_split_multi_gpu(
                 sparse_from_k, k, n_transactions=n_transactions, mean_count=_mean_count
             )
 
-            if _sparse_mode:
-                if not sparse_state.active:
-                    trigger = (
-                        f"measured mean support {_mean_count / n_transactions:.4%} < {DENSITY_CROSSOVER:.4%} crossover"
-                        if sparse_from_k == SPARSE_AUTO else f"fixed sparse_from_k={sparse_from_k}"
-                    )
-                    logger.info(f"  DENSITY TRANSITION at K={k} ({trigger}): dense bitvec → sparse CSR (ESCO)")
+            if _sparse_mode and not sparse_state.active:
+                trigger = (
+                    f"measured mean support {_mean_count / n_transactions:.4%} < {DENSITY_CROSSOVER:.4%} crossover"
+                    if sparse_from_k == SPARSE_AUTO else f"fixed sparse_from_k={sparse_from_k}"
+                )
+                try:
                     sparse_state.shards = convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat)
+                except TidsetFitError as e:
+                    if sparse_from_k != SPARSE_AUTO:
+                        raise
+                    _sparse_mode = False
+                    logger.info(f"  K={k} stays dense ({trigger}): {e}")
+                else:
+                    logger.info(f"  DENSITY TRANSITION at K={k} ({trigger}): dense bitvec → sparse CSR (ESCO)")
                     # Drop only owned references. Caller arrays and containers
                     # remain usable after the one-way transition.
                     if _owns_bitvecs:
@@ -731,6 +738,7 @@ def _apriori_row_split_multi_gpu(
                         "    Bitvecs are caller-owned and were not released; returned this route's pool blocks"
                     )
 
+            if _sparse_mode:
                 groups_info = build_k3plus_groups_from_flat(prev_frequent_flat, with_src_rows=True)
                 n_freq = 0
                 current_flat = np.empty((0, k), dtype=np.int32)

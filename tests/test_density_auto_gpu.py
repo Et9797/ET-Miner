@@ -108,3 +108,36 @@ def test_nccl_fallback_sparse(dataset, monkeypatch):
     df, _ = dataset
     monkeypatch.setenv("ET_MINER_DISABLE_NCCL", "1")
     assert _mine(df, 3) == _mine(df, None)
+
+
+def _no_vram_for_tidsets(monkeypatch):
+    """The conversion's fit check sees a full device; the dense levels see the real one."""
+    from et_miner.gpu import sparse_csr
+
+    monkeypatch.setattr(sparse_csr, "_device_available_bytes", lambda did: (0, 16 << 30))
+
+
+@pytest.mark.parametrize("n_gpus", [1, 2])
+def test_auto_stays_dense_when_tidsets_do_not_fit(dataset, monkeypatch, n_gpus):
+    """A failed fit check leaves the bitvecs intact: every level runs dense, results unchanged."""
+    df, _ = dataset
+    dense = _mine(df, None, n_gpus=n_gpus)
+    _no_vram_for_tidsets(monkeypatch)
+    records: list[str] = []
+    sink_id = logger.add(lambda m: records.append(str(m)), level="INFO")
+    try:
+        got = _mine(df, "auto", n_gpus=n_gpus)
+    finally:
+        logger.remove(sink_id)
+    assert got == dense
+    assert not any("DENSITY TRANSITION" in r for r in records)
+    assert any("stays dense" in r and "tidsets of" in r for r in records)
+
+
+def test_fixed_k_raises_when_tidsets_do_not_fit(dataset, monkeypatch):
+    from et_miner.gpu.sparse_csr import TidsetFitError
+
+    df, _ = dataset
+    _no_vram_for_tidsets(monkeypatch)
+    with pytest.raises(TidsetFitError, match="Start ESCO later"):
+        _mine(df, 3)

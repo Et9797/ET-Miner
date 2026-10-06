@@ -17,6 +17,7 @@ from et_miner.gpu.density import (
     should_transition_to_sparse,
     validate_sparse_from_k,
 )
+from et_miner.gpu.sparse_csr import _shard_reserve_bytes
 
 
 class TestValidateSparseFromK:
@@ -35,6 +36,16 @@ class TestValidateSparseFromK:
     def test_other_types_rejected(self, value):
         with pytest.raises(TypeError, match="sparse_from_k"):
             validate_sparse_from_k(value)
+
+
+class TestShardReserveBytes:
+    """The conversion's fit bound: tids twice at 4 B, offsets and two row-count copies at 8 B."""
+
+    def test_one_shard_is_exact(self):
+        assert _shard_reserve_bytes(np.array([7, 9]), 1_000) == 2 * 4 * 16 + 3 * 8 * 3
+
+    def test_caps_each_itemset_at_the_shard_rows(self):
+        assert _shard_reserve_bytes(np.array([5, 50, 500]), 100) == 2 * 4 * (5 + 50 + 100) + 3 * 8 * 4
 
 
 class TestShouldTransitionFixedK:

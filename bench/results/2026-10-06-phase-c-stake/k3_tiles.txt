@@ -1,0 +1,8 @@
+== oom2ml3-C1-split.lattice N=500,000 words=7,813: tiled groups 344, generated 2,081,965,523, surviving 15,817,733; per-candidate groups generated 1,782, surviving 46
+   T=32: tile-pairs 2,045,954, counted 62,368 (3.05 %), their slots 63,864,832 (use 24.8 %)
+   T=16: tile-pairs 8,158,348, counted 205,714 (2.52 %), their slots 52,662,784 (use 30.0 %)
+   T= 8: tile-pairs 32,580,148, counted 671,794 (2.06 %), their slots 42,994,816 (use 36.8 %)
+== sk2ml3-C1-split.lattice N=2,000,000 words=31,250: tiled groups 687, generated 11,796,794,416, surviving 144,951,355; per-candidate groups generated 2,440, surviving 54
+   T=32: tile-pairs 11,571,649, counted 376,436 (3.25 %), their slots 385,470,464 (use 37.6 %)
+   T=16: tile-pairs 46,184,681, counted 1,321,105 (2.86 %), their slots 338,202,880 (use 42.9 %)
+   T= 8: tile-pairs 184,528,627, counted 4,588,701 (2.49 %), their slots 293,676,864 (use 49.4 %)

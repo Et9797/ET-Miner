@@ -11,11 +11,16 @@ two layouts:
   ``4 * count`` bytes per itemset. Intersection kernels touch only the
   stored tids.
 
-Byte-for-byte the layouts cross over where ``4 * mean_count ==
+Per itemset the layouts cross over where ``4 * mean_count ==
 n_transactions / 8``, i.e. at mean support ``n_transactions / 32``
 (~3.1% density); kernel work scales the same way. ``sparse_from_k="auto"``
 applies that crossover to the mean support count of the previous level —
 which both mining loops already carry for free — instead of a fixed K.
+
+It is not a memory crossover: the dense route keeps only the K=1 bitvecs
+and ANDs them per candidate, while the conversion materializes the tidsets
+of every itemset of the previous level. The conversion checks that they fit
+(``sparse_csr.TidsetFitError``); ``"auto"`` then stays dense for the level.
 
 The transition is one-way by construction: both callers free the bitvecs
 when they convert, and keep sparse mode sticky afterwards regardless of

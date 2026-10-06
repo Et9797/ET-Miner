@@ -109,6 +109,24 @@ def _group_bytes(groups_info) -> int:
     )
 
 
+class TidsetFitError(MemoryError):
+    """The dense→sparse conversion would not fit beside the bitvecs; raised before any allocation."""
+
+
+_MIN_CONVERT_BATCH = 100
+
+
+def _shard_reserve_bytes(counts: np.ndarray, n_rows_local: int) -> int:
+    """Upper bound on one shard's conversion output while it is built.
+
+    A shard holds at most ``min(count, n_rows_local)`` tids of an itemset (exact
+    on one shard). The batch parts and their concatenation coexist once, so the
+    tids count twice; the offsets and both copies of the row counts are int64.
+    """
+    tids = int(np.minimum(counts, n_rows_local).sum())
+    return 2 * 4 * tids + 3 * 8 * (len(counts) + 1)
+
+
 def convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat=None, *, batch_cap: int = 10_000):
     """Build one CsrShard per GPU from its bitvec shard, entirely on-device.
 
@@ -118,11 +136,16 @@ def convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat=Non
             tidsets are wanted, in the row order the shards must keep.
         prev_counts_flat: numpy int64 ``(n_freq,)`` dense counts of the same
             rows, or None (resume without counts). When given, the per-shard
-            row lengths must sum to it exactly — a RuntimeError otherwise.
+            row lengths must sum to it exactly — a RuntimeError otherwise —
+            and they bound the tidset bytes checked before anything is built.
         batch_cap: upper bound on itemsets per AND batch (VRAM-bounded below).
 
     Returns:
         ``[CsrShard, ...]`` in ``bitvecs_list`` order.
+
+    Raises:
+        TidsetFitError: the bounded tidsets plus the smallest AND batch do not
+            fit some GPU. Nothing is allocated and the bitvecs are untouched.
     """
     import cupy as cp
 
@@ -131,13 +154,31 @@ def convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat=Non
     prev_frequent_flat = np.ascontiguousarray(prev_frequent_flat, dtype=np.int32)
     n_freq, k = prev_frequent_flat.shape
 
-    def _one(bv, did, n_rows_local):
+    reserves = [0] * len(bitvecs_list)
+    if prev_counts_flat is not None and n_freq:
+        counts = np.asarray(prev_counts_flat, dtype=np.int64)
+        for i, (bv, did, n_rows_local) in enumerate(bitvecs_list):
+            reserves[i] = _shard_reserve_bytes(counts, int(n_rows_local))
+            floor = 2 * min(_MIN_CONVERT_BATCH, n_freq) * int(bv.shape[1]) * 8
+            free_b, total_b = _device_available_bytes(did)
+            margin = min(max(MARGIN_FLOOR_BYTES, int(total_b * MARGIN_VRAM_FRACTION)), max(0, free_b) // 4)
+            if reserves[i] + floor + margin > free_b:
+                raise TidsetFitError(
+                    f"dense→sparse transition: the tidsets of {n_freq:,} itemsets need up to "
+                    f"{(reserves[i] + floor) / 1e9:.2f} GB on GPU {did} while they are built, but only "
+                    f"{free_b / 1e9:.2f} GB is available beside the bitvecs. Start ESCO later (a higher "
+                    f"sparse_from_k, or 'auto', which stays dense until the tidsets fit), or raise min_support."
+                )
+
+    def _one(bv, did, n_rows_local, reserve):
         with cp.cuda.Device(did):
             n_u64s = int(bv.shape[1])
             pool = cp.get_default_memory_pool()
             free_b, _ = _device_available_bytes(did)
-            # AND temporaries: the accumulator plus the gathered column rows.
-            batch = max(100, min(int(batch_cap), int(free_b * 0.4 // max(1, 2 * n_u64s * 8))))
+            # AND temporaries: the accumulator plus the gathered column rows,
+            # sized from what the growing tidsets leave free.
+            avail = max(0, free_b - reserve)
+            batch = max(_MIN_CONVERT_BATCH, min(int(batch_cap), int(avail * 0.4 // max(1, 2 * n_u64s * 8))))
             popcount = get_popcount_kernel()
             extract = get_cuda_kernel("bitvec_extract_tids")
             count_parts, idx_parts = [], []
@@ -174,7 +215,7 @@ def convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat=Non
             return CsrShard(int(did), int(n_rows_local), offsets, indices), host_counts
 
     with ThreadPoolExecutor(max_workers=len(bitvecs_list)) as pool:
-        results = list(pool.map(lambda t: _one(*t), bitvecs_list))
+        results = list(pool.map(lambda t: _one(*t), [(*s, r) for s, r in zip(bitvecs_list, reserves)]))
     shards = [r[0] for r in results]
 
     if prev_counts_flat is not None and n_freq:

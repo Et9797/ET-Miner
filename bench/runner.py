@@ -12,7 +12,7 @@ balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
 Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail|waste|pruning|
-                                     optimizations-calibration|optimizations [--out DIR]
+                                     optimizations-calibration|optimizations|optimizations-final [--out DIR]
        [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
 
 `consolidation` runs the GPU-layer consolidation matrix
@@ -30,7 +30,8 @@ candidate (`build_pruning_matrix`, bench/pruning/PROTOCOL.md).
 `optimizations` runs phase A of bench/optimizations/PROTOCOL.md
 (`build_optimizations_matrix`); it refuses to start until
 `optimizations-calibration` has recorded the dsl-esco calibration in the same
-directory, and admits dsl-esco at the GPU counts whose calibration is ok.
+directory, and admits dsl-esco at the GPU counts whose calibration is ok;
+`optimizations-final` runs every campaign regime once with the knobs unset.
 `--cpu-only` selects just CPU/oracle configs and needs no CUDA device.
 """
 
@@ -116,6 +117,10 @@ def build_matrix(mode: str, n_dev: int, rows: list[dict] | None = None) -> list[
         from consolidation_matrix import build_optimizations_matrix
 
         return build_optimizations_matrix(n_dev, rows or [])
+    if mode == "optimizations-final":
+        from consolidation_matrix import build_optimizations_final
+
+        return build_optimizations_final(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -425,7 +430,8 @@ def check_equivalence(rows: list[dict]) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail",
-                                         "waste", "pruning", "optimizations-calibration", "optimizations"], required=True)
+                                         "waste", "pruning", "optimizations-calibration", "optimizations",
+                                         "optimizations-final"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,

@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bench"))
 from consolidation_matrix import (
     OPTIMIZATION_ARMS,
     build_optimizations_calibration,
+    build_optimizations_final,
     build_optimizations_matrix,
     calibration_id,
 )
@@ -74,6 +75,16 @@ def test_every_config_pins_the_knobs_threads_and_devices():
             assert c["env"]["CUDA_VISIBLE_DEVICES"] == "0" and c["env"]["ET_MINER_DISABLE_NCCL"] == "1"
         else:
             assert "CUDA_VISIBLE_DEVICES" not in c["env"] and "ET_MINER_DISABLE_NCCL" not in c["env"]
+
+
+def test_final_check_runs_every_campaign_regime_once_with_the_knobs_unset():
+    final = build_optimizations_final(2)
+    campaign = {_regime(c) for c in build_optimizations_matrix(2, _calibrated("error: OOM", "error: OOM"))}
+    regimes = [_regime(c) for c in final]
+    assert len(set(regimes)) == len(regimes) and set(regimes) == campaign
+    assert all(c["rep"] == 0 and c["level_split"] for c in final)
+    assert not any(k in c["env"] for c in final for k in KNOBS)
+    assert all(_regime(c)[1] == 1 for c in build_optimizations_final(1))
 
 
 def test_calibration_is_dsl_esco_base_once_per_gpu_count_capped():

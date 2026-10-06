@@ -404,3 +404,24 @@ def build_optimizations_matrix(n_dev: int, rows: list[dict]) -> list[dict]:
         if w == "dsl" and n_dev >= 2:
             long_ += [_opt("infer-", w, a, n_gpus=2, use_generator_pruning=True) for a in ("base", "compact")]
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in short + esco + long_]
+
+
+def build_optimizations_final(n_dev: int) -> list[dict]:
+    """The final check (`--mode optimizations-final`): one rep of every campaign regime with the knobs unset.
+
+    dsl-esco is not one: its calibration ran out of memory on one and on two GPUs.
+    """
+    gpus = [1, 2] if n_dev >= 2 else [1]
+
+    def final(name: str, workload: str, *, n_gpus: int = 1, **kw) -> dict:
+        return _cfg(f"C{n_gpus}-{name}final", workload, "C", n_gpus=n_gpus, env={"NCCL_P2P_DISABLE": "1"},
+                    level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S, **kw)
+
+    out = [final("", w) for w in ("smoke", "deepk", "skew", "or003", "or002")]
+    out += [final("esco-", w, n_gpus=n, sparse_from_k=3, expect_transition=True) for w in ("deepk", "or002")
+            for n in gpus]
+    out += [final("", "dsl", n_gpus=n) for n in gpus]
+    if n_dev >= 2:
+        out.append(final("infer-", "dsl", n_gpus=2, use_generator_pruning=True))
+    out += [final("", w, n_gpus=n) for w in ("oom2ml3", "sk2ml3") for n in gpus]
+    return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]

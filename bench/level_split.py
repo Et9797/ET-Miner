@@ -20,6 +20,7 @@ Phases:
     group_build    build_k3plus_groups_from_flat, select_k3plus_groups
     group_upload   upload_k3plus_groups (host-to-device group arrays)
     budget         compute_chunk_budget (VRAM probe)
+    k2_dispatch    _k2_row_pairs (the K=2 dispatch's r from the host CSR)
     k2_input       the row-wise K=2 kernel's input: host CSR of frequent
                    positions per shard, and its upload
     count_rows     row-wise K=2 kernel launches (dense chunks)
@@ -50,7 +51,7 @@ import time
 from collections import defaultdict
 
 PHASES = (
-    "group_build", "group_upload", "budget", "k2_input", "count_rows", "count_percand", "count_tiled", "count_fused",
+    "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "count_rows", "count_percand", "count_tiled", "count_fused",
     "transition", "compact", "reduce", "filter", "decode", "sort", "free_prune",
 )
 #: Phases that run after the level's callback, credited to the level just closed.
@@ -161,6 +162,8 @@ class LevelSplit:
         self._patch(filter_mod, "compact_written", self._timed("compact", filter_mod.compact_written))
         self._patch(nccl, "reduce_sum_to_gpu0", self._timed("reduce", nccl.reduce_sum_to_gpu0))
         self._patch(row_split, "compute_chunk_budget", self._timed("budget", row_split.compute_chunk_budget))
+        self._patch(row_split, "_k2_row_pairs", self._timed("k2_dispatch", row_split._k2_row_pairs))
+        self._patch(row_split, "_k2_row_shards", self._timed("k2_input", row_split._k2_row_shards))
         self._patch(row_split, "_upload_k2_rows", self._timed("k2_input", row_split._upload_k2_rows))
         self._patch(row_split, "convert_shards_to_csr", self._timed("transition", row_split.convert_shards_to_csr))
         self._patch(

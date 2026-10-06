@@ -246,16 +246,18 @@ WASTE = ("smoke", "deepk", "skew", "or003", "or002", "dsl")
 def build_waste_matrix(n_dev: int) -> list[dict]:
     """The candidate-waste measurement (`--mode waste`).
 
-    The row-split miner on one GPU at its default dispatch, complete lattice
-    and free-sets, each level's time split recorded (`level_split.py`). Rep 0
-    of every config dumps its lattice for `bench/candidate_waste.py`.
+    The row-split miner on one GPU with the per-candidate and tiled kernels
+    (the dispatch `bench/candidate_waste.py` models), complete lattice and
+    free-sets, each level's time split recorded (`level_split.py`). Rep 0 of
+    every config dumps its lattice for `bench/candidate_waste.py`.
     """
+    env = {"ET_MINER_SMALL_GROUP_KERNEL": "percand"}
     base = []
     for w in WASTE:
-        base.append(_cfg("C1-split", w, "C", level_split=True))
-        base.append(_cfg("C1-split-free", w, "C", level_split=True, prune_equal_support=True))
-    base.append(_cfg("C1-split", "oom2ml3", "C", level_split=True))
-    base.append(_cfg("C1-split", "sk2ml3", "C", level_split=True, timeout_s=3600, single_rep=True))
+        base.append(_cfg("C1-split", w, "C", env=env, level_split=True))
+        base.append(_cfg("C1-split-free", w, "C", env=env, level_split=True, prune_equal_support=True))
+    base.append(_cfg("C1-split", "oom2ml3", "C", env=env, level_split=True))
+    base.append(_cfg("C1-split", "sk2ml3", "C", env=env, level_split=True, timeout_s=3600, single_rep=True))
     cfgs = []
     for rep in range(REPS):
         for c in base:
@@ -445,4 +447,54 @@ def build_o5_calibration_matrix(n_dev: int) -> list[dict]:
             common = {"n_gpus": n, "env": {"NCCL_P2P_DISABLE": "1"}, "level_split": True}
             out.append(_cfg(f"C{n}-dense", w, "C", timeout_s=OPTIMIZATION_TIMEOUT_S, **common))
             out.append(_cfg(f"C{n}-esco", w, "C", timeout_s=cap, sparse_from_k=3, expect_transition=True, **common))
+    return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]
+
+
+#: Phase C (bench/optimizations/PROTOCOL-C.md): `base` pins the per-candidate kernel below today's tiled
+#: crossover; `group` leaves the knob unset, so the sweep's dispatch runs.
+O6_ARMS = {"base": {"ET_MINER_SMALL_GROUP_KERNEL": "percand"}, "group": {}}
+#: Phase C regimes in run order within a rep: (workload, label, GPU counts, miner options).
+O6_REGIMES = (
+    *((w, "", (1,), {}) for w in ("smoke", "deepk", "skew", "or003", "or002")),
+    ("dsl", "", (1, 2), {}),
+    ("dsl", "infer-", (1, 2), {"use_generator_pruning": True}),
+    ("dsl", "free-", (1,), {"prune_equal_support": True}),
+    ("oom2ml3", "", (1, 2), {}),
+    ("sk2ml3", "", (1, 2), {}),
+)
+
+
+def _o6(workload: str, label: str, arm: str, n_gpus: int, **kw) -> dict:
+    env = {**(O6_ARMS[arm] if arm != "final" else {}), "NCCL_P2P_DISABLE": "1"}
+    return _cfg(
+        f"C{n_gpus}-{label}{arm}",
+        workload,
+        "C",
+        n_gpus=n_gpus,
+        env=env,
+        level_split=True,
+        timeout_s=OPTIMIZATION_TIMEOUT_S,
+        **kw,
+    )
+
+
+def _o6_regimes(n_dev: int):
+    for w, label, gpus, kw in O6_REGIMES:
+        for n in gpus:
+            if n <= max(1, n_dev):
+                yield w, label, n, kw
+
+
+def build_o6_matrix(n_dev: int) -> list[dict]:
+    """The phase C campaign (`--mode o6`): `base` against `group` in every regime, 3 reps, rep-major.
+
+    Within a rep: the short configs, then dsl, dsl-infer, dsl-free, oom2ml3, sk2ml3; one GPU before two.
+    """
+    base = [_o6(w, label, a, n, **kw) for w, label, n, kw in _o6_regimes(n_dev) for a in O6_ARMS]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_o6_final(n_dev: int) -> list[dict]:
+    """The phase C final check (`--mode o6-final`): one rep of every campaign regime with the knobs unset."""
+    out = [_o6(w, label, "final", n, **kw) for w, label, n, kw in _o6_regimes(n_dev)]
     return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]

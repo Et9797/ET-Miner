@@ -53,12 +53,18 @@ TILED_MIN_GROUP_PAIRS = {2: 120, 3: 120, 4: 91, 5: 66, 6: 45, 7: 32, 8: 23}
 
 
 #: Pairs per prefix group at which the tiled kernel becomes faster than the
-#: group kernel, per K. Not yet measured: today's per-candidate crossover.
-GROUP_TILED_MIN_PAIRS = dict(TILED_MIN_GROUP_PAIRS)
+#: group kernel, per K. Measured by bench/group_crossover.py
+#: (bench/results/2026-10-06-group-kernel/group_crossover.jsonl): at K=3-6 the
+#: group kernel is faster up to its 64-suffix cap, so 2080 = C(65, 2) leaves the
+#: cap to decide; at K=8 the first crossing lies between 24 and 32 suffixes.
+#: K=7 is the geometric mean of its neighbours; beyond K=8 the K=8 value holds.
+#: The same table holds at 31,250 and 312,500 words.
+GROUP_TILED_MIN_PAIRS = {3: 2080, 4: 2080, 5: 2080, 6: 2080, 7: 877, 8: 370}
 
 #: Pairs per prefix group below which the per-candidate kernel is faster than
-#: the group kernel, per K. Not yet measured: 0, the group kernel everywhere.
-GROUP_MIN_PAIRS = {k: 0 for k in TILED_MIN_GROUP_PAIRS}
+#: the group kernel, per K (same sweep): between 6 and 8 suffixes at K=3, between
+#: 4 and 6 from K=4.
+GROUP_MIN_PAIRS = {3: 20, 4: 9, 5: 9, 6: 9, 7: 9, 8: 9}
 
 
 def _per_k(table: dict[int, int], k: int) -> int:

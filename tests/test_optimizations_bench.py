@@ -1,7 +1,9 @@
-"""Phase A campaign tooling: the matrix pins what bench/optimizations/PROTOCOL.md fixes, and the K=2 sweep's r* rule."""
+"""Phase A and B campaign tooling: the matrices pin what bench/optimizations/PROTOCOL.md and PROTOCOL-B.md fix,
+the K=2 sweep's r* rule, and the level split's CSR phase."""
 
 import math
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -10,13 +12,18 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bench"))
 
 from consolidation_matrix import (
+    O5_ESCO_CAP_S,
     OPTIMIZATION_ARMS,
+    WORKLOADS,
+    build_o5_calibration_matrix,
     build_optimizations_calibration,
     build_optimizations_final,
     build_optimizations_matrix,
     calibration_id,
 )
 from k2_crossover import N_ROWS, check_points, crossover, generate_rows, grid, r_of
+from level_split import LevelSplit
+from runner import build_matrix
 
 KNOBS = ("ET_MINER_K2_KERNEL", "ET_MINER_REDUCE", "ET_MINER_ESCO_MATERIALIZE")
 THREADS = ("POLARS_MAX_THREADS", "RAYON_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS")
@@ -157,3 +164,65 @@ def test_no_crossing_leaves_r_star_unset_and_checks_the_closest_points():
     rows = [_pt("uniform", 300, 5, 0.9), _pt("uniform", 1000, 5, 0.5), _pt("uniform", 3000, 5, 0.95)]
     assert crossover(rows)["r_star"] is None
     assert sorted(p["n_items"] for p in check_points(rows)) == [300, 3000]
+
+
+def test_o5_calibration_has_the_protocol_configs_in_order():
+    matrix = build_o5_calibration_matrix(2)
+    assert [c["id"] for c in matrix] == [
+        f"{w}-C{n}-{a}#r0" for w in ("oom2ml3", "sk2ml3") for n in (1, 2) for a in ("dense", "esco")
+    ]
+    assert build_matrix("o5-calibration", 2) == matrix
+    assert [c["id"] for c in build_o5_calibration_matrix(1)] == [
+        f"{w}-C1-{a}#r0" for w in ("oom2ml3", "sk2ml3") for a in ("dense", "esco")
+    ]
+    for c in matrix:
+        w = c["base_id"].split("-C", 1)[0]
+        esco = c["base_id"].endswith("-esco")
+        assert (c["dataset"], c["min_support"], c["max_length"]) == WORKLOADS[w]
+        assert c.get("sparse_from_k") == (3 if esco else None), c["id"]
+        assert bool(c.get("expect_transition")) == esco, c["id"]
+        assert c["timeout_s"] == (O5_ESCO_CAP_S[w] if esco else 600), c["id"]
+        assert c["rep"] == 0 and c["level_split"] and c["route"] == "C"
+
+
+def test_o5_calibration_pins_threads_and_devices_and_leaves_the_knobs_at_their_defaults():
+    for c in build_o5_calibration_matrix(2):
+        assert all(c["env"][t] == "6" for t in THREADS), c["id"]
+        assert c["env"]["NCCL_P2P_DISABLE"] == "1"
+        assert not any(k in c["env"] for k in KNOBS)
+        assert not c.get("use_generator_pruning") and c.get("prune_apriori", True)
+        if c["n_gpus"] == 1:
+            assert c["env"]["CUDA_VISIBLE_DEVICES"] == "0" and c["env"]["ET_MINER_DISABLE_NCCL"] == "1"
+        else:
+            assert "CUDA_VISIBLE_DEVICES" not in c["env"] and "ET_MINER_DISABLE_NCCL" not in c["env"]
+
+
+def test_level_split_times_csr_launches_as_count_csr(monkeypatch):
+    import et_miner.gpu.sparse_csr as sparse_csr
+
+    class Chunk:
+        per_candidate = False
+
+    def chunk_loop(bitvecs_list, chunks, launch_chunk, *args, **kwargs):
+        for chunk in chunks:
+            launch_chunk(None, 0, chunk)
+
+    monkeypatch.setattr(sparse_csr, "run_chunked_dense_level", chunk_loop)
+    split = LevelSplit()
+    split.install()
+    try:
+        sparse_csr.run_chunked_dense_level([], [Chunk(), Chunk()], lambda bv, did, chunk: time.sleep(0.01))
+        split.callback()(3, 2, 1, 100.0)
+    finally:
+        split.uninstall()
+    assert sparse_csr.run_chunked_dense_level is chunk_loop
+    assert split.levels[3]["count_csr"] >= 0.02
+    assert split.levels[3]["count_tiled"] == split.levels[3]["count_percand"] == 0
+
+
+@pytest.mark.gpu
+def test_copy_bandwidth_is_positive_on_a_device():
+    pytest.importorskip("cupy")
+    from copy_bandwidth import measure
+
+    assert measure(0, nbytes=1 << 24, reps=2) > 0

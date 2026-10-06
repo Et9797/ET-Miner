@@ -425,3 +425,24 @@ def build_optimizations_final(n_dev: int) -> list[dict]:
         out.append(final("infer-", "dsl", n_gpus=2, use_generator_pruning=True))
     out += [final("", w, n_gpus=n) for w in ("oom2ml3", "sk2ml3") for n in gpus]
     return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]
+
+
+#: Phase B step 1 (bench/optimizations/PROTOCOL-B.md): the ESCO caps, in run order. Dense configs get
+#: OPTIMIZATION_TIMEOUT_S.
+O5_ESCO_CAP_S = {"oom2ml3": 30, "sk2ml3": 120}
+
+
+def build_o5_calibration_matrix(n_dev: int) -> list[dict]:
+    """Phase B step 1 (`--mode o5-calibration`): dense against ESCO from K=3, one rep, knobs at their defaults.
+
+    oom2ml3 before sk2ml3; within each, one GPU before two and dense before esco. Every esco config
+    must convert at K=3 (`expect_transition`) and is capped; a cap hit is a loss.
+    """
+    gpus = [1, 2] if n_dev >= 2 else [1]
+    out = []
+    for w, cap in O5_ESCO_CAP_S.items():
+        for n in gpus:
+            common = {"n_gpus": n, "env": {"NCCL_P2P_DISABLE": "1"}, "level_split": True}
+            out.append(_cfg(f"C{n}-dense", w, "C", timeout_s=OPTIMIZATION_TIMEOUT_S, **common))
+            out.append(_cfg(f"C{n}-esco", w, "C", timeout_s=cap, sparse_from_k=3, expect_transition=True, **common))
+    return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]

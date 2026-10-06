@@ -29,6 +29,7 @@ Phases:
     count_fused    count_tiled_fused (one-GPU oversize groups; includes its filter)
     transition     convert_shards_to_csr (the dense-to-ESCO switch: tidsets
                    built from the bitvecs)
+    count_csr      CSR kernel launches of an ESCO level (sparse chunks)
     compact        compact_written (the compacted reduce moving each GPU's
                    written entries to the front of its chunk array)
     reduce         reduce_sum_to_gpu0 (no-op on one GPU)
@@ -52,7 +53,7 @@ from collections import defaultdict
 
 PHASES = (
     "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "count_rows", "count_percand", "count_tiled", "count_fused",
-    "transition", "compact", "reduce", "filter", "decode", "sort", "free_prune",
+    "transition", "count_csr", "compact", "reduce", "filter", "decode", "sort", "free_prune",
 )
 #: Phases that run after the level's callback, credited to the level just closed.
 AFTER_LEVEL = ("materialize",)
@@ -107,8 +108,8 @@ class LevelSplit:
 
         return wrapper
 
-    def _timed_dense_level(self, fn):
-        """Times each chunk launch inside run_chunked_dense_level, by kernel."""
+    def _timed_dense_level(self, fn, phase: str | None = None):
+        """Times each chunk launch inside run_chunked_dense_level, by kernel (or all as ``phase``)."""
 
         def wrapper(bitvecs_list, chunks, launch_chunk, *args, **kwargs):
             rows = launch_chunk.__name__ == _ROWS_LAUNCH
@@ -118,8 +119,8 @@ class LevelSplit:
                 try:
                     return launch_chunk(bitvec_gpu, device_id, chunk)
                 finally:
-                    phase = "count_rows" if rows else "count_percand" if chunk.per_candidate else "count_tiled"
-                    self._record(phase, t0)
+                    kernel = "count_rows" if rows else "count_percand" if chunk.per_candidate else "count_tiled"
+                    self._record(phase or kernel, t0)
 
             return fn(bitvecs_list, chunks, timed_launch, *args, **kwargs)
 
@@ -148,6 +149,7 @@ class LevelSplit:
         import et_miner.gpu.kernels.filter as filter_mod
         import et_miner.gpu.nccl as nccl
         import et_miner.gpu.row_split as row_split
+        import et_miner.gpu.sparse_csr as sparse_csr
 
         for name in ("build_k3plus_groups_from_flat", "select_k3plus_groups"):
             self._patch(kernels, name, self._timed("group_build", getattr(kernels, name)))
@@ -170,6 +172,11 @@ class LevelSplit:
             row_split, "materialize_survivors", self._timed_after_level("materialize", row_split.materialize_survivors)
         )
         self._patch(row_split, "run_chunked_dense_level", self._timed_dense_level(row_split.run_chunked_dense_level))
+        self._patch(
+            sparse_csr,
+            "run_chunked_dense_level",
+            self._timed_dense_level(sparse_csr.run_chunked_dense_level, "count_csr"),
+        )
         self._patch(row_split, "_rows_sorted", self._timed("sort", row_split._rows_sorted))
         self._patch(row_split, "_prune_non_free_mask", self._timed("free_prune", row_split._prune_non_free_mask))
         self._patch(np, "lexsort", self._timed_lexsort(np.lexsort))

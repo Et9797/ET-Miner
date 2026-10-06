@@ -38,7 +38,7 @@ what is not measured.
 | Phase | Items | Why first |
 |---|---|---|
 | A | O1, O2, O3 | measured stakes of seconds to tens of seconds per run |
-| B | O4, O5 | ESCO: memory at depth, and a transition rule that wins |
+| B | O5 (O4 deferred, see O4) | ESCO: a transition rule that wins |
 | C | O6, O7 | smaller, partly measured |
 | research | O8 | no evidence yet; measure offline before building |
 
@@ -136,6 +136,22 @@ offsets — weigh that against the copy on memory.
 **Acceptance.** Identical signatures; ESCO legs with count inference; peak VRAM
 recorded on deep_sparse_large with `sparse_from_k="auto"`.
 
+**Amendment (2026-10-06, owner's decision): deferred.** Offline stakes
+(`bench/results/2026-10-06-phase-b-stake/`) and the fit check
+(`bench/results/2026-10-06-esco-fit/`) leave O4 nothing to win:
+
+- Time: materialization takes at most 0.22 s per run on the measured ESCO
+  workloads, below rule 2's 1 s.
+- Memory: inferred survivors hold 85 % of deep_k's K≥3 tidset bytes, but
+  deep_k's ESCO peak is 331 MB. On deep_sparse_large the ESCO OOM was the
+  conversion of K=5 (125.6 GB), before any inferred candidate; even storing
+  identical tidsets once leaves 49.5 GB at K=5 and 30–42 GB at K=6–7, so the
+  middle levels stay dense on 16 GB. With the fit check, `"auto"` converts at
+  K=14 there, and the peak (12.4 GB on one GPU) comes from the conversion and
+  does not change with count inference.
+
+O4 returns only if O5 finds ESCO levels that win on time but do not fit.
+
 ## O5 — ESCO transition by cost, not bytes
 
 **Evidence.** `"auto"` switches when the previous level's mean count falls below
@@ -150,6 +166,21 @@ crossover. A fixed `sparse_from_k` stays.
 
 **Acceptance.** The protocol decides whether `"auto"` changes; signatures
 identical whichever layout runs.
+
+**Amendment (2026-10-06, owner's decision): first calibrate where ESCO should
+win.** The measured ESCO regimes (deep_k, or002 from K=3; deep_sparse_large
+from K=14) all sit near or above the N/32 rule. ESCO never ran where the
+relative support is lowest and N large: on stress_k2 and oom_regression to K=3
+the mean K=2 count is 103 and 39 against N/32 = 62,500 and 15,625, the
+conversion is 0.68 and 0.07 GB, and a merge of the parent tidsets reads about
+3 % of the dense bytes for the candidates the subset test keeps
+(`bench/results/2026-10-06-phase-b-stake/k3_cost.txt`; a model without tile
+reuse). The dense K=3 level takes 16.96 s and 0.99 s on one GPU. The risk: the
+CSR kernel enumerates all 11.8 B generated candidates of stress_k2 one by one,
+where the tiled kernel skips whole tile-pairs. `bench/optimizations/PROTOCOL-B.md`
+runs that calibration first; the cost model is built only if ESCO wins there.
+Since the fit check (PR #22) a transition happens only when the tidsets fit, so
+the cost model chooses among layouts that fit.
 
 ## O6 — small prefix groups share their prefix AND
 

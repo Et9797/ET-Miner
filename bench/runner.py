@@ -12,7 +12,8 @@ balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
 Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail|waste|pruning|
-                                     optimizations-calibration|optimizations|optimizations-final [--out DIR]
+                                     optimizations-calibration|optimizations|optimizations-final|o5-calibration
+                                     [--out DIR]
        [--max-hours H] [--only SUBSTR] [--skip SUBSTR]
 
 `consolidation` runs the GPU-layer consolidation matrix
@@ -32,6 +33,9 @@ candidate (`build_pruning_matrix`, bench/pruning/PROTOCOL.md).
 `optimizations-calibration` has recorded the dsl-esco calibration in the same
 directory, and admits dsl-esco at the GPU counts whose calibration is ok;
 `optimizations-final` runs every campaign regime once with the knobs unset.
+`o5-calibration` runs step 1 of phase B (bench/optimizations/PROTOCOL-B.md,
+`build_o5_calibration_matrix`) and first appends each GPU's device-to-device
+copy bandwidth (`bench/copy_bandwidth.py`) to <out>/bandwidth.jsonl.
 `--cpu-only` selects just CPU/oracle configs and needs no CUDA device.
 """
 
@@ -121,6 +125,10 @@ def build_matrix(mode: str, n_dev: int, rows: list[dict] | None = None) -> list[
         from consolidation_matrix import build_optimizations_final
 
         return build_optimizations_final(n_dev)
+    if mode == "o5-calibration":
+        from consolidation_matrix import build_o5_calibration_matrix
+
+        return build_o5_calibration_matrix(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -347,6 +355,28 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
             "proc_s": proc_s}
 
 
+def _record_bandwidth(out_dir: Path, rev: str, n_dev: int) -> float:
+    """Append each GPU's copy bandwidth to <out_dir>/bandwidth.jsonl; returns the GPU-seconds it used."""
+    t0 = time.time()
+    proc = subprocess.run(
+        [sys.executable, str(REPO / "bench" / "copy_bandwidth.py")],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        cwd=REPO,
+    )
+    used = (time.time() - t0) * n_dev
+    lines = proc.stdout.strip().splitlines()
+    if proc.returncode != 0 or not lines:
+        print(f"copy bandwidth probe failed (rc={proc.returncode}): {proc.stderr.strip()[-300:]}")
+        return used
+    row = {"rev": rev, "time": time.strftime("%Y-%m-%dT%H:%M:%S"), **json.loads(lines[-1])}
+    with (out_dir / "bandwidth.jsonl").open("a") as f:
+        f.write(json.dumps(row) + "\n")
+    print(f"copy bandwidth: {row['gbps']}")
+    return used
+
+
 def _coverage(
     all_ids: set[str], rows: list[dict], here: str
 ) -> tuple[dict[str, dict], list[str], list[str], list[str], list[str]]:
@@ -431,7 +461,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail",
                                          "waste", "pruning", "optimizations-calibration", "optimizations",
-                                         "optimizations-final"], required=True)
+                                         "optimizations-final", "o5-calibration"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,
@@ -510,6 +540,8 @@ def main() -> int:
 
     failed_here: list[str] = []
     gpu_seconds = 0.0
+    if args.mode == "o5-calibration" and selected and not args.cpu_only:
+        gpu_seconds += _record_bandwidth(out_dir, here, n_dev)
     for cfg in selected:
         if cfg["id"] in done_ids:
             print(f"skip (done): {cfg['id']}  [replayed from raw.jsonl]")

@@ -84,7 +84,8 @@ def measure(workload: str, sizes: list[int], n_groups: int, rows: int | None = N
                     pre &= bv[it]
                 tg, cg = _time(lambda: cpu_miner._count_group_bitvec(bv, pre, ia, ib, suffix))
                 tp, cp = _time(lambda: cpu_miner._count_group_proj(
-                    space.csr, np.flatnonzero(np.unpackbits(pre.view(np.uint8), bitorder="little")), ia, ib, suffix))
+                    space, space.full_rows(np.flatnonzero(np.unpackbits(pre.view(np.uint8), bitorder="little"))),
+                    ia, ib, suffix))
                 assert np.array_equal(cg, cp), "counters disagree"
                 tg_all.append(tg)
                 tp_all.append(tp)

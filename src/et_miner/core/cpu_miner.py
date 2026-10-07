@@ -3,7 +3,9 @@
 Polars reads the transactions once: the row count, the K=1 counts (explode +
 group_by), and a CSR of each row's frequent items, built in row chunks. Every
 level is then mined from that CSR; nothing goes back through a boolean
-DataFrame.
+DataFrame. With n_jobs > 1 the K=2 Gram blocks, the bitvector build and the
+K>=3 prefix groups run on a thread pool (numpy and scipy release the GIL in
+these kernels); n_jobs=1 runs everything on the calling thread.
 
 Usage:
     from et_miner.core.cpu_miner import build_transaction_csr, mine_cpu
@@ -30,13 +32,23 @@ Options (module constants, patched by tests):
     COMPACT_RATIO      K>=3 counting moves to the rows holding >= k items once
                        they are at most this share of the current rows
     AND_CHUNK_BYTES    bytes of pair ANDs materialised at once
+    HEAVY_GROUP_WORK   pairs x bitvector words from which a prefix group goes
+                       to the thread pool (n_jobs > 1); lighter groups stay on
+                       the calling thread
+    PARALLEL_GRAM_WORK pair occurrences (sum of squared row lengths) from which
+                       the K=2 Gram is split into blocks for the thread pool
+    GRAM_BITVEC_RATIO  K=2 runs on bitvectors instead of the scipy Gram when
+                       candidate pairs x words <= this x pair occurrences
 """
 
 from __future__ import annotations
 
 import math
+import os
+import threading
 import time
 from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
@@ -52,12 +64,17 @@ GRAM_BUDGET_BYTES = 256 << 20
 CAND_CHUNK = 2_000_000
 PAIR_MASK_BYTES = 64 << 20
 BITVEC_BUDGET_BYTES = 512 << 20
-BITVEC_CHUNK = 1_000_000
+BITVEC_CHUNK = 125_000
 #: Measured by bench/cpu/l3_crossover.py on real prefix groups (K=3 and K=4): projection becomes
 #: faster at about 30-40 suffixes on 570-1,563 words and about 66-100 on 3,907-15,625 words.
 PROJ_MIN_SUFFIXES: tuple[tuple[float, int], ...] = ((2048, 40), (float("inf"), 80))
 COMPACT_RATIO = 0.5
-AND_CHUNK_BYTES = 32 << 20
+AND_CHUNK_BYTES = 4 << 20
+HEAVY_GROUP_WORK = 2_000_000
+PARALLEL_GRAM_WORK = 5_000_000
+#: Measured on the eight campaign workloads (bitvector K=2 incl. its build, over the scipy Gram): 0.61x and
+#: 0.69x at work ratios 1.7 and 2.7 (skewed_rows, deep_k), 6.3-38.6x at 7.1-175 (smoke, Online Retail, wide).
+GRAM_BITVEC_RATIO = 3.0
 
 _LUT16 = np.array([bin(i).count("1") for i in range(1 << 16)], dtype=np.uint8)
 _HAS_BITWISE_COUNT = hasattr(np, "bitwise_count")
@@ -104,6 +121,21 @@ def _chunk_bounds(lens: np.ndarray, chunk_nnz: int) -> list[tuple[int, int]]:
         bounds.append((start, end))
         start = end
     return bounds
+
+
+def _count_items(column: pl.Series, lens: np.ndarray) -> pl.DataFrame:
+    """(item, count) over the list column, nulls dropped, counted per row chunk and summed.
+
+    Chunking keeps Polars' hash tables to one chunk's distinct items, where one
+    explode + group_by over the whole column held a table per thread.
+    """
+    parts = [
+        column.slice(r0, r1 - r0).explode().drop_nulls().to_frame("item").group_by("item").agg(pl.len().alias("count"))
+        for r0, r1 in _chunk_bounds(lens, CSR_CHUNK_NNZ)
+    ]
+    if not parts:
+        return pl.DataFrame(schema={"item": column.dtype.inner, "count": pl.UInt32})
+    return pl.concat(parts).group_by("item").agg(pl.col("count").sum())
 
 
 def _map_rows(column: pl.Series, items: pl.Series, bound: int) -> tuple[np.ndarray, np.ndarray]:
@@ -153,28 +185,21 @@ def _map_rows(column: pl.Series, items: pl.Series, bound: int) -> tuple[np.ndarr
 def build_transaction_csr(lf: pl.LazyFrame, min_support: float, item_col: str = "items") -> TransactionCSR | None:
     """CSR of the frequent items of every transaction, or None when no item reaches min_count.
 
-    Steps: count the rows; count every item with explode + group_by (streaming,
-    nulls dropped) and keep those at or above ``_min_count``, sorted by item;
-    collect the list column and map it to column ids in row chunks
+    Steps: collect the list column; count every item with explode + group_by
+    per row chunk (``_count_items``, nulls dropped) and keep those at or above
+    ``_min_count``, sorted by item; map the column to column ids in row chunks
     (``_map_rows``); recount each column once per row. An item that reached
     min_count only through repeats inside rows falls below it here and its
     column is removed.
     """
-    n_rows = lf.select(pl.len()).collect(engine="streaming").item()
+    column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
+    n_rows = len(column)
     min_count = _min_count(min_support, n_rows)
-    freq = (
-        lf.select(pl.col(item_col).explode().alias("item"))
-        .drop_nulls()
-        .group_by("item")
-        .agg(pl.len().alias("count"))
-        .filter(pl.col("count") >= min_count)
-        .sort("item")
-        .collect(engine="streaming")
-    )
+    lens = column.list.len().fill_null(1).to_numpy().astype(np.int64)
+    freq = _count_items(column, lens).filter(pl.col("count") >= min_count).sort("item")
     if freq.height == 0:
         return None
     items = freq.get_column("item")
-    column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
     indptr, indices = _map_rows(column, items, int(freq.get_column("count").sum()))
     counts = np.bincount(indices, minlength=len(items)).astype(np.int64)
     keep = counts >= min_count
@@ -191,7 +216,30 @@ def build_transaction_csr(lf: pl.LazyFrame, min_support: float, item_col: str = 
     return TransactionCSR(indptr, indices, n_rows, items, counts, freq.height)
 
 
-def count_pairs(m: csr_matrix, gen: np.ndarray, min_count: int) -> tuple[np.ndarray, np.ndarray]:
+def _workers(n_jobs: int) -> int:
+    """Threads for n_jobs: -1 = every CPU, otherwise at least 1."""
+    return (os.cpu_count() or 1) if n_jobs == -1 else max(1, n_jobs)
+
+
+def _split_by_weight(weights: np.ndarray, parts: int, max_width: int) -> list[tuple[int, int]]:
+    """Contiguous index ranges with about equal total weight, each at most ``max_width`` long."""
+    n = len(weights)
+    cum = np.cumsum(weights, dtype=np.float64)
+    total = cum[-1] if n else 0.0
+    cuts = [0]
+    if total > 0 and parts > 1:
+        marks = np.searchsorted(cum, total * np.arange(1, parts) / parts, side="right")
+        cuts += sorted({int(x) for x in marks} - {0, n})
+    cuts.append(n)
+    out = []
+    for a, b in zip(cuts[:-1], cuts[1:]):
+        out += [(x, min(b, x + max_width)) for x in range(a, b, max_width)]
+    return out
+
+
+def count_pairs(
+    m: csr_matrix, gen: np.ndarray, min_count: int, pool: ThreadPoolExecutor | None = None, n_workers: int = 1
+) -> tuple[np.ndarray, np.ndarray]:
     """Every pair of generating columns with count >= min_count, from one Gram matrix.
 
     Returns (pairs int32 (n, 2) with pairs[:, 0] < pairs[:, 1], lexsorted;
@@ -199,30 +247,79 @@ def count_pairs(m: csr_matrix, gen: np.ndarray, min_count: int) -> tuple[np.ndar
 
     Steps: G = M.T @ M holds every pair count (scipy sparse product,
     accumulated in int32). When a dense block of G (12 B per entry) fits
-    ``GRAM_BUDGET_BYTES`` the product is taken whole; otherwise the rows of G
-    are produced in column blocks, (M[:, block]).T @ M, from one transposed
-    copy of M. Per block keep entries above the diagonal, between generating
-    columns, at or above min_count; then lexsort the survivors.
+    ``GRAM_BUDGET_BYTES`` (shared by the blocks in flight) and no pool is
+    given, the product is taken whole; otherwise the rows of G are produced in
+    column blocks, (M[:, block]).T @ M, from one transposed copy of M, split
+    by column count so the blocks carry similar work, several per worker
+    (only when the rows hold at least ``PARALLEL_GRAM_WORK`` pair occurrences;
+    below that the pool costs more than it saves).
+    Per block keep entries above the diagonal, between generating columns, at
+    or above min_count; then lexsort the survivors.
     """
     n = m.shape[1]
     if n < 2:
         return np.empty((0, 2), dtype=np.int32), np.empty(0, dtype=np.int64)
-    width = max(1, int(GRAM_BUDGET_BYTES // (12 * n)))
-    blocks = [(0, n)] if width >= n else [(j0, min(n, j0 + width)) for j0 in range(0, n, width)]
-    mt = m.T.tocsr() if len(blocks) > 1 else None
-    out_i, out_j, out_c = [], [], []
-    for j0, j1 in blocks:
+    lens = np.diff(m.indptr).astype(np.int64)
+    if pool is not None and int((lens * lens).sum()) < PARALLEL_GRAM_WORK:
+        pool, n_workers = None, 1
+    width = max(1, int(GRAM_BUDGET_BYTES // (12 * n * max(1, n_workers))))
+    parts = 4 * n_workers if pool is not None else 1
+    if width >= n and parts == 1:
+        blocks, mt = [(0, n)], None
+    else:
+        blocks = _split_by_weight(np.bincount(m.indices, minlength=n), parts, width)
+        mt = m.T.tocsr()
+
+    def block(rng: tuple[int, int]):
+        j0, j1 = rng
         g = (m.T @ m).tocsr() if mt is None else (mt[j0:j1] @ m).tocsr()
         rows = np.repeat(np.arange(j0, j1, dtype=np.int32), np.diff(g.indptr))
         cols = g.indices
         keep = (cols > rows) & (g.data >= min_count) & gen[rows] & gen[cols]
-        out_i.append(rows[keep])
-        out_j.append(cols[keep].astype(np.int32))
-        out_c.append(g.data[keep].astype(np.int64))
-        del g, rows, cols, keep
-    i, j, c = np.concatenate(out_i), np.concatenate(out_j), np.concatenate(out_c)
+        return rows[keep], cols[keep].astype(np.int32), g.data[keep].astype(np.int64)
+
+    results = list(pool.map(block, blocks)) if pool is not None else [block(b) for b in blocks]
+    i = np.concatenate([r[0] for r in results])
+    j = np.concatenate([r[1] for r in results])
+    c = np.concatenate([r[2] for r in results])
     order = np.lexsort((j, i))
     return np.stack([i[order], j[order]], axis=1), c[order]
+
+
+def count_pairs_bitvec(
+    bv: np.ndarray, gen: np.ndarray, min_count: int, pool: ThreadPoolExecutor | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """count_pairs on column bitvectors: popcount(bv[a] & bv[b]) for every pair of generating columns.
+
+    ``gen`` holds the generating column ids, ascending. Returns the same
+    (pairs, counts) as ``count_pairs``. Steps per left member a (position i in
+    ``gen``): AND its bitvector with the contiguous block of the later members'
+    bitvectors (a view, no gather), in blocks whose AND stays within
+    ``AND_CHUNK_BYTES``, popcount, keep counts >= min_count. Left members are
+    independent, so a pool runs them concurrently.
+    """
+    m, w = len(gen), bv.shape[1]
+    if m < 2:
+        return np.empty((0, 2), dtype=np.int32), np.empty(0, dtype=np.int64)
+    sub = bv if (m == bv.shape[0] and np.array_equal(gen, np.arange(m))) else bv[gen]
+    block = max(1, AND_CHUNK_BYTES // (8 * w))
+
+    def left(i: int):
+        out_j, out_c = [], []
+        for j0 in range(i + 1, m, block):
+            j1 = min(m, j0 + block)
+            c = popcount_rows(sub[j0:j1] & sub[i])
+            keep = np.flatnonzero(c >= min_count)
+            out_j.append(keep + j0)
+            out_c.append(c[keep])
+        j = np.concatenate(out_j)
+        return np.full(len(j), i, dtype=np.int64), j, np.concatenate(out_c)
+
+    results = list(pool.map(left, range(m - 1))) if pool is not None else [left(i) for i in range(m - 1)]
+    i = np.concatenate([r[0] for r in results])
+    j = np.concatenate([r[1] for r in results])
+    pairs = np.stack([gen[i], gen[j]], axis=1).astype(np.int32)
+    return pairs, np.concatenate([r[2] for r in results]).astype(np.int64)
 
 
 def _pack(rows: np.ndarray, base: int) -> np.ndarray | None:
@@ -326,34 +423,76 @@ def popcount_rows(a: np.ndarray) -> np.ndarray:
     return _LUT16[np.ascontiguousarray(a).view(np.uint16)].sum(axis=1, dtype=np.int64)
 
 
-def build_bitvecs(indptr: np.ndarray, indices: np.ndarray, n_rows: int, n_cols: int) -> np.ndarray:
-    """(n_cols, ceil(n_rows / 64)) uint64 column bitvectors of a CSR (bit r of column c = row r holds c).
+def _row_entries(indptr: np.ndarray, rows: np.ndarray, lens: np.ndarray) -> np.ndarray:
+    """Positions in ``indices`` of every entry of ``rows`` (whose lengths are ``lens``), row by row."""
+    total = int(lens.sum())
+    starts = indptr[rows].astype(np.int64)
+    return np.repeat(starts - (np.cumsum(lens) - lens), lens) + np.arange(total, dtype=np.int64)
 
-    Steps: transpose to CSC (scipy's counting sort, boolean data), whose row
-    ids ascend within each column. Per block of columns holding up to
-    ``BITVEC_CHUNK`` entries, compute each entry's word (column * words +
-    row // 64) and bit (1 << row % 64); words ascend within the block, so
-    OR-reducing each run of equal words (np.bitwise_or.reduceat) yields every
-    word once.
+
+def _aligned_bounds(lens: np.ndarray, chunk: int, align: int = 64) -> list[tuple[int, int]]:
+    """Row ranges of about ``chunk`` entries whose inner boundaries are multiples of ``align``."""
+    out, start, n = [], 0, len(lens)
+    for _, e in _chunk_bounds(lens, chunk):
+        e = n if e == n else max(((e // align) * align), start + align)
+        if e > start:
+            out.append((start, min(e, n)))
+            start = min(e, n)
+    if start < n:
+        out.append((start, n))
+    return out
+
+
+def build_bitvecs(
+    indptr: np.ndarray,
+    indices: np.ndarray,
+    n_cols: int,
+    rows: np.ndarray | None = None,
+    pool: ThreadPoolExecutor | None = None,
+) -> np.ndarray:
+    """(n_cols, ceil(n / 64)) uint64 column bitvectors over ``rows`` of a CSR (None = every row).
+
+    Bit i of column c is set when the i-th selected row holds column c.
+
+    Steps per range of selected rows holding about ``BITVEC_CHUNK`` entries
+    (inner boundaries on multiples of 64 rows, so ranges own disjoint words):
+    gather the rows' entries from the CSR, compute each entry's word
+    (column * words + i // 64) and bit position (i % 64), group the entries by
+    bit position (a stable sort on a uint8 key), and OR each group into its
+    words. Within one bit position a word gets at most one entry, so each OR
+    is a plain fancy-index update. No transposed copy of the CSR is made.
     """
-    w = (n_rows + 63) // 64
+    lens_all = np.diff(indptr).astype(np.int64)
+    sel_lens = lens_all if rows is None else lens_all[rows]
+    n = len(sel_lens)
+    w = (n + 63) // 64
     out = np.zeros(n_cols * w, dtype=np.uint64)
-    if len(indices) == 0:
+    if n == 0 or len(indices) == 0:
         return out.reshape(n_cols, w)
-    csc = csr_matrix((np.ones(len(indices), dtype=bool), indices, indptr), shape=(n_rows, n_cols)).tocsc()
-    cptr, rows_all = csc.indptr.astype(np.int64), csc.indices
-    c0 = 0
-    while c0 < n_cols:
-        c1 = int(np.searchsorted(cptr, cptr[c0] + BITVEC_CHUNK, side="right")) - 1
-        c1 = min(max(c1, c0 + 1), n_cols)
-        a, b = cptr[c0], cptr[c1]
-        if b > a:
-            rows = rows_all[a:b].astype(np.int64)
-            keys = np.repeat(np.arange(c0, c1, dtype=np.int64), np.diff(cptr[c0 : c1 + 1])) * w + (rows >> 6)
-            bits = np.left_shift(np.uint64(1), (rows & 63).astype(np.uint64))
-            starts = np.flatnonzero(np.r_[True, keys[1:] != keys[:-1]])
-            out[keys[starts]] = np.bitwise_or.reduceat(bits, starts)
-        c0 = c1
+
+    def fill(rng: tuple[int, int]) -> None:
+        r0, r1 = rng
+        lens = sel_lens[r0:r1]
+        if lens.sum() == 0:
+            return
+        old = np.arange(r0, r1) if rows is None else rows[r0:r1]
+        cols = indices[_row_entries(indptr, old, lens)].astype(np.int64)
+        local = np.repeat(np.arange(r0, r1, dtype=np.int64), lens)
+        bit = (local & 63).astype(np.uint8)
+        order = np.argsort(bit, kind="stable")
+        word = (cols * w + (local >> 6))[order]
+        cuts = np.searchsorted(bit[order], np.arange(65))
+        for v in range(64):
+            if cuts[v + 1] > cuts[v]:
+                idx = word[cuts[v] : cuts[v + 1]]
+                out[idx] |= np.uint64(1) << np.uint64(v)
+
+    ranges = _aligned_bounds(sel_lens, BITVEC_CHUNK)
+    if pool is not None and len(ranges) > 1:
+        list(pool.map(fill, ranges))
+    else:
+        for r in ranges:
+            fill(r)
     return out.reshape(n_cols, w)
 
 
@@ -366,48 +505,76 @@ def proj_min_suffixes(words: int) -> int:
 
 
 class RowSpace:
-    """The rows K>=3 counting runs on: a CSR over them, its bitvectors, and the dispatch threshold.
+    """The rows K>=3 counting runs on: a selection of the transaction CSR's rows and their bitvectors.
 
-    ``rows`` (ascending ids into the transaction CSR) restricts the space to
-    the transactions long enough to hold the level's candidates; None keeps
-    every row. Bitvectors are built when they fit ``BITVEC_BUDGET_BYTES``;
-    the scipy CSR (int32 data) and the CSC are built on first use.
+    ``rows`` (ascending ids into the transaction CSR) restricts counting to the
+    transactions long enough to hold the level's candidates; None keeps every
+    row. The CSR itself is shared, never copied. Bitvectors are built when
+    they fit ``BITVEC_BUDGET_BYTES``; without them every group is projected
+    over its prefix's tidset, from a CSC built on first use.
     """
 
-    def __init__(self, indptr: np.ndarray, indices: np.ndarray, n_cols: int, rows: np.ndarray | None = None):
-        if rows is not None:
-            lens = np.diff(indptr)
-            selected = np.zeros(len(lens), dtype=bool)
-            selected[rows] = True
-            indices = indices[np.repeat(selected, lens)]
-            new_ptr = np.zeros(len(rows) + 1, dtype=indptr.dtype)
-            np.cumsum(lens[rows], out=new_ptr[1:])
-            indptr = new_ptr
-        self.indptr, self.indices, self.n_cols = indptr, indices, n_cols
-        self.n_rows = len(indptr) - 1
+    def __init__(
+        self,
+        indptr: np.ndarray,
+        indices: np.ndarray,
+        n_cols: int,
+        rows: np.ndarray | None = None,
+        pool: ThreadPoolExecutor | None = None,
+    ):
+        self.indptr, self.indices, self.n_cols, self.rows = indptr, indices, n_cols, rows
+        self.n_rows = (len(indptr) - 1) if rows is None else len(rows)
         self.words = (self.n_rows + 63) // 64
         fits = n_cols * self.words * 8 <= BITVEC_BUDGET_BYTES
-        self.bitvecs = build_bitvecs(indptr, indices, self.n_rows, n_cols) if fits else None
+        self.bitvecs = build_bitvecs(indptr, indices, n_cols, rows, pool) if fits else None
         self.proj_min = proj_min_suffixes(self.words) if fits else 0
-        self._csr: csr_matrix | None = None
         self._csc: csr_matrix | None = None
+        self._lock = threading.Lock()
 
-    @property
-    def csr(self) -> csr_matrix:
-        if self._csr is None:
-            data = np.ones(len(self.indices), dtype=np.int32)
-            self._csr = csr_matrix((data, self.indices, self.indptr), shape=(self.n_rows, self.n_cols))
-        return self._csr
+    def full_rows(self, local: np.ndarray) -> np.ndarray:
+        """Transaction-CSR ids of rows given as positions in this space."""
+        return local if self.rows is None else self.rows[local]
 
     def tidset(self, items: np.ndarray) -> np.ndarray:
-        """Ascending ids of the rows holding every item (CSC column intersection)."""
-        if self._csc is None:
-            self._csc = self.csr.tocsc()
+        """Transaction-CSR ids of the rows holding every item (CSC column intersection)."""
+        with self._lock:
+            if self._csc is None:
+                data = np.ones(len(self.indices), dtype=bool)
+                self._csc = csr_matrix(
+                    (data, self.indices, self.indptr), shape=(len(self.indptr) - 1, self.n_cols)
+                ).tocsc()
         ptr, idx = self._csc.indptr, self._csc.indices
         rows = idx[ptr[items[0]] : ptr[items[0] + 1]]
         for it in items[1:]:
             rows = np.intersect1d(rows, idx[ptr[it] : ptr[it + 1]], assume_unique=True)
         return rows
+
+    def gram(self, rows: np.ndarray, suffix: np.ndarray) -> np.ndarray:
+        """Dense Gram matrix (int64) of the ``suffix`` columns over transaction rows ``rows``.
+
+        Steps per chunk of rows holding about ``BITVEC_CHUNK`` entries: gather
+        their entries from the CSR, keep those in a suffix column (a lookup
+        table maps column -> suffix position), build that small CSR and add
+        its X.T @ X.
+        """
+        s = len(suffix)
+        lut = np.full(self.n_cols, -1, dtype=np.int32)
+        lut[suffix] = np.arange(s, dtype=np.int32)
+        g = np.zeros((s, s), dtype=np.int64)
+        lens_all = np.diff(self.indptr).astype(np.int64)[rows]
+        for r0, r1 in _chunk_bounds(lens_all, BITVEC_CHUNK):
+            lens = lens_all[r0:r1]
+            if lens.sum() == 0:
+                continue
+            pos = lut[self.indices[_row_entries(self.indptr, rows[r0:r1], lens)]]
+            local = np.repeat(np.arange(r1 - r0, dtype=np.int64), lens)
+            keep = pos >= 0
+            local, pos = local[keep], pos[keep]
+            ptr = np.zeros(r1 - r0 + 1, dtype=np.int64)
+            np.cumsum(np.bincount(local, minlength=r1 - r0), out=ptr[1:])
+            x = csr_matrix((np.ones(len(pos), dtype=np.int32), pos, ptr), shape=(r1 - r0, s))
+            g += (x.T @ x).toarray()
+        return g
 
 
 def _group_runs(cands: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
@@ -435,14 +602,14 @@ def _count_group_bitvec(bv: np.ndarray, pre: np.ndarray, ia: np.ndarray, ib: np.
     return out
 
 
-def _count_group_proj(m: csr_matrix, rows: np.ndarray, ia: np.ndarray, ib: np.ndarray, suffix: np.ndarray):
-    """Pair counts of one group: the Gram matrix of the suffix columns over the prefix's rows."""
-    x = m[rows][:, suffix]
-    g = (x.T @ x).toarray()
-    return g[ia, ib].astype(np.int64)
+def _count_group_proj(space: RowSpace, rows: np.ndarray, ia: np.ndarray, ib: np.ndarray, suffix: np.ndarray):
+    """Pair counts of one group: the Gram matrix of the suffix columns over the prefix's transaction rows."""
+    return space.gram(rows, suffix)[ia, ib]
 
 
-def count_candidates(cands: np.ndarray, k: int, space: RowSpace) -> np.ndarray:
+def count_candidates(
+    cands: np.ndarray, k: int, space: RowSpace, pool: ThreadPoolExecutor | None = None, n_workers: int = 1
+) -> np.ndarray:
     """Counts (int64) of lexsorted K-candidates sharing prefix runs, one prefix group at a time.
 
     Steps per run of equal first k-2 items: the suffix columns are the union
@@ -451,19 +618,40 @@ def count_candidates(cands: np.ndarray, k: int, space: RowSpace) -> np.ndarray:
     groups); a group with at least ``space.proj_min`` suffixes is counted by
     projection (its rows are the prefix AND's set bits), a smaller one on the
     bitvectors. Without bitvectors every group is projected over the
-    prefix's CSC tidset.
+    prefix's CSC tidset. With a pool, the groups whose pairs x words reach
+    ``HEAVY_GROUP_WORK`` are cut into slices of about equal work, several per
+    worker, and counted on the pool while the lighter groups are counted on
+    the calling thread (many small numpy calls from several threads contend
+    for the GIL and run slower than one thread). Every group writes its own
+    range of the output.
     """
     out = np.empty(len(cands), dtype=np.int64)
+    starts, ends = _group_runs(cands, k)
+    if pool is None or len(starts) < 2:
+        _count_groups(cands, k, space, starts, ends, out)
+        return out
+    work = (ends - starts).astype(np.float64) * max(1, space.words)
+    heavy = work >= HEAVY_GROUP_WORK
+    hs, he = starts[heavy], ends[heavy]
+    slices = _split_by_weight(work[heavy], 4 * n_workers, len(hs)) if len(hs) else []
+    futures = [pool.submit(_count_groups, cands, k, space, hs[a:b], he[a:b], out) for a, b in slices]
+    _count_groups(cands, k, space, starts[~heavy], ends[~heavy], out)
+    for f in futures:
+        f.result()
+    return out
+
+
+def _count_groups(cands: np.ndarray, k: int, space: RowSpace, starts: np.ndarray, ends: np.ndarray, out: np.ndarray):
+    """count_candidates' per-group work over the runs [starts[i], ends[i]), written into ``out``."""
     bv = space.bitvecs
     parent_key, parent_and = None, None
-    starts, ends = _group_runs(cands, k)
     for s, e in zip(starts.tolist(), ends.tolist()):
         prefix = cands[s, : k - 2]
         a, b = cands[s:e, k - 2], cands[s:e, k - 1]
         suffix = np.union1d(a, b)
         ia, ib = np.searchsorted(suffix, a), np.searchsorted(suffix, b)
         if bv is None:
-            out[s:e] = _count_group_proj(space.csr, space.tidset(prefix), ia, ib, suffix)
+            out[s:e] = _count_group_proj(space, space.tidset(prefix), ia, ib, suffix)
             continue
         if k == 3:
             pre = bv[prefix[0]]
@@ -476,11 +664,10 @@ def count_candidates(cands: np.ndarray, k: int, space: RowSpace) -> np.ndarray:
                     parent_and &= bv[it]
             pre = parent_and & bv[prefix[-1]]
         if len(suffix) >= space.proj_min:
-            rows = np.flatnonzero(np.unpackbits(pre.view(np.uint8), bitorder="little"))
-            out[s:e] = _count_group_proj(space.csr, rows, ia, ib, suffix)
+            local = np.flatnonzero(np.unpackbits(pre.view(np.uint8), bitorder="little"))
+            out[s:e] = _count_group_proj(space, space.full_rows(local), ia, ib, suffix)
         else:
             out[s:e] = _count_group_bitvec(bv, pre, ia, ib, suffix)
-    return out
 
 
 class _LevelIndex:
@@ -611,7 +798,6 @@ def mine_cpu(
     min_count = _min_count(min_support, n_trans)
     max_tx_length = lf.select(pl.col(item_col).list.len().max()).collect(engine="streaming").item() or 0
     effective_max_length = min(max_length if max_length else float("inf"), max_tx_length, n_cols)
-    track_free = prune_equal_support or use_generator_pruning
 
     t_level = time.perf_counter()
     if session:
@@ -630,6 +816,37 @@ def mine_cpu(
     if warn_complexity:
         _warn_complexity(len(gen), min_support)
 
+    workers = _workers(n_jobs)
+    pool = ThreadPoolExecutor(workers) if workers > 1 else None
+    try:
+        _mine_levels(
+            tc, gen, prev, emitted, min_count, effective_max_length, prune_equal_support, use_generator_pruning,
+            enable_length_filter, level_callback, session, pool, workers,
+        )
+    finally:
+        if pool is not None:
+            pool.shutdown()
+    return done(_emit(emitted, tc.items, n_trans))
+
+
+def _mine_levels(
+    tc: TransactionCSR,
+    gen: np.ndarray,
+    prev: _Level,
+    emitted: list[tuple[np.ndarray, np.ndarray]],
+    min_count: int,
+    effective_max_length: float,
+    prune_equal_support: bool,
+    use_generator_pruning: bool,
+    enable_length_filter: bool,
+    level_callback: Callable[[int, int, int, float], None] | None,
+    session: ProfilingSession | None,
+    pool: ThreadPoolExecutor | None,
+    workers: int,
+) -> None:
+    """mine_cpu's levels K>=2: appends each emitted level (itemsets, counts) to ``emitted``."""
+    n_trans, n_cols = tc.n_rows, tc.n_cols
+    track_free = prune_equal_support or use_generator_pruning
     space: RowSpace | None = None
     k = 2
     while k <= effective_max_length and len(gen) >= k:
@@ -638,9 +855,17 @@ def mine_cpu(
             if session:
                 session.record_phase("k2_candidate_gen", 0.0, n_candidates=len(gen) * (len(gen) - 1) // 2)
                 session.start_phase("k2_support_count")
-            gen_mask = np.zeros(n_cols, dtype=bool)
-            gen_mask[gen[:, 0]] = True
-            sets, counts = count_pairs(tc.to_scipy(), gen_mask, min_count)
+            lens = np.diff(tc.indptr).astype(np.int64)
+            occurrences = int((lens * (lens - 1) // 2).sum())
+            words = (n_trans + 63) // 64
+            pairs_work = len(gen) * (len(gen) - 1) // 2 * words
+            if n_cols * words * 8 <= BITVEC_BUDGET_BYTES and pairs_work <= GRAM_BITVEC_RATIO * occurrences:
+                space = RowSpace(tc.indptr, tc.indices, n_cols, None, pool)
+                sets, counts = count_pairs_bitvec(space.bitvecs, gen[:, 0], min_count, pool)
+            else:
+                gen_mask = np.zeros(n_cols, dtype=bool)
+                gen_mask[gen[:, 0]] = True
+                sets, counts = count_pairs(tc.to_scipy(), gen_mask, min_count, pool, workers)
             n_candidates = len(gen) * (len(gen) - 1) // 2
             # Pascal would infer the pairs holding a non-free item; the Gram counts them anyway.
             n_nonfree = int((~prev.free[gen[:, 0]]).sum()) if use_generator_pruning else 0
@@ -649,9 +874,9 @@ def mine_cpu(
             if enable_length_filter:
                 rows_k = np.flatnonzero(np.diff(tc.indptr) >= k)
                 if space is None or len(rows_k) <= COMPACT_RATIO * space.n_rows:
-                    space = RowSpace(tc.indptr, tc.indices, n_cols, rows_k if len(rows_k) < n_trans else None)
+                    space = RowSpace(tc.indptr, tc.indices, n_cols, rows_k if len(rows_k) < n_trans else None, pool)
             elif space is None:
-                space = RowSpace(tc.indptr, tc.indices, n_cols)
+                space = RowSpace(tc.indptr, tc.indices, n_cols, pool=pool)
             infer = use_generator_pruning and not prune_equal_support
             parts_s, parts_c = [], []
             n_candidates = n_inferred = 0
@@ -674,7 +899,7 @@ def mine_cpu(
                     needs = ~licensed
                     n_inferred += int(licensed.sum())
                 if needs.any():
-                    counts[needs] = count_candidates(cands[needs], k, space)
+                    counts[needs] = count_candidates(cands[needs], k, space, pool, workers)
                 keep = counts >= min_count
                 parts_s.append(cands[keep])
                 parts_c.append(counts[keep])
@@ -711,4 +936,3 @@ def mine_cpu(
             break
         k += 1
 
-    return done(_emit(emitted, tc.items, n_trans))

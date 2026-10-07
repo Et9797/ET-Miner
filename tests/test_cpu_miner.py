@@ -142,6 +142,25 @@ def test_count_pairs_matches_a_brute_force(monkeypatch, seed, budget):
     assert np.array_equal(order, np.arange(len(pairs))), "pairs must come out lexsorted"
 
 
+@pytest.mark.parametrize("seed", [0, 1])
+def test_count_pairs_bitvec_matches_the_gram(monkeypatch, seed):
+    monkeypatch.setattr(cpu_miner, "AND_CHUNK_BYTES", 64)
+    dense, m = _random_csr(seed, n_rows=700, n_cols=20)
+    gen = np.flatnonzero(np.random.default_rng(seed).random(20) < 0.8)
+    mask = np.zeros(20, dtype=bool)
+    mask[gen] = True
+    p1, c1 = cpu_miner.count_pairs(m, mask, 12)
+    p2, c2 = cpu_miner.count_pairs_bitvec(cpu_miner.build_bitvecs(m.indptr, m.indices, 20), gen, 12)
+    assert np.array_equal(p1, p2) and np.array_equal(c1, c2)
+
+
+@pytest.mark.parametrize("ratio", [0.0, 1e12])
+def test_both_k2_paths_give_the_route_the_same_result(monkeypatch, ratio):
+    monkeypatch.setattr(cpu_miner, "GRAM_BITVEC_RATIO", ratio)
+    df = pl.DataFrame({"items": _dense_rows(4, n_rows=500)})
+    assert _mined(df, 0.05) == _brute_lattice(df["items"].to_list(), 0.05)[0]
+
+
 def test_count_pairs_on_fewer_than_two_columns():
     _, m = _random_csr(0, n_cols=1)
     pairs, counts = cpu_miner.count_pairs(m, np.ones(1, dtype=bool), 1)
@@ -209,10 +228,32 @@ def test_generate_candidates_on_tiny_levels():
 def test_bitvecs_match_the_dense_matrix(monkeypatch, n_rows, chunk):
     monkeypatch.setattr(cpu_miner, "BITVEC_CHUNK", chunk)
     dense, m = _random_csr(n_rows, n_rows=n_rows, n_cols=9)
-    bv = cpu_miner.build_bitvecs(m.indptr, m.indices, n_rows, 9)
+    bv = cpu_miner.build_bitvecs(m.indptr, m.indices, 9)
     bits = np.unpackbits(bv.view(np.uint8), axis=1, bitorder="little")[:, :n_rows].astype(bool)
     assert np.array_equal(bits, dense.T)
     assert not np.unpackbits(bv.view(np.uint8), axis=1, bitorder="little")[:, n_rows:].any()
+
+
+@pytest.mark.parametrize("chunk", [cpu_miner.BITVEC_CHUNK, 5, 70])
+def test_bitvecs_over_a_row_subset(monkeypatch, chunk):
+    """Rows are renumbered in order; chunk boundaries fall on 64-row words."""
+    monkeypatch.setattr(cpu_miner, "BITVEC_CHUNK", chunk)
+    dense, m = _random_csr(8, n_rows=500, n_cols=7)
+    rows = np.flatnonzero(np.random.default_rng(1).random(500) < 0.6)
+    bv = cpu_miner.build_bitvecs(m.indptr, m.indices, 7, rows)
+    bits = np.unpackbits(bv.view(np.uint8), axis=1, bitorder="little")[:, : len(rows)].astype(bool)
+    assert np.array_equal(bits, dense[rows].T)
+
+
+@pytest.mark.parametrize("chunk", [cpu_miner.BITVEC_CHUNK, 7])
+def test_row_space_gram_matches_a_dense_product(monkeypatch, chunk):
+    monkeypatch.setattr(cpu_miner, "BITVEC_CHUNK", chunk)
+    dense, m = _random_csr(9, n_rows=300, n_cols=10)
+    space = cpu_miner.RowSpace(m.indptr, m.indices, 10)
+    rows = np.flatnonzero(dense[:, 2])
+    suffix = np.array([1, 4, 5, 9])
+    x = dense[rows][:, suffix].astype(np.int64)
+    assert np.array_equal(space.gram(rows, suffix), x.T @ x)
 
 
 @pytest.mark.parametrize("table", [False, True])
@@ -364,6 +405,31 @@ def test_emitted_item_types(dtype, want):
 def test_an_empty_result_keeps_the_schema():
     res = apriori(pl.DataFrame({"items": [[1], [2]]}), min_support=0.9)
     assert res.height == 0 and res.schema == {"itemset": pl.List(pl.Int64), "support": pl.Float64}
+
+
+# ── n_jobs > 1: the same counts from a thread pool ──────────────────────────
+
+
+def test_pool_variants_match_the_sequential_kernels():
+    from concurrent.futures import ThreadPoolExecutor
+
+    dense, m = _random_csr(21, n_rows=900, n_cols=16)
+    gen = np.ones(16, dtype=bool)
+    with ThreadPoolExecutor(4) as pool:
+        p1, c1 = cpu_miner.count_pairs(m, gen, 10)
+        p4, c4 = cpu_miner.count_pairs(m, gen, 10, pool, 4)
+        assert np.array_equal(p1, p4) and np.array_equal(c1, c4)
+        assert np.array_equal(cpu_miner.build_bitvecs(m.indptr, m.indices, 16),
+                              cpu_miner.build_bitvecs(m.indptr, m.indices, 16, pool=pool))
+        cands = _all_candidates(16, 4)
+        space = cpu_miner.RowSpace(m.indptr, m.indices, 16, pool=pool)
+        assert np.array_equal(cpu_miner.count_candidates(cands, 4, space, pool, 4), _brute_counts(dense, cands))
+
+
+@pytest.mark.parametrize("kw", [{}, {"prune_equal_support": True}, {"use_generator_pruning": True}])
+def test_n_jobs_does_not_change_the_result(kw):
+    df = pl.DataFrame({"items": _dense_rows(9, n_rows=600)})
+    assert _mined(df, 0.05, n_jobs=4, **kw) == _mined(df, 0.05, n_jobs=1, **kw)
 
 
 # ── the route end to end ────────────────────────────────────────────────────

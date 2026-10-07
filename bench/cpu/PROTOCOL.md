@@ -169,3 +169,20 @@ tuples: beyond 15 GB). No timeout would make either informative on this box.
 - The harness was functionally checked on smoke (three configs) and once on
   or005 (`F-sparse-T4`, while a test run shared the box) before this protocol
   was committed. Those rows are discarded.
+
+## Amendment 1 (2026-10-07, approved by the owner after rep 0 of or002)
+
+Rep 0 ran over the budget. or002's F configs took 559–595 s each (one hit
+the 600 s cap), so rep 0 alone exceeded 6,300 s; the budget rule then admits no
+rep 1–2 at all, and the first invocation's 1.9 h stop fell inside or0001k2
+(`F-sparse-T1`, `F-sparse-T4` and `EA` of rep 0 did not run). The owner
+approved about an hour more:
+
+- A second invocation (`--max-hours 1.1`) finishes rep 0 and runs reps 1–2 for
+  every config of smoke, deepk, skew and or005 (`EXTRA_REP_WORKLOADS` in
+  `bench/cpu/matrix.py`). wide, or003, or002 and or0001k2 keep one rep; their
+  cells are marked "1 rep".
+- The second invocation runs at a later commit. Between `b40a1dd` and it only
+  `bench/`, documentation and licence files change; `src/` and `rust_ext/src/`
+  are identical (checked with `git diff` before it starts), and the Rust
+  extension is not rebuilt.

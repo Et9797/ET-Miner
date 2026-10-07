@@ -8,7 +8,8 @@ arms of a workload run forward on even reps and reversed on odd reps.
 
 Reps 1 and 2 are budget-gated (``rep_budget``): after rep 0 the runner keeps
 them for the cheapest base configs whose doubled rep-0 process time fits the
-remaining campaign budget (`rep_budget_skip`).
+remaining campaign budget (`rep_budget_skip`), and, by Amendment 1, for every
+config of the ``EXTRA_REP_WORKLOADS``.
 
 Usage: imported by bench/runner.py; `build_cpu_baseline_matrix()` returns the configs.
 """
@@ -18,6 +19,8 @@ from __future__ import annotations
 REPS = 3
 #: Campaign budget in process seconds (rep 0 plus the reps it admits).
 BUDGET_S = 6300
+#: Amendment 1 (PROTOCOL.md): reps 1-2 for these workloads whatever the budget rule says.
+EXTRA_REP_WORKLOADS = ("smoke", "deepk", "skew", "or005")
 #: Per-config cap: a cap hit is a lower bound and is never repeated.
 TIMEOUT_F_S = 600
 TIMEOUT_EA_S = 900
@@ -97,6 +100,8 @@ def rep_budget_skip(cfg: dict, rows: list[dict]) -> str | None:
     row = rep0[cfg["base_id"]]
     if row.get("status") != "ok":
         return f"skipped: rep 0 {row.get('status')}"
+    if cfg["base_id"].split("-", 1)[0] in EXTRA_REP_WORKLOADS:
+        return None
     spent = sum(float(r.get("proc_s") or 0) for r in rep0.values())
     remaining = BUDGET_S - spent
     admitted: set[str] = set()

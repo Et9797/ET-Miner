@@ -7,7 +7,7 @@ miner for one or more GPUs. Every route returns the same itemsets and counts;
 
 | Route | Stack | Selected by |
 |-------|-------|-------------|
-| CPU | Polars; sparse CSR counting in the optional Rust extension | default |
+| CPU | Polars input; one CSR of the frequent items, counted with NumPy/SciPy (Gram matrices, bitvectors) | default |
 | GPU | CuPy kernels on transaction shards, one per GPU, counts summed with NCCL | `use_gpu=True`, `n_gpus=` |
 | Streaming | SON two-pass chunked mining, memory bounded by the chunk size | `streaming=True`, `chunk_size=` |
 
@@ -34,9 +34,10 @@ uv sync                                                   # package + dev group
 uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
 
-It changes no result, only the time: in the consolidation campaign
-(`bench/consolidation/REPORT.md`) the CPU sparse route's K≥3 levels were 4–36×
-slower without it, and the GPU route's host steps 2–27× slower per call.
+It changes no result, only the time. The CPU route does not use it; SON
+streaming's sparse counter and the GPU route's host steps do. In the
+consolidation campaign (`bench/consolidation/REPORT.md`) the GPU route's host
+steps were 2–27× slower per call without it.
 Another project depends on it explicitly, pinned to the engine's revision:
 `uv add "et_miner_rust @ git+https://github.com/Et9797/et-miner.git@<rev>#subdirectory=rust_ext"`.
 
@@ -92,7 +93,23 @@ Configuration comes from `et-miner.toml`, `~/.config/et-miner/config.toml` and
 ## Measurements
 
 Each campaign in `bench/results/` carries its protocol, raw rows and
-environment (`bench/README.md`). From the pruning campaign
+environment (`bench/README.md`).
+
+From the CPU-tier campaign (`bench/cpu/PROTOCOL.md`,
+`bench/results/2026-10-07-cpu-phase1/compare.md`; 4 vCPU Intel Xeon @ 2.10 GHz,
+median of 3 runs, seconds of the mining call with the data loaded), the CPU
+route against efficient-apriori 2.0.6 on the same machine:
+
+| Workload | efficient-apriori | ET-Miner, 1 thread | ET-Miner, `n_jobs=4` |
+|----------|-------------------|--------------------|----------------------|
+| smoke (60K rows, support 0.01) | 0.56 s | 0.12 s | 0.12 s |
+| deep_k (1M rows, 0.02) | 95.2 s | 2.7 s | 2.7 s |
+| skewed_rows (1M rows, 0.02) | 161.5 s | 3.8 s | 2.9 s |
+| wide_vocab (100K rows, 0.004) | 60.1 s | 1.3 s | 0.55 s |
+| Online Retail II (36K invoices, 0.002) | 170.2 s | 7.3 s | 5.6 s |
+| Online Retail II (0.0001, K≤2) | 51.6 s | 1.9 s | 0.96 s |
+
+Both return the same itemsets and counts. From the pruning campaign
 (`bench/pruning/REPORT.md`, 2× RTX A4000, median of 3 runs, stress_k2 without
 the subset test one run):
 

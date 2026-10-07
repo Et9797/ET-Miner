@@ -619,8 +619,8 @@ def _build_matrix_for_items(
     """Boolean matrix with a column per item in `items` — used in SON Pass 2 for consistent mapping."""
     exprs = [pl.col(item_col).list.contains(item).alias(item_to_col[item]) for item in items]
 
-    # Don't use engine="streaming" due to list.contains bug
-    return transactions.select(exprs).collect()
+    # In-memory engine: faster than streaming for one list.contains per item (bench/cpu/list_contains_check.py).
+    return transactions.select(exprs).collect(engine="in-memory")
 
 
 def _get_memory_gb() -> float:

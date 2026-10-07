@@ -105,7 +105,7 @@ def _generate_candidates_k2(
         .select(pl.col("item").alias("a"))
         .join(items_df.lazy().select(pl.col("item").alias("b")), how="cross")
         .filter(pl.col("a") < pl.col("b"))
-        .collect()
+        .collect(engine="in-memory")
     )
 
     return [(row["a"], row["b"]) for row in pairs.iter_rows(named=True)]
@@ -235,7 +235,7 @@ def _generate_from_group_vectorized(
         .select(pl.col("last").alias("a"))
         .join(df.lazy().select(pl.col("last").alias("b")), how="cross")
         .filter(pl.col("a") < pl.col("b"))
-        .collect()
+        .collect(engine="in-memory")
     )
 
     # Convert to candidates and apply Apriori pruning

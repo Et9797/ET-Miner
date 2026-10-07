@@ -12,6 +12,25 @@ All notable changes to ET-Miner are recorded here. Versions follow
 
 ## [Unreleased] — 0.2.0
 
+### Polars 2.0
+
+- **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0
+  makes the streaming engine the default for `LazyFrame.collect()`. The four
+  calls that relied on the old in-memory default now name it
+  (`engine="in-memory"`): the `list.contains` matrix builds in
+  `build_boolean_matrix` and SON pass 2, the K=2 and prefix-group cross joins
+  in `core/candidates.py`, and the remote resume read in `gpu/row_split.py`.
+  Every other `collect` already named its engine. No mined output changes.
+- The old reason for keeping `list.contains` off the streaming engine (a ~2 %
+  undercount) does not reproduce: `bench/cpu/list_contains_check.py` found
+  exact column sums on both engines, on 1.43.2 and 2.0.0, for 600 items on
+  smoke, deep_k, skewed_rows and stress_k2 (up to 2M rows). In-memory stays
+  because it is faster there (skewed_rows 12.7 s vs 18.9 s streaming on 2.0.0).
+- `explode()` of an empty list now yields no row instead of a null row. On 1.x
+  an empty transaction added a null "item" to the K=1 counts, whose
+  `list.contains(None)` column summed to 0 and was dropped at K=1; on 2.0 it is
+  never counted. Same output either way.
+
 ### Candidate pruning on the GPU (supersedes the DP9 removal)
 
 - **`prune_apriori` is back, default `True`, as a device-side subset test.**

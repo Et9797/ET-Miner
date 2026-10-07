@@ -164,11 +164,10 @@ def build_boolean_matrix(
 
     exprs = [pl.col(item_col).list.contains(item_id).alias(col_name) for col_name, item_id in col_to_item.items()]
 
-    # NOTE: Do NOT use engine="streaming" here. The streaming engine has a bug
-    # with list.contains() that undercounts True values by ~2%. This causes items
-    # near the support threshold to be incorrectly filtered out.
-    # Verified on 2.5M transactions: streaming counted 4,073 vs correct 4,156.
-    matrix = transactions.select(exprs).collect()
+    # In-memory engine, pinned: Polars 2.0 made streaming the default, and for one
+    # list.contains per item it is slower (bench/cpu/list_contains_check.py measured
+    # exact column sums on both engines, 1.43.2 and 2.0.0, up to 2M rows).
+    matrix = transactions.select(exprs).collect(engine="in-memory")
 
     return matrix, col_to_item, n_transactions
 

@@ -17,12 +17,17 @@ Options (module constants, patched by tests):
     GRAM_BUDGET_BYTES  bytes one K=2 Gram block may take (12 B per entry of
                        a dense block); above it the columns are split into
                        blocks
+    CAND_CHUNK         K>=3 candidates generated (before the subset test) per
+                       chunk; bounds the generation's temporary memory
+    PAIR_MASK_BYTES    largest n_items**2 for which the K=3 subset test reads
+                       a boolean pair mask instead of binary-searching keys
 """
 
 from __future__ import annotations
 
+import math
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 
 import numpy as np
@@ -35,6 +40,8 @@ from .result import _build_result_df, _empty_result, _min_count
 
 CSR_CHUNK_NNZ = 500_000
 GRAM_BUDGET_BYTES = 256 << 20
+CAND_CHUNK = 2_000_000
+PAIR_MASK_BYTES = 64 << 20
 
 
 @dataclass(frozen=True)
@@ -199,6 +206,100 @@ def count_pairs(m: csr_matrix, gen: np.ndarray, min_count: int) -> tuple[np.ndar
     return np.stack([i[order], j[order]], axis=1), c[order]
 
 
+def _pack(rows: np.ndarray, base: int) -> np.ndarray | None:
+    """Mixed-radix int64 keys of int32 rows (lexicographic order kept), or None if they could overflow."""
+    if rows.shape[1] * math.log2(max(base, 2)) >= 62:
+        return None
+    key = np.zeros(len(rows), dtype=np.int64)
+    for c in range(rows.shape[1]):
+        key = key * base + rows[:, c]
+    return key
+
+
+class _Membership:
+    """Which rows of an int32 array occur in a lexsorted level of the same width.
+
+    Packed int64 keys and binary search when the keys fit in 62 bits; else a
+    byte-wise row comparison (np.isin on a void view). At width 2 with
+    n_items**2 <= PAIR_MASK_BYTES, a boolean pair mask.
+    """
+
+    def __init__(self, level: np.ndarray, base: int) -> None:
+        self.base = base
+        self.mask = None
+        self.keys = None
+        if level.shape[1] == 2 and base * base <= PAIR_MASK_BYTES:
+            self.mask = np.zeros((base, base), dtype=bool)
+            self.mask[level[:, 0], level[:, 1]] = True
+            return
+        self.keys = _pack(level, base)
+        if self.keys is None:
+            self.void = np.dtype((np.void, 4 * level.shape[1]))
+            self.rows = np.ascontiguousarray(level, dtype=np.int32).view(self.void).ravel()
+
+    def contains(self, sub: np.ndarray) -> np.ndarray:
+        if self.mask is not None:
+            return self.mask[sub[:, 0], sub[:, 1]]
+        if self.keys is not None:
+            key = _pack(sub, self.base)
+            pos = np.minimum(np.searchsorted(self.keys, key), len(self.keys) - 1)
+            return self.keys[pos] == key
+        return np.isin(np.ascontiguousarray(sub, dtype=np.int32).view(self.void).ravel(), self.rows)
+
+
+def generate_candidates(prev: np.ndarray, k: int, n_cols: int) -> Iterator[np.ndarray]:
+    """K-candidates from the lexsorted (k-1)-itemsets ``prev``, in lexsorted chunks.
+
+    A candidate joins two itemsets that share their first k-2 items (a prefix
+    group) and survives when every (k-1)-subset is in ``prev`` (Apriori's
+    subset test). Yields int32 (m, k) arrays; concatenated they are the full
+    lexsorted candidate list of ``core.candidates._generate_candidates``.
+
+    Steps: find the prefix runs; each member pairs with every later member of
+    its run, so the number of partners per member is known; walk the members
+    in chunks whose partner total stays near ``CAND_CHUNK`` (a large run is
+    split by its left member); per chunk expand the pairs with repeat/cumsum,
+    then test the k-2 subsets that drop a prefix item (the two that drop a
+    suffix item are the joined itemsets themselves) with ``_Membership``.
+    """
+    n = len(prev)
+    if n < 2:
+        return
+    if k == 3:
+        change = prev[1:, 0] != prev[:-1, 0]
+    else:
+        change = np.any(prev[1:, : k - 2] != prev[:-1, : k - 2], axis=1)
+    starts = np.flatnonzero(np.r_[True, change])
+    sizes = np.diff(np.r_[starts, n])
+    pos = np.arange(n) - np.repeat(starts, sizes)
+    partners = np.repeat(sizes, sizes) - 1 - pos
+    cum = np.cumsum(partners)
+    member = _Membership(prev, n_cols)
+    e0 = 0
+    while e0 < n:
+        before = int(cum[e0 - 1]) if e0 else 0
+        e1 = min(max(int(np.searchsorted(cum, before + CAND_CHUNK, side="right")), e0 + 1), n)
+        p = partners[e0:e1]
+        total = int(p.sum())
+        if total:
+            left = np.repeat(np.arange(e0, e1, dtype=np.int64), p)
+            right = left + 1 + (np.arange(total, dtype=np.int64) - np.repeat(np.cumsum(p) - p, p))
+            cands = np.empty((total, k), dtype=np.int32)
+            cands[:, : k - 1] = prev[left]
+            cands[:, k - 1] = prev[right, k - 2]
+            del left, right
+            keep = np.ones(total, dtype=bool)
+            for drop in range(k - 2):
+                idx = np.flatnonzero(keep)
+                if len(idx) == 0:
+                    break
+                keep[idx] = member.contains(cands[idx][:, [c for c in range(k) if c != drop]])
+            out = cands[keep]
+            if len(out):
+                yield out
+        e0 = e1
+
+
 def _count_on_csr(
     csr: csr_matrix,
     col_to_idx: dict[str, int],
@@ -242,7 +343,6 @@ def mine_cpu(
     mean what they mean on ``apriori()``.
     """
     from .apriori import _infer_count_from_subsets, _prune_equal_support, _warn_complexity
-    from .candidates import _generate_candidates
 
     session = ProfilingSession() if profile else None
 
@@ -319,7 +419,11 @@ def mine_cpu(
         else:
             if session:
                 session.start_phase(f"k{k}_candidate_gen")
-            candidates = _generate_candidates(prev_frequent, k)
+            prev_arr = np.array([[col_to_idx[c] for c in s] for s in prev_frequent], dtype=np.int32)
+            prev_arr = prev_arr[np.lexsort(prev_arr.T[::-1])]
+            chunks = list(generate_candidates(prev_arr, k, tc.n_cols))
+            cand_arr = np.concatenate(chunks) if chunks else np.empty((0, k), dtype=np.int32)
+            candidates = [tuple(item_cols[c] for c in row) for row in cand_arr.tolist()]
             if session:
                 session.end_phase(n_candidates=len(candidates))
             if not candidates:

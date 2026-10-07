@@ -148,6 +148,59 @@ def test_count_pairs_on_fewer_than_two_columns():
     assert pairs.shape == (0, 2) and len(counts) == 0
 
 
+# ── L4: K>=3 candidates on sorted int32 arrays ──────────────────────────────
+
+
+def _random_level(seed: int, k: int, n_cols: int = 14, n: int = 300) -> np.ndarray:
+    rng = np.random.default_rng(seed)
+    rows = {tuple(sorted(rng.choice(n_cols, size=k, replace=False).tolist())) for _ in range(n)}
+    arr = np.array(sorted(rows), dtype=np.int32)
+    return arr
+
+
+def _reference_candidates(level: np.ndarray, k: int) -> np.ndarray:
+    from et_miner.core.candidates import _generate_candidates
+
+    names = [f"i_{i:02d}" for i in range(64)]
+    out = _generate_candidates([tuple(names[c] for c in row) for row in level.tolist()], k)
+    arr = np.array([[int(c[2:]) for c in t] for t in out], dtype=np.int32).reshape(-1, k)
+    return arr[np.lexsort(arr.T[::-1])] if len(arr) else arr
+
+
+@pytest.mark.parametrize("chunk", [cpu_miner.CAND_CHUNK, 7, 1])
+@pytest.mark.parametrize("k", [3, 4, 5, 6])
+@pytest.mark.parametrize("seed", [0, 1])
+def test_generate_candidates_matches_the_reference(monkeypatch, seed, k, chunk):
+    monkeypatch.setattr(cpu_miner, "CAND_CHUNK", chunk)
+    level = _random_level(seed, k - 1)
+    got = list(cpu_miner.generate_candidates(level, k, 14))
+    got = np.concatenate(got) if got else np.empty((0, k), dtype=np.int32)
+    assert np.array_equal(got, _reference_candidates(level, k))
+
+
+@pytest.mark.parametrize("path", ["mask", "keys", "bytes"])
+def test_every_subset_test_path_agrees(monkeypatch, path):
+    """The pair mask (K=3), packed keys, and the byte-wise fallback give the same candidates."""
+    if path == "keys":
+        monkeypatch.setattr(cpu_miner, "PAIR_MASK_BYTES", 0)
+    if path == "bytes":
+        monkeypatch.setattr(cpu_miner, "PAIR_MASK_BYTES", 0)
+        monkeypatch.setattr(cpu_miner, "_pack", lambda rows, base: None)
+    for k in (3, 4):
+        level = _random_level(3, k - 1)
+        got = np.concatenate(list(cpu_miner.generate_candidates(level, k, 14)))
+        assert np.array_equal(got, _reference_candidates(level, k))
+
+
+def test_generate_candidates_on_tiny_levels():
+    assert list(cpu_miner.generate_candidates(np.empty((0, 2), dtype=np.int32), 3, 5)) == []
+    assert list(cpu_miner.generate_candidates(np.array([[0, 1]], dtype=np.int32), 3, 5)) == []
+    lone = np.array([[0, 1], [0, 2]], dtype=np.int32)
+    assert list(cpu_miner.generate_candidates(lone, 3, 5)) == []
+    tri = np.array([[0, 1], [0, 2], [1, 2]], dtype=np.int32)
+    assert np.array_equal(np.concatenate(list(cpu_miner.generate_candidates(tri, 3, 5))), [[0, 1, 2]])
+
+
 # ── the route end to end ────────────────────────────────────────────────────
 
 

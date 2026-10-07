@@ -186,3 +186,23 @@ approved about an hour more:
   `bench/`, documentation and licence files change; `src/` and `rust_ext/src/`
   are identical (checked with `git diff` before it starts), and the Rust
   extension is not rebuilt.
+
+## Amendment 2 (2026-10-07, the Phase 1 campaign, repetitions approved by the owner)
+
+- The Phase 1 campaign runs the same matrix and procedure (`bench/runner.py
+  --mode cpu-baseline`) on the Phase 1 tree, into
+  `bench/results/2026-10-07-cpu-phase1/`, with `--max-hours 1.5` as a hard
+  stop. Every config gets 3 reps: the owner approved 3 reps, and with the
+  array miner rep 0 stays far under the 6,300 s budget (projected about
+  15 minutes, mostly efficient-apriori), so the budget gate admits reps 1–2
+  for every config.
+- The four baseline regimes with one rep (wide, or003, or002, or0001k2) keep
+  their single baseline value; the owner accepted that, given projected gaps
+  of 10–300×.
+- Per-level phases come from the array miner (`bench/cpu/split.py`:
+  matrix_build, k2_gram, k2_bitvec, bitvec_build, count, subsets, other, and
+  emit in the tail) and from the `profile=True` phases.
+- Decisions follow the Phase 1 rules above: the goal test against
+  efficient-apriori per regime, rule 2 against the Phase 0 baseline for the
+  before/after, and the 25 % rule on `ru_maxrss_mb` against the same arm and
+  thread setting of the baseline.

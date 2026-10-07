@@ -25,25 +25,24 @@ Usage (inside a bench child, after warm-up, around the timed call):
         ea.uninstall()
     ea.levels(t_end)
 
-CPU-route phases (seconds, union of intervals; nested phases are also counted
-inside their parent):
-    matrix_build    build_boolean_matrix (transaction count, K=1 counts, list.contains matrix)
-    cand_gen        _generate_candidates
-    count           count_support_batched, which contains:
-      len_filter      _filter_transactions_by_length (sum_horizontal + filtered copy)
-      density         _estimate_density
-      to_csr          _polars_to_sparse_csr
-      k2_sparse       _count_support_sparse_k2_batch / _parallel (contains matmul)
-      matmul          _sparse_matmul
-      kgt2            _count_support_sparse_k_gt_2 (contains rust_call)
-      rust_call       the Rust counting call (_call_with_budget)
-      polars_count    count_support_vectorized (contains polars_collect)
-      polars_collect  LazyFrame.collect inside count_support_vectorized
-    other           the level's time minus cand_gen and count (inference, dict
-                    merge, threshold filter, emit, free-set test)
+CPU-route phases (core/cpu_miner.py; seconds, union of intervals):
+    matrix_build    build_transaction_csr (K=1 counts and the CSR)
+    k2_gram         count_pairs (scipy Gram)
+    k2_bitvec       count_pairs_bitvec (K=2 on bitvectors)
+    bitvec_build    build_bitvecs (row-space bitvectors; may run inside k2_bitvec's level)
+    count           count_candidates (K>=3 prefix groups)
+    subsets         _Level.subset_positions (Pascal and free-set look-ups)
+    other           the level's time minus the phases above: candidate
+                    generation, Pascal and free-set arithmetic, bookkeeping
+                    (the profile's kN_candidate_gen phases time the generation)
     level           the level's time as level_callback reports it
     span            wall time since the previous level closed (K=1: since install);
                     for K=1 it holds matrix_build and the max-length scan
+    tail: emit      _emit (the result frame), after the last level
+
+Rows recorded before the array miner (Phase 0, bench/results/2026-10-07-cpu-baseline)
+carry the old engine's phases (build_boolean_matrix, count_support_batched and
+their parts); see this file at commit b40a1dd.
 
 efficient-apriori phases:
     index           TransactionManager construction (one row-id set per item)
@@ -61,12 +60,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from level_split import _union_length  # noqa: E402
 
-PHASES = (
-    "matrix_build", "cand_gen", "count", "len_filter", "density", "to_csr", "k2_sparse", "matmul",
-    "kgt2", "rust_call", "polars_count", "polars_collect",
-)
-#: Top-level phases of a level; "other" is the level's time minus these.
-TOP = ("cand_gen", "count")
+PHASES = ("matrix_build", "k2_gram", "k2_bitvec", "bitvec_build", "count", "subsets")
+#: Phases inside a level's timed span; "other" is the level's time minus these.
+TOP = ("k2_gram", "k2_bitvec", "bitvec_build", "count", "subsets")
 
 
 class CpuSplit:
@@ -89,22 +85,6 @@ class CpuSplit:
 
         return wrapper
 
-    def _timed_vectorized(self, fn):
-        """count_support_vectorized, with LazyFrame.collect timed while it runs."""
-        import polars as pl
-
-        def wrapper(*args, **kwargs):
-            original = pl.LazyFrame.collect
-            pl.LazyFrame.collect = self._timed("polars_collect", original)
-            t0 = time.perf_counter()
-            try:
-                return fn(*args, **kwargs)
-            finally:
-                pl.LazyFrame.collect = original
-                self._pending["polars_count"].append((t0, time.perf_counter()))
-
-        return wrapper
-
     def _patch(self, owner, name: str, replacement) -> None:
         self._saved.append((owner, name, getattr(owner, name)))
         setattr(owner, name, replacement)
@@ -112,24 +92,12 @@ class CpuSplit:
     def install(self) -> None:
         import importlib
 
-        # By module path: et_miner.core re-exports the function `apriori`, which shadows the submodule.
-        ap = importlib.import_module("et_miner.core.apriori")
-        mx = importlib.import_module("et_miner.core.matrix")
-        sp = importlib.import_module("et_miner.core.sparse")
-
-        self._patch(ap, "build_boolean_matrix", self._timed("matrix_build", ap.build_boolean_matrix))
-        self._patch(ap, "_generate_candidates", self._timed("cand_gen", ap._generate_candidates))
-        self._patch(ap, "count_support_batched", self._timed("count", ap.count_support_batched))
-        self._patch(ap, "_build_result_df", self._timed("result_df", ap._build_result_df))
-        self._patch(mx, "_filter_transactions_by_length", self._timed("len_filter", mx._filter_transactions_by_length))
-        self._patch(mx, "count_support_vectorized", self._timed_vectorized(mx.count_support_vectorized))
-        self._patch(sp, "_estimate_density", self._timed("density", sp._estimate_density))
-        self._patch(sp, "_polars_to_sparse_csr", self._timed("to_csr", sp._polars_to_sparse_csr))
-        for name in ("_count_support_sparse_k2_batch", "_count_support_sparse_k2_parallel"):
-            self._patch(sp, name, self._timed("k2_sparse", getattr(sp, name)))
-        self._patch(sp, "_sparse_matmul", self._timed("matmul", sp._sparse_matmul))
-        self._patch(sp, "_count_support_sparse_k_gt_2", self._timed("kgt2", sp._count_support_sparse_k_gt_2))
-        self._patch(sp, "_call_with_budget", self._timed("rust_call", sp._call_with_budget))
+        cm = importlib.import_module("et_miner.core.cpu_miner")
+        for name, phase in (("build_transaction_csr", "matrix_build"), ("count_pairs", "k2_gram"),
+                            ("count_pairs_bitvec", "k2_bitvec"), ("build_bitvecs", "bitvec_build"),
+                            ("count_candidates", "count"), ("_emit", "emit")):
+            self._patch(cm, name, self._timed(phase, getattr(cm, name)))
+        self._patch(cm._Level, "subset_positions", self._timed("subsets", cm._Level.subset_positions))
         self._t_last = time.perf_counter()
 
     def uninstall(self) -> None:

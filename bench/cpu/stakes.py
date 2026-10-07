@@ -427,14 +427,18 @@ def _campaign_signature(raw: Path | None, workload: str) -> dict | None:
         c = r.get("config", {})
         if r.get("status") == "ok" and c.get("route") == "F" and str(c.get("base_id", "")).startswith(workload + "-"):
             levels = {lv["k"]: lv.get("n_frequent") for lv in r.get("levels", []) if lv.get("n_frequent") is not None}
+            cands = {lv["k"]: lv.get("n_candidates") for lv in r.get("levels", []) if lv["k"] >= 2}
             return {"n_itemsets": r["n_itemsets"], "sum_counts": r["sum_counts"], "itemset_hash": r["itemset_hash"],
-                    "levels": levels, "from": r["id"]}
+                    "levels": levels, "cands": cands, "from": r["id"]}
     return None
 
 
 def mine(workload: str, threads: int, rec: Recorder, raw: Path | None) -> dict:
     dataset, min_support, max_length = WORKLOADS[workload]
     df, n_rows, _ = _load(dataset)
+    camp = _campaign_signature(raw, workload)
+    camp_cands = camp["cands"] if camp else {}
+    camp_freq = camp["levels"] if camp else {}
     min_count = _min_count(min_support, n_rows)
     max_tx = int(df.select(pl.col("items").list.len().max()).item() or 0)
 
@@ -475,6 +479,9 @@ def mine(workload: str, threads: int, rec: Recorder, raw: Path | None) -> dict:
         base_name, (pairs, cnt) = next(iter(outs.items()))
         for name, (p2, c2) in outs.items():
             assert np.array_equal(p2, pairs) and np.array_equal(c2, cnt), f"L1: {name} differs from {base_name}"
+        if 2 in camp_cands:
+            assert camp_cands[2] == n_cols * (n_cols - 1) // 2, "K=2 candidate count differs from the campaign"
+            assert camp_freq.get(2, len(pairs)) == len(pairs), "K=2 frequent count differs from the campaign"
         rec.emit({"lever": "L1", "variant": "result", "k": 2, "n_frequent": len(pairs),
                   "dense_bytes": n_cols * n_cols * 4})
         lattice.append((pairs, cnt))
@@ -496,6 +503,8 @@ def mine(workload: str, threads: int, rec: Recorder, raw: Path | None) -> dict:
             ref_c, dt = gen_pyref(prev, k, names, name_idx)
             rec.emit({"lever": "L4", "variant": "pyref", "k": k, "s": round(dt, 6), "n_prev": len(prev)})
             assert np.array_equal(ref_c, cands), f"L4: array candidates differ from _generate_candidates at K={k}"
+        if k in camp_cands:
+            assert camp_cands[k] == len(cands), f"L4: {len(cands)} candidates at K={k}, campaign {camp_cands[k]}"
         if len(cands) == 0:
             break
         counts = {}
@@ -519,6 +528,8 @@ def mine(workload: str, threads: int, rec: Recorder, raw: Path | None) -> dict:
         rec.run("L5", "csr_len_filter", lambda: csr[np.flatnonzero(np.diff(csr.indptr) >= k)], k=k)
         rec.run("L5", "int64_casts", lambda: (csr.indptr.astype(np.int64), csr.indices.astype(np.int64)), k=k)
         prev = cands[keep]
+        if k in camp_freq:
+            assert camp_freq[k] == len(prev), f"L3: {len(prev)} frequent at K={k}, campaign {camp_freq[k]}"
         rec.emit({"lever": "L3", "variant": "result", "k": k, "n_candidates": len(cands), "n_frequent": len(prev)})
         if len(prev) == 0:
             break
@@ -538,7 +549,6 @@ def mine(workload: str, threads: int, rec: Recorder, raw: Path | None) -> dict:
     rows = [(item_ids[s].tolist(), int(c) / n_rows) for sets, cnts in lattice for s, c in zip(sets, cnts)]
     frame = pl.DataFrame(rows, schema={"itemset": pl.List(pl.Int64), "support": pl.Float64}, orient="row")
     sig = result_signatures(frame, n_rows)
-    camp = _campaign_signature(raw, workload)
     summary = {"lever": "summary", "variant": "lattice", **sig, "levels": {i + 1: len(s) for i, (s, _) in enumerate(lattice)}}
     if rf is not None:
         rsets, rcnts = rf

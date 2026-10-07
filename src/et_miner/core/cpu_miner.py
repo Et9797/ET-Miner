@@ -21,6 +21,15 @@ Options (module constants, patched by tests):
                        chunk; bounds the generation's temporary memory
     PAIR_MASK_BYTES    largest n_items**2 for which the K=3 subset test reads
                        a boolean pair mask instead of binary-searching keys
+    BITVEC_BUDGET_BYTES  largest column-bitvector array (n_items x rows/8 B);
+                       above it every K>=3 group is counted by projection
+    BITVEC_CHUNK       CSC entries turned into bitvector words per step
+    PROJ_MIN_SUFFIXES  (max words, min suffixes) steps: a prefix group with at
+                       least that many suffixes is counted by projection when
+                       the bitvectors have at most that many words
+    COMPACT_RATIO      K>=3 counting moves to the rows holding >= k items once
+                       they are at most this share of the current rows
+    AND_CHUNK_BYTES    bytes of pair ANDs materialised at once
 """
 
 from __future__ import annotations
@@ -42,6 +51,16 @@ CSR_CHUNK_NNZ = 500_000
 GRAM_BUDGET_BYTES = 256 << 20
 CAND_CHUNK = 2_000_000
 PAIR_MASK_BYTES = 64 << 20
+BITVEC_BUDGET_BYTES = 512 << 20
+BITVEC_CHUNK = 1_000_000
+#: Measured by bench/cpu/l3_crossover.py on real prefix groups (K=3 and K=4): projection becomes
+#: faster at about 30-40 suffixes on 570-1,563 words and about 66-100 on 3,907-15,625 words.
+PROJ_MIN_SUFFIXES: tuple[tuple[float, int], ...] = ((2048, 40), (float("inf"), 80))
+COMPACT_RATIO = 0.5
+AND_CHUNK_BYTES = 32 << 20
+
+_LUT16 = np.array([bin(i).count("1") for i in range(1 << 16)], dtype=np.uint8)
+_HAS_BITWISE_COUNT = hasattr(np, "bitwise_count")
 
 
 @dataclass(frozen=True)
@@ -300,22 +319,168 @@ def generate_candidates(prev: np.ndarray, k: int, n_cols: int) -> Iterator[np.nd
         e0 = e1
 
 
-def _count_on_csr(
-    csr: csr_matrix,
-    col_to_idx: dict[str, int],
-    itemsets: list[tuple[str, ...]],
-    k: int,
-    n_jobs: int,
-    length_filter: bool,
-) -> dict[tuple[str, ...], int]:
-    """Counts of same-length K>=3 itemsets from the CSR, by the CSR counters of core.sparse."""
-    from . import sparse
+def popcount_rows(a: np.ndarray) -> np.ndarray:
+    """Set bits per row of a 2-D uint64 array (np.bitwise_count on NumPy >= 2, a 16-bit table below)."""
+    if _HAS_BITWISE_COUNT:
+        return np.bitwise_count(a).sum(axis=1, dtype=np.int64)
+    return _LUT16[np.ascontiguousarray(a).view(np.uint16)].sum(axis=1, dtype=np.int64)
 
-    if length_filter:
-        rows = np.flatnonzero(np.diff(csr.indptr) >= k)
-        if len(rows) < csr.shape[0]:
-            csr = csr[rows]
-    return sparse._count_support_sparse_k_gt_2(csr, col_to_idx, itemsets, False, n_jobs)
+
+def build_bitvecs(indptr: np.ndarray, indices: np.ndarray, n_rows: int, n_cols: int) -> np.ndarray:
+    """(n_cols, ceil(n_rows / 64)) uint64 column bitvectors of a CSR (bit r of column c = row r holds c).
+
+    Steps: transpose to CSC (scipy's counting sort, boolean data), whose row
+    ids ascend within each column. Per block of columns holding up to
+    ``BITVEC_CHUNK`` entries, compute each entry's word (column * words +
+    row // 64) and bit (1 << row % 64); words ascend within the block, so
+    OR-reducing each run of equal words (np.bitwise_or.reduceat) yields every
+    word once.
+    """
+    w = (n_rows + 63) // 64
+    out = np.zeros(n_cols * w, dtype=np.uint64)
+    if len(indices) == 0:
+        return out.reshape(n_cols, w)
+    csc = csr_matrix((np.ones(len(indices), dtype=bool), indices, indptr), shape=(n_rows, n_cols)).tocsc()
+    cptr, rows_all = csc.indptr.astype(np.int64), csc.indices
+    c0 = 0
+    while c0 < n_cols:
+        c1 = int(np.searchsorted(cptr, cptr[c0] + BITVEC_CHUNK, side="right")) - 1
+        c1 = min(max(c1, c0 + 1), n_cols)
+        a, b = cptr[c0], cptr[c1]
+        if b > a:
+            rows = rows_all[a:b].astype(np.int64)
+            keys = np.repeat(np.arange(c0, c1, dtype=np.int64), np.diff(cptr[c0 : c1 + 1])) * w + (rows >> 6)
+            bits = np.left_shift(np.uint64(1), (rows & 63).astype(np.uint64))
+            starts = np.flatnonzero(np.r_[True, keys[1:] != keys[:-1]])
+            out[keys[starts]] = np.bitwise_or.reduceat(bits, starts)
+        c0 = c1
+    return out.reshape(n_cols, w)
+
+
+def proj_min_suffixes(words: int) -> int:
+    """Suffixes from which a prefix group is counted by projection, at this bitvector width."""
+    for max_words, min_suffixes in PROJ_MIN_SUFFIXES:
+        if words <= max_words:
+            return min_suffixes
+    return PROJ_MIN_SUFFIXES[-1][1]
+
+
+class RowSpace:
+    """The rows K>=3 counting runs on: a CSR over them, its bitvectors, and the dispatch threshold.
+
+    ``rows`` (ascending ids into the transaction CSR) restricts the space to
+    the transactions long enough to hold the level's candidates; None keeps
+    every row. Bitvectors are built when they fit ``BITVEC_BUDGET_BYTES``;
+    the scipy CSR (int32 data) and the CSC are built on first use.
+    """
+
+    def __init__(self, indptr: np.ndarray, indices: np.ndarray, n_cols: int, rows: np.ndarray | None = None):
+        if rows is not None:
+            lens = np.diff(indptr)
+            selected = np.zeros(len(lens), dtype=bool)
+            selected[rows] = True
+            indices = indices[np.repeat(selected, lens)]
+            new_ptr = np.zeros(len(rows) + 1, dtype=indptr.dtype)
+            np.cumsum(lens[rows], out=new_ptr[1:])
+            indptr = new_ptr
+        self.indptr, self.indices, self.n_cols = indptr, indices, n_cols
+        self.n_rows = len(indptr) - 1
+        self.words = (self.n_rows + 63) // 64
+        fits = n_cols * self.words * 8 <= BITVEC_BUDGET_BYTES
+        self.bitvecs = build_bitvecs(indptr, indices, self.n_rows, n_cols) if fits else None
+        self.proj_min = proj_min_suffixes(self.words) if fits else 0
+        self._csr: csr_matrix | None = None
+        self._csc: csr_matrix | None = None
+
+    @property
+    def csr(self) -> csr_matrix:
+        if self._csr is None:
+            data = np.ones(len(self.indices), dtype=np.int32)
+            self._csr = csr_matrix((data, self.indices, self.indptr), shape=(self.n_rows, self.n_cols))
+        return self._csr
+
+    def tidset(self, items: np.ndarray) -> np.ndarray:
+        """Ascending ids of the rows holding every item (CSC column intersection)."""
+        if self._csc is None:
+            self._csc = self.csr.tocsc()
+        ptr, idx = self._csc.indptr, self._csc.indices
+        rows = idx[ptr[items[0]] : ptr[items[0] + 1]]
+        for it in items[1:]:
+            rows = np.intersect1d(rows, idx[ptr[it] : ptr[it + 1]], assume_unique=True)
+        return rows
+
+
+def _group_runs(cands: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
+    """(starts, ends) of the runs of equal first k-2 columns in lexsorted candidates."""
+    n = len(cands)
+    if k == 3:
+        change = cands[1:, 0] != cands[:-1, 0]
+    else:
+        change = np.any(cands[1:, : k - 2] != cands[:-1, : k - 2], axis=1)
+    starts = np.flatnonzero(np.r_[True, change])
+    return starts, np.r_[starts[1:], n]
+
+
+def _count_group_bitvec(bv: np.ndarray, pre: np.ndarray, ia: np.ndarray, ib: np.ndarray, suffix: np.ndarray):
+    """Pair counts of one group: the prefix's non-zero words of each suffix, ANDed per pair, popcounted."""
+    nz = np.flatnonzero(pre)
+    out = np.zeros(len(ia), dtype=np.int64)
+    if len(nz) == 0:
+        return out
+    sub = bv[suffix[:, None], nz] & pre[nz]
+    step = max(1, AND_CHUNK_BYTES // (8 * len(nz)))
+    for c0 in range(0, len(ia), step):
+        c1 = min(c0 + step, len(ia))
+        out[c0:c1] = popcount_rows(sub[ia[c0:c1]] & sub[ib[c0:c1]])
+    return out
+
+
+def _count_group_proj(m: csr_matrix, rows: np.ndarray, ia: np.ndarray, ib: np.ndarray, suffix: np.ndarray):
+    """Pair counts of one group: the Gram matrix of the suffix columns over the prefix's rows."""
+    x = m[rows][:, suffix]
+    g = (x.T @ x).toarray()
+    return g[ia, ib].astype(np.int64)
+
+
+def count_candidates(cands: np.ndarray, k: int, space: RowSpace) -> np.ndarray:
+    """Counts (int64) of lexsorted K-candidates sharing prefix runs, one prefix group at a time.
+
+    Steps per run of equal first k-2 items: the suffix columns are the union
+    of the candidates' last two items. With bitvectors, AND the prefix's
+    columns (the AND of all but its last item is reused across consecutive
+    groups); a group with at least ``space.proj_min`` suffixes is counted by
+    projection (its rows are the prefix AND's set bits), a smaller one on the
+    bitvectors. Without bitvectors every group is projected over the
+    prefix's CSC tidset.
+    """
+    out = np.empty(len(cands), dtype=np.int64)
+    bv = space.bitvecs
+    parent_key, parent_and = None, None
+    starts, ends = _group_runs(cands, k)
+    for s, e in zip(starts.tolist(), ends.tolist()):
+        prefix = cands[s, : k - 2]
+        a, b = cands[s:e, k - 2], cands[s:e, k - 1]
+        suffix = np.union1d(a, b)
+        ia, ib = np.searchsorted(suffix, a), np.searchsorted(suffix, b)
+        if bv is None:
+            out[s:e] = _count_group_proj(space.csr, space.tidset(prefix), ia, ib, suffix)
+            continue
+        if k == 3:
+            pre = bv[prefix[0]]
+        else:
+            key = prefix[:-1].tobytes()
+            if key != parent_key:
+                parent_key = key
+                parent_and = bv[prefix[0]].copy()
+                for it in prefix[1:-1]:
+                    parent_and &= bv[it]
+            pre = parent_and & bv[prefix[-1]]
+        if len(suffix) >= space.proj_min:
+            rows = np.flatnonzero(np.unpackbits(pre.view(np.uint8), bitorder="little"))
+            out[s:e] = _count_group_proj(space.csr, rows, ia, ib, suffix)
+        else:
+            out[s:e] = _count_group_bitvec(bv, pre, ia, ib, suffix)
+    return out
 
 
 def mine_cpu(
@@ -398,6 +563,7 @@ def mine_cpu(
     prev_counts: dict[tuple[str, ...], int] = {(c,): n for c, n in zip(item_cols, tc.counts.tolist())}
     prev_free: set[tuple[str, ...]] | None = {s for s, n in prev_counts.items() if n < n_trans}
 
+    space: RowSpace | None = None
     k = 2
     while k <= effective_max_length and len(prev_frequent) >= k:
         _k_start = time.perf_counter()
@@ -416,6 +582,7 @@ def mine_cpu(
             n_inferred = n_candidates - (n_gen - n_nonfree) * (n_gen - n_nonfree - 1) // 2
             current_frequent = [(item_cols[a], item_cols[b]) for a, b in pairs.tolist()]
             current_counts = dict(zip(current_frequent, pair_counts.tolist()))
+            csr = None
         else:
             if session:
                 session.start_phase(f"k{k}_candidate_gen")
@@ -433,21 +600,23 @@ def mine_cpu(
             n_candidates = len(candidates)
 
             inferred: dict[tuple[str, ...], int] = {}
-            needs_counting: list[tuple[str, ...]] = []
+            needs = np.ones(n_candidates, dtype=bool)
             if use_generator_pruning:
-                for candidate in candidates:
+                for i, candidate in enumerate(candidates):
                     c = _infer_count_from_subsets(candidate, prev_counts, prev_free)
                     if c is not None:
                         inferred[candidate] = c
-                    else:
-                        needs_counting.append(candidate)
+                        needs[i] = False
+            if needs.any():
+                rows_k = np.flatnonzero(np.diff(tc.indptr) >= k) if enable_length_filter else None
+                if space is None:
+                    space = RowSpace(tc.indptr, tc.indices, tc.n_cols, rows_k if rows_k is not None and len(rows_k) < n_trans else None)
+                elif rows_k is not None and len(rows_k) <= COMPACT_RATIO * space.n_rows:
+                    space = RowSpace(tc.indptr, tc.indices, tc.n_cols, rows_k)
+                counted_vals = count_candidates(cand_arr[needs], k, space)
+                counted = dict(zip((c for c, n in zip(candidates, needs) if n), counted_vals.tolist()))
             else:
-                needs_counting = candidates
-            counted = (
-                _count_on_csr(csr, col_to_idx, needs_counting, k, n_jobs, enable_length_filter)
-                if needs_counting
-                else {}
-            )
+                counted = {}
             all_counts = {**inferred, **counted}
             n_inferred = len(inferred)
 

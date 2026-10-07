@@ -201,6 +201,74 @@ def test_generate_candidates_on_tiny_levels():
     assert np.array_equal(np.concatenate(list(cpu_miner.generate_candidates(tri, 3, 5))), [[0, 1, 2]])
 
 
+# ── L3: K>=3 counting per prefix group ──────────────────────────────────────
+
+
+@pytest.mark.parametrize("chunk", [cpu_miner.BITVEC_CHUNK, 5])
+@pytest.mark.parametrize("n_rows", [1, 63, 64, 65, 600])
+def test_bitvecs_match_the_dense_matrix(monkeypatch, n_rows, chunk):
+    monkeypatch.setattr(cpu_miner, "BITVEC_CHUNK", chunk)
+    dense, m = _random_csr(n_rows, n_rows=n_rows, n_cols=9)
+    bv = cpu_miner.build_bitvecs(m.indptr, m.indices, n_rows, 9)
+    bits = np.unpackbits(bv.view(np.uint8), axis=1, bitorder="little")[:, :n_rows].astype(bool)
+    assert np.array_equal(bits, dense.T)
+    assert not np.unpackbits(bv.view(np.uint8), axis=1, bitorder="little")[:, n_rows:].any()
+
+
+@pytest.mark.parametrize("table", [False, True])
+def test_popcount_with_and_without_bitwise_count(monkeypatch, table):
+    if table:
+        monkeypatch.setattr(cpu_miner, "_HAS_BITWISE_COUNT", False)
+    a = np.random.default_rng(0).integers(0, 2**63, size=(17, 5), dtype=np.uint64)
+    want = [sum(bin(int(x)).count("1") for x in row) for row in a]
+    assert cpu_miner.popcount_rows(a).tolist() == want
+
+
+def _brute_counts(dense: np.ndarray, cands: np.ndarray) -> np.ndarray:
+    return np.array([int(np.logical_and.reduce(dense[:, list(c)], axis=1).sum()) for c in cands], dtype=np.int64)
+
+
+def _all_candidates(n_cols: int, k: int) -> np.ndarray:
+    return np.array(list(itertools.combinations(range(n_cols), k)), dtype=np.int32)
+
+
+@pytest.mark.parametrize("path", ["bitvec", "proj", "tidset", "compacted"])
+@pytest.mark.parametrize("k", [3, 4, 5])
+def test_count_candidates_matches_a_brute_force(monkeypatch, path, k):
+    dense, m = _random_csr(11, n_rows=700, n_cols=12)
+    cands = _all_candidates(12, k)
+    if path == "bitvec":
+        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 10**9),))
+    if path == "proj":
+        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 0),))
+    if path == "tidset":
+        monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", 0)
+    rows = None
+    if path == "compacted":
+        rows = np.flatnonzero(dense.sum(axis=1) >= k)
+    space = cpu_miner.RowSpace(m.indptr, m.indices, 12, rows)
+    assert (space.bitvecs is None) == (path == "tidset")
+    got = cpu_miner.count_candidates(cands, k, space)
+    assert np.array_equal(got, _brute_counts(dense, cands))
+
+
+def test_count_candidates_on_a_group_with_an_empty_prefix():
+    """A prefix with no rows gives zero counts on both counters."""
+    dense = np.zeros((70, 5), dtype=bool)
+    dense[:, 1:] = True
+    from scipy.sparse import csr_matrix
+
+    m = csr_matrix(dense.astype(np.int32))
+    cands = np.array([[0, 1, 2], [0, 1, 3], [0, 2, 4]], dtype=np.int32)
+    for steps in (((float("inf"), 10**9),), ((float("inf"), 0),)):
+        cpu_miner.PROJ_MIN_SUFFIXES, saved = steps, cpu_miner.PROJ_MIN_SUFFIXES
+        try:
+            got = cpu_miner.count_candidates(cands, 3, cpu_miner.RowSpace(m.indptr, m.indices, 5))
+        finally:
+            cpu_miner.PROJ_MIN_SUFFIXES = saved
+        assert got.tolist() == [0, 0, 0]
+
+
 # ── the route end to end ────────────────────────────────────────────────────
 
 

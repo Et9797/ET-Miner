@@ -109,6 +109,45 @@ def test_nothing_frequent_returns_none():
     assert tc is None
 
 
+# ── L1: K=2 from one Gram matrix ────────────────────────────────────────────
+
+
+def _random_csr(seed: int, n_rows: int = 600, n_cols: int = 30):
+    rng = np.random.default_rng(seed)
+    dense = rng.random((n_rows, n_cols)) < rng.uniform(0.02, 0.4, size=n_cols)
+    from scipy.sparse import csr_matrix
+
+    return dense, csr_matrix(dense.astype(np.int32))
+
+
+@pytest.mark.parametrize("budget", [cpu_miner.GRAM_BUDGET_BYTES, 12 * 30 * 4, 1])
+@pytest.mark.parametrize("seed", [0, 1, 2])
+def test_count_pairs_matches_a_brute_force(monkeypatch, seed, budget):
+    """Whole product, blocks of 4 columns, and one column per block give the same pairs."""
+    monkeypatch.setattr(cpu_miner, "GRAM_BUDGET_BYTES", budget)
+    dense, m = _random_csr(seed)
+    rng = np.random.default_rng(seed + 100)
+    gen = rng.random(dense.shape[1]) < 0.8
+    min_count = 15
+    want = {}
+    for a, b in itertools.combinations(range(dense.shape[1]), 2):
+        c = int((dense[:, a] & dense[:, b]).sum())
+        if gen[a] and gen[b] and c >= min_count:
+            want[(a, b)] = c
+    pairs, counts = cpu_miner.count_pairs(m, gen, min_count)
+    assert dict(zip(map(tuple, pairs.tolist()), counts.tolist())) == want
+    assert pairs.dtype == np.int32 and counts.dtype == np.int64
+    assert np.all(np.diff(pairs[:, 0]) >= 0) and len(pairs) == len(set(map(tuple, pairs.tolist())))
+    order = np.lexsort((pairs[:, 1], pairs[:, 0]))
+    assert np.array_equal(order, np.arange(len(pairs))), "pairs must come out lexsorted"
+
+
+def test_count_pairs_on_fewer_than_two_columns():
+    _, m = _random_csr(0, n_cols=1)
+    pairs, counts = cpu_miner.count_pairs(m, np.ones(1, dtype=bool), 1)
+    assert pairs.shape == (0, 2) and len(counts) == 0
+
+
 # ── the route end to end ────────────────────────────────────────────────────
 
 

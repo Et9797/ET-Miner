@@ -12,8 +12,11 @@ Usage:
     result = mine_cpu(lf, min_support=0.01, max_length=None, item_col="items")
 
 Options (module constants, patched by tests):
-    CSR_CHUNK_NNZ  list entries mapped to columns per chunk while the CSR is
-                   built; bounds the build's temporary memory
+    CSR_CHUNK_NNZ      list entries mapped to columns per chunk while the CSR
+                       is built; bounds the build's temporary memory
+    GRAM_BUDGET_BYTES  bytes one K=2 Gram block may take (12 B per entry of
+                       a dense block); above it the columns are split into
+                       blocks
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ from .profiling import ProfilingSession
 from .result import _build_result_df, _empty_result, _min_count
 
 CSR_CHUNK_NNZ = 500_000
+GRAM_BUDGET_BYTES = 256 << 20
 
 
 @dataclass(frozen=True)
@@ -161,6 +165,40 @@ def build_transaction_csr(lf: pl.LazyFrame, min_support: float, item_col: str = 
     return TransactionCSR(indptr, indices, n_rows, items, counts, freq.height)
 
 
+def count_pairs(m: csr_matrix, gen: np.ndarray, min_count: int) -> tuple[np.ndarray, np.ndarray]:
+    """Every pair of generating columns with count >= min_count, from one Gram matrix.
+
+    Returns (pairs int32 (n, 2) with pairs[:, 0] < pairs[:, 1], lexsorted;
+    counts int64). ``gen`` is a boolean mask of the columns the pairs may use.
+
+    Steps: G = M.T @ M holds every pair count (scipy sparse product,
+    accumulated in int32). When a dense block of G (12 B per entry) fits
+    ``GRAM_BUDGET_BYTES`` the product is taken whole; otherwise the rows of G
+    are produced in column blocks, (M[:, block]).T @ M, from one transposed
+    copy of M. Per block keep entries above the diagonal, between generating
+    columns, at or above min_count; then lexsort the survivors.
+    """
+    n = m.shape[1]
+    if n < 2:
+        return np.empty((0, 2), dtype=np.int32), np.empty(0, dtype=np.int64)
+    width = max(1, int(GRAM_BUDGET_BYTES // (12 * n)))
+    blocks = [(0, n)] if width >= n else [(j0, min(n, j0 + width)) for j0 in range(0, n, width)]
+    mt = m.T.tocsr() if len(blocks) > 1 else None
+    out_i, out_j, out_c = [], [], []
+    for j0, j1 in blocks:
+        g = (m.T @ m).tocsr() if mt is None else (mt[j0:j1] @ m).tocsr()
+        rows = np.repeat(np.arange(j0, j1, dtype=np.int32), np.diff(g.indptr))
+        cols = g.indices
+        keep = (cols > rows) & (g.data >= min_count) & gen[rows] & gen[cols]
+        out_i.append(rows[keep])
+        out_j.append(cols[keep].astype(np.int32))
+        out_c.append(g.data[keep].astype(np.int64))
+        del g, rows, cols, keep
+    i, j, c = np.concatenate(out_i), np.concatenate(out_j), np.concatenate(out_c)
+    order = np.lexsort((j, i))
+    return np.stack([i[order], j[order]], axis=1), c[order]
+
+
 def _count_on_csr(
     csr: csr_matrix,
     col_to_idx: dict[str, int],
@@ -169,17 +207,13 @@ def _count_on_csr(
     n_jobs: int,
     length_filter: bool,
 ) -> dict[tuple[str, ...], int]:
-    """Counts of same-length itemsets from the CSR: one scipy product at K=2, the CSR counters above."""
+    """Counts of same-length K>=3 itemsets from the CSR, by the CSR counters of core.sparse."""
     from . import sparse
 
     if length_filter:
         rows = np.flatnonzero(np.diff(csr.indptr) >= k)
         if len(rows) < csr.shape[0]:
             csr = csr[rows]
-    if k == 2:
-        if n_jobs != 1 and len(itemsets) > 100 and csr.shape[0] > 10_000:
-            return sparse._count_support_sparse_k2_parallel(csr, col_to_idx, itemsets, n_jobs)
-        return sparse._count_support_sparse_k2_batch(csr, col_to_idx, itemsets)
     return sparse._count_support_sparse_k_gt_2(csr, col_to_idx, itemsets, False, n_jobs)
 
 
@@ -267,39 +301,59 @@ def mine_cpu(
     k = 2
     while k <= effective_max_length and len(prev_frequent) >= k:
         _k_start = time.perf_counter()
-        if session:
-            session.start_phase(f"k{k}_candidate_gen")
-        candidates = _generate_candidates(prev_frequent, k)
-        if session:
-            session.end_phase(n_candidates=len(candidates))
-        if not candidates:
-            break
-        if session:
-            session.start_phase(f"k{k}_support_count")
-
-        inferred: dict[tuple[str, ...], int] = {}
-        needs_counting: list[tuple[str, ...]] = []
-        if use_generator_pruning:
-            for candidate in candidates:
-                c = _infer_count_from_subsets(candidate, prev_counts, prev_free)
-                if c is not None:
-                    inferred[candidate] = c
-                else:
-                    needs_counting.append(candidate)
+        if k == 2:
+            if session:
+                session.start_phase("k2_candidate_gen")
+                session.end_phase(n_candidates=len(prev_frequent) * (len(prev_frequent) - 1) // 2)
+                session.start_phase("k2_support_count")
+            gen = np.zeros(tc.n_cols, dtype=bool)
+            gen[[col_to_idx[s[0]] for s in prev_frequent]] = True
+            pairs, pair_counts = count_pairs(csr, gen, min_count_threshold)
+            n_gen = int(gen.sum())
+            n_candidates = n_gen * (n_gen - 1) // 2
+            # Pascal would infer the pairs holding a non-free item; the Gram counts them anyway.
+            n_nonfree = int((tc.counts[gen] == n_trans).sum()) if use_generator_pruning else 0
+            n_inferred = n_candidates - (n_gen - n_nonfree) * (n_gen - n_nonfree - 1) // 2
+            current_frequent = [(item_cols[a], item_cols[b]) for a, b in pairs.tolist()]
+            current_counts = dict(zip(current_frequent, pair_counts.tolist()))
         else:
-            needs_counting = candidates
-        counted = (
-            _count_on_csr(csr, col_to_idx, needs_counting, k, n_jobs, enable_length_filter) if needs_counting else {}
-        )
-        all_counts = {**inferred, **counted}
+            if session:
+                session.start_phase(f"k{k}_candidate_gen")
+            candidates = _generate_candidates(prev_frequent, k)
+            if session:
+                session.end_phase(n_candidates=len(candidates))
+            if not candidates:
+                break
+            if session:
+                session.start_phase(f"k{k}_support_count")
+            n_candidates = len(candidates)
 
-        current_frequent: list[tuple[str, ...]] = []
-        current_counts: dict[tuple[str, ...], int] = {}
-        for itemset in candidates:
-            count = all_counts[itemset]
-            if count >= min_count_threshold:
-                current_frequent.append(itemset)
-                current_counts[itemset] = count
+            inferred: dict[tuple[str, ...], int] = {}
+            needs_counting: list[tuple[str, ...]] = []
+            if use_generator_pruning:
+                for candidate in candidates:
+                    c = _infer_count_from_subsets(candidate, prev_counts, prev_free)
+                    if c is not None:
+                        inferred[candidate] = c
+                    else:
+                        needs_counting.append(candidate)
+            else:
+                needs_counting = candidates
+            counted = (
+                _count_on_csr(csr, col_to_idx, needs_counting, k, n_jobs, enable_length_filter)
+                if needs_counting
+                else {}
+            )
+            all_counts = {**inferred, **counted}
+            n_inferred = len(inferred)
+
+            current_frequent = []
+            current_counts = {}
+            for itemset in candidates:
+                count = all_counts[itemset]
+                if count >= min_count_threshold:
+                    current_frequent.append(itemset)
+                    current_counts[itemset] = count
 
         if prune_equal_support:
             current_frequent = _prune_equal_support(current_frequent, current_counts, prev_counts)
@@ -312,9 +366,9 @@ def mine_cpu(
         for itemset in current_frequent:
             results.append(([col_to_item[c] for c in itemset], current_counts[itemset] / n_trans))
         if session:
-            session.end_phase(n_frequent=len(current_frequent), n_inferred=len(inferred))
+            session.end_phase(n_frequent=len(current_frequent), n_inferred=n_inferred)
         if level_callback:
-            level_callback(k, len(candidates), len(current_frequent), (time.perf_counter() - _k_start) * 1000)
+            level_callback(k, n_candidates, len(current_frequent), (time.perf_counter() - _k_start) * 1000)
         if not current_frequent:
             break
         prev_counts = current_counts

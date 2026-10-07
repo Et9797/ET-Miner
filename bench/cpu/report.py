@@ -200,6 +200,101 @@ def stakes_tables(stakes: list[dict]) -> list[str]:
     return lines
 
 
+def _stake_index(stakes: list[dict]) -> dict:
+    """{(workload, threads): {(lever, variant): {k: seconds}}} over the timed stake rows."""
+    idx: dict = defaultdict(lambda: defaultdict(dict))
+    for r in stakes:
+        if "s" in r:
+            idx[(r["workload"], r["threads"])][(r["lever"], r["variant"])][r.get("k")] = r["s"]
+    return idx
+
+
+def _tot(d: dict, key: tuple) -> float | None:
+    v = d.get(key)
+    return sum(v.values()) if v else None
+
+
+def stake_costs(idx: dict, w: str, t: int) -> dict | None:
+    """New-pipeline seconds per lever at thread setting ``t`` (numpy/scipy variants come from the T1 run).
+
+    L2 = CSR build (faster of numpy_map, explode_join) + CSC + K=1 bincount; L1 = faster Gram;
+    L4 = array generation; L3 = per level the fastest counter, and gbitvec alone; L5 = the
+    threshold masks + array emission; bitvec_build counted once when a K>=3 level exists.
+    """
+    s1, st = idx.get((w, 1)), idx.get((w, t))
+    if not s1 or not st:
+        return None
+    def pick(lever: str, names: list[str]) -> float:
+        vals = (_tot(st, (lever, n)) or _tot(s1, (lever, n)) for n in names)
+        return min((x for x in vals if x is not None), default=0.0)
+
+    out = {"L2": pick("L2", ["numpy_map", "explode_join"]) + (_tot(st, ("L2", "tocsc")) or 0)
+           + (_tot(st, ("K1", "bincount")) or 0),
+           "L1": pick("L1", ["gram_sparse", "gram_dense"]),
+           "L4": _tot(st, ("L4", "array")) or 0.0}
+    ks = sorted(set().union(*[set(v) for (lv, _), v in s1.items() if lv == "L3"]) - {None})
+    best, gb = 0.0, 0.0
+    for k in ks:
+        cands = [st.get(("L3", "rust_simd"), {}).get(k)] + [s1.get(("L3", n), {}).get(k)
+                                                           for n in ("bitvec", "bitvec_lut", "proj", "gbitvec")]
+        cands = [c for c in cands if c is not None]
+        best += min(cands) if cands else 0.0
+        gb += s1.get(("L3", "gbitvec"), {}).get(k) or 0.0
+    bv = _tot(s1, ("L3", "bitvec_build")) or 0.0
+    out["L3"] = best + (bv if ks else 0.0)
+    out["L3_gbitvec"] = gb + (bv if ks else 0.0)
+    out["L5"] = (_tot(st, ("L5", "threshold_mask")) or 0.0) + (_tot(s1, ("L5", "emit_arrays")) or 0.0)
+    out["rust_full"] = _tot(st, ("ref", "rust_full"))
+    out["total"] = out["L2"] + out["L1"] + out["L4"] + out["L3"] + out["L5"]
+    return out
+
+
+def baseline_parts(r: dict) -> dict:
+    """The baseline phases each lever replaces, from one row's split."""
+    s = split_summary(r)
+
+    def g(k: str) -> float:
+        return s.get(k, 0.0)
+
+    return {
+        "L2": g("build") + g("k1") + g("k2.to_csr") + g("k3+.to_csr"),
+        "L1": g("k2.cand_gen") + g("k2.count") - g("k2.len_filter") - g("k2.density") - g("k2.to_csr"),
+        "L4": g("k3+.cand_gen"),
+        "L3": g("k3+.count") - g("k3+.len_filter") - g("k3+.density") - g("k3+.to_csr"),
+        "L5": g("k2.len_filter") + g("k3+.len_filter") + g("k2.density") + g("k3+.density") + g("k2.other")
+        + g("k3+.other") + g("tail"),
+    }
+
+
+def projection_tables(by: dict, stakes: list[dict]) -> list[str]:
+    """Per lever: baseline phase seconds vs stake seconds; per regime: composed projection vs EA."""
+    idx = _stake_index(stakes)
+    lines = ["### Per lever: replaced baseline phases → stake (seconds; F-auto median rep)", "",
+             "| regime | L2 | L1 | L4 | L3 (best / gbitvec only) | L5 |", "|---|---|---|---|---|---|"]
+    comp = ["### Composed projection (all five levers) vs baseline and EA", "",
+            "| regime | F-polars now | F-auto now | projected | EA | projected / EA | rust_full (ref) |",
+            "|---|---|---|---|---|---|---|"]
+    for w in WORKLOADS:
+        ea = [r["wall_s"] for r in by.get(f"{w}-EA", {"ok": []})["ok"]]
+        for t_name, t in THREADS.items():
+            c = stake_costs(idx, w, t)
+            r = median_row(by.get(f"{w}-F-auto-{t_name}", {"ok": []})["ok"])
+            if c is None or r is None:
+                continue
+            b = baseline_parts(r)
+            lines.append(f"| {w} {t_name} | {b['L2']:.2f} → {c['L2']:.2f} | {b['L1']:.2f} → {c['L1']:.2f} | "
+                         f"{b['L4']:.2f} → {c['L4']:.2f} | {b['L3']:.2f} → {c['L3']:.2f} / {c['L3_gbitvec']:.2f} | "
+                         f"{b['L5']:.2f} → {c['L5']:.2f} |")
+            pol = [x["wall_s"] for x in by.get(f"{w}-F-polars-{t_name}", {"ok": []})["ok"]]
+            auto = [x["wall_s"] for x in by.get(f"{w}-F-auto-{t_name}", {"ok": []})["ok"]]
+            e = statistics.median(ea) if ea else None
+            rf = f"{c['rust_full']:.2f}" if c["rust_full"] is not None else "—"
+            comp.append(f"| {w} {t_name} | {_cell(pol)} | {_cell(auto)} | {c['total']:.2f} | "
+                        f"{_cell(ea)} | {c['total'] / e:.3f} | {rf} |" if e else
+                        f"| {w} {t_name} | {_cell(pol)} | {_cell(auto)} | {c['total']:.2f} | — | — | {rf} |")
+    return lines + [""] + comp
+
+
 def main() -> int:
     d = Path(sys.argv[1])
     by = collect(_rows(d / "raw.jsonl"))
@@ -213,7 +308,8 @@ def main() -> int:
            *split_table(by, ["F-polars-T1", "F-polars-T4", "F-sparse-T1", "F-sparse-T4", "EA"]), "",
            "## Levels (F-sparse-T1, median rep)", "", *levels_table(by, "F-sparse-T1"), "",
            "## Levels (F-polars-T1, median rep)", "", *levels_table(by, "F-polars-T1"), "",
-           "## Stakes (seconds summed over levels)", "", *stakes_tables(stakes), ""]
+           "## Stakes (seconds summed over levels)", "", *stakes_tables(stakes), "",
+           "## Projections", "", *projection_tables(by, stakes), ""]
     (d / "report.md").write_text("\n".join(out) + "\n")
     print(f"wrote {d / 'report.md'}")
     return 0

@@ -198,7 +198,6 @@ def apriori_streaming(
             batch_size=batch_size,
             profile=profile,
             show_progress=show_progress,
-            sparse=sparse,
             n_jobs=n_jobs,
         )
 

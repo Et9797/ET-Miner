@@ -25,7 +25,8 @@ Options (module constants, patched by tests):
                        a boolean pair mask instead of binary-searching keys
     BITVEC_BUDGET_BYTES  largest column-bitvector array (n_items x rows/8 B);
                        above it every K>=3 group is counted by projection
-    BITVEC_CHUNK       CSC entries turned into bitvector words per step
+    BITVEC_CHUNK       CSR entries turned into bitvector words, or gathered
+                       for one projection Gram, per step
     PROJ_MIN_SUFFIXES  (max words, min suffixes) steps: a prefix group with at
                        least that many suffixes is counted by projection when
                        the bitvectors have at most that many words

@@ -468,3 +468,12 @@ def test_sparse_is_deprecated_on_the_cpu_route_and_changes_nothing():
     for value in (True, False):
         with pytest.warns(DeprecationWarning, match="sparse= no longer selects"):
             assert _mined(df, 0.03, sparse=value) == plain
+
+
+def test_streaming_single_chunk_fallback_does_not_warn_about_sparse():
+    df = pl.DataFrame({"items": _random_rows(7, messy=False)})
+    plain = _mined(df, 0.03)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        for value in (True, False, None):
+            assert _mined(df, 0.03, streaming=True, sparse=value) == plain

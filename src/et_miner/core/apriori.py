@@ -521,7 +521,7 @@ def apriori(
         >>> result = apriori(df, min_support=0.5)
         >>> result = apriori(df, min_support=0.001, use_gpu=True)
         >>> result, session = apriori(df, min_support=0.1, profile=True)
-        >>> result = apriori(df, min_support=0.0001, sparse=True, n_jobs=-1)
+        >>> result = apriori(df, min_support=0.0001, n_jobs=-1)
         >>> result = apriori(huge_df, min_support=0.001, streaming=True, n_gpus=8)
     """
     _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)

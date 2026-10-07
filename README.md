@@ -117,4 +117,8 @@ are in `CLAUDE.md`; the GPU benchmark campaign in `bench/README.md`.
 
 ## License
 
-MIT — Copyright 2026 Etjen Ahmic. See [LICENSE](LICENSE).
+**PolyForm Noncommercial License 1.0.0**. See [LICENSE](LICENSE).
+
+Free for non-commercial use (personal, academic, research, and other
+noncommercial purposes). **Commercial use requires a separate license — please
+contact the author** via this repository.

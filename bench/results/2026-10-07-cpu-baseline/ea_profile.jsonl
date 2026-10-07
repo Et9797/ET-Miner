@@ -1,0 +1,3 @@
+{"workload": "wide", "level": 2, "n_candidates": 2762425, "sampled": 552485, "sc_s": 10.6031, "sort_and_intersect_s": 10.4249, "sort_only_s": 0.2466, "intersect_share_est": 0.977}
+{"workload": "or0001k2", "level": 2, "n_candidates": 10417330, "sampled": 1041733, "sc_s": 4.264, "sort_and_intersect_s": 3.8223, "sort_only_s": 0.4869, "intersect_share_est": 0.886, "itemsets_s": 46.026, "itemsets_with_tids_s": 105.327, "rules_s": 4.983, "n_rules": 1036}
+{"workload": "or003", "level": 3, "n_candidates": 526939, "sampled": 526939, "sc_s": 21.2201, "sort_and_intersect_s": 21.6615, "sort_only_s": 0.2969, "intersect_share_est": 0.986, "itemsets_s": 49.18, "itemsets_with_tids_s": 53.886, "rules_s": 0.166, "n_rules": 213}

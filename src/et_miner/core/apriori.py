@@ -1,27 +1,20 @@
-"""Apriori algorithm implementation for association rule mining.
+"""apriori(): parameter validation and the routing to a mining route.
 
-Fast and memory-efficient implementation using boolean matrix representation and
-vectorized operations, with optional GPU acceleration via CUDA kernels.
+Routes: the CPU miner (et_miner.core.cpu_miner, the default), the row-split
+GPU miner (et_miner.gpu.row_split; use_gpu=True or bitvecs=), and SON
+streaming on one or more devices (et_miner.streaming; streaming=True). This
+module validates the parameters, rejects combinations a route cannot honour,
+and holds the free-set and Pascal helpers the CPU miner shares.
 
-Support counting uses column bitwise AND operations:
+Usage:
+    from et_miner import apriori
 
-    support({A,B}) = (col("A") & col("B")).sum()
-
-Key ideas:
-1. Boolean matrix representation (not TID-lists)
-2. Column bitwise AND operations for support (no Python loops in counting)
-3. GPU-ready via CUDA bitvector kernels (CuPy)
-
-The GPU inner loops live in et_miner.gpu (mining, row_split); parquet flush
-and GCS upload in et_miner.io; candidate generation in .candidates. This
-module keeps parameter validation, the CPU mining loop, and the routing in
-apriori() that picks a tier.
+    itemsets = apriori(df, min_support=0.01)
 """
 
 from __future__ import annotations
 
 import math
-import time
 import warnings
 from collections.abc import Callable
 from math import comb
@@ -33,16 +26,9 @@ from loguru import logger
 from et_miner import _env
 from et_miner.gpu.density import validate_sparse_from_k
 
-from .candidates import _generate_candidates
-from .matrix import (
-    build_boolean_matrix,
-    count_support_batched,
-)
 from .profiling import ProfilingSession
 from .result import (
-    _build_result_df,
     _empty_result,
-    _min_count,
 )
 
 def _warn_complexity(
@@ -113,7 +99,10 @@ def _prune_equal_support(
     current_counts: dict[tuple[str, ...], int],
     prev_counts: dict[tuple[str, ...], int],
 ) -> list[tuple[str, ...]]:
-    """Keep only the free-sets (generators) of a level.
+    """Keep only the free-sets (generators) of a level (reference implementation).
+
+    The CPU miner applies the same test to arrays (``core.cpu_miner``);
+    ``tests/test_cpu_miner.py`` holds the two equal against a brute force.
 
     An itemset is a *free-set* when no proper subset has the same support
     [Bastide et al. 2000, Pascal]. If support({A,B,C}) == support({A,B}) then C
@@ -168,7 +157,9 @@ def _infer_count_from_subsets(
     prev_counts: dict[tuple[str, ...], int],
     prev_free: set[tuple[str, ...]] | None,
 ) -> int | None:
-    """Infer a candidate's exact count from its (k-1)-subsets, or None.
+    """Infer a candidate's exact count from its (k-1)-subsets, or None (reference implementation).
+
+    The CPU miner applies the same rule to arrays (``core.cpu_miner``).
 
     Pascal [Bastide et al. 2000]: if a (k-1)-subset Y of X is *not* free — some
     Z ⊊ Y has rows(Z) = rows(Y) — then for X = Y ∪ {a} we have
@@ -419,9 +410,10 @@ def apriori(
     # V3 B6: restrict candidates to anchor neighborhoods (two-phase mining)
     anchor_items: set | None = None,
 ) -> pl.DataFrame | tuple[pl.DataFrame, ProfilingSession]:
-    """Find frequent itemsets using fully vectorized boolean matrix operations.
+    """Find the frequent itemsets (or free-sets) of a transaction list column.
 
-    Transactions become a boolean matrix; support counting becomes vectorized AND + sum.
+    The CPU route (the default) builds one CSR of the frequent items and mines
+    every level from it; use_gpu, bitvecs= and streaming select the other routes.
 
     Args:
         transactions: Transaction data with item lists.
@@ -429,9 +421,11 @@ def apriori(
         max_length: Maximum itemset length (None = unlimited).
         item_col: Column name with item lists.
         use_gpu: Mine on the GPU with the row-split miner (requires CuPy).
-        batch_size: Candidates per batch for memory control. None = no batching.
+        batch_size: Candidates per batch for SON streaming's CPU counter. None = no
+            batching. No effect on the CPU route.
         profile: If True, return profiling metrics alongside results.
-        show_progress: If True, display progress bar (requires tqdm).
+        show_progress: If True, display progress bars where a route has them
+            (requires tqdm).
         warn_complexity: If True, warn when candidate pairs > 1M.
         prune_equal_support: Mine frequent FREE-SETS (generators) instead of the
             complete lattice. An itemset is free when no proper subset has the
@@ -459,12 +453,12 @@ def apriori(
             which also skips every candidate that cannot be free. False counts
             every candidate the prefix groups generate, and is honoured only by
             the row-split miner (the CPU route and SON always test).
-        sparse: Scipy CSR matrix usage. True = force, False = Polars, None = auto
-            (switches at >100K k=2 candidates or >500 items <10% density).
-        n_jobs: Parallel workers for sparse k>2 counting. 1=sequential, -1=all CPUs.
-            Only active when sparse mode is used.
-        enable_length_filter: Filter transactions shorter than k before counting
-            k-itemset support. Set to False to disable.
+        sparse: Deprecated on the CPU route, where it no longer selects a counting
+            engine (a non-None value warns and is ignored). For streaming=True:
+            True = scipy CSR, False = Polars, None = auto.
+        n_jobs: Parallel workers for counting. 1 = sequential, -1 = all CPUs.
+        enable_length_filter: Skip transactions shorter than k when counting
+            k-itemsets. Set to False to disable (results are the same).
         streaming: Use SON algorithm for chunked processing. Memory becomes
             O(chunk_size × n_items) instead of O(total × n_items).
         chunk_size: Transactions per chunk when streaming=True. Default 10M.
@@ -527,7 +521,7 @@ def apriori(
         >>> result = apriori(df, min_support=0.5)
         >>> result = apriori(df, min_support=0.001, use_gpu=True)
         >>> result, session = apriori(df, min_support=0.1, profile=True)
-        >>> result = apriori(df, min_support=0.0001, sparse=True, n_jobs=-1)
+        >>> result = apriori(df, min_support=0.0001, n_jobs=-1)
         >>> result = apriori(huge_df, min_support=0.001, streaming=True, n_gpus=8)
     """
     _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)
@@ -707,221 +701,28 @@ def apriori(
             max_vram_gb=max_vram_gb,
         )
 
-    # ── CPU path: dense boolean matrix ─────────────────────────────────
-    session = ProfilingSession() if profile else None
+    # ── CPU path: one CSR of the frequent items, mined level by level ──
+    if sparse is not None:
+        warnings.warn(
+            "sparse= no longer selects a counting engine on the CPU route: every level is counted "
+            "from one CSR whatever its value, and the argument is ignored there. It still applies "
+            "to streaming=True and will be removed from the CPU route in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    from .cpu_miner import mine_cpu
 
-    # Phase 1: Build boolean matrix (includes frequent 1-itemset mining)
-    if session:
-        session.start_phase("matrix_build")
-
-    matrix, col_to_item, n_trans = build_boolean_matrix(lf, min_support, item_col)
-
-    if session:
-        session.end_phase(n_frequent_items=len(col_to_item), n_transactions=n_trans)
-
-    # Compute max possible k from transaction lengths
-    max_tx_length = (lf.select(pl.col(item_col).list.len().max()).collect(engine="streaming").item()) or 0
-
-    effective_max_length = min(
-        max_length if max_length else float("inf"),
-        max_tx_length,
-        len(col_to_item),  # Can't have more items than columns
+    return mine_cpu(
+        lf,
+        min_support,
+        max_length,
+        item_col,
+        prune_equal_support=prune_equal_support,
+        use_generator_pruning=use_generator_pruning,
+        enable_length_filter=enable_length_filter,
+        n_jobs=n_jobs,
+        level_callback=level_callback,
+        profile=profile,
+        warn_complexity=warn_complexity,
     )
-
-    if not col_to_item:
-        if profile:
-            return _empty_result(), session
-        return _empty_result()
-
-    item_cols = list(col_to_item.keys())
-
-    # Phase 2: Get exact 1-itemset supports from matrix column sums
-    _k1_start = time.perf_counter()
-    if session:
-        session.start_phase("k1_support")
-
-    # 1-itemset counting: always use streaming engine (simple column sums, no GPU benefit)
-    one_itemset_exprs = [pl.col(c).sum().alias(c) for c in item_cols]
-    one_counts = matrix.lazy().select(one_itemset_exprs).collect(engine="streaming")
-
-    results: list[tuple[list[int], float]] = []
-    prev_frequent: list[tuple[str, ...]] = []
-
-    # Filter on integer count to avoid float precision issues at boundaries.
-    # math.ceil ensures we don't include items below threshold.
-    min_count_threshold = _min_count(min_support, n_trans)
-    for col in item_cols:
-        count = one_counts.get_column(col).item()
-        if count >= min_count_threshold:
-            # Free-set semantics start at K=1: an item in EVERY transaction has
-            # the empty set's support, so it is not a generator.
-            if prune_equal_support and count == n_trans:
-                continue
-            support = count / n_trans
-            results.append(([col_to_item[col]], support))
-            prev_frequent.append((col,))
-
-    if session:
-        session.end_phase(n_frequent=len(prev_frequent))
-
-    # Call level callback for k=1
-    if level_callback:
-        _k1_duration_ms = (time.perf_counter() - _k1_start) * 1000
-        level_callback(1, len(item_cols), len(prev_frequent), _k1_duration_ms)
-
-    if not prev_frequent:
-        if profile:
-            return _empty_result(), session
-        return _empty_result()
-
-    # Warn about potentially expensive computation
-    if warn_complexity:
-        _warn_complexity(len(prev_frequent), min_support)
-
-    # The COMPLETE K=1 level (including any item pruned above as non-free):
-    # every subset test of K=2 resolves against this, not against prev_frequent.
-    prev_supports: dict[tuple[str, ...], float] = {
-        (col,): one_counts.get_column(col).item() / n_trans
-        for col in item_cols
-        if one_counts.get_column(col).item() >= min_count_threshold
-    }
-
-    # Integer counts of the same complete level — what the free-set test uses.
-    prev_counts: dict[tuple[str, ...], int] = {
-        (col,): one_counts.get_column(col).item()
-        for col in item_cols
-        if one_counts.get_column(col).item() >= min_count_threshold
-    }
-
-    # The free (generator) 1-itemsets: everything frequent except items present
-    # in every transaction, which carry the empty set's support. Tracked
-    # independently of prune_equal_support because Pascal inference needs it.
-    prev_free: set[tuple[str, ...]] | None = {
-        itemset for itemset, count in prev_counts.items() if count < n_trans
-    }
-
-    # Phase 3: k >= 2 with vectorized support counting
-    k = 2
-
-    while k <= effective_max_length and len(prev_frequent) >= k:
-        _k_start = time.perf_counter()
-
-        # Generate candidates using Apriori join
-        if session:
-            session.start_phase(f"k{k}_candidate_gen")
-
-        candidates = _generate_candidates(prev_frequent, k)
-
-        if session:
-            session.end_phase(n_candidates=len(candidates))
-
-        if not candidates:
-            break
-
-        # Support inference + counting
-        if session:
-            session.start_phase(f"k{k}_support_count")
-
-        # Phase A: Try to infer count from subsets (Pascal/generator pruning)
-        inferred_counts: dict[tuple[str, ...], int] = {}
-        needs_counting: list[tuple[str, ...]] = []
-
-        if use_generator_pruning and prev_counts and k >= 2:
-            for candidate in candidates:
-                inferred_count = _infer_count_from_subsets(candidate, prev_counts, prev_free)
-                if inferred_count is not None:
-                    # Count can be inferred - no need to count!
-                    inferred_counts[candidate] = inferred_count
-                else:
-                    needs_counting.append(candidate)
-        else:
-            needs_counting = candidates
-
-        # Log inference results
-        if use_generator_pruning and len(inferred_counts) > 0:
-            skip_rate = 100 * len(inferred_counts) / len(candidates)
-            logger.debug(
-                f"[k={k}] Generator pruning: {len(inferred_counts)}/{len(candidates)} "
-                f"candidates ({skip_rate:.1f}%) skipped via count inference"
-            )
-
-        # Phase B: Count support for remaining candidates
-        if needs_counting:
-            counted = count_support_batched(
-                matrix,
-                needs_counting,
-                n_trans,
-                batch_size,
-                use_gpu,
-                show_progress,
-                sparse,
-                n_jobs,
-                enable_length_filter=enable_length_filter,
-            )
-        else:
-            counted = {}
-
-        # Combine inferred and counted (all are integer counts now)
-        all_counts = {**inferred_counts, **counted}
-
-        # Filter to frequent itemsets using integer count comparison.
-        # This avoids float precision issues at boundaries.
-        current_frequent: list[tuple[str, ...]] = []
-        current_supports: dict[tuple[str, ...], float] = {}
-        current_counts: dict[tuple[str, ...], int] = {}
-        n_skipped = len(inferred_counts)
-
-        for itemset in candidates:
-            count = all_counts[itemset]
-
-            if count >= min_count_threshold:
-                current_frequent.append(itemset)
-                current_supports[itemset] = count / n_trans
-                current_counts[itemset] = count
-
-        # Free-set (generator) pruning, resolved against every frequent
-        # candidate of the previous level — prev_counts is never pruned, only
-        # prev_frequent is. What
-        # survives is both what this level emits and what K+1 generates from:
-        # emitting a level and then generating from a smaller one advertises
-        # itemsets the run will never extend, which is how apriori-valid
-        # itemsets went missing from K=5 on.
-        if prune_equal_support and prev_counts:
-            current_frequent = _prune_equal_support(current_frequent, current_counts, prev_counts)
-            current_free = set(current_frequent)
-        elif use_generator_pruning and prev_counts:
-            # Not pruning, but Pascal needs to know which itemsets are free.
-            current_free = set(_prune_equal_support(current_frequent, current_counts, prev_counts))
-        else:
-            current_free = None
-
-        for itemset in current_frequent:
-            results.append(([col_to_item[c] for c in itemset], current_supports[itemset]))
-
-        if session:
-            session.end_phase(
-                n_frequent=len(current_frequent),
-                n_inferred=n_skipped if use_generator_pruning else 0,
-            )
-
-        # Call level callback for k>=2
-        if level_callback:
-            _k_duration_ms = (time.perf_counter() - _k_start) * 1000
-            level_callback(k, len(candidates), len(current_frequent), _k_duration_ms)
-
-        if not current_frequent:
-            break
-
-        # The complete level feeds the next level's subset tests; the free
-        # subset feeds its candidate generation.
-        prev_supports = current_supports
-        prev_counts = current_counts
-        prev_free = current_free
-        prev_frequent = current_frequent
-        k += 1
-
-    result_df = _build_result_df(results)
-    if profile:
-        return result_df, session
-    return result_df
 

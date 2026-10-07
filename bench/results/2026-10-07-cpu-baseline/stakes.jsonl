@@ -1,0 +1,1041 @@
+{"workload": "smoke", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.046948, "rss_delta_mb": 30.3}
+{"workload": "smoke", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.028269, "rss_delta_mb": 20.4}
+{"workload": "smoke", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.001364, "rss_delta_mb": 0.1}
+{"workload": "smoke", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.000679, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 118, "n_rows": 60000, "min_count": 600}
+{"workload": "smoke", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 906884, "sum_len_sq": 2143837, "nnz": 330069}
+{"workload": "smoke", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.021676, "rss_delta_mb": 0.2, "n_candidates": 6903}
+{"workload": "smoke", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 0.015212, "rss_delta_mb": 0.0, "n_candidates": 6903}
+{"workload": "smoke", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 0.043613, "rss_delta_mb": 1.8, "n_candidates": 6903}
+{"workload": "smoke", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 290, "dense_bytes": 55696}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.009499, "rss_delta_mb": 5.8, "words": 938, "bytes": 885472}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "array", "k": 3, "s": 0.000921, "rss_delta_mb": 0.1, "n_prev": 290}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "pyref", "k": 3, "s": 0.005779, "n_prev": 290}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.022512, "rss_delta_mb": 3.5, "n_candidates": 560}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.022098}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 3, "s": 0.052659, "rss_delta_mb": 4.0, "n_candidates": 560}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 3, "s": 0.010954, "rss_delta_mb": 7.9, "n_candidates": 560}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj", "k": 3, "s": 0.035306, "rss_delta_mb": 0.2, "n_candidates": 560}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 3, "groups": 18, "buckets": {"<=64": [2, 0.0177, 333], "<=32": [2, 0.0063, 126], "<=16": [2, 0.0038, 53], "<=8": [1, 0.0012, 11], "<=4": [8, 0.0051, 34], "<=2": [3, 0.0011, 3]}}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 3, "s": 0.004, "rss_delta_mb": 0.0, "n_candidates": 560}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 3, "groups": 18, "buckets": {"<=64": [2, 0.0022, 333], "<=32": [2, 0.0006, 126], "<=16": [2, 0.0003, 53], "<=8": [1, 0.0001, 11], "<=4": [8, 0.0005, 34], "<=2": [3, 0.0002, 3]}}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 4e-05, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.001561, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.000228, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 560, "n_frequent": 202}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "array", "k": 4, "s": 0.000497, "rss_delta_mb": 0.0, "n_prev": 202}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "pyref", "k": 4, "s": 0.002383, "n_prev": 202}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.009754, "rss_delta_mb": 1.7, "n_candidates": 95}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.009456}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 4, "s": 0.000442, "rss_delta_mb": 0.0, "n_candidates": 95}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 4, "s": 0.00154, "rss_delta_mb": 0.0, "n_candidates": 95}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj", "k": 4, "s": 0.022523, "rss_delta_mb": 0.0, "n_candidates": 95}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 4, "groups": 24, "buckets": {"<=16": [1, 0.0041, 31], "<=8": [2, 0.0046, 16], "<=2": [12, 0.0084, 12], "<=4": [9, 0.0053, 36]}}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 4, "s": 0.001703, "rss_delta_mb": 0.0, "n_candidates": 95}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 4, "groups": 24, "buckets": {"<=16": [1, 0.0004, 31], "<=8": [2, 0.0002, 16], "<=2": [12, 0.0006, 12], "<=4": [9, 0.0005, 36]}}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 4.3e-05, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.001222, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.000232, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 95, "n_frequent": 63}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "array", "k": 5, "s": 0.00054, "rss_delta_mb": 0.0, "n_prev": 63}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "pyref", "k": 5, "s": 0.000264, "n_prev": 63}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.004628, "rss_delta_mb": 0.0, "n_candidates": 18}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.004396}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 5, "s": 0.000267, "rss_delta_mb": 0.0, "n_candidates": 18}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 5, "s": 0.000414, "rss_delta_mb": 0.0, "n_candidates": 18}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj", "k": 5, "s": 0.007013, "rss_delta_mb": 0.0, "n_candidates": 18}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 5, "groups": 12, "buckets": {"<=4": [3, 0.0021, 9], "<=2": [9, 0.0048, 9]}}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 5, "s": 0.000954, "rss_delta_mb": 0.0, "n_candidates": 18}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 5, "groups": 12, "buckets": {"<=4": [3, 0.0005, 9], "<=2": [9, 0.0004, 9]}}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 1.6e-05, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.001065, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.000221, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 18, "n_frequent": 18}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "array", "k": 6, "s": 0.000678, "rss_delta_mb": 0.0, "n_prev": 18}
+{"workload": "smoke", "threads": 1, "lever": "L4", "variant": "pyref", "k": 6, "s": 3.7e-05, "n_prev": 18}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.003707, "rss_delta_mb": 0.0, "n_candidates": 3}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.003431}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 6, "s": 0.000115, "rss_delta_mb": 0.0, "n_candidates": 3}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 6, "s": 0.000204, "rss_delta_mb": 0.0, "n_candidates": 3}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj", "k": 6, "s": 0.00223, "rss_delta_mb": 0.0, "n_candidates": 3}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 6, "groups": 3, "buckets": {"<=2": [3, 0.0021, 3]}}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 6, "s": 0.000447, "rss_delta_mb": 0.0, "n_candidates": 3}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 6, "groups": 3, "buckets": {"<=2": [3, 0.0004, 3]}}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 1.4e-05, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.00104, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.000241, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 1, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 3, "n_frequent": 3}
+{"workload": "smoke", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 0.014747, "rss_delta_mb": 1.0}
+{"workload": "smoke", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 694, "sum_counts": 1109810, "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74", "levels": {"1": 118, "2": 290, "3": 202, "4": 63, "5": 18, "6": 3}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "smoke-F-polars-T1#r0"}
+{"workload": "deepk", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 1.337082, "rss_delta_mb": 354.5}
+{"workload": "deepk", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 2.137068, "rss_delta_mb": 323.5}
+{"workload": "deepk", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.0745, "rss_delta_mb": 61.5}
+{"workload": "deepk", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.037923, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 112, "n_rows": 1000000, "min_count": 20000}
+{"workload": "deepk", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 36506151, "sum_len_sq": 81058560, "nnz": 8046258}
+{"workload": "deepk", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.517474, "rss_delta_mb": 53.9, "n_candidates": 6216}
+{"workload": "deepk", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 0.55009, "rss_delta_mb": 61.3, "n_candidates": 6216}
+{"workload": "deepk", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 1.310641, "rss_delta_mb": 258.1, "n_candidates": 6216}
+{"workload": "deepk", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 471, "dense_bytes": 50176}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.716507, "rss_delta_mb": 302.6, "words": 15625, "bytes": 14000000}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 3, "s": 0.001789, "rss_delta_mb": 0.1, "n_prev": 471}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 3, "s": 0.018947, "n_prev": 471}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.770078, "rss_delta_mb": 51.4, "n_candidates": 1262}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.750981}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 3, "s": 0.221918, "rss_delta_mb": 216.7, "n_candidates": 1262}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 3, "s": 0.466226, "rss_delta_mb": 244.9, "n_candidates": 1262}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 3, "s": 1.275698, "rss_delta_mb": 112.5, "n_candidates": 1262}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 3, "groups": 42, "buckets": {"<=128": [1, 0.4523, 367], "<=64": [1, 0.2283, 163], "<=32": [2, 0.1928, 150], "<=16": [7, 0.1689, 232], "<=8": [17, 0.1419, 305], "<=4": [9, 0.0595, 40], "<=2": [5, 0.0317, 5]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 3, "s": 0.164607, "rss_delta_mb": 117.0, "n_candidates": 1262}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 3, "groups": 42, "buckets": {"<=128": [1, 0.0712, 367], "<=64": [1, 0.0263, 163], "<=32": [2, 0.0195, 150], "<=16": [7, 0.0189, 232], "<=8": [17, 0.0216, 305], "<=4": [9, 0.0051, 40], "<=2": [5, 0.0018, 5]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 3.4e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.035617, "rss_delta_mb": 47.8}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.01537, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 1262, "n_frequent": 901}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 4, "s": 0.000953, "rss_delta_mb": 0.0, "n_prev": 901}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 4, "s": 0.040681, "n_prev": 901}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 1.17627, "rss_delta_mb": 61.4, "n_candidates": 1456}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 4, "s": 1.159262}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 4, "s": 0.578846, "rss_delta_mb": 253.4, "n_candidates": 1456}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 4, "s": 1.042281, "rss_delta_mb": 285.2, "n_candidates": 1456}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 4, "s": 1.704161, "rss_delta_mb": 21.7, "n_candidates": 1456}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 4, "groups": 154, "buckets": {"<=32": [1, 0.1427, 63], "<=16": [6, 0.2195, 192], "<=8": [59, 0.6845, 937], "<=2": [36, 0.3028, 36], "<=4": [52, 0.3537, 228]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 4, "s": 0.156842, "rss_delta_mb": 0.0, "n_candidates": 1456}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 4, "groups": 154, "buckets": {"<=32": [1, 0.0135, 63], "<=16": [6, 0.0207, 192], "<=8": [59, 0.0773, 937], "<=2": [36, 0.0153, 36], "<=4": [52, 0.0295, 228]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 4.5e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.032212, "rss_delta_mb": 22.3}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.016243, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 1456, "n_frequent": 1407}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 5, "s": 0.000892, "rss_delta_mb": 0.0, "n_prev": 1407}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 5, "s": 0.09633, "n_prev": 1407}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 1.89382, "rss_delta_mb": 61.4, "n_candidates": 1858}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 5, "s": 1.876301}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 5, "s": 1.266192, "rss_delta_mb": 253.4, "n_candidates": 1858}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 5, "s": 0.843772, "rss_delta_mb": 287.3, "n_candidates": 1858}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 5, "s": 2.291792, "rss_delta_mb": 37.1, "n_candidates": 1858}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 5, "groups": 338, "buckets": {"<=8": [81, 0.7744, 1133], "<=2": [113, 0.6259, 113], "<=4": [144, 0.8902, 612]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 5, "s": 0.225881, "rss_delta_mb": 0.0, "n_candidates": 1858}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 5, "groups": 338, "buckets": {"<=8": [81, 0.0937, 1133], "<=2": [113, 0.0467, 113], "<=4": [144, 0.0847, 612]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 3.4e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.071462, "rss_delta_mb": 12.3}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.167592, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 1858, "n_frequent": 1854}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 6, "s": 0.001101, "rss_delta_mb": 0.0, "n_prev": 1854}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 6, "s": 0.175913, "n_prev": 1854}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 2.306865, "rss_delta_mb": 61.4, "n_candidates": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 6, "s": 2.288236}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 6, "s": 1.812534, "rss_delta_mb": 253.5, "n_candidates": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 6, "s": 1.738109, "rss_delta_mb": 285.2, "n_candidates": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 6, "s": 3.404199, "rss_delta_mb": 80.1, "n_candidates": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 6, "groups": 504, "buckets": {"<=8": [60, 0.5779, 724], "<=4": [220, 1.5254, 900], "<=2": [224, 1.2913, 224]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 6, "s": 0.282625, "rss_delta_mb": 0.0, "n_candidates": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 6, "groups": 504, "buckets": {"<=8": [60, 0.0626, 724], "<=4": [220, 0.1275, 900], "<=2": [224, 0.0916, 224]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 3.5e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.202994, "rss_delta_mb": 56.2}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.337742, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 1848, "n_frequent": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 7, "s": 0.000922, "rss_delta_mb": 0.0, "n_prev": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 7, "s": 0.17933, "n_prev": 1848}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 1.940213, "rss_delta_mb": 61.4, "n_candidates": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 7, "s": 1.921692}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 7, "s": 1.561097, "rss_delta_mb": 253.4, "n_candidates": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 7, "s": 0.799114, "rss_delta_mb": 275.2, "n_candidates": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 7, "s": 3.828257, "rss_delta_mb": 84.7, "n_candidates": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 7, "groups": 504, "buckets": {"<=8": [24, 0.2825, 260], "<=4": [200, 1.6447, 780], "<=2": [280, 1.8994, 280]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 7, "s": 0.27801, "rss_delta_mb": 0.0, "n_candidates": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 7, "groups": 504, "buckets": {"<=8": [24, 0.0254, 260], "<=4": [200, 0.1236, 780], "<=2": [280, 0.128, 280]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 5.3e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.020422, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.010875, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 1320, "n_frequent": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 8, "s": 0.000887, "rss_delta_mb": 0.0, "n_prev": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 8, "s": 0.092523, "n_prev": 1320}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 1.206825, "rss_delta_mb": 0.0, "n_candidates": 660}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 8, "s": 1.194841}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 8, "s": 0.800941, "rss_delta_mb": 125.8, "n_candidates": 660}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 8, "s": 0.278452, "rss_delta_mb": 113.8, "n_candidates": 660}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 8, "s": 2.791558, "rss_delta_mb": 0.0, "n_candidates": 660}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 8, "groups": 336, "buckets": {"<=8": [4, 0.0588, 40], "<=4": [108, 1.0077, 396], "<=2": [224, 1.7176, 224]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 8, "s": 0.156562, "rss_delta_mb": 0.0, "n_candidates": 660}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 8, "groups": 336, "buckets": {"<=8": [4, 0.0044, 40], "<=4": [108, 0.0597, 396], "<=2": [224, 0.0918, 224]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 0.000122, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.022829, "rss_delta_mb": 37.5}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.253002, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 660, "n_frequent": 660}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 9, "s": 0.000935, "rss_delta_mb": 0.0, "n_prev": 660}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 9, "s": 0.024223, "n_prev": 660}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 9, "s": 0.524248, "rss_delta_mb": 61.4, "n_candidates": 220}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 9, "s": 0.507251}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 9, "s": 0.059016, "rss_delta_mb": 41.1, "n_candidates": 220}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 9, "s": 0.089258, "rss_delta_mb": 78.6, "n_candidates": 220}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 9, "s": 1.451502, "rss_delta_mb": 20.2, "n_candidates": 220}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 9, "groups": 144, "buckets": {"<=4": [32, 0.3764, 108], "<=2": [112, 1.0744, 112]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 9, "s": 0.066179, "rss_delta_mb": 0.0, "n_candidates": 220}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 9, "groups": 144, "buckets": {"<=4": [32, 0.0187, 108], "<=2": [112, 0.0471, 112]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 9, "s": 2.2e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 9, "s": 0.016303, "rss_delta_mb": 9.2}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 9, "s": 0.017757, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 9, "n_candidates": 220, "n_frequent": 220}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 10, "s": 0.00063, "rss_delta_mb": 0.0, "n_prev": 220}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 10, "s": 0.00287, "n_prev": 220}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 10, "s": 0.230413, "rss_delta_mb": 61.4, "n_candidates": 44}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 10, "s": 0.21421}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 10, "s": 0.010415, "rss_delta_mb": 0.0, "n_candidates": 44}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 10, "s": 0.0182, "rss_delta_mb": 0.0, "n_candidates": 44}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 10, "s": 0.418652, "rss_delta_mb": 0.0, "n_candidates": 44}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 10, "groups": 36, "buckets": {"<=4": [4, 0.0558, 12], "<=2": [32, 0.3626, 32]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 10, "s": 0.016861, "rss_delta_mb": 0.0, "n_candidates": 44}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 10, "groups": 36, "buckets": {"<=4": [4, 0.0028, 12], "<=2": [32, 0.0139, 32]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 10, "s": 2.9e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 10, "s": 0.011665, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 10, "s": 0.067159, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 10, "n_candidates": 44, "n_frequent": 44}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "array", "k": 11, "s": 0.001645, "rss_delta_mb": 0.1, "n_prev": 44}
+{"workload": "deepk", "threads": 1, "lever": "L4", "variant": "pyref", "k": 11, "s": 0.000158, "n_prev": 44}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 11, "s": 0.145642, "rss_delta_mb": 61.4, "n_candidates": 4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 11, "s": 0.126797}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 11, "s": 0.00107, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 11, "s": 0.001721, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj", "k": 11, "s": 0.059892, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 11, "groups": 4, "buckets": {"<=2": [4, 0.0597, 4]}}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 11, "s": 0.002314, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 11, "groups": 4, "buckets": {"<=2": [4, 0.0022, 4]}}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 11, "s": 2.6e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 11, "s": 0.008792, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 11, "s": 0.017679, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 1, "lever": "L3", "variant": "result", "k": 11, "n_candidates": 4, "n_frequent": 4}
+{"workload": "deepk", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 1.121519, "rss_delta_mb": 41.4}
+{"workload": "deepk", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 8841, "sum_counts": 266261275, "itemset_hash": "4d2c8d28bcd33cd61f763915e42cb60c0f60f16e1ffec2af32a887faabf47567", "levels": {"1": 112, "2": 471, "3": 901, "4": 1407, "5": 1854, "6": 1848, "7": 1320, "8": 660, "9": 220, "10": 44, "11": 4}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "deepk-F-polars-T1#r0"}
+{"workload": "skew", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 1.358667, "rss_delta_mb": 523.4}
+{"workload": "skew", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 2.797159, "rss_delta_mb": 348.2}
+{"workload": "skew", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.084513, "rss_delta_mb": 73.9}
+{"workload": "skew", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.047253, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 118, "n_rows": 1000000, "min_count": 20000}
+{"workload": "skew", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 62213394, "sum_len_sq": 134097944, "nnz": 9671156}
+{"workload": "skew", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.676984, "rss_delta_mb": 73.9, "n_candidates": 6903}
+{"workload": "skew", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 0.743921, "rss_delta_mb": 73.8, "n_candidates": 6903}
+{"workload": "skew", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 1.943351, "rss_delta_mb": 321.5, "n_candidates": 6903}
+{"workload": "skew", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 717, "dense_bytes": 55696}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 1.001642, "rss_delta_mb": 338.7, "words": 15625, "bytes": 14750000}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "array", "k": 3, "s": 0.00224, "rss_delta_mb": 0.1, "n_prev": 717}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "pyref", "k": 3, "s": 0.030011, "n_prev": 717}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 1.80041, "rss_delta_mb": 72.3, "n_candidates": 3218}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 3, "s": 1.775984}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 3, "s": 0.831148, "rss_delta_mb": 252.8, "n_candidates": 3218}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 3, "s": 1.526003, "rss_delta_mb": 276.4, "n_candidates": 3218}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj", "k": 3, "s": 2.965358, "rss_delta_mb": 136.3, "n_candidates": 3218}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 3, "groups": 30, "buckets": {"<=128": [2, 1.304, 1115], "<=64": [5, 1.1404, 1390], "<=32": [5, 0.3129, 503], "<=16": [3, 0.0859, 84], "<=8": [7, 0.0657, 101], "<=4": [5, 0.0349, 22], "<=2": [3, 0.0212, 3]}}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 3, "s": 1.448882, "rss_delta_mb": 190.9, "n_candidates": 3218}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 3, "groups": 30, "buckets": {"<=128": [2, 1.145, 1115], "<=64": [5, 0.2287, 1390], "<=32": [5, 0.0552, 503], "<=16": [3, 0.0077, 84], "<=8": [7, 0.008, 101], "<=4": [5, 0.0028, 22], "<=2": [3, 0.0011, 3]}}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 5.2e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.033909, "rss_delta_mb": 36.8}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.018819, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 3218, "n_frequent": 1928}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "array", "k": 4, "s": 0.002446, "rss_delta_mb": 0.0, "n_prev": 1928}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "pyref", "k": 4, "s": 0.178401, "n_prev": 1928}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 2.732253, "rss_delta_mb": 73.8, "n_candidates": 3531}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 4, "s": 2.711272}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 4, "s": 1.594784, "rss_delta_mb": 254.5, "n_candidates": 3531}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 4, "s": 1.453563, "rss_delta_mb": 252.4, "n_candidates": 3531}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj", "k": 4, "s": 4.065408, "rss_delta_mb": 67.1, "n_candidates": 3531}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 4, "groups": 99, "buckets": {"<=64": [6, 1.5092, 1563], "<=32": [9, 0.9667, 989], "<=16": [13, 0.699, 501], "<=8": [26, 0.447, 350], "<=4": [31, 0.3611, 114], "<=2": [14, 0.0814, 14]}}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 4, "s": 0.791367, "rss_delta_mb": 67.9, "n_candidates": 3531}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 4, "groups": 99, "buckets": {"<=64": [6, 0.5494, 1563], "<=32": [9, 0.1257, 989], "<=16": [13, 0.0625, 501], "<=8": [26, 0.0308, 350], "<=4": [31, 0.0169, 114], "<=2": [14, 0.0054, 14]}}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 5.2e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.038238, "rss_delta_mb": 72.6}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.019998, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 3531, "n_frequent": 2932}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "array", "k": 5, "s": 0.002981, "rss_delta_mb": 0.0, "n_prev": 2932}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "pyref", "k": 5, "s": 0.464518, "n_prev": 2932}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 2.974195, "rss_delta_mb": 73.8, "n_candidates": 2886}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 5, "s": 2.951762}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 5, "s": 1.632811, "rss_delta_mb": 255.0, "n_candidates": 2886}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 5, "s": 1.900395, "rss_delta_mb": 284.3, "n_candidates": 2886}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj", "k": 5, "s": 4.211112, "rss_delta_mb": 73.5, "n_candidates": 2886}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 5, "groups": 169, "buckets": {"<=64": [4, 0.7404, 765], "<=32": [12, 1.017, 988], "<=16": [17, 0.8515, 525], "<=8": [29, 0.634, 324], "<=4": [61, 0.6244, 238], "<=2": [46, 0.343, 46]}}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 5, "s": 0.367359, "rss_delta_mb": 39.2, "n_candidates": 2886}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 5, "groups": 169, "buckets": {"<=64": [4, 0.1116, 765], "<=32": [12, 0.1115, 988], "<=16": [17, 0.0538, 525], "<=8": [29, 0.0323, 324], "<=4": [61, 0.0374, 238], "<=2": [46, 0.0202, 46]}}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 2.9e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.027799, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.274631, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 2886, "n_frequent": 2683}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "array", "k": 6, "s": 0.002089, "rss_delta_mb": 0.0, "n_prev": 2683}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "pyref", "k": 6, "s": 0.378233, "n_prev": 2683}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 2.024651, "rss_delta_mb": 67.8, "n_candidates": 1504}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 6, "s": 2.001421}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 6, "s": 1.421882, "rss_delta_mb": 252.4, "n_candidates": 1504}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 6, "s": 0.938948, "rss_delta_mb": 255.5, "n_candidates": 1504}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj", "k": 6, "s": 3.297394, "rss_delta_mb": 0.0, "n_candidates": 1504}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 6, "groups": 169, "buckets": {"<=32": [6, 0.6633, 555], "<=16": [14, 0.7455, 445], "<=8": [21, 0.6369, 214], "<=4": [60, 0.717, 222], "<=2": [68, 0.5338, 68]}}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 6, "s": 0.195686, "rss_delta_mb": 0.0, "n_candidates": 1504}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 6, "groups": 169, "buckets": {"<=32": [6, 0.0766, 555], "<=16": [14, 0.0364, 445], "<=8": [21, 0.0194, 214], "<=4": [60, 0.0339, 222], "<=2": [68, 0.0287, 68]}}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 8.4e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.038776, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.018308, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 1504, "n_frequent": 1458}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "array", "k": 7, "s": 0.001173, "rss_delta_mb": 0.0, "n_prev": 1458}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "pyref", "k": 7, "s": 0.114529, "n_prev": 1458}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 0.794943, "rss_delta_mb": 63.8, "n_candidates": 448}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 7, "s": 0.77059}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 7, "s": 0.569644, "rss_delta_mb": 157.1, "n_candidates": 448}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 7, "s": 0.232648, "rss_delta_mb": 157.1, "n_candidates": 448}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj", "k": 7, "s": 1.791014, "rss_delta_mb": 0.0, "n_candidates": 448}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 7, "groups": 102, "buckets": {"<=32": [1, 0.1, 70], "<=16": [6, 0.3555, 158], "<=8": [7, 0.2454, 60], "<=2": [58, 0.5825, 58], "<=4": [30, 0.507, 102]}}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 7, "s": 0.057687, "rss_delta_mb": 0.0, "n_candidates": 448}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 7, "groups": 102, "buckets": {"<=32": [1, 0.0069, 70], "<=16": [6, 0.0098, 158], "<=8": [7, 0.0048, 60], "<=2": [58, 0.0213, 58], "<=4": [30, 0.0146, 102]}}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 2e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.034723, "rss_delta_mb": 32.5}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.55519, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 448, "n_frequent": 443}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "array", "k": 8, "s": 0.000791, "rss_delta_mb": 0.0, "n_prev": 443}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "pyref", "k": 8, "s": 0.010883, "n_prev": 443}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 0.259397, "rss_delta_mb": 55.8, "n_candidates": 67}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 8, "s": 0.238633}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 8, "s": 0.013233, "rss_delta_mb": 0.0, "n_candidates": 67}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 8, "s": 0.024271, "rss_delta_mb": 0.0, "n_candidates": 67}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj", "k": 8, "s": 0.510815, "rss_delta_mb": 0.0, "n_candidates": 67}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 8, "groups": 32, "buckets": {"<=16": [1, 0.068, 19], "<=8": [1, 0.0204, 6], "<=2": [24, 0.2694, 24], "<=4": [6, 0.1527, 18]}}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 8, "s": 0.017911, "rss_delta_mb": 0.0, "n_candidates": 67}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 8, "groups": 32, "buckets": {"<=16": [1, 0.0019, 19], "<=8": [1, 0.0007, 6], "<=2": [24, 0.0105, 24], "<=4": [6, 0.0046, 18]}}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 2.2e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.021105, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.099082, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 67, "n_frequent": 67}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "array", "k": 9, "s": 0.0009, "rss_delta_mb": 0.0, "n_prev": 67}
+{"workload": "skew", "threads": 1, "lever": "L4", "variant": "pyref", "k": 9, "s": 0.000595, "n_prev": 67}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 9, "s": 0.165059, "rss_delta_mb": 63.8, "n_candidates": 4}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 9, "s": 0.135534}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 9, "s": 0.000939, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 9, "s": 0.001629, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj", "k": 9, "s": 0.048926, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 9, "groups": 4, "buckets": {"<=2": [4, 0.0488, 4]}}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 9, "s": 0.002326, "rss_delta_mb": 0.0, "n_candidates": 4}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 9, "groups": 4, "buckets": {"<=2": [4, 0.0022, 4]}}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 9, "s": 2.1e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 9, "s": 0.017348, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 9, "s": 0.020231, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 1, "lever": "L3", "variant": "result", "k": 9, "n_candidates": 4, "n_frequent": 4}
+{"workload": "skew", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 1.306349, "rss_delta_mb": 63.8}
+{"workload": "skew", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 10350, "sum_counts": 346834073, "itemset_hash": "75262446a1c2b29bbc15e6d36afe23300984e6d46f8483511f055f1a510c2405", "levels": {"1": 118, "2": 717, "3": 1928, "4": 2932, "5": 2683, "6": 1458, "7": 443, "8": 67, "9": 4}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "skew-F-polars-T1#r0"}
+{"workload": "wide", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.180504, "rss_delta_mb": 99.9}
+{"workload": "wide", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.105523, "rss_delta_mb": 85.4}
+{"workload": "wide", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.015035, "rss_delta_mb": 0.1}
+{"workload": "wide", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.008541, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 2351, "n_rows": 100000, "min_count": 400}
+{"workload": "wide", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 24705224, "sum_len_sq": 51634956, "nnz": 2224508}
+{"workload": "wide", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.552873, "rss_delta_mb": 42.8, "n_candidates": 2762425}
+{"workload": "wide", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 0.521064, "rss_delta_mb": 0.0, "n_candidates": 2762425}
+{"workload": "wide", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 2.895897, "rss_delta_mb": 637.8, "n_candidates": 2762425}
+{"workload": "wide", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 1408, "dense_bytes": 22108804}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.304967, "rss_delta_mb": 63.6, "words": 1563, "bytes": 29396904}
+{"workload": "wide", "threads": 1, "lever": "L4", "variant": "array", "k": 3, "s": 0.011626, "rss_delta_mb": 0.1, "n_prev": 1408}
+{"workload": "wide", "threads": 1, "lever": "L4", "variant": "pyref", "k": 3, "s": 0.117983, "n_prev": 1408}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.37165, "rss_delta_mb": 0.0, "n_candidates": 5368}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.362808}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 3, "s": 0.850426, "rss_delta_mb": 12.3, "n_candidates": 5368}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 3, "s": 0.205234, "rss_delta_mb": 189.9, "n_candidates": 5368}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "proj", "k": 3, "s": 0.092567, "rss_delta_mb": 0.2, "n_candidates": 5368}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 3, "groups": 20, "buckets": {"<=256": [2, 0.0409, 1816], "<=128": [3, 0.0196, 1640], "<=64": [5, 0.0162, 1349], "<=32": [5, 0.0093, 479], "<=16": [3, 0.004, 75], "<=8": [1, 0.0011, 7], "<=4": [1, 0.001, 2]}}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 3, "s": 0.108748, "rss_delta_mb": 2.3, "n_candidates": 5368}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 3, "groups": 20, "buckets": {"<=256": [2, 0.0541, 1816], "<=128": [3, 0.0313, 1640], "<=64": [5, 0.0172, 1349], "<=32": [5, 0.0046, 479], "<=16": [3, 0.001, 75], "<=8": [1, 0.0002, 7], "<=4": [1, 0.0001, 2]}}
+{"workload": "wide", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 6.4e-05, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.004949, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.002707, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 5368, "n_frequent": 113}
+{"workload": "wide", "threads": 1, "lever": "L4", "variant": "array", "k": 4, "s": 0.000813, "rss_delta_mb": 0.0, "n_prev": 113}
+{"workload": "wide", "threads": 1, "lever": "L4", "variant": "pyref", "k": 4, "s": 0.001708, "n_prev": 113}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.064356, "rss_delta_mb": 0.0, "n_candidates": 24}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.061883}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 4, "s": 0.000488, "rss_delta_mb": 0.0, "n_candidates": 24}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 4, "s": 0.000788, "rss_delta_mb": 0.0, "n_candidates": 24}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "proj", "k": 4, "s": 0.006099, "rss_delta_mb": 0.0, "n_candidates": 24}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 4, "groups": 3, "buckets": {"<=16": [1, 0.0029, 20], "<=4": [2, 0.0031, 4]}}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 4, "s": 0.000667, "rss_delta_mb": 0.0, "n_candidates": 24}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 4, "groups": 3, "buckets": {"<=16": [1, 0.0004, 20], "<=4": [2, 0.0002, 4]}}
+{"workload": "wide", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 1.6e-05, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.004866, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.002901, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 1, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 24, "n_frequent": 0}
+{"workload": "wide", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 4.492115, "rss_delta_mb": 24.7}
+{"workload": "wide", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 3872, "sum_counts": 3335352, "itemset_hash": "83f031d745b2a4eecee468c34b1df1dd8109d9454687a561d97f1baef7e22eb1", "levels": {"1": 2351, "2": 1408, "3": 113}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "wide-F-polars-T1#r0"}
+{"workload": "or005", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.081333, "rss_delta_mb": 56.5}
+{"workload": "or005", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.054709, "rss_delta_mb": 41.6}
+{"workload": "or005", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.006004, "rss_delta_mb": 0.1}
+{"workload": "or005", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.003478, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 1548, "n_rows": 36422, "min_count": 183}
+{"workload": "or005", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 28449924, "sum_len_sq": 57708263, "nnz": 808415}
+{"workload": "or005", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.28069, "rss_delta_mb": 22.6, "n_candidates": 1197378}
+{"workload": "or005", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 0.229814, "rss_delta_mb": 1.6, "n_candidates": 1197378}
+{"workload": "or005", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 2.372773, "rss_delta_mb": 598.3, "n_candidates": 1197378}
+{"workload": "or005", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 5510, "dense_bytes": 9585216}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.07327, "rss_delta_mb": 15.9, "words": 570, "bytes": 7058880}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "array", "k": 3, "s": 0.01335, "rss_delta_mb": 0.1, "n_prev": 5510}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "pyref", "k": 3, "s": 0.110822, "n_prev": 5510}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 1.012705, "rss_delta_mb": 0.0, "n_candidates": 52831}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 3, "s": 1.002385}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 3, "s": 1.794448, "rss_delta_mb": 211.5, "n_candidates": 52831}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 3, "s": 1.47047, "rss_delta_mb": 254.0, "n_candidates": 52831}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj", "k": 3, "s": 0.319695, "rss_delta_mb": 0.3, "n_candidates": 52831}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 3, "groups": 392, "buckets": {"<=32": [35, 0.0361, 7011], "<=8": [79, 0.0468, 1083], "<=4": [95, 0.0468, 383], "<=16": [49, 0.0355, 2345], "<=2": [91, 0.0448, 91], "<=64": [25, 0.04, 12998], "<=128": [15, 0.0455, 20173], "<=256": [3, 0.0233, 8747]}}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 3, "s": 0.134036, "rss_delta_mb": 31.3, "n_candidates": 52831}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 3, "groups": 392, "buckets": {"<=32": [35, 0.0131, 7011], "<=8": [79, 0.0049, 1083], "<=4": [95, 0.0044, 383], "<=16": [49, 0.0054, 2345], "<=2": [91, 0.0045, 91], "<=64": [25, 0.0256, 12998], "<=128": [15, 0.0484, 20173], "<=256": [3, 0.0271, 8747]}}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 0.000154, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.001757, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.000583, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 52831, "n_frequent": 2678}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "array", "k": 4, "s": 0.001225, "rss_delta_mb": 0.0, "n_prev": 2678}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "pyref", "k": 4, "s": 0.359737, "n_prev": 2678}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.103075, "rss_delta_mb": 0.0, "n_candidates": 2948}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.101556}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 4, "s": 0.018888, "rss_delta_mb": 3.1, "n_candidates": 2948}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 4, "s": 0.041989, "rss_delta_mb": 38.3, "n_candidates": 2948}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj", "k": 4, "s": 0.216067, "rss_delta_mb": 0.0, "n_candidates": 2948}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 4, "groups": 386, "buckets": {"<=2": [157, 0.0755, 157], "<=8": [63, 0.0382, 599], "<=4": [116, 0.0621, 403], "<=16": [40, 0.0294, 982], "<=32": [9, 0.0083, 674], "<=64": [1, 0.0014, 133]}}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 4, "s": 0.018657, "rss_delta_mb": 0.0, "n_candidates": 2948}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 4, "groups": 386, "buckets": {"<=2": [157, 0.0056, 157], "<=8": [63, 0.0031, 599], "<=4": [116, 0.0046, 403], "<=16": [40, 0.0031, 982], "<=32": [9, 0.0014, 674], "<=64": [1, 0.0003, 133]}}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 0.000117, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.001517, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.000897, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 2948, "n_frequent": 664}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "array", "k": 5, "s": 0.000523, "rss_delta_mb": 0.0, "n_prev": 664}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "pyref", "k": 5, "s": 0.02158, "n_prev": 664}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.019944, "rss_delta_mb": 0.0, "n_candidates": 213}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.018824}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 5, "s": 0.000931, "rss_delta_mb": 0.0, "n_candidates": 213}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 5, "s": 0.002251, "rss_delta_mb": 0.0, "n_candidates": 213}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj", "k": 5, "s": 0.052717, "rss_delta_mb": 0.0, "n_candidates": 213}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 5, "groups": 103, "buckets": {"<=2": [68, 0.033, 68], "<=4": [29, 0.0157, 83], "<=16": [1, 0.0008, 23], "<=8": [5, 0.0028, 39]}}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 5, "s": 0.00533, "rss_delta_mb": 0.0, "n_candidates": 213}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 5, "groups": 103, "buckets": {"<=2": [68, 0.0035, 68], "<=4": [29, 0.0014, 83], "<=16": [1, 0.0001, 23], "<=8": [5, 0.0002, 39]}}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 1.9e-05, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.001622, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.00093, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 213, "n_frequent": 82}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "array", "k": 6, "s": 0.000568, "rss_delta_mb": 0.0, "n_prev": 82}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "pyref", "k": 6, "s": 0.000381, "n_prev": 82}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.011843, "rss_delta_mb": 0.0, "n_candidates": 11}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.011316}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 6, "s": 0.000266, "rss_delta_mb": 0.0, "n_candidates": 11}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 6, "s": 0.0002, "rss_delta_mb": 0.0, "n_candidates": 11}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj", "k": 6, "s": 0.006478, "rss_delta_mb": 0.0, "n_candidates": 11}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 6, "groups": 9, "buckets": {"<=2": [8, 0.0056, 8], "<=4": [1, 0.0007, 3]}}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 6, "s": 0.000998, "rss_delta_mb": 0.0, "n_candidates": 11}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 6, "groups": 9, "buckets": {"<=2": [8, 0.0008, 8], "<=4": [1, 0.0001, 3]}}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 2.3e-05, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.00156, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.000573, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 1, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 11, "n_frequent": 6}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "array", "k": 7, "s": 0.000161, "rss_delta_mb": 0.0, "n_prev": 6}
+{"workload": "or005", "threads": 1, "lever": "L4", "variant": "pyref", "k": 7, "s": 1.8e-05, "n_prev": 6}
+{"workload": "or005", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 0.919635, "rss_delta_mb": 31.5}
+{"workload": "or005", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 10488, "sum_counts": 3113437, "itemset_hash": "c025aae232b9dd8a149e7cf6ccd4c5955ff16e2e9018815f9045fdcfae9902d1", "levels": {"1": 1548, "2": 5510, "3": 2678, "4": 664, "5": 82, "6": 6}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or005-F-polars-T1#r0"}
+{"workload": "or003", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.08715, "rss_delta_mb": 60.6}
+{"workload": "or003", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.07716, "rss_delta_mb": 42.5}
+{"workload": "or003", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.005997, "rss_delta_mb": 0.1}
+{"workload": "or003", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.004016, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 2145, "n_rows": 36422, "min_count": 110}
+{"workload": "or003", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 36504277, "sum_len_sq": 73902380, "nnz": 893826}
+{"workload": "or003", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.650226, "rss_delta_mb": 44.8, "n_candidates": 2299440}
+{"workload": "or003", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 0.357476, "rss_delta_mb": 0.0, "n_candidates": 2299440}
+{"workload": "or003", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 3.599675, "rss_delta_mb": 880.9, "n_candidates": 2299440}
+{"workload": "or003", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 22732, "dense_bytes": 18404100}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.023602, "rss_delta_mb": 23.0, "words": 570, "bytes": 9781200}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "array", "k": 3, "s": 0.35746, "rss_delta_mb": 84.4, "n_prev": 22732}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "pyref", "k": 3, "s": 1.710678, "n_prev": 22732}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 9.945944, "rss_delta_mb": 97.4, "n_candidates": 526939}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 3, "s": 9.804098}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 3, "s": 4.987779, "rss_delta_mb": 256.0, "n_candidates": 526939}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 3, "s": 10.420224, "rss_delta_mb": 256.0, "n_candidates": 526939}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj", "k": 3, "s": 0.926658, "rss_delta_mb": 0.3, "n_candidates": 526939}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 3, "groups": 777, "buckets": {"<=256": [33, 0.187, 199893], "<=16": [124, 0.0788, 7258], "<=64": [79, 0.0998, 62653], "<=8": [139, 0.08, 2057], "<=2": [111, 0.0503, 111], "<=128": [48, 0.1137, 114706], "<=4": [127, 0.0629, 504], "<=32": [106, 0.0902, 22296], "<=512": [9, 0.1304, 102903], ">512": [1, 0.0293, 14558]}}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 3, "s": 3.000375, "rss_delta_mb": 215.6, "n_candidates": 526939}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 3, "groups": 777, "buckets": {"<=256": [33, 1.2665, 199893], "<=16": [124, 0.0168, 7258], "<=64": [79, 0.1123, 62653], "<=8": [139, 0.0106, 2057], "<=2": [111, 0.0061, 111], "<=128": [48, 0.2588, 114706], "<=4": [127, 0.007, 504], "<=32": [106, 0.0362, 22296], "<=512": [9, 1.1783, 102903], ">512": [1, 0.1032, 14558]}}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 0.000914, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.001931, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.00077, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 526939, "n_frequent": 23062}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "array", "k": 4, "s": 0.02245, "rss_delta_mb": 0.0, "n_prev": 23062}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "pyref", "k": 4, "s": 0.193014, "n_prev": 23062}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 1.464012, "rss_delta_mb": 0.8, "n_candidates": 53338}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 4, "s": 1.453374}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 4, "s": 1.222036, "rss_delta_mb": 256.0, "n_candidates": 53338}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 4, "s": 1.343566, "rss_delta_mb": 256.0, "n_candidates": 53338}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj", "k": 4, "s": 1.711256, "rss_delta_mb": 0.0, "n_candidates": 53338}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 4, "groups": 2975, "buckets": {"<=2": [1045, 0.492, 1045], "<=16": [293, 0.1993, 10529], "<=8": [519, 0.2994, 6036], "<=32": [151, 0.1368, 14367], "<=4": [908, 0.4761, 3289], "<=64": [45, 0.0654, 9747], "<=128": [13, 0.0309, 7289], "<=256": [1, 0.0043, 1036]}}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 4, "s": 0.198303, "rss_delta_mb": 0.0, "n_candidates": 53338}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 4, "groups": 2975, "buckets": {"<=2": [1045, 0.0409, 1045], "<=16": [293, 0.0224, 10529], "<=8": [519, 0.0306, 6036], "<=32": [151, 0.023, 14367], "<=4": [908, 0.0441, 3289], "<=64": [45, 0.015, 9747], "<=128": [13, 0.0158, 7289], "<=256": [1, 0.0029, 1036]}}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 0.000118, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.003001, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.001308, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 53338, "n_frequent": 10755}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "array", "k": 5, "s": 0.005739, "rss_delta_mb": 0.0, "n_prev": 10755}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "pyref", "k": 5, "s": 6.495606, "n_prev": 10755}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.24602, "rss_delta_mb": 0.0, "n_candidates": 6254}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.243656}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 5, "s": 0.129052, "rss_delta_mb": 15.2, "n_candidates": 6254}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 5, "s": 0.082761, "rss_delta_mb": 0.0, "n_candidates": 6254}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj", "k": 5, "s": 0.624263, "rss_delta_mb": 0.0, "n_candidates": 6254}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 5, "groups": 1295, "buckets": {"<=4": [393, 0.1832, 1217], "<=8": [182, 0.0935, 1541], "<=2": [628, 0.2812, 628], "<=16": [67, 0.0402, 1327], "<=64": [4, 0.0052, 510], "<=32": [21, 0.0184, 1031]}}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 5, "s": 0.059881, "rss_delta_mb": 0.0, "n_candidates": 6254}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 5, "groups": 1295, "buckets": {"<=4": [393, 0.0168, 1217], "<=8": [182, 0.0093, 1541], "<=2": [628, 0.0243, 628], "<=16": [67, 0.0049, 1327], "<=64": [4, 0.0013, 510], "<=32": [21, 0.0022, 1031]}}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 7.8e-05, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.002012, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.001165, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 6254, "n_frequent": 2388}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "array", "k": 6, "s": 0.000888, "rss_delta_mb": 0.0, "n_prev": 2388}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "pyref", "k": 6, "s": 0.342662, "n_prev": 2388}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.051536, "rss_delta_mb": 0.0, "n_candidates": 786}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.050122}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 6, "s": 0.004369, "rss_delta_mb": 0.0, "n_candidates": 786}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 6, "s": 0.009437, "rss_delta_mb": 0.0, "n_candidates": 786}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj", "k": 6, "s": 0.123008, "rss_delta_mb": 0.0, "n_candidates": 786}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 6, "groups": 309, "buckets": {"<=4": [92, 0.0361, 259], "<=2": [179, 0.0686, 179], "<=16": [3, 0.0015, 62], "<=8": [34, 0.0154, 267], "<=32": [1, 0.0008, 19]}}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 6, "s": 0.014022, "rss_delta_mb": 0.0, "n_candidates": 786}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 6, "groups": 309, "buckets": {"<=4": [92, 0.0042, 259], "<=2": [179, 0.0073, 179], "<=16": [3, 0.0002, 62], "<=8": [34, 0.0018, 267], "<=32": [1, 0.0001, 19]}}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 4.1e-05, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.001902, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.001147, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 786, "n_frequent": 402}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "array", "k": 7, "s": 0.001161, "rss_delta_mb": 0.1, "n_prev": 402}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "pyref", "k": 7, "s": 0.009459, "n_prev": 402}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 0.017827, "rss_delta_mb": 0.0, "n_candidates": 48}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 7, "s": 0.016709}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 7, "s": 0.000263, "rss_delta_mb": 0.0, "n_candidates": 48}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 7, "s": 0.000694, "rss_delta_mb": 0.0, "n_candidates": 48}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj", "k": 7, "s": 0.015635, "rss_delta_mb": 0.0, "n_candidates": 48}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 7, "groups": 37, "buckets": {"<=4": [6, 0.0029, 14], "<=2": [30, 0.0121, 30], "<=8": [1, 0.0005, 4]}}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 7, "s": 0.002224, "rss_delta_mb": 0.0, "n_candidates": 48}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 7, "groups": 37, "buckets": {"<=4": [6, 0.0007, 14], "<=2": [30, 0.0013, 30], "<=8": [1, 0.0, 4]}}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 2.5e-05, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.001624, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.000961, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 48, "n_frequent": 33}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "array", "k": 8, "s": 0.00083, "rss_delta_mb": 0.0, "n_prev": 33}
+{"workload": "or003", "threads": 1, "lever": "L4", "variant": "pyref", "k": 8, "s": 8.6e-05, "n_prev": 33}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 0.01247, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 8, "s": 0.011768}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 8, "s": 0.000283, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 8, "s": 0.000269, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj", "k": 8, "s": 0.000649, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 8, "groups": 1, "buckets": {"<=2": [1, 0.0006, 1]}}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 8, "s": 0.000275, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 8, "groups": 1, "buckets": {"<=2": [1, 0.0002, 1]}}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 2.3e-05, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.001466, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.000546, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 1, "n_frequent": 0}
+{"workload": "or003", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 4.531644, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 61517, "sum_counts": 9821460, "itemset_hash": "52082db76a63bfa54967e34fb73fe8734275783ea0f06c5c2943ca7e7b0266d4", "levels": {"1": 2145, "2": 22732, "3": 23062, "4": 10755, "5": 2388, "6": 402, "7": 33}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or003-F-polars-T1#r0"}
+{"workload": "or002", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.084708, "rss_delta_mb": 60.2}
+{"workload": "or002", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.108319, "rss_delta_mb": 35.9}
+{"workload": "or002", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.009027, "rss_delta_mb": 0.1}
+{"workload": "or002", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.00335, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 2614, "n_rows": 36422, "min_count": 73}
+{"workload": "or002", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 40906330, "sum_len_sq": 82748331, "nnz": 935671}
+{"workload": "or002", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.988623, "rss_delta_mb": 61.3, "n_candidates": 3415191}
+{"workload": "or002", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 0.493349, "rss_delta_mb": 29.7, "n_candidates": 3415191}
+{"workload": "or002", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 4.700389, "rss_delta_mb": 944.1, "n_candidates": 3415191}
+{"workload": "or002", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 60406, "dense_bytes": 27331984}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.162607, "rss_delta_mb": 34.5, "words": 570, "bytes": 11919840}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 3, "s": 4.211206, "rss_delta_mb": 36.1, "n_prev": 60406}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 49.835866, "rss_delta_mb": 548.5, "n_candidates": 2619442}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 3, "s": 49.025597}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 3, "s": 21.596646, "rss_delta_mb": 256.0, "n_candidates": 2619442}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 3, "s": 44.19756, "rss_delta_mb": 256.0, "n_candidates": 2619442}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 3, "s": 2.027888, "rss_delta_mb": 0.3, "n_candidates": 2619442}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 3, "groups": 1231, "buckets": {"<=2": [155, 0.06, 155], "<=8": [184, 0.079, 2952], "<=4": [169, 0.0674, 698], "<=512": [41, 0.5479, 914321], "<=32": [164, 0.1189, 40433], "<=64": [153, 0.1618, 134409], "<=128": [115, 0.2297, 377787], "<=16": [163, 0.0804, 10103], "<=256": [79, 0.3653, 802851], ">512": [8, 0.3082, 335733]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 3, "s": 11.949034, "rss_delta_mb": 263.5, "n_candidates": 2619442}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 3, "groups": 1231, "buckets": {"<=2": [155, 0.0094, 155], "<=8": [184, 0.0168, 2952], "<=4": [169, 0.0126, 698], "<=512": [41, 5.7817, 914321], "<=32": [164, 0.066, 40433], "<=64": [153, 0.2022, 134409], "<=128": [115, 0.8524, 377787], "<=16": [163, 0.0229, 10103], "<=256": [79, 3.1147, 802851], ">512": [8, 1.8609, 335733]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 0.004334, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.002015, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.000989, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 2619442, "n_frequent": 136149}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 4, "s": 0.334045, "rss_delta_mb": 172.0, "n_prev": 136149}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 18.44462, "rss_delta_mb": 126.9, "n_candidates": 657410}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 4, "s": 18.245449}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 4, "s": 6.960864, "rss_delta_mb": 256.0, "n_candidates": 657410}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 4, "s": 10.91901, "rss_delta_mb": 256.0, "n_candidates": 657410}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 4, "s": 7.145784, "rss_delta_mb": 1.1, "n_candidates": 657410}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 4, "groups": 13150, "buckets": {"<=64": [465, 0.473, 166527], "<=32": [965, 0.7087, 125929], "<=16": [1587, 0.8968, 66167], "<=128": [180, 0.4454, 149958], "<=2": [3735, 1.5034, 3735], "<=8": [2681, 1.2815, 34905], "<=4": [3489, 1.5573, 13213], "<=256": [42, 0.1769, 73103], "<=512": [6, 0.0599, 23873]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 4, "s": 1.268828, "rss_delta_mb": 0.0, "n_candidates": 657410}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 4, "groups": 13150, "buckets": {"<=64": [465, 0.1653, 166527], "<=32": [965, 0.1429, 125929], "<=16": [1587, 0.1307, 66167], "<=128": [180, 0.1699, 149958], "<=2": [3735, 0.1429, 3735], "<=8": [2681, 0.15, 34905], "<=4": [3489, 0.1603, 13213], "<=256": [42, 0.1287, 73103], "<=512": [6, 0.0511, 23873]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 0.001041, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.002511, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.001158, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 657410, "n_frequent": 140950}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 5, "s": 0.109163, "rss_delta_mb": 0.0, "n_prev": 140950}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 6.440616, "rss_delta_mb": 38.9, "n_candidates": 179440}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 5, "s": 6.377513}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 5, "s": 2.02365, "rss_delta_mb": 192.0, "n_candidates": 179440}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 5, "s": 2.785144, "rss_delta_mb": 192.0, "n_candidates": 179440}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 5, "s": 7.311345, "rss_delta_mb": 0.2, "n_candidates": 179440}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 5, "groups": 18237, "buckets": {"<=4": [5682, 2.1855, 18602], "<=8": [3268, 1.3369, 32060], "<=2": [6980, 2.5313, 6980], "<=16": [1522, 0.6985, 40744], "<=32": [617, 0.3587, 43734], "<=64": [145, 0.1266, 26119], "<=256": [2, 0.0061, 2284], "<=128": [21, 0.0362, 8917]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 5, "s": 0.795907, "rss_delta_mb": 0.0, "n_candidates": 179440}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 5, "groups": 18237, "buckets": {"<=4": [5682, 0.2105, 18602], "<=8": [3268, 0.1431, 32060], "<=2": [6980, 0.2302, 6980], "<=16": [1522, 0.0907, 40744], "<=32": [617, 0.06, 43734], "<=64": [145, 0.0284, 26119], "<=256": [2, 0.0048, 2284], "<=128": [21, 0.0129, 8917]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 0.000289, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.002217, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.001277, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 179440, "n_frequent": 73597}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 6, "s": 0.023024, "rss_delta_mb": 0.0, "n_prev": 73597}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 1.382085, "rss_delta_mb": 2.5, "n_candidates": 31810}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 6, "s": 1.373098}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 6, "s": 1.138633, "rss_delta_mb": 190.0, "n_candidates": 31810}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 6, "s": 0.516784, "rss_delta_mb": 184.0, "n_candidates": 31810}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 6, "s": 3.275624, "rss_delta_mb": 0.0, "n_candidates": 31810}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 6, "groups": 7955, "buckets": {"<=4": [2521, 1.0859, 7201], "<=2": [3883, 1.4808, 3883], "<=8": [1092, 0.462, 8356], "<=16": [371, 0.1794, 7186], "<=64": [14, 0.0117, 1471], "<=32": [73, 0.0417, 3416], "<=128": [1, 0.0013, 297]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 6, "s": 0.31088, "rss_delta_mb": 0.0, "n_candidates": 31810}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 6, "groups": 7955, "buckets": {"<=4": [2521, 0.0929, 7201], "<=2": [3883, 0.133, 3883], "<=8": [1092, 0.0488, 8356], "<=16": [371, 0.0203, 7186], "<=64": [14, 0.0025, 1471], "<=32": [73, 0.0076, 3416], "<=128": [1, 0.0005, 297]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 9.2e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.0022, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.001285, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 31810, "n_frequent": 19049}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 7, "s": 0.030667, "rss_delta_mb": 0.1, "n_prev": 19049}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 0.215319, "rss_delta_mb": 0.0, "n_candidates": 4018}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 7, "s": 0.212838}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 7, "s": 0.026761, "rss_delta_mb": 0.0, "n_candidates": 4018}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 7, "s": 0.046647, "rss_delta_mb": 0.0, "n_candidates": 4018}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 7, "s": 0.652527, "rss_delta_mb": 0.0, "n_candidates": 4018}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 7, "groups": 1622, "buckets": {"<=2": [971, 0.3794, 971], "<=8": [131, 0.0562, 899], "<=4": [481, 0.1955, 1361], "<=16": [33, 0.0151, 548], "<=32": [6, 0.0038, 239]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 7, "s": 0.05783, "rss_delta_mb": 0.0, "n_candidates": 4018}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 7, "groups": 1622, "buckets": {"<=2": [971, 0.031, 971], "<=8": [131, 0.0057, 899], "<=4": [481, 0.0174, 1361], "<=16": [33, 0.002, 548], "<=32": [6, 0.0006, 239]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 0.000115, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.001911, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.001135, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 4018, "n_frequent": 2882}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 8, "s": 0.005136, "rss_delta_mb": 0.0, "n_prev": 2882}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 0.037074, "rss_delta_mb": 0.0, "n_candidates": 356}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 8, "s": 0.036008}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 8, "s": 0.002427, "rss_delta_mb": 0.0, "n_candidates": 356}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 8, "s": 0.004546, "rss_delta_mb": 0.0, "n_candidates": 356}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 8, "s": 0.087526, "rss_delta_mb": 0.0, "n_candidates": 356}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 8, "groups": 199, "buckets": {"<=2": [144, 0.063, 144], "<=4": [42, 0.018, 118], "<=8": [11, 0.0049, 62], "<=16": [2, 0.0011, 32]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 8, "s": 0.008417, "rss_delta_mb": 0.0, "n_candidates": 356}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 8, "groups": 199, "buckets": {"<=2": [144, 0.0054, 144], "<=4": [42, 0.0021, 118], "<=8": [11, 0.0005, 62], "<=16": [2, 0.0002, 32]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 2.4e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.001619, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.000885, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 356, "n_frequent": 291}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 9, "s": 0.001075, "rss_delta_mb": 0.0, "n_prev": 291}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 9, "s": 0.014938, "rss_delta_mb": 0.0, "n_candidates": 19}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 9, "s": 0.014174}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 9, "s": 0.000294, "rss_delta_mb": 0.0, "n_candidates": 19}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 9, "s": 0.000463, "rss_delta_mb": 0.0, "n_candidates": 19}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 9, "s": 0.008163, "rss_delta_mb": 0.0, "n_candidates": 19}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 9, "groups": 16, "buckets": {"<=2": [14, 0.0071, 14], "<=4": [2, 0.001, 5]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 9, "s": 0.001176, "rss_delta_mb": 0.0, "n_candidates": 19}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 9, "groups": 16, "buckets": {"<=2": [14, 0.001, 14], "<=4": [2, 0.0001, 5]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 9, "s": 1.6e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 9, "s": 0.001423, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 9, "s": 0.000665, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 9, "n_candidates": 19, "n_frequent": 17}
+{"workload": "or002", "threads": 1, "lever": "L4", "variant": "array", "k": 10, "s": 0.001217, "rss_delta_mb": 0.0, "n_prev": 17}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_simd", "k": 10, "s": 0.01182, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "rust_call", "k": 10, "s": 0.011157}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec", "k": 10, "s": 0.000235, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "bitvec_lut", "k": 10, "s": 7.7e-05, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj", "k": 10, "s": 0.000537, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "proj_groups", "k": 10, "groups": 1, "buckets": {"<=2": [1, 0.0005, 1]}}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec", "k": 10, "s": 0.000288, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "gbitvec_groups", "k": 10, "groups": 1, "buckets": {"<=2": [1, 0.0002, 1]}}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "threshold_mask", "k": 10, "s": 1.3e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "csr_len_filter", "k": 10, "s": 0.001305, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "int64_casts", "k": 10, "s": 0.000524, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 1, "lever": "L3", "variant": "result", "k": 10, "n_candidates": 1, "n_frequent": 1}
+{"workload": "or002", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 76.720701, "rss_delta_mb": 90.1}
+{"workload": "or002", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 435956, "sum_counts": 40906817, "itemset_hash": "602f4efac8ed20913159b18434cbf7bcde8e5b7072dd04920b85b68f5b5c1e96", "levels": {"1": 2614, "2": 60406, "3": 136149, "4": 140950, "5": 73597, "6": 19049, "7": 2882, "8": 291, "9": 17, "10": 1}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or002-F-polars-T4#r0"}
+{"workload": "or0001k2", "threads": 1, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.08271, "rss_delta_mb": 66.3}
+{"workload": "or0001k2", "threads": 1, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.043854, "rss_delta_mb": 36.1}
+{"workload": "or0001k2", "threads": 1, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.006463, "rss_delta_mb": 0.1}
+{"workload": "or0001k2", "threads": 1, "lever": "K1", "variant": "bincount", "k": null, "s": 0.002425, "rss_delta_mb": 0.0}
+{"workload": "or0001k2", "threads": 1, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 4565, "n_rows": 36422, "min_count": 4}
+{"workload": "or0001k2", "threads": 1, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 47484388, "sum_len_sq": 95961784, "nnz": 993008}
+{"workload": "or0001k2", "threads": 1, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 1.227001, "rss_delta_mb": 149.5, "n_candidates": 10417330}
+{"workload": "or0001k2", "threads": 1, "lever": "L1", "variant": "gram_dense", "k": 2, "s": 1.874317, "rss_delta_mb": 221.8, "n_candidates": 10417330}
+{"workload": "or0001k2", "threads": 1, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 5.860138, "rss_delta_mb": 1185.0, "n_candidates": 10417330}
+{"workload": "or0001k2", "threads": 1, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 2674243, "dense_bytes": 83356900}
+{"workload": "or0001k2", "threads": 1, "lever": "ref", "variant": "rust_full", "k": null, "s": 7.709079, "rss_delta_mb": 0.0}
+{"workload": "or0001k2", "threads": 1, "lever": "summary", "variant": "lattice", "n_itemsets": 2678808, "sum_counts": 44001376, "itemset_hash": "5a8980ff5acc0f157bd7b740cd2ef86c4d145531af345b1cf940f7aede74f62c", "levels": {"1": 4565, "2": 2674243}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or0001k2-F-polars-T1#r0"}
+{"workload": "smoke", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.032318, "rss_delta_mb": 36.7}
+{"workload": "smoke", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.027405, "rss_delta_mb": 20.4}
+{"workload": "smoke", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.001374, "rss_delta_mb": 0.1}
+{"workload": "smoke", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.00064, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 118, "n_rows": 60000, "min_count": 600}
+{"workload": "smoke", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 906884, "sum_len_sq": 2143837, "nnz": 330069}
+{"workload": "smoke", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.015727, "rss_delta_mb": 0.1, "n_candidates": 6903}
+{"workload": "smoke", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 0.023104, "rss_delta_mb": 15.3, "n_candidates": 6903}
+{"workload": "smoke", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 290, "dense_bytes": 55696}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.008414, "rss_delta_mb": 5.6, "words": 938, "bytes": 885472}
+{"workload": "smoke", "threads": 4, "lever": "L4", "variant": "array", "k": 3, "s": 0.000865, "rss_delta_mb": 0.1, "n_prev": 290}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.012187, "rss_delta_mb": 3.7, "n_candidates": 560}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.011589}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 0.000147, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.001702, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.000234, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 560, "n_frequent": 202}
+{"workload": "smoke", "threads": 4, "lever": "L4", "variant": "array", "k": 4, "s": 0.000651, "rss_delta_mb": 0.0, "n_prev": 202}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.006435, "rss_delta_mb": 1.7, "n_candidates": 95}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.006192}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 2.4e-05, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.001584, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.000241, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 95, "n_frequent": 63}
+{"workload": "smoke", "threads": 4, "lever": "L4", "variant": "array", "k": 5, "s": 0.000608, "rss_delta_mb": 0.0, "n_prev": 63}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.004141, "rss_delta_mb": 0.0, "n_candidates": 18}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.003919}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 1.9e-05, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.00121, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.00022, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 18, "n_frequent": 18}
+{"workload": "smoke", "threads": 4, "lever": "L4", "variant": "array", "k": 6, "s": 0.000516, "rss_delta_mb": 0.0, "n_prev": 18}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.003451, "rss_delta_mb": 0.0, "n_candidates": 3}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.003248}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 1.8e-05, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.000979, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.000241, "rss_delta_mb": 0.0}
+{"workload": "smoke", "threads": 4, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 3, "n_frequent": 3}
+{"workload": "smoke", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 0.007365, "rss_delta_mb": 1.0}
+{"workload": "smoke", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 694, "sum_counts": 1109810, "itemset_hash": "1834c4af56d3695d165def6bcc9ce863011f527d47af7f865c72b6e46847df74", "levels": {"1": 118, "2": 290, "3": 202, "4": 63, "5": 18, "6": 3}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "smoke-F-polars-T1#r0"}
+{"workload": "deepk", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.531887, "rss_delta_mb": 561.7}
+{"workload": "deepk", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 1.102803, "rss_delta_mb": 241.8}
+{"workload": "deepk", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.075445, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.036975, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 112, "n_rows": 1000000, "min_count": 20000}
+{"workload": "deepk", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 36506151, "sum_len_sq": 81058560, "nnz": 8046258}
+{"workload": "deepk", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.517971, "rss_delta_mb": 53.8, "n_candidates": 6216}
+{"workload": "deepk", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 0.372258, "rss_delta_mb": 212.9, "n_candidates": 6216}
+{"workload": "deepk", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 471, "dense_bytes": 50176}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 1.003419, "rss_delta_mb": 144.2, "words": 15625, "bytes": 14000000}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 3, "s": 0.00169, "rss_delta_mb": 0.1, "n_prev": 471}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.310564, "rss_delta_mb": 71.4, "n_candidates": 1262}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.285781}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 8.2e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.038133, "rss_delta_mb": 51.4}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.015381, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 1262, "n_frequent": 901}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 4, "s": 0.000767, "rss_delta_mb": 0.0, "n_prev": 901}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.390308, "rss_delta_mb": 58.3, "n_candidates": 1456}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.375988}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 5.2e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.043159, "rss_delta_mb": 67.6}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.016793, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 1456, "n_frequent": 1407}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 5, "s": 0.001212, "rss_delta_mb": 0.0, "n_prev": 1407}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.578603, "rss_delta_mb": 59.4, "n_candidates": 1858}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.562276}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 6.4e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.038183, "rss_delta_mb": 64.8}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.013282, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 1858, "n_frequent": 1854}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 6, "s": 0.000872, "rss_delta_mb": 0.0, "n_prev": 1854}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.71849, "rss_delta_mb": 51.4, "n_candidates": 1848}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.705866}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 0.00015, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.037157, "rss_delta_mb": 56.2}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.016656, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 1848, "n_frequent": 1848}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 7, "s": 0.001015, "rss_delta_mb": 0.0, "n_prev": 1848}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 0.694182, "rss_delta_mb": 59.4, "n_candidates": 1320}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 7, "s": 0.677415}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 5.4e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.020097, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.015772, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 1320, "n_frequent": 1320}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 8, "s": 0.000763, "rss_delta_mb": 0.0, "n_prev": 1320}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 0.402878, "rss_delta_mb": 41.4, "n_candidates": 660}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 8, "s": 0.387799}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 4.8e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.017281, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.017645, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 660, "n_frequent": 660}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 9, "s": 0.000766, "rss_delta_mb": 0.0, "n_prev": 660}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 9, "s": 0.226861, "rss_delta_mb": 43.4, "n_candidates": 220}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 9, "s": 0.212262}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 9, "s": 3.4e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 9, "s": 0.013804, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 9, "s": 0.016908, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 9, "n_candidates": 220, "n_frequent": 220}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 10, "s": 0.001135, "rss_delta_mb": 0.0, "n_prev": 220}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 10, "s": 0.146299, "rss_delta_mb": 61.4, "n_candidates": 44}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 10, "s": 0.131659}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 10, "s": 4.3e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 10, "s": 0.012043, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 10, "s": 0.016893, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 10, "n_candidates": 44, "n_frequent": 44}
+{"workload": "deepk", "threads": 4, "lever": "L4", "variant": "array", "k": 11, "s": 0.001841, "rss_delta_mb": 0.1, "n_prev": 44}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 11, "s": 0.138597, "rss_delta_mb": 61.4, "n_candidates": 4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 11, "s": 0.123267}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 11, "s": 3.2e-05, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 11, "s": 0.009997, "rss_delta_mb": 0.0}
+{"workload": "deepk", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 11, "s": 0.017765, "rss_delta_mb": 61.4}
+{"workload": "deepk", "threads": 4, "lever": "L3", "variant": "result", "k": 11, "n_candidates": 4, "n_frequent": 4}
+{"workload": "deepk", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 0.398258, "rss_delta_mb": 41.4}
+{"workload": "deepk", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 8841, "sum_counts": 266261275, "itemset_hash": "4d2c8d28bcd33cd61f763915e42cb60c0f60f16e1ffec2af32a887faabf47567", "levels": {"1": 112, "2": 471, "3": 901, "4": 1407, "5": 1854, "6": 1848, "7": 1320, "8": 660, "9": 220, "10": 44, "11": 4}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "deepk-F-polars-T1#r0"}
+{"workload": "skew", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.618156, "rss_delta_mb": 674.5}
+{"workload": "skew", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 2.291955, "rss_delta_mb": 170.9}
+{"workload": "skew", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.087584, "rss_delta_mb": 73.9}
+{"workload": "skew", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.046825, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 118, "n_rows": 1000000, "min_count": 20000}
+{"workload": "skew", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 62213394, "sum_len_sq": 134097944, "nnz": 9671156}
+{"workload": "skew", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.702425, "rss_delta_mb": 73.9, "n_candidates": 6903}
+{"workload": "skew", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 0.615678, "rss_delta_mb": 328.3, "n_candidates": 6903}
+{"workload": "skew", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 717, "dense_bytes": 55696}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 1.645952, "rss_delta_mb": 196.8, "words": 15625, "bytes": 14750000}
+{"workload": "skew", "threads": 4, "lever": "L4", "variant": "array", "k": 3, "s": 0.002832, "rss_delta_mb": 0.1, "n_prev": 717}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.592039, "rss_delta_mb": 92.6, "n_candidates": 3218}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.570055}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 5.5e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.045108, "rss_delta_mb": 84.7}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.016345, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 3218, "n_frequent": 1928}
+{"workload": "skew", "threads": 4, "lever": "L4", "variant": "array", "k": 4, "s": 0.002681, "rss_delta_mb": 0.0, "n_prev": 1928}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.796222, "rss_delta_mb": 45.8, "n_candidates": 3531}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.779965}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 6.8e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.041009, "rss_delta_mb": 72.6}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.017046, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 3531, "n_frequent": 2932}
+{"workload": "skew", "threads": 4, "lever": "L4", "variant": "array", "k": 5, "s": 0.002937, "rss_delta_mb": 0.0, "n_prev": 2932}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.80422, "rss_delta_mb": 55.8, "n_candidates": 2886}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.784381}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 5.6e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.038443, "rss_delta_mb": 70.2}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.015051, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 2886, "n_frequent": 2683}
+{"workload": "skew", "threads": 4, "lever": "L4", "variant": "array", "k": 6, "s": 0.002107, "rss_delta_mb": 0.0, "n_prev": 2683}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.590623, "rss_delta_mb": 49.8, "n_candidates": 1504}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.575154}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 5.7e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.034013, "rss_delta_mb": 65.6}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.014859, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 1504, "n_frequent": 1458}
+{"workload": "skew", "threads": 4, "lever": "L4", "variant": "array", "k": 7, "s": 0.001145, "rss_delta_mb": 0.0, "n_prev": 1458}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 0.292653, "rss_delta_mb": 49.8, "n_candidates": 448}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 7, "s": 0.277548}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 3.1e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.092108, "rss_delta_mb": 59.2}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.089062, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 448, "n_frequent": 443}
+{"workload": "skew", "threads": 4, "lever": "L4", "variant": "array", "k": 8, "s": 0.000797, "rss_delta_mb": 0.0, "n_prev": 443}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 0.191918, "rss_delta_mb": 55.8, "n_candidates": 67}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 8, "s": 0.171802}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 4.9e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.025949, "rss_delta_mb": 40.7}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.041563, "rss_delta_mb": 81.3}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 67, "n_frequent": 67}
+{"workload": "skew", "threads": 4, "lever": "L4", "variant": "array", "k": 9, "s": 0.00075, "rss_delta_mb": 0.0, "n_prev": 67}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 9, "s": 0.152142, "rss_delta_mb": 73.8, "n_candidates": 4}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 9, "s": 0.133894}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 9, "s": 4.5e-05, "rss_delta_mb": 0.0}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 9, "s": 0.024369, "rss_delta_mb": 42.9}
+{"workload": "skew", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 9, "s": 0.205111, "rss_delta_mb": 73.8}
+{"workload": "skew", "threads": 4, "lever": "L3", "variant": "result", "k": 9, "n_candidates": 4, "n_frequent": 4}
+{"workload": "skew", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 0.478619, "rss_delta_mb": 53.8}
+{"workload": "skew", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 10350, "sum_counts": 346834073, "itemset_hash": "75262446a1c2b29bbc15e6d36afe23300984e6d46f8483511f055f1a510c2405", "levels": {"1": 118, "2": 717, "3": 1928, "4": 2932, "5": 2683, "6": 1458, "7": 443, "8": 67, "9": 4}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "skew-F-polars-T1#r0"}
+{"workload": "wide", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.167057, "rss_delta_mb": 159.3}
+{"workload": "wide", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.130028, "rss_delta_mb": 104.2}
+{"workload": "wide", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.01745, "rss_delta_mb": 0.1}
+{"workload": "wide", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.00911, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 2351, "n_rows": 100000, "min_count": 400}
+{"workload": "wide", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 24705224, "sum_len_sq": 51634956, "nnz": 2224508}
+{"workload": "wide", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.557308, "rss_delta_mb": 10.2, "n_candidates": 2762425}
+{"workload": "wide", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 0.618918, "rss_delta_mb": 603.1, "n_candidates": 2762425}
+{"workload": "wide", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 1408, "dense_bytes": 22108804}
+{"workload": "wide", "threads": 4, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.060324, "rss_delta_mb": 63.6, "words": 1563, "bytes": 29396904}
+{"workload": "wide", "threads": 4, "lever": "L4", "variant": "array", "k": 3, "s": 0.01621, "rss_delta_mb": 0.0, "n_prev": 1408}
+{"workload": "wide", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.140166, "rss_delta_mb": 28.8, "n_candidates": 5368}
+{"workload": "wide", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.131435}
+{"workload": "wide", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 7e-05, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.005794, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.002813, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 5368, "n_frequent": 113}
+{"workload": "wide", "threads": 4, "lever": "L4", "variant": "array", "k": 4, "s": 0.000608, "rss_delta_mb": 0.0, "n_prev": 113}
+{"workload": "wide", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.055226, "rss_delta_mb": 0.0, "n_candidates": 24}
+{"workload": "wide", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.053142}
+{"workload": "wide", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 2.2e-05, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.004165, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.001512, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 24, "n_frequent": 0}
+{"workload": "wide", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 1.267357, "rss_delta_mb": 0.0}
+{"workload": "wide", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 3872, "sum_counts": 3335352, "itemset_hash": "83f031d745b2a4eecee468c34b1df1dd8109d9454687a561d97f1baef7e22eb1", "levels": {"1": 2351, "2": 1408, "3": 113}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "wide-F-polars-T1#r0"}
+{"workload": "or005", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.075689, "rss_delta_mb": 64.2}
+{"workload": "or005", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.056004, "rss_delta_mb": 41.4}
+{"workload": "or005", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.004553, "rss_delta_mb": 0.1}
+{"workload": "or005", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.002406, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 1548, "n_rows": 36422, "min_count": 183}
+{"workload": "or005", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 28449924, "sum_len_sq": 57708263, "nnz": 808415}
+{"workload": "or005", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.260433, "rss_delta_mb": 25.3, "n_candidates": 1197378}
+{"workload": "or005", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 0.663308, "rss_delta_mb": 672.0, "n_candidates": 1197378}
+{"workload": "or005", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 5510, "dense_bytes": 9585216}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.025911, "rss_delta_mb": 15.9, "words": 570, "bytes": 7058880}
+{"workload": "or005", "threads": 4, "lever": "L4", "variant": "array", "k": 3, "s": 0.018274, "rss_delta_mb": 0.0, "n_prev": 5510}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 0.309888, "rss_delta_mb": 0.0, "n_candidates": 52831}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 3, "s": 0.294776}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 0.000162, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.002355, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.001076, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 52831, "n_frequent": 2678}
+{"workload": "or005", "threads": 4, "lever": "L4", "variant": "array", "k": 4, "s": 0.001645, "rss_delta_mb": 0.0, "n_prev": 2678}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.071769, "rss_delta_mb": 0.0, "n_candidates": 2948}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.070696}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 6.1e-05, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.001729, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.000901, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 2948, "n_frequent": 664}
+{"workload": "or005", "threads": 4, "lever": "L4", "variant": "array", "k": 5, "s": 0.000593, "rss_delta_mb": 0.0, "n_prev": 664}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.012308, "rss_delta_mb": 0.0, "n_candidates": 213}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.011754}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 2e-05, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.001447, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.000456, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 213, "n_frequent": 82}
+{"workload": "or005", "threads": 4, "lever": "L4", "variant": "array", "k": 6, "s": 0.000626, "rss_delta_mb": 0.0, "n_prev": 82}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.008848, "rss_delta_mb": 0.0, "n_candidates": 11}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.008367}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 1.7e-05, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.001463, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.00049, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 11, "n_frequent": 6}
+{"workload": "or005", "threads": 4, "lever": "L4", "variant": "array", "k": 7, "s": 0.000138, "rss_delta_mb": 0.0, "n_prev": 6}
+{"workload": "or005", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 0.330463, "rss_delta_mb": 0.0}
+{"workload": "or005", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 10488, "sum_counts": 3113437, "itemset_hash": "c025aae232b9dd8a149e7cf6ccd4c5955ff16e2e9018815f9045fdcfae9902d1", "levels": {"1": 1548, "2": 5510, "3": 2678, "4": 664, "5": 82, "6": 6}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or005-F-polars-T1#r0"}
+{"workload": "or003", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.071158, "rss_delta_mb": 70.3}
+{"workload": "or003", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.052569, "rss_delta_mb": 42.4}
+{"workload": "or003", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.005516, "rss_delta_mb": 0.1}
+{"workload": "or003", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.001914, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 2145, "n_rows": 36422, "min_count": 110}
+{"workload": "or003", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 36504277, "sum_len_sq": 73902380, "nnz": 893826}
+{"workload": "or003", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.384737, "rss_delta_mb": 60.1, "n_candidates": 2299440}
+{"workload": "or003", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 0.88162, "rss_delta_mb": 867.9, "n_candidates": 2299440}
+{"workload": "or003", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 22732, "dense_bytes": 18404100}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.018373, "rss_delta_mb": 0.3, "words": 570, "bytes": 9781200}
+{"workload": "or003", "threads": 4, "lever": "L4", "variant": "array", "k": 3, "s": 0.152822, "rss_delta_mb": 51.6, "n_prev": 22732}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 2.729245, "rss_delta_mb": 0.0, "n_candidates": 526939}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 3, "s": 2.597663}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 0.001127, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.002251, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.001155, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 526939, "n_frequent": 23062}
+{"workload": "or003", "threads": 4, "lever": "L4", "variant": "array", "k": 4, "s": 0.022916, "rss_delta_mb": 0.0, "n_prev": 23062}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 0.386399, "rss_delta_mb": 7.4, "n_candidates": 53338}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 4, "s": 0.373259}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 0.000159, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.00207, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.001102, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 53338, "n_frequent": 10755}
+{"workload": "or003", "threads": 4, "lever": "L4", "variant": "array", "k": 5, "s": 0.003711, "rss_delta_mb": 0.0, "n_prev": 10755}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 0.067701, "rss_delta_mb": 0.2, "n_candidates": 6254}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 5, "s": 0.066172}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 0.000129, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.00183, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.000762, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 6254, "n_frequent": 2388}
+{"workload": "or003", "threads": 4, "lever": "L4", "variant": "array", "k": 6, "s": 0.000876, "rss_delta_mb": 0.0, "n_prev": 2388}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.023418, "rss_delta_mb": 0.0, "n_candidates": 786}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.02279}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 7.6e-05, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.002001, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.000609, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 786, "n_frequent": 402}
+{"workload": "or003", "threads": 4, "lever": "L4", "variant": "array", "k": 7, "s": 0.00191, "rss_delta_mb": 0.1, "n_prev": 402}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 0.010918, "rss_delta_mb": 0.0, "n_candidates": 48}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 7, "s": 0.010195}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 2.4e-05, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.001702, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.000731, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 48, "n_frequent": 33}
+{"workload": "or003", "threads": 4, "lever": "L4", "variant": "array", "k": 8, "s": 0.001181, "rss_delta_mb": 0.0, "n_prev": 33}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 0.009421, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 8, "s": 0.008699}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 3.3e-05, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.001902, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.000737, "rss_delta_mb": 0.0}
+{"workload": "or003", "threads": 4, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 1, "n_frequent": 0}
+{"workload": "or003", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 2.41746, "rss_delta_mb": 29.7}
+{"workload": "or003", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 61517, "sum_counts": 9821460, "itemset_hash": "52082db76a63bfa54967e34fb73fe8734275783ea0f06c5c2943ca7e7b0266d4", "levels": {"1": 2145, "2": 22732, "3": 23062, "4": 10755, "5": 2388, "6": 402, "7": 33}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or003-F-polars-T1#r0"}
+{"workload": "or002", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.074231, "rss_delta_mb": 71.9}
+{"workload": "or002", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.051989, "rss_delta_mb": 35.8}
+{"workload": "or002", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.007436, "rss_delta_mb": 0.1}
+{"workload": "or002", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.002361, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 2614, "n_rows": 36422, "min_count": 73}
+{"workload": "or002", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 40906330, "sum_len_sq": 82748331, "nnz": 935671}
+{"workload": "or002", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 0.812946, "rss_delta_mb": 88.9, "n_candidates": 3415191}
+{"workload": "or002", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 1.00392, "rss_delta_mb": 1016.4, "n_candidates": 3415191}
+{"workload": "or002", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 60406, "dense_bytes": 27331984}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "bitvec_build", "k": null, "s": 0.019394, "rss_delta_mb": 2.2, "words": 570, "bytes": 11919840}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 3, "s": 3.385648, "rss_delta_mb": 0.0, "n_prev": 60406}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 3, "s": 13.322266, "rss_delta_mb": 547.8, "n_candidates": 2619442}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 3, "s": 12.57961}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 3, "s": 0.006363, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 3, "s": 0.00255, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 3, "s": 0.001109, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 3, "n_candidates": 2619442, "n_frequent": 136149}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 4, "s": 0.725875, "rss_delta_mb": 166.7, "n_prev": 136149}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 4, "s": 4.727281, "rss_delta_mb": 147.8, "n_candidates": 657410}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 4, "s": 4.534348}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 4, "s": 0.001007, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 4, "s": 0.002289, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 4, "s": 0.001154, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 4, "n_candidates": 657410, "n_frequent": 140950}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 5, "s": 0.112065, "rss_delta_mb": 0.0, "n_prev": 140950}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 5, "s": 1.741821, "rss_delta_mb": 40.1, "n_candidates": 179440}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 5, "s": 1.672317}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 5, "s": 0.000494, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 5, "s": 0.002348, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 5, "s": 0.00127, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 5, "n_candidates": 179440, "n_frequent": 73597}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 6, "s": 0.025049, "rss_delta_mb": 0.0, "n_prev": 73597}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 6, "s": 0.384185, "rss_delta_mb": 4.5, "n_candidates": 31810}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 6, "s": 0.373166}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 6, "s": 0.000143, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 6, "s": 0.002256, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 6, "s": 0.001181, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 6, "n_candidates": 31810, "n_frequent": 19049}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 7, "s": 0.03002, "rss_delta_mb": 0.1, "n_prev": 19049}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 7, "s": 0.071876, "rss_delta_mb": 0.0, "n_candidates": 4018}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 7, "s": 0.067632}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 7, "s": 5.9e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 7, "s": 0.00235, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 7, "s": 0.000947, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 7, "n_candidates": 4018, "n_frequent": 2882}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 8, "s": 0.005195, "rss_delta_mb": 0.0, "n_prev": 2882}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 8, "s": 0.018328, "rss_delta_mb": 0.0, "n_candidates": 356}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 8, "s": 0.017633}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 8, "s": 2.1e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 8, "s": 0.0015, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 8, "s": 0.000478, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 8, "n_candidates": 356, "n_frequent": 291}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 9, "s": 0.001305, "rss_delta_mb": 0.0, "n_prev": 291}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 9, "s": 0.01235, "rss_delta_mb": 0.0, "n_candidates": 19}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 9, "s": 0.011864}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 9, "s": 2.1e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 9, "s": 0.001455, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 9, "s": 0.000527, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 9, "n_candidates": 19, "n_frequent": 17}
+{"workload": "or002", "threads": 4, "lever": "L4", "variant": "array", "k": 10, "s": 0.001097, "rss_delta_mb": 0.0, "n_prev": 17}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_simd", "k": 10, "s": 0.011423, "rss_delta_mb": 0.0, "n_candidates": 1}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "rust_call", "k": 10, "s": 0.010902}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "threshold_mask", "k": 10, "s": 1.8e-05, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "csr_len_filter", "k": 10, "s": 0.001473, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L5", "variant": "int64_casts", "k": 10, "s": 0.000618, "rss_delta_mb": 0.0}
+{"workload": "or002", "threads": 4, "lever": "L3", "variant": "result", "k": 10, "n_candidates": 1, "n_frequent": 1}
+{"workload": "or002", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 67.976351, "rss_delta_mb": 170.0}
+{"workload": "or002", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 435956, "sum_counts": 40906817, "itemset_hash": "602f4efac8ed20913159b18434cbf7bcde8e5b7072dd04920b85b68f5b5c1e96", "levels": {"1": 2614, "2": 60406, "3": 136149, "4": 140950, "5": 73597, "6": 19049, "7": 2882, "8": 291, "9": 17, "10": 1}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or002-F-polars-T4#r0"}
+{"workload": "or0001k2", "threads": 4, "lever": "L2", "variant": "explode_join", "k": null, "s": 0.078501, "rss_delta_mb": 74.0}
+{"workload": "or0001k2", "threads": 4, "lever": "L2", "variant": "numpy_map", "k": null, "s": 0.047656, "rss_delta_mb": 36.0}
+{"workload": "or0001k2", "threads": 4, "lever": "L2", "variant": "tocsc", "k": null, "s": 0.007014, "rss_delta_mb": 0.1}
+{"workload": "or0001k2", "threads": 4, "lever": "K1", "variant": "bincount", "k": null, "s": 0.003024, "rss_delta_mb": 0.0}
+{"workload": "or0001k2", "threads": 4, "lever": "K1", "variant": "result", "k": 1, "n_frequent": 4565, "n_rows": 36422, "min_count": 4}
+{"workload": "or0001k2", "threads": 4, "lever": "L1", "variant": "shape", "k": 2, "pair_rows": 47484388, "sum_len_sq": 95961784, "nnz": 993008}
+{"workload": "or0001k2", "threads": 4, "lever": "L1", "variant": "gram_sparse", "k": 2, "s": 1.208899, "rss_delta_mb": 163.7, "n_candidates": 10417330}
+{"workload": "or0001k2", "threads": 4, "lever": "L1", "variant": "polars_pairs", "k": 2, "s": 1.909541, "rss_delta_mb": 1243.0, "n_candidates": 10417330}
+{"workload": "or0001k2", "threads": 4, "lever": "L1", "variant": "result", "k": 2, "n_frequent": 2674243, "dense_bytes": 83356900}
+{"workload": "or0001k2", "threads": 4, "lever": "ref", "variant": "rust_full", "k": null, "s": 3.150088, "rss_delta_mb": 0.0}
+{"workload": "or0001k2", "threads": 4, "lever": "summary", "variant": "lattice", "n_itemsets": 2678808, "sum_counts": 44001376, "itemset_hash": "5a8980ff5acc0f157bd7b740cd2ef86c4d145531af345b1cf940f7aede74f62c", "levels": {"1": 4565, "2": 2674243}, "rust_full_matches": true, "campaign_matches": true, "campaign_row": "or0001k2-F-polars-T1#r0"}
+{"workload": "smoke", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.003475, "n_itemsets": 694}
+{"workload": "deepk", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.002152, "n_itemsets": 8841}
+{"workload": "skew", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.001724, "n_itemsets": 10350}
+{"workload": "wide", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.000726, "n_itemsets": 3872}
+{"workload": "or005", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.000999, "n_itemsets": 10488}
+{"workload": "or003", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.003172, "n_itemsets": 61517}
+{"workload": "or002", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.025048, "n_itemsets": 435956}
+{"workload": "or0001k2", "threads": 1, "lever": "L5", "variant": "emit_arrays", "k": null, "s": 0.201114, "n_itemsets": 2678808}

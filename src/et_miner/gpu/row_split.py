@@ -465,7 +465,7 @@ def _apriori_row_split_multi_gpu(
         t_resume = time.perf_counter()
 
         if _output_is_remote:
-            table = pl.scan_parquet(resume_path, storage_options=polars_storage_options()).collect().to_arrow()
+            table = pl.scan_parquet(resume_path, storage_options=polars_storage_options()).collect(engine="in-memory").to_arrow()
         else:
             import pyarrow.parquet as pq
 

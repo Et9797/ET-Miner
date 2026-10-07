@@ -12,6 +12,95 @@ All notable changes to ET-Miner are recorded here. Versions follow
 
 ## [Unreleased] — 0.2.0
 
+### CPU route: one array miner
+
+- **The CPU route of `apriori()` mines every level from one CSR of the
+  frequent items** (`core/cpu_miner.py`). It replaces the Polars boolean-matrix
+  counter and the per-candidate sparse counter on that route. Polars stays the
+  input layer and reads the transactions once: the row count, the K=1 counts,
+  and a CSR of each row's frequent items, built in 500K-entry chunks. Then:
+  - **K=2** from one Gram matrix `M.T @ M` (scipy, int32), split into column
+    blocks under 256 MB, or from column bitvectors (popcount of the AND) when
+    candidate pairs × words ≤ 3 × pair occurrences. Measured on the campaign
+    workloads, bitvectors take 0.61–0.69× of the Gram's time at work ratios
+    1.7–2.7 and 6.3–38.6× at 7.1–175. Phase 0 counted K=2 one candidate at a
+    time (22–211 s).
+  - **K≥3 generation** on lexsorted int32 arrays: prefix runs joined in chunks
+    of 2M candidates, then the subset test through a pair mask (K=3) or packed
+    keys and a binary search. Phase 0's generation was quadratic (or002 K=6:
+    354 s).
+  - **K≥3 counting per prefix group**: the prefix AND once, then either pair
+    popcounts on its non-zero words or a Gram matrix of the suffix columns over
+    the prefix's rows. Projection takes a group from 40 suffixes (≤ 2,048
+    bitvector words) or 80 (more words), measured on real prefix groups by
+    `bench/cpu/l3_crossover.py`. Rows with fewer than k items are dropped once
+    the remaining rows are at most half of the current ones.
+  - **Free-set test and count inference** (`prune_equal_support`,
+    `use_generator_pruning`) on the level arrays; one Polars gather emits the
+    result.
+  - **`n_jobs > 1`** runs the K=2 Gram blocks (from 5M pair occurrences), the
+    bitvector build and the heavy prefix groups (from 2M pairs × words) on a
+    thread pool; numpy and scipy release the GIL there. `n_jobs=1` stays on the
+    calling thread. In Phase 0, `n_jobs=4` made wide, or005, or003 and or0001k2
+    1.4–1.8× slower.
+- Pre-registered campaign (`bench/cpu/PROTOCOL.md`, amendment 2;
+  `bench/results/2026-10-07-cpu-phase1/compare.md`). Hardware: 4 vCPU Intel Xeon
+  @ 2.10 GHz, 15 GB. Figures are wall seconds of the mining call in a fresh
+  process (data already loaded; efficient-apriori's conversion to tuples not
+  counted), median of 3 runs (¹ Phase 0 one run). Default arm (`sparse=None`),
+  1 and 4 threads; efficient-apriori 2.0.6 (`itemsets_from_transactions`) from
+  the same campaign:
+
+  | Workload | efficient-apriori | Phase 0, 1 / 4 threads | Phase 1, 1 / 4 threads |
+  |---|---|---|---|
+  | smoke (60K rows, s=0.01) | 0.56 | 0.59 / 0.33 | 0.12 / 0.12 |
+  | deep_k (1M, s=0.02) | 95.22 | 13.39 / 4.38 | 2.74 / 2.69 |
+  | skewed_rows (1M, s=0.02) | 161.48 | 16.90 / 5.93 | 3.84 / 2.91 |
+  | wide_vocab (100K, s=0.004) | 60.05 | 99.60¹ / 142.18¹ | 1.27 / 0.55 |
+  | Online Retail II, s=0.005 | 19.19 | 34.02 / 54.93 | 0.72 / 0.40 |
+  | Online Retail II, s=0.003 | 51.31 | 83.73¹ / 123.16¹ | 2.07 / 1.24 |
+  | Online Retail II, s=0.002 | 170.24 | 585.66¹ / 594.76¹ | 7.27 / 5.58 |
+  | Online Retail II, s=0.0001, K≤2 | 51.63 | 281.45¹ / 515.43¹ | 1.87 / 0.96 |
+
+  Every `sparse` arm at both thread counts beats efficient-apriori on every
+  workload under the protocol's rule (median ≥ 10 % lower, ranges apart, and
+  the gap at least 1 s, or 10 % of efficient-apriori's median below 10 s).
+- **Peak RSS** (`ru_maxrss`) falls to 0.18–0.36× of Phase 0 on wide_vocab and
+  Online Retail II (or0001k2: 4,985 → 1,041 MB at 1 thread) and to 0.73–0.85× on
+  smoke. On deep_k and skewed_rows at 1 thread it grows 1.17–1.18× (299 → 350,
+  331 → 389 MB), within the 1.25× bound the protocol allows.
+- **No mined output changes**: each workload keeps one itemset signature across
+  every arm of both campaigns, and the tier-equivalence chain passes.
+- **`sparse=` is deprecated on the CPU route.** A non-`None` value there warns
+  (`DeprecationWarning`) and is ignored, because every level is counted by the
+  array miner. It still selects SON's counter under `streaming=True`. The Rust
+  extension is no longer used by the CPU route; SON's sparse counter and the
+  GPU route's host steps still use it.
+- `ProfilingSession.record_phase(name, duration_ms, **extra)` records a phase
+  timed elsewhere: the CPU route interleaves candidate generation and counting
+  per chunk. `apriori(profile=True)` keeps its phase names.
+- `bench/cpu/`: the CPU-tier campaign (protocol, matrix, timed child, per-level
+  split, stakes, crossover measurements, report and compare scripts).
+
+### Polars 2.0
+
+- **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0
+  makes the streaming engine the default for `LazyFrame.collect()`. The four
+  calls that relied on the old in-memory default now name it
+  (`engine="in-memory"`): the `list.contains` matrix builds in
+  `build_boolean_matrix` and SON pass 2, the K=2 and prefix-group cross joins
+  in `core/candidates.py`, and the remote resume read in `gpu/row_split.py`.
+  Every other `collect` already named its engine. No mined output changes.
+- The old reason for keeping `list.contains` off the streaming engine (a ~2 %
+  undercount) does not reproduce: `bench/cpu/list_contains_check.py` found
+  exact column sums on both engines, on 1.43.2 and 2.0.0, for 600 items on
+  smoke, deep_k, skewed_rows and stress_k2 (up to 2M rows). In-memory stays
+  because it is faster there (skewed_rows 12.7 s vs 18.9 s streaming on 2.0.0).
+- `explode()` of an empty list now yields no row instead of a null row. On 1.x
+  an empty transaction added a null "item" to the K=1 counts, whose
+  `list.contains(None)` column summed to 0 and was dropped at K=1; on 2.0 it is
+  never counted. Same output either way.
+
 ### Candidate pruning on the GPU (supersedes the DP9 removal)
 
 - **`prune_apriori` is back, default `True`, as a device-side subset test.**

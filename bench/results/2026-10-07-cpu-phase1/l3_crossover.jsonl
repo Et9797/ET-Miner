@@ -1,0 +1,90 @@
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 4, "groups": 20, "gbitvec_ms": 0.0284, "proj_ms": 0.8253, "proj_over_gbitvec": 29.669}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 8, "groups": 20, "gbitvec_ms": 0.0633, "proj_ms": 1.0683, "proj_over_gbitvec": 16.244}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 16, "groups": 20, "gbitvec_ms": 0.2504, "proj_ms": 1.1284, "proj_over_gbitvec": 4.925}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 24, "groups": 20, "gbitvec_ms": 0.5215, "proj_ms": 1.2446, "proj_over_gbitvec": 2.288}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 32, "groups": 20, "gbitvec_ms": 0.9302, "proj_ms": 1.3706, "proj_over_gbitvec": 1.362}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 48, "groups": 20, "gbitvec_ms": 1.9907, "proj_ms": 1.5186, "proj_over_gbitvec": 0.731}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 64, "groups": 20, "gbitvec_ms": 3.6291, "proj_ms": 1.7198, "proj_over_gbitvec": 0.462}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 96, "groups": 20, "gbitvec_ms": 20.9272, "proj_ms": 2.6005, "proj_over_gbitvec": 0.125}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 128, "groups": 20, "gbitvec_ms": 38.6771, "proj_ms": 3.0693, "proj_over_gbitvec": 0.082}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 192, "groups": 20, "gbitvec_ms": 79.1409, "proj_ms": 5.2102, "proj_over_gbitvec": 0.066}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 256, "groups": 20, "gbitvec_ms": 152.855, "proj_ms": 8.0111, "proj_over_gbitvec": 0.053}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 384, "groups": 20, "gbitvec_ms": 315.8712, "proj_ms": 13.8535, "proj_over_gbitvec": 0.045}
+{"workload": "or002", "k": 3, "words": 570, "suffixes": 512, "groups": 8, "gbitvec_ms": 662.4625, "proj_ms": 23.7618, "proj_over_gbitvec": 0.036}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 4, "groups": 20, "gbitvec_ms": 0.0265, "proj_ms": 0.6207, "proj_over_gbitvec": 23.964}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 8, "groups": 20, "gbitvec_ms": 0.0529, "proj_ms": 0.7155, "proj_over_gbitvec": 13.242}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 16, "groups": 20, "gbitvec_ms": 0.1687, "proj_ms": 0.7688, "proj_over_gbitvec": 4.642}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 24, "groups": 20, "gbitvec_ms": 0.4344, "proj_ms": 0.8297, "proj_over_gbitvec": 2.046}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 32, "groups": 20, "gbitvec_ms": 0.828, "proj_ms": 1.0125, "proj_over_gbitvec": 1.262}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 48, "groups": 20, "gbitvec_ms": 1.6325, "proj_ms": 1.1264, "proj_over_gbitvec": 0.684}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 64, "groups": 20, "gbitvec_ms": 2.9849, "proj_ms": 1.432, "proj_over_gbitvec": 0.514}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 96, "groups": 20, "gbitvec_ms": 7.9697, "proj_ms": 2.0656, "proj_over_gbitvec": 0.262}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 128, "groups": 20, "gbitvec_ms": 29.1406, "proj_ms": 2.772, "proj_over_gbitvec": 0.094}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 192, "groups": 17, "gbitvec_ms": 67.7378, "proj_ms": 4.5954, "proj_over_gbitvec": 0.067}
+{"workload": "or002", "k": 4, "words": 570, "suffixes": 256, "groups": 7, "gbitvec_ms": 114.3395, "proj_ms": 7.7689, "proj_over_gbitvec": 0.069}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 4, "groups": 20, "gbitvec_ms": 0.0627, "proj_ms": 1.8099, "proj_over_gbitvec": 25.63}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 8, "groups": 18, "gbitvec_ms": 0.1554, "proj_ms": 1.7806, "proj_over_gbitvec": 11.025}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 16, "groups": 15, "gbitvec_ms": 0.6673, "proj_ms": 2.1844, "proj_over_gbitvec": 3.28}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 24, "groups": 13, "gbitvec_ms": 1.4618, "proj_ms": 2.721, "proj_over_gbitvec": 1.979}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 32, "groups": 11, "gbitvec_ms": 2.678, "proj_ms": 3.5913, "proj_over_gbitvec": 1.255}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 48, "groups": 8, "gbitvec_ms": 8.3372, "proj_ms": 4.508, "proj_over_gbitvec": 0.533}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 64, "groups": 6, "gbitvec_ms": 27.0407, "proj_ms": 5.5715, "proj_over_gbitvec": 0.208}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 96, "groups": 4, "gbitvec_ms": 67.4015, "proj_ms": 8.1983, "proj_over_gbitvec": 0.122}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 128, "groups": 3, "gbitvec_ms": 108.387, "proj_ms": 11.6043, "proj_over_gbitvec": 0.105}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 192, "groups": 2, "gbitvec_ms": 306.0267, "proj_ms": 15.2715, "proj_over_gbitvec": 0.05}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 256, "groups": 1, "gbitvec_ms": 473.6004, "proj_ms": 20.9936, "proj_over_gbitvec": 0.044}
+{"workload": "wide", "k": 3, "words": 1563, "suffixes": 384, "groups": 1, "gbitvec_ms": 1190.5088, "proj_ms": 44.3686, "proj_over_gbitvec": 0.037}
+{"workload": "wide", "k": 4, "words": 1563, "suffixes": 4, "groups": 7, "gbitvec_ms": 0.0594, "proj_ms": 1.5346, "proj_over_gbitvec": 22.414}
+{"workload": "wide", "k": 4, "words": 1563, "suffixes": 8, "groups": 5, "gbitvec_ms": 0.1795, "proj_ms": 1.4201, "proj_over_gbitvec": 9.663}
+{"workload": "wide", "k": 4, "words": 1563, "suffixes": 16, "groups": 2, "gbitvec_ms": 0.7455, "proj_ms": 2.0718, "proj_over_gbitvec": 2.778}
+{"workload": "wide", "k": 4, "words": 1563, "suffixes": 24, "groups": 1, "gbitvec_ms": 1.7848, "proj_ms": 2.3487, "proj_over_gbitvec": 1.316}
+{"workload": "wide", "k": 4, "words": 1563, "suffixes": 32, "groups": 1, "gbitvec_ms": 3.0034, "proj_ms": 2.6271, "proj_over_gbitvec": 0.875}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 4, "groups": 20, "gbitvec_ms": 0.6234, "proj_ms": 9.3749, "proj_over_gbitvec": 17.344}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 8, "groups": 16, "gbitvec_ms": 2.2731, "proj_ms": 31.0829, "proj_over_gbitvec": 12.734}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 16, "groups": 5, "gbitvec_ms": 13.0285, "proj_ms": 96.7922, "proj_over_gbitvec": 8.238}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 24, "groups": 4, "gbitvec_ms": 44.5802, "proj_ms": 128.2235, "proj_over_gbitvec": 2.873}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 32, "groups": 3, "gbitvec_ms": 78.1496, "proj_ms": 149.4224, "proj_over_gbitvec": 1.912}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 48, "groups": 2, "gbitvec_ms": 169.4554, "proj_ms": 255.938, "proj_over_gbitvec": 1.516}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 64, "groups": 2, "gbitvec_ms": 295.3474, "proj_ms": 324.5915, "proj_over_gbitvec": 1.098}
+{"workload": "deepk", "k": 3, "words": 15625, "suffixes": 96, "groups": 1, "gbitvec_ms": 846.5513, "proj_ms": 589.8208, "proj_over_gbitvec": 0.697}
+{"workload": "deepk", "k": 4, "words": 15625, "suffixes": 4, "groups": 20, "gbitvec_ms": 0.7072, "proj_ms": 26.0639, "proj_over_gbitvec": 41.312}
+{"workload": "deepk", "k": 4, "words": 15625, "suffixes": 8, "groups": 20, "gbitvec_ms": 2.0665, "proj_ms": 32.5061, "proj_over_gbitvec": 12.236}
+{"workload": "deepk", "k": 4, "words": 15625, "suffixes": 16, "groups": 6, "gbitvec_ms": 13.8019, "proj_ms": 75.2265, "proj_over_gbitvec": 5.915}
+{"workload": "deepk", "k": 4, "words": 15625, "suffixes": 24, "groups": 2, "gbitvec_ms": 41.4384, "proj_ms": 127.7091, "proj_over_gbitvec": 3.094}
+{"workload": "deepk", "k": 4, "words": 15625, "suffixes": 32, "groups": 1, "gbitvec_ms": 73.9925, "proj_ms": 179.8303, "proj_over_gbitvec": 2.43}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 4, "groups": 20, "gbitvec_ms": 0.6469, "proj_ms": 33.7158, "proj_over_gbitvec": 52.586}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 8, "groups": 16, "gbitvec_ms": 1.9625, "proj_ms": 43.5337, "proj_over_gbitvec": 20.352}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 16, "groups": 13, "gbitvec_ms": 9.8546, "proj_ms": 77.461, "proj_over_gbitvec": 6.892}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 24, "groups": 10, "gbitvec_ms": 46.2399, "proj_ms": 117.5026, "proj_over_gbitvec": 2.688}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 32, "groups": 8, "gbitvec_ms": 72.5597, "proj_ms": 150.9637, "proj_over_gbitvec": 2.1}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 48, "groups": 5, "gbitvec_ms": 165.4458, "proj_ms": 265.9637, "proj_over_gbitvec": 1.586}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 64, "groups": 3, "gbitvec_ms": 278.7258, "proj_ms": 341.2406, "proj_over_gbitvec": 1.282}
+{"workload": "skew", "k": 3, "words": 15625, "suffixes": 96, "groups": 2, "gbitvec_ms": 698.8061, "proj_ms": 706.1542, "proj_over_gbitvec": 1.024}
+{"workload": "skew", "k": 4, "words": 15625, "suffixes": 4, "groups": 20, "gbitvec_ms": 0.6311, "proj_ms": 37.3768, "proj_over_gbitvec": 61.964}
+{"workload": "skew", "k": 4, "words": 15625, "suffixes": 8, "groups": 20, "gbitvec_ms": 1.9716, "proj_ms": 50.1091, "proj_over_gbitvec": 24.305}
+{"workload": "skew", "k": 4, "words": 15625, "suffixes": 16, "groups": 20, "gbitvec_ms": 9.1062, "proj_ms": 65.5865, "proj_over_gbitvec": 7.479}
+{"workload": "skew", "k": 4, "words": 15625, "suffixes": 24, "groups": 20, "gbitvec_ms": 42.5418, "proj_ms": 98.9319, "proj_over_gbitvec": 2.327}
+{"workload": "skew", "k": 4, "words": 15625, "suffixes": 32, "groups": 17, "gbitvec_ms": 75.8157, "proj_ms": 133.6275, "proj_over_gbitvec": 1.894}
+{"workload": "skew", "k": 4, "words": 15625, "suffixes": 48, "groups": 6, "gbitvec_ms": 173.6952, "proj_ms": 233.3606, "proj_over_gbitvec": 1.247}
+{"workload": "skew", "k": 4, "words": 15625, "suffixes": 64, "groups": 2, "gbitvec_ms": 306.176, "proj_ms": 370.9578, "proj_over_gbitvec": 1.212}
+{"workload": "deepk", "rows": 250000, "k": 3, "words": 3907, "suffixes": 16, "groups": 5, "gbitvec_ms": 2.0101, "proj_ms": 20.4327, "proj_over_gbitvec": 10.61}
+{"workload": "deepk", "rows": 250000, "k": 3, "words": 3907, "suffixes": 24, "groups": 4, "gbitvec_ms": 3.9599, "proj_ms": 29.4192, "proj_over_gbitvec": 7.448}
+{"workload": "deepk", "rows": 250000, "k": 3, "words": 3907, "suffixes": 32, "groups": 3, "gbitvec_ms": 20.3742, "proj_ms": 45.2894, "proj_over_gbitvec": 2.272}
+{"workload": "deepk", "rows": 250000, "k": 3, "words": 3907, "suffixes": 48, "groups": 2, "gbitvec_ms": 46.0959, "proj_ms": 63.8704, "proj_over_gbitvec": 1.39}
+{"workload": "deepk", "rows": 250000, "k": 3, "words": 3907, "suffixes": 64, "groups": 2, "gbitvec_ms": 81.1498, "proj_ms": 83.5706, "proj_over_gbitvec": 1.041}
+{"workload": "deepk", "rows": 250000, "k": 3, "words": 3907, "suffixes": 96, "groups": 1, "gbitvec_ms": 165.8195, "proj_ms": 105.3293, "proj_over_gbitvec": 0.635}
+{"workload": "deepk", "rows": 250000, "k": 4, "words": 3907, "suffixes": 16, "groups": 5, "gbitvec_ms": 1.714, "proj_ms": 15.9687, "proj_over_gbitvec": 9.429}
+{"workload": "deepk", "rows": 250000, "k": 4, "words": 3907, "suffixes": 24, "groups": 2, "gbitvec_ms": 5.0436, "proj_ms": 27.1001, "proj_over_gbitvec": 5.546}
+{"workload": "deepk", "rows": 250000, "k": 4, "words": 3907, "suffixes": 32, "groups": 1, "gbitvec_ms": 7.671, "proj_ms": 34.8833, "proj_over_gbitvec": 4.547}
+{"workload": "skew", "rows": 250000, "k": 3, "words": 3907, "suffixes": 16, "groups": 20, "gbitvec_ms": 1.8278, "proj_ms": 26.5296, "proj_over_gbitvec": 13.742}
+{"workload": "skew", "rows": 250000, "k": 3, "words": 3907, "suffixes": 24, "groups": 20, "gbitvec_ms": 4.5487, "proj_ms": 32.0316, "proj_over_gbitvec": 6.37}
+{"workload": "skew", "rows": 250000, "k": 3, "words": 3907, "suffixes": 32, "groups": 20, "gbitvec_ms": 9.5509, "proj_ms": 40.9897, "proj_over_gbitvec": 4.091}
+{"workload": "skew", "rows": 250000, "k": 3, "words": 3907, "suffixes": 48, "groups": 18, "gbitvec_ms": 48.3385, "proj_ms": 69.4603, "proj_over_gbitvec": 1.46}
+{"workload": "skew", "rows": 250000, "k": 3, "words": 3907, "suffixes": 64, "groups": 15, "gbitvec_ms": 72.4428, "proj_ms": 90.5964, "proj_over_gbitvec": 1.279}
+{"workload": "skew", "rows": 250000, "k": 3, "words": 3907, "suffixes": 96, "groups": 10, "gbitvec_ms": 156.563, "proj_ms": 150.6379, "proj_over_gbitvec": 0.895}
+{"workload": "skew", "rows": 250000, "k": 4, "words": 3907, "suffixes": 16, "groups": 20, "gbitvec_ms": 1.8816, "proj_ms": 34.2265, "proj_over_gbitvec": 18.914}
+{"workload": "skew", "rows": 250000, "k": 4, "words": 3907, "suffixes": 24, "groups": 20, "gbitvec_ms": 4.5174, "proj_ms": 40.086, "proj_over_gbitvec": 8.805}
+{"workload": "skew", "rows": 250000, "k": 4, "words": 3907, "suffixes": 32, "groups": 20, "gbitvec_ms": 9.2663, "proj_ms": 51.3538, "proj_over_gbitvec": 5.209}
+{"workload": "skew", "rows": 250000, "k": 4, "words": 3907, "suffixes": 48, "groups": 20, "gbitvec_ms": 44.8664, "proj_ms": 83.2037, "proj_over_gbitvec": 1.836}
+{"workload": "skew", "rows": 250000, "k": 4, "words": 3907, "suffixes": 64, "groups": 20, "gbitvec_ms": 84.3961, "proj_ms": 117.224, "proj_over_gbitvec": 1.396}
+{"workload": "skew", "rows": 250000, "k": 4, "words": 3907, "suffixes": 96, "groups": 20, "gbitvec_ms": 180.4451, "proj_ms": 176.6822, "proj_over_gbitvec": 0.94}

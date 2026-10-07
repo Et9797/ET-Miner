@@ -96,6 +96,26 @@ class ProfilingSession:
 
         return metrics
 
+    def record_phase(self, name: str, duration_ms: float, **extra: int | float | str) -> PhaseMetrics:
+        """Record a phase whose time was measured elsewhere (for work interleaved with another phase).
+
+        Memory is the RSS high-water mark at the time of the call; the delta is 0.
+
+        Args:
+            name: Identifier for this phase.
+            duration_ms: Its measured duration.
+            **extra: Additional metrics to record.
+
+        Returns:
+            PhaseMetrics for the recorded phase.
+        """
+        if self._current_phase is not None:
+            raise RuntimeError(f"Phase '{self._current_phase}' already in progress. Call end_phase() first.")
+        memory = self._get_rss_mb()
+        metrics = PhaseMetrics(name, duration_ms, 0.0, memory, dict(extra))
+        self.phases.append(metrics)
+        return metrics
+
     def summary(self) -> str:
         """Generate a human-readable summary of all phases.
 

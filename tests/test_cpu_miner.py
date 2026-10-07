@@ -269,6 +269,103 @@ def test_count_candidates_on_a_group_with_an_empty_prefix():
         assert got.tolist() == [0, 0, 0]
 
 
+# ── L5: array levels, free-sets, Pascal, emission ───────────────────────────
+
+
+@pytest.mark.parametrize("fallback", [False, True])
+def test_level_index_finds_rows_on_both_paths(monkeypatch, fallback):
+    if fallback:
+        monkeypatch.setattr(cpu_miner, "_pack", lambda rows, base: None)
+    level = _random_level(4, 3)
+    index = cpu_miner._LevelIndex(level, 14)
+    assert np.array_equal(index.find(level), np.arange(len(level)))
+    absent = np.array([[13, 13, 13]], dtype=np.int32)
+    assert index.find(absent).tolist() == [-1]
+
+
+def _brute_lattice(rows: list, min_support: float) -> tuple[dict, set]:
+    """(complete frequent lattice {itemset: count}, free-sets) by enumeration."""
+    n = len(rows)
+    sets = [set(r) for r in rows]
+    items = sorted({x for r in sets for x in r})
+    min_count = _min_count(min_support, n)
+    counts: dict = {}
+    level = [(i,) for i in items]
+    while level:
+        nxt = []
+        for c in level:
+            v = sum(1 for r in sets if r.issuperset(c))
+            if v >= min_count:
+                counts[c] = v
+                nxt.append(c)
+        level = sorted({tuple(sorted(set(a) | {b[-1]})) for a in nxt for b in nxt if a[:-1] == b[:-1] and a[-1] < b[-1]})
+    free = {c for c, v in counts.items() if v != n
+            and not any(counts.get(s) == v for r in range(1, len(c)) for s in itertools.combinations(c, r))}
+    return counts, free
+
+
+def _dense_rows(seed: int, n_rows: int = 250, n_items: int = 10) -> list:
+    """Rows from correlated items, so many itemsets share counts (non-free) and Pascal has work."""
+    rng = np.random.default_rng(seed)
+    base = rng.random((n_rows, n_items)) < 0.45
+    base[:, 1] |= base[:, 0]
+    base[:, 3] = base[:, 2]
+    base[: n_rows // 2, 5] = True
+    return [sorted(np.flatnonzero(r).tolist()) for r in base]
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2, 3])
+def test_free_sets_and_pascal_match_a_brute_force(seed):
+    rows = _dense_rows(seed)
+    df = pl.DataFrame({"items": rows})
+    counts, free = _brute_lattice(rows, 0.1)
+    assert _mined(df, 0.1) == counts
+    assert _mined(df, 0.1, use_generator_pruning=True) == counts
+    want_free = {c: counts[c] for c in free}
+    assert _mined(df, 0.1, prune_equal_support=True) == want_free
+    assert _mined(df, 0.1, prune_equal_support=True, use_generator_pruning=True) == want_free
+
+
+def test_pascal_infers_and_the_profile_says_so():
+    df = pl.DataFrame({"items": _dense_rows(5)})
+    _, session = apriori(df, min_support=0.1, use_generator_pruning=True, profile=True)
+    inferred = sum(p.extra.get("n_inferred", 0) for p in session.phases)
+    assert inferred > 0
+    names = [p.name for p in session.phases]
+    assert names[:4] == ["matrix_build", "k1_support", "k2_candidate_gen", "k2_support_count"]
+    assert "k3_candidate_gen" in names and "k3_support_count" in names
+
+
+def test_level_callback_matches_the_previous_engine_on_smoke():
+    """Candidates per level after the subset test, as the campaign recorded them for the old engine."""
+    from et_miner.synthetic import PRESETS, generate_transactions
+
+    df, _ = generate_transactions(PRESETS["smoke"])
+    seen = []
+    apriori(df, min_support=0.01, level_callback=lambda k, c, f, ms: seen.append((k, c, f)))
+    assert seen == [(1, 118, 118), (2, 6903, 290), (3, 560, 202), (4, 95, 63), (5, 18, 18), (6, 3, 3)]
+
+
+@pytest.mark.parametrize("dtype,want", [
+    (pl.Int32, pl.Int64), (pl.Int64, pl.Int64), (pl.UInt16, pl.Int64), (pl.UInt64, pl.UInt64),
+    (pl.String, pl.String), (pl.Categorical, pl.String),
+])
+def test_emitted_item_types(dtype, want):
+    raw = [[1, 2, 3], [1, 2], [2, 3], [1, 2, 3]]
+    if dtype in (pl.String, pl.Categorical):
+        raw = [[str(x) for x in r] for r in raw]
+    df = pl.DataFrame({"items": raw}, schema={"items": pl.List(dtype)})
+    res = apriori(df, min_support=0.5)
+    assert res.schema["itemset"] == pl.List(want)
+    assert res.schema["support"] == pl.Float64
+    assert res.height == 7
+
+
+def test_an_empty_result_keeps_the_schema():
+    res = apriori(pl.DataFrame({"items": [[1], [2]]}), min_support=0.9)
+    assert res.height == 0 and res.schema == {"itemset": pl.List(pl.Int64), "support": pl.Float64}
+
+
 # ── the route end to end ────────────────────────────────────────────────────
 
 

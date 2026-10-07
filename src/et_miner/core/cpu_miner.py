@@ -45,7 +45,7 @@ from loguru import logger
 from scipy.sparse import csr_matrix
 
 from .profiling import ProfilingSession
-from .result import _build_result_df, _empty_result, _min_count
+from .result import _empty_result, _min_count
 
 CSR_CHUNK_NNZ = 500_000
 GRAM_BUDGET_BYTES = 256 << 20
@@ -483,6 +483,79 @@ def count_candidates(cands: np.ndarray, k: int, space: RowSpace) -> np.ndarray:
     return out
 
 
+class _LevelIndex:
+    """Row positions in a lexsorted int32 level: packed keys and binary search, byte-wise rows if keys overflow."""
+
+    def __init__(self, level: np.ndarray, base: int) -> None:
+        self.base = base
+        self.keys = _pack(level, base)
+        if self.keys is None:
+            self.void = np.dtype((np.void, 4 * level.shape[1]))
+            rows = np.ascontiguousarray(level, dtype=np.int32).view(self.void).ravel()
+            self.order = np.argsort(rows, kind="stable")
+            self.sorted = rows[self.order]
+
+    def find(self, sub: np.ndarray) -> np.ndarray:
+        """Positions of ``sub``'s rows in the level, -1 where absent."""
+        if self.keys is not None:
+            key = _pack(sub, self.base)
+            pos = np.minimum(np.searchsorted(self.keys, key), len(self.keys) - 1)
+            return np.where(self.keys[pos] == key, pos, -1)
+        q = np.ascontiguousarray(sub, dtype=np.int32).view(self.void).ravel()
+        pos = np.minimum(np.searchsorted(self.sorted, q), len(self.sorted) - 1)
+        return np.where(self.sorted[pos] == q, self.order[pos], -1)
+
+
+@dataclass
+class _Level:
+    """One complete frequent level: lexsorted itemsets, their counts, and (when tracked) which are free."""
+
+    sets: np.ndarray
+    counts: np.ndarray
+    free: np.ndarray | None
+    _index: _LevelIndex | None = None
+
+    def subset_positions(self, cands: np.ndarray, base: int) -> np.ndarray:
+        """(n, k) positions in this level of each candidate's (k-1)-subsets (column j drops item j)."""
+        if self._index is None:
+            self._index = _LevelIndex(self.sets, base)
+        index = self._index
+        k = cands.shape[1]
+        out = np.empty((len(cands), k), dtype=np.int64)
+        for j in range(k):
+            out[:, j] = index.find(cands[:, [c for c in range(k) if c != j]])
+        return out
+
+
+def _non_free(counts: np.ndarray, subset_counts: np.ndarray) -> np.ndarray:
+    """An itemset is not free when a (k-1)-subset has its count (Bastide et al. 2000)."""
+    return np.any(subset_counts == counts[:, None], axis=1)
+
+
+def _emit(levels: list[tuple[np.ndarray, np.ndarray]], items: pl.Series, n_rows: int) -> pl.DataFrame:
+    """The result frame: every emitted level's itemsets as item-id lists, support = count / n_rows.
+
+    Item ids keep the input's kind as the old per-row emission did: integers as
+    Int64 (UInt64 kept), floats as Float64, categoricals as String.
+    """
+    levels = [(s, c) for s, c in levels if len(s)]
+    if not levels:
+        return _empty_result()
+    dtype = items.dtype
+    if dtype.is_integer() and dtype != pl.UInt64:
+        items = items.cast(pl.Int64)
+    elif dtype.is_float():
+        items = items.cast(pl.Float64)
+    elif dtype.base_type() in (pl.Categorical, pl.Enum):
+        items = items.cast(pl.String)
+    frames = []
+    for sets, counts in levels:
+        n, k = sets.shape
+        values = items.gather(pl.Series(sets.ravel().astype(np.int64)))
+        frames.append(pl.DataFrame({"itemset": values.reshape((n, k)).arr.to_list(), "support": counts / n_rows}))
+    return pl.concat(frames)
+
+
 def mine_cpu(
     lf: pl.LazyFrame,
     min_support: float,
@@ -499,15 +572,24 @@ def mine_cpu(
 ) -> pl.DataFrame | tuple[pl.DataFrame, ProfilingSession]:
     """Mine the frequent itemsets (or free-sets) of ``lf`` on the CPU.
 
-    Steps: build the CSR (profile phase ``matrix_build``); emit K=1 from its
-    column counts; then per level generate candidates from the previous
-    level's generating itemsets (the free-sets in a free-set run), infer counts
-    where Pascal licenses it, count the rest from the CSR, keep counts at or
-    above min_count, and in a free-set run drop itemsets with a (k-1)-subset of
-    equal count, tested against the complete previous level. The parameters
-    mean what they mean on ``apriori()``.
+    Steps:
+
+    1. Build the CSR (profile phase ``matrix_build``) and emit K=1 from its
+       column counts. Items in every transaction are not free.
+    2. K=2: ``count_pairs`` over the generating items.
+    3. K>=3: stream ``generate_candidates`` chunks from the previous level's
+       generating itemsets; where Pascal licenses it (a non-free subset) take
+       the minimum subset count, count the rest with ``count_candidates`` on
+       the current row space, keep counts >= min_count.
+    4. Free-set test where tracked: an itemset whose (k-1)-subset in the
+       complete previous level has its count is not free. A free-set run
+       emits and generates from the free itemsets; Pascal needs the flags.
+
+    Every level is a lexsorted int32 array with an int64 count array; the
+    result frame is built once, at the end. The parameters mean what they
+    mean on ``apriori()``.
     """
-    from .apriori import _infer_count_from_subsets, _prune_equal_support, _warn_complexity
+    from .apriori import _warn_complexity
 
     session = ProfilingSession() if profile else None
 
@@ -525,128 +607,108 @@ def mine_cpu(
     if tc is None:
         return done(_empty_result())
 
-    n_trans = tc.n_rows
+    n_trans, n_cols = tc.n_rows, tc.n_cols
+    min_count = _min_count(min_support, n_trans)
     max_tx_length = lf.select(pl.col(item_col).list.len().max()).collect(engine="streaming").item() or 0
-    effective_max_length = min(max_length if max_length else float("inf"), max_tx_length, tc.n_cols)
+    effective_max_length = min(max_length if max_length else float("inf"), max_tx_length, n_cols)
+    track_free = prune_equal_support or use_generator_pruning
 
-    width = len(str(tc.n_cols))
-    item_cols = [f"i_{idx:0{width}d}" for idx in range(tc.n_cols)]
-    col_to_idx = {c: i for i, c in enumerate(item_cols)}
-    item_values = tc.items.to_list()
-    col_to_item = dict(zip(item_cols, item_values))
-    csr = tc.to_scipy()
-
-    _k1_start = time.perf_counter()
+    t_level = time.perf_counter()
     if session:
         session.start_phase("k1_support")
-    min_count_threshold = _min_count(min_support, n_trans)
-    results: list[tuple[list, float]] = []
-    prev_frequent: list[tuple[str, ...]] = []
-    for col, count in zip(item_cols, tc.counts.tolist()):
-        # Free-set semantics start at K=1: an item in every transaction has the
-        # empty set's support, so it is not a generator.
-        if prune_equal_support and count == n_trans:
-            continue
-        results.append(([col_to_item[col]], count / n_trans))
-        prev_frequent.append((col,))
+    ones = np.arange(n_cols, dtype=np.int32)[:, None]
+    free = tc.counts < n_trans
+    prev = _Level(ones, tc.counts, free)
+    gen = ones[free] if prune_equal_support else ones
+    emitted = [(gen, tc.counts[free] if prune_equal_support else tc.counts)]
     if session:
-        session.end_phase(n_frequent=len(prev_frequent))
+        session.end_phase(n_frequent=len(gen))
     if level_callback:
-        level_callback(1, tc.n_scanned, len(prev_frequent), (time.perf_counter() - _k1_start) * 1000)
-    if not prev_frequent:
+        level_callback(1, tc.n_scanned, len(gen), (time.perf_counter() - t_level) * 1000)
+    if len(gen) == 0:
         return done(_empty_result())
     if warn_complexity:
-        _warn_complexity(len(prev_frequent), min_support)
-
-    # The complete previous level (every frequent itemset) feeds the subset
-    # tests of the free-set prune; the free level feeds Pascal inference.
-    prev_counts: dict[tuple[str, ...], int] = {(c,): n for c, n in zip(item_cols, tc.counts.tolist())}
-    prev_free: set[tuple[str, ...]] | None = {s for s, n in prev_counts.items() if n < n_trans}
+        _warn_complexity(len(gen), min_support)
 
     space: RowSpace | None = None
     k = 2
-    while k <= effective_max_length and len(prev_frequent) >= k:
-        _k_start = time.perf_counter()
+    while k <= effective_max_length and len(gen) >= k:
+        t_level = time.perf_counter()
         if k == 2:
             if session:
-                session.start_phase("k2_candidate_gen")
-                session.end_phase(n_candidates=len(prev_frequent) * (len(prev_frequent) - 1) // 2)
+                session.record_phase("k2_candidate_gen", 0.0, n_candidates=len(gen) * (len(gen) - 1) // 2)
                 session.start_phase("k2_support_count")
-            gen = np.zeros(tc.n_cols, dtype=bool)
-            gen[[col_to_idx[s[0]] for s in prev_frequent]] = True
-            pairs, pair_counts = count_pairs(csr, gen, min_count_threshold)
-            n_gen = int(gen.sum())
-            n_candidates = n_gen * (n_gen - 1) // 2
+            gen_mask = np.zeros(n_cols, dtype=bool)
+            gen_mask[gen[:, 0]] = True
+            sets, counts = count_pairs(tc.to_scipy(), gen_mask, min_count)
+            n_candidates = len(gen) * (len(gen) - 1) // 2
             # Pascal would infer the pairs holding a non-free item; the Gram counts them anyway.
-            n_nonfree = int((tc.counts[gen] == n_trans).sum()) if use_generator_pruning else 0
-            n_inferred = n_candidates - (n_gen - n_nonfree) * (n_gen - n_nonfree - 1) // 2
-            current_frequent = [(item_cols[a], item_cols[b]) for a, b in pairs.tolist()]
-            current_counts = dict(zip(current_frequent, pair_counts.tolist()))
-            csr = None
+            n_nonfree = int((~prev.free[gen[:, 0]]).sum()) if use_generator_pruning else 0
+            n_inferred = n_candidates - (len(gen) - n_nonfree) * (len(gen) - n_nonfree - 1) // 2
         else:
+            if enable_length_filter:
+                rows_k = np.flatnonzero(np.diff(tc.indptr) >= k)
+                if space is None or len(rows_k) <= COMPACT_RATIO * space.n_rows:
+                    space = RowSpace(tc.indptr, tc.indices, n_cols, rows_k if len(rows_k) < n_trans else None)
+            elif space is None:
+                space = RowSpace(tc.indptr, tc.indices, n_cols)
+            infer = use_generator_pruning and not prune_equal_support
+            parts_s, parts_c = [], []
+            n_candidates = n_inferred = 0
+            t_gen = t_count = 0.0
+            chunks = generate_candidates(gen, k, n_cols)
+            while True:
+                t0 = time.perf_counter()
+                cands = next(chunks, None)
+                t_gen += time.perf_counter() - t0
+                if cands is None:
+                    break
+                t0 = time.perf_counter()
+                n_candidates += len(cands)
+                counts = np.empty(len(cands), dtype=np.int64)
+                needs = np.ones(len(cands), dtype=bool)
+                if infer:
+                    pos = prev.subset_positions(cands, n_cols)
+                    licensed = np.any(~prev.free[pos], axis=1)
+                    counts[licensed] = prev.counts[pos[licensed]].min(axis=1)
+                    needs = ~licensed
+                    n_inferred += int(licensed.sum())
+                if needs.any():
+                    counts[needs] = count_candidates(cands[needs], k, space)
+                keep = counts >= min_count
+                parts_s.append(cands[keep])
+                parts_c.append(counts[keep])
+                t_count += time.perf_counter() - t0
             if session:
-                session.start_phase(f"k{k}_candidate_gen")
-            prev_arr = np.array([[col_to_idx[c] for c in s] for s in prev_frequent], dtype=np.int32)
-            prev_arr = prev_arr[np.lexsort(prev_arr.T[::-1])]
-            chunks = list(generate_candidates(prev_arr, k, tc.n_cols))
-            cand_arr = np.concatenate(chunks) if chunks else np.empty((0, k), dtype=np.int32)
-            candidates = [tuple(item_cols[c] for c in row) for row in cand_arr.tolist()]
-            if session:
-                session.end_phase(n_candidates=len(candidates))
-            if not candidates:
+                session.record_phase(f"k{k}_candidate_gen", t_gen * 1000, n_candidates=n_candidates)
+            if n_candidates == 0:
                 break
             if session:
-                session.start_phase(f"k{k}_support_count")
-            n_candidates = len(candidates)
-
-            inferred: dict[tuple[str, ...], int] = {}
-            needs = np.ones(n_candidates, dtype=bool)
-            if use_generator_pruning:
-                for i, candidate in enumerate(candidates):
-                    c = _infer_count_from_subsets(candidate, prev_counts, prev_free)
-                    if c is not None:
-                        inferred[candidate] = c
-                        needs[i] = False
-            if needs.any():
-                rows_k = np.flatnonzero(np.diff(tc.indptr) >= k) if enable_length_filter else None
-                if space is None:
-                    space = RowSpace(tc.indptr, tc.indices, tc.n_cols, rows_k if rows_k is not None and len(rows_k) < n_trans else None)
-                elif rows_k is not None and len(rows_k) <= COMPACT_RATIO * space.n_rows:
-                    space = RowSpace(tc.indptr, tc.indices, tc.n_cols, rows_k)
-                counted_vals = count_candidates(cand_arr[needs], k, space)
-                counted = dict(zip((c for c, n in zip(candidates, needs) if n), counted_vals.tolist()))
-            else:
-                counted = {}
-            all_counts = {**inferred, **counted}
-            n_inferred = len(inferred)
-
-            current_frequent = []
-            current_counts = {}
-            for itemset in candidates:
-                count = all_counts[itemset]
-                if count >= min_count_threshold:
-                    current_frequent.append(itemset)
-                    current_counts[itemset] = count
-
+                session.record_phase(f"k{k}_support_count", t_count * 1000)
+            sets = np.concatenate(parts_s) if parts_s else np.empty((0, k), dtype=np.int32)
+            counts = np.concatenate(parts_c) if parts_c else np.empty(0, dtype=np.int64)
+        level_free = None
+        if track_free and len(sets):
+            pos = prev.subset_positions(sets, n_cols)
+            level_free = ~_non_free(counts, prev.counts[pos])
+        elif track_free:
+            level_free = np.zeros(0, dtype=bool)
         if prune_equal_support:
-            current_frequent = _prune_equal_support(current_frequent, current_counts, prev_counts)
-            current_free = set(current_frequent)
-        elif use_generator_pruning:
-            current_free = set(_prune_equal_support(current_frequent, current_counts, prev_counts))
+            gen = sets[level_free]
+            emitted.append((gen, counts[level_free]))
         else:
-            current_free = None
-
-        for itemset in current_frequent:
-            results.append(([col_to_item[c] for c in itemset], current_counts[itemset] / n_trans))
+            gen = sets
+            emitted.append((sets, counts))
+        prev = _Level(sets, counts, level_free)
         if session:
-            session.end_phase(n_frequent=len(current_frequent), n_inferred=n_inferred)
+            if k == 2:
+                session.end_phase(n_frequent=len(gen), n_inferred=n_inferred)
+            else:
+                session.phases[-1].extra.update(n_frequent=len(gen), n_inferred=n_inferred)
         if level_callback:
-            level_callback(k, n_candidates, len(current_frequent), (time.perf_counter() - _k_start) * 1000)
-        if not current_frequent:
+            level_callback(k, n_candidates, len(gen), (time.perf_counter() - t_level) * 1000)
+        if len(gen) == 0:
             break
-        prev_counts = current_counts
-        prev_free = current_free
-        prev_frequent = current_frequent
         k += 1
 
-    return done(_build_result_df(results))
+    return done(_emit(emitted, tc.items, n_trans))

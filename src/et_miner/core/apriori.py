@@ -99,7 +99,10 @@ def _prune_equal_support(
     current_counts: dict[tuple[str, ...], int],
     prev_counts: dict[tuple[str, ...], int],
 ) -> list[tuple[str, ...]]:
-    """Keep only the free-sets (generators) of a level.
+    """Keep only the free-sets (generators) of a level (reference implementation).
+
+    The CPU miner applies the same test to arrays (``core.cpu_miner``);
+    ``tests/test_cpu_miner.py`` holds the two equal against a brute force.
 
     An itemset is a *free-set* when no proper subset has the same support
     [Bastide et al. 2000, Pascal]. If support({A,B,C}) == support({A,B}) then C
@@ -154,7 +157,9 @@ def _infer_count_from_subsets(
     prev_counts: dict[tuple[str, ...], int],
     prev_free: set[tuple[str, ...]] | None,
 ) -> int | None:
-    """Infer a candidate's exact count from its (k-1)-subsets, or None.
+    """Infer a candidate's exact count from its (k-1)-subsets, or None (reference implementation).
+
+    The CPU miner applies the same rule to arrays (``core.cpu_miner``).
 
     Pascal [Bastide et al. 2000]: if a (k-1)-subset Y of X is *not* free — some
     Z ⊊ Y has rows(Z) = rows(Y) — then for X = Y ∪ {a} we have

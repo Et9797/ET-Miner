@@ -4,6 +4,7 @@ Invoked by bench/runner.py with a JSON config as argv[1]. Mining logs go to
 stderr (loguru default); the single RESULT json line goes to stdout.
 Exit codes: 0 ok, 3 correctness failure (motif recovery), other = crash.
 
+Configs with ``"mode": "cpu"`` go to ``bench/cpu/child.py`` (CPU-tier baseline).
 Configs with ``"mode": "consolidation"`` name their route explicitly (C,
 C-bitvecs, D, E, F; see ``run_consolidation``), warm up on every device they
 use, and record per-level (or per-pass) times, per-device peak VRAM, peak RSS,
@@ -139,6 +140,11 @@ def main() -> int:
         from consolidation_run import run_consolidation
 
         return run_consolidation(cfg)
+    if cfg.get("mode") == "cpu":
+        sys.path.insert(0, str(REPO / "bench" / "cpu"))
+        from child import run_cpu
+
+        return run_cpu(cfg)
 
     import polars as pl
 

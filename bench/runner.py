@@ -37,6 +37,8 @@ directory, and admits dsl-esco at the GPU counts whose calibration is ok;
 `build_o5_calibration_matrix`) and first appends each GPU's device-to-device
 copy bandwidth (`bench/copy_bandwidth.py`) to <out>/bandwidth.jsonl.
 `--cpu-only` selects just CPU/oracle configs and needs no CUDA device.
+`cpu-baseline` runs the CPU-tier baseline (bench/cpu/PROTOCOL.md,
+`bench/cpu/matrix.py`): ET-Miner's CPU route and efficient-apriori, CPU only.
 """
 
 from __future__ import annotations
@@ -89,6 +91,10 @@ def _cfg(id_, preset, *, n_gpus=2,
 
 
 def build_matrix(mode: str, n_dev: int, rows: list[dict] | None = None) -> list[dict]:
+    if mode == "cpu-baseline":
+        from cpu.matrix import build_cpu_baseline_matrix
+
+        return build_cpu_baseline_matrix()
     if mode in ("esco", "esco-retail"):
         from consolidation_matrix import build_esco_matrix
 
@@ -342,8 +348,15 @@ def run_config(cfg: dict, out_dir: Path) -> dict:
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
-            return {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev(),
-                    "proc_s": round(time.time() - t_proc, 1)}
+            row = {"id": cfg["id"], "config": cfg, "status": "timeout", "rev": _git_rev(),
+                   "proc_s": round(time.time() - t_proc, 1)}
+            partial = Path(str(result_path) + ".partial.json")
+            if partial.exists():
+                try:
+                    row["partial"] = json.loads(partial.read_text())
+                except json.JSONDecodeError:
+                    pass
+            return row
     proc_s = round(time.time() - t_proc, 1)
     # Result file first (immune to NCCL's raw fd-1 writes splicing the
     # child's stdout); stdout scan as debug fallback.
@@ -469,7 +482,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail",
                                          "waste", "pruning", "optimizations-calibration", "optimizations",
-                                         "optimizations-final", "o5-calibration", "o6", "o6-final"], required=True)
+                                         "optimizations-final", "o5-calibration", "o6", "o6-final",
+                                         "cpu-baseline"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,
@@ -510,7 +524,7 @@ def main() -> int:
                 pass
 
     n_dev = _gpu_count()
-    if n_dev == 0 and not args.cpu_only:
+    if n_dev == 0 and not args.cpu_only and args.mode != "cpu-baseline":
         print("no CUDA devices — nothing to run")
         return 2
     try:
@@ -561,6 +575,10 @@ def main() -> int:
             print(f"max-gpu-hours reached ({gpu_seconds / 3600:.2f}) — stopping (resume with the same command)")
             break
         skip_reason = _within(cfg, rows)
+        if skip_reason is None and cfg.get("rep_budget"):
+            from cpu.matrix import rep_budget_skip
+
+            skip_reason = rep_budget_skip(cfg, rows)
         if skip_reason:
             print(f"{skip_reason}: {cfg['id']}")
             result = {"id": cfg["id"], "config": cfg, "status": skip_reason, "rev": _git_rev()}

@@ -317,17 +317,19 @@ class TestStreamingAPI:
 
         assert result.height > 0
 
-    def test_sparse_parameter_forwarded(self, medium_transactions):
-        """sparse parameter should work in streaming mode."""
-        result = apriori(
-            medium_transactions,
-            min_support=0.05,
-            streaming=True,
-            chunk_size=200,
-            sparse=True,
-        )
-
+    @pytest.mark.parametrize("sparse", [True, False])
+    def test_sparse_is_deprecated_and_changes_nothing(self, medium_transactions, sparse):
+        """SON's CPU passes select no counter by sparse=: a value warns and mines the same lattice."""
+        plain = apriori(medium_transactions, min_support=0.05, streaming=True, chunk_size=200)
+        with pytest.warns(DeprecationWarning, match="sparse= no longer selects"):
+            result = apriori(medium_transactions, min_support=0.05, streaming=True, chunk_size=200, sparse=sparse)
         assert result.height > 0
+        assert result.sort("itemset").equals(plain.sort("itemset"))
+
+    def test_sparse_warns_once_on_a_direct_call(self, medium_transactions):
+        with pytest.warns(DeprecationWarning, match="sparse= no longer selects") as record:
+            apriori_streaming(medium_transactions, min_support=0.05, chunk_size=200, sparse=True, show_progress=False)
+        assert sum(issubclass(w.category, DeprecationWarning) for w in record) == 1
 
     def test_n_jobs_parameter_forwarded(self, medium_transactions):
         """n_jobs parameter should work in streaming mode."""
@@ -358,7 +360,6 @@ class TestStreamingIntegration:
             max_length=3,
             streaming=True,
             chunk_size=200,
-            sparse=True,
             n_jobs=2,
             show_progress=False,
         )
@@ -384,3 +385,103 @@ class TestStreamingIntegration:
         for i in range(1, len(results)):
             assert results[0].height == results[i].height
             assert results[0]["itemset"].to_list() == results[i]["itemset"].to_list()
+
+
+# =============================================================================
+# SON's CPU passes on the array miner
+# =============================================================================
+
+
+def _messy_rows(seed: int, n_rows: int = 600, n_items: int = 20) -> list:
+    """Item ids with unsorted rows, repeats, empty and null lists and null items."""
+    import random
+
+    rng = random.Random(seed)
+    rows: list = []
+    for _ in range(n_rows):
+        row = rng.sample(range(n_items), rng.randint(0, 7))
+        r = rng.random()
+        if r < 0.04:
+            row = None
+        elif r < 0.08 and row:
+            row = row + [row[0]]
+        elif r < 0.11:
+            row = row + [None]
+        rows.append(row)
+    return rows
+
+
+def _counted(df: pl.DataFrame, n_rows: int) -> dict[tuple, int]:
+    """{itemset: count}, asserting every itemset is emitted in ascending item order."""
+    out = {}
+    for s, p in zip(df["itemset"].to_list(), df["support"].to_list()):
+        assert list(s) == sorted(s), f"itemset {s} not ascending"
+        out[tuple(s)] = round(p * n_rows)
+    return out
+
+
+def _same(son: pl.DataFrame, core: pl.DataFrame, n_rows: int) -> None:
+    assert len(son) == len(core), "an itemset emitted twice, or one missing"
+    assert _counted(son, n_rows) == _counted(core, n_rows)
+
+
+class TestArrayPasses:
+    """SON's CPU passes give exactly the in-core CPU route's itemsets and counts."""
+
+    @pytest.mark.parametrize("chunk_size", [7, 150, 599])
+    @pytest.mark.parametrize("seed", [0, 1])
+    def test_messy_rows_match_the_cpu_route(self, seed, chunk_size):
+        df = pl.DataFrame({"items": _messy_rows(seed)}, schema={"items": pl.List(pl.Int64)})
+        son = apriori(df, min_support=0.03, streaming=True, chunk_size=chunk_size, show_progress=False)
+        _same(son, apriori(df, min_support=0.03), df.height)
+
+    @pytest.mark.parametrize(
+        "rows",
+        [
+            pytest.param([["b", "a"], ["a", "b", "c"], ["c", "b"], ["d"]] * 30, id="strings"),
+            pytest.param([[2**40, 1], [1, 2**40, 3], [2**40, 3]] * 30, id="ids-beyond-int32"),
+            pytest.param([[1, 2], [], [1, 2, 3], None] * 30, id="empty-and-null-baskets"),
+        ],
+    )
+    def test_item_kinds_match_the_cpu_route(self, rows):
+        df = pl.DataFrame({"items": rows})
+        son = apriori(df, min_support=0.1, streaming=True, chunk_size=25, show_progress=False)
+        core = apriori(df, min_support=0.1)
+        assert len(son) > 0
+        assert son.schema == core.schema
+        assert sorted(map(tuple, son["itemset"].to_list())) == sorted(map(tuple, core["itemset"].to_list()))
+        assert sorted(son["support"].to_list()) == sorted(core["support"].to_list())
+
+    def test_items_first_seen_out_of_order_are_renumbered(self):
+        """The first chunk holds only the large ids, the second only the small ones."""
+        rows = [[9, 7], [9, 7, 8]] * 10 + [[1, 3], [1, 2, 3]] * 10 + [[1, 9], [3, 7]] * 5
+        df = pl.DataFrame({"items": rows})
+        son = apriori(df, min_support=0.1, streaming=True, chunk_size=20, show_progress=False)
+        _same(son, apriori(df, min_support=0.1), df.height)
+
+    @pytest.mark.parametrize("max_length", [1, 2, 3])
+    def test_max_length_matches_the_cpu_route(self, medium_transactions, max_length):
+        son = apriori(
+            medium_transactions, min_support=0.005, max_length=max_length, streaming=True, chunk_size=300,
+            show_progress=False,
+        )
+        assert son["itemset"].list.len().max() == max_length
+        _same(son, apriori(medium_transactions, min_support=0.005, max_length=max_length), 1000)
+
+    def test_n_jobs_does_not_change_the_result(self, medium_transactions):
+        runs = [
+            apriori(medium_transactions, min_support=0.02, streaming=True, chunk_size=300, show_progress=False, n_jobs=n)
+            for n in (3, 1)
+        ]
+        _same(runs[0], runs[1], 1000)
+
+    def test_profile_and_progress_report_the_deduplicated_union(self, medium_transactions):
+        seen = []
+        res, session = apriori_streaming(
+            medium_transactions, min_support=0.05, chunk_size=300, show_progress=False, profile=True,
+            progress_callback=lambda phase, i, n, m: seen.append((phase, i, n, m)),
+        )
+        pass1 = {p.name: p.extra for p in session.phases}["pass1_local_mining"]
+        assert [s[:3] for s in seen] == [("pass1", i, 4) for i in range(4)] + [("pass2", i, 4) for i in range(4)]
+        assert seen[3][3]["candidates"] == pass1["n_candidates"] >= len(res)
+        assert seen[3][3]["items"] == pass1["n_items"]

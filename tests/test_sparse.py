@@ -24,11 +24,27 @@ from et_miner.core.sparse import (
 )
 
 
-def _son(df: pl.DataFrame, min_support: float, chunk_size: int | None = None, **kw) -> pl.DataFrame:
-    """apriori() through multi-chunk SON (three chunks by default), where sparse= still selects the counter."""
+def _counter_counts(df: pl.DataFrame, min_support: float, sparse: bool) -> dict[tuple, int]:
+    """count_support_batched(sparse=...) of every itemset the CPU route mines, keyed by sorted item ids.
+
+    The whole frame is one boolean matrix, so one counter call sees every row
+    holding an itemset: a counter that wraps at 256 shows wherever 256+ rows
+    hold one.
+    """
     from et_miner import apriori
 
-    return apriori(df, min_support=min_support, streaming=True, chunk_size=chunk_size or df.height // 3 + 1, **kw)
+    matrix, col_to_item, n = build_boolean_matrix(df.lazy(), min_support)
+    col_of = {item: col for col, item in col_to_item.items()}
+    itemsets = [tuple(col_of[i] for i in sorted(s)) for s in apriori(df, min_support=min_support)["itemset"].to_list()]
+    counts = count_support_batched(matrix, itemsets, n, sparse=sparse, enable_length_filter=False)
+    return {tuple(sorted(col_to_item[c] for c in cols)): int(v) for cols, v in counts.items()}
+
+
+def _mined_counts(df: pl.DataFrame, min_support: float) -> dict[tuple, int]:
+    from et_miner import apriori
+
+    res = apriori(df, min_support=min_support)
+    return {tuple(sorted(s)): round(p * df.height) for s, p in zip(res["itemset"].to_list(), res["support"].to_list())}
 
 
 class TestPolarsToSparseCsr:
@@ -464,10 +480,10 @@ class TestParallelSparseSupport:
         })
 
         # Sequential
-        result_seq = apriori(df, min_support=0.4, streaming=True, chunk_size=2, sparse=True, n_jobs=1)
+        result_seq = apriori(df, min_support=0.4, streaming=True, chunk_size=2, n_jobs=1)
 
         # Parallel
-        result_par = apriori(df, min_support=0.4, streaming=True, chunk_size=2, sparse=True, n_jobs=2)
+        result_par = apriori(df, min_support=0.4, streaming=True, chunk_size=2, n_jobs=2)
 
         # Both should give identical results
         assert result_seq.shape == result_par.shape
@@ -640,17 +656,11 @@ class TestAdaptiveParallelConfig:
 
 
 class TestSparseModeCorrectness:
-    """Verify sparse and non-sparse modes produce identical results.
-
-    They run through multi-chunk SON, the one apriori() route where sparse=
-    still selects the counter.
+    """The sparse and the Polars counter both give the exact count of every mined itemset.
 
     These tests prevent regression of the uint8 overflow bug that caused sparse
     mode to give wrong counts for datasets with >255 transactions per itemset.
     """
-
-    # The 400 [1,2,3] rows share the first chunk, so one counter call counts past 255.
-    CHUNK = 450
 
     @pytest.fixture
     def patterned_dataset(self):
@@ -676,108 +686,26 @@ class TestSparseModeCorrectness:
 
         return pl.DataFrame({"items": transactions})
 
+    @pytest.mark.parametrize("sparse", [True, False])
     @pytest.mark.parametrize("min_support", [0.20, 0.10, 0.05])
-    def test_sparse_vs_nonsparse_count(self, patterned_dataset, min_support):
-        """sparse=True en sparse=False moeten identieke counts geven."""
-        sparse = _son(patterned_dataset, min_support, self.CHUNK, sparse=True)
-        nonsparse = _son(patterned_dataset, min_support, self.CHUNK, sparse=False)
-
-        assert sparse.height == nonsparse.height, (
-            f"Count mismatch at support={min_support}: "
-            f"sparse={sparse.height}, non-sparse={nonsparse.height}"
-        )
-
-    @pytest.mark.parametrize("min_support", [0.20, 0.10, 0.05])
-    def test_sparse_vs_nonsparse_exact_itemsets(self, patterned_dataset, min_support):
-        """sparse=True en sparse=False moeten exact dezelfde itemsets vinden."""
-        sparse = _son(patterned_dataset, min_support, self.CHUNK, sparse=True)
-        nonsparse = _son(patterned_dataset, min_support, self.CHUNK, sparse=False)
-
-        sparse_set = {
-            tuple(sorted(r["itemset"]))
-            for r in sparse.iter_rows(named=True)
-        }
-        nonsparse_set = {
-            tuple(sorted(r["itemset"]))
-            for r in nonsparse.iter_rows(named=True)
-        }
-
-        assert sparse_set == nonsparse_set, (
-            f"Itemset mismatch at support={min_support}. "
-            f"Only in sparse: {sparse_set - nonsparse_set}, "
-            f"Only in non-sparse: {nonsparse_set - sparse_set}"
-        )
-
-    @pytest.mark.parametrize("min_support", [0.20, 0.10])
-    def test_sparse_vs_nonsparse_supports_match(self, patterned_dataset, min_support):
-        """Support values moeten identiek zijn tussen sparse en non-sparse."""
-        sparse = _son(patterned_dataset, min_support, self.CHUNK, sparse=True)
-        nonsparse = _son(patterned_dataset, min_support, self.CHUNK, sparse=False)
-
-        # Build dicts keyed by itemset
-        sparse_supports = {
-            tuple(sorted(r["itemset"])): r["support"]
-            for r in sparse.iter_rows(named=True)
-        }
-        nonsparse_supports = {
-            tuple(sorted(r["itemset"])): r["support"]
-            for r in nonsparse.iter_rows(named=True)
-        }
-
-        for itemset, sparse_sup in sparse_supports.items():
-            nonsparse_sup = nonsparse_supports.get(itemset)
-            assert nonsparse_sup is not None, f"Itemset {itemset} missing from non-sparse"
-            assert abs(sparse_sup - nonsparse_sup) < 1e-9, (
-                f"Support mismatch for {itemset}: "
-                f"sparse={sparse_sup}, non-sparse={nonsparse_sup}"
-            )
+    def test_counter_matches_the_mined_counts(self, patterned_dataset, min_support, sparse):
+        expected = _mined_counts(patterned_dataset, min_support)
+        assert len(expected) > 3
+        assert _counter_counts(patterned_dataset, min_support, sparse) == expected
 
 
 class TestUint8OverflowRegression:
-    """Specifieke tests voor de uint8 overflow bug (counts > 255).
-
-    SON counts each chunk on its own and adds the counts in Python, so a uint8
-    counter only wraps when one chunk holds 256+ rows of the itemset; and it
-    needs two chunks, since a single chunk falls back to the CPU route, which
-    ignores sparse=.
-    """
+    """Specifieke tests voor de uint8 overflow bug (counts > 255)."""
 
     def test_large_transaction_count_no_overflow(self):
-        """Dataset met >255 transacties per itemset moet correct tellen."""
-        # 500 transacties met exact dezelfde items - zou overflow geven met uint8
-        transactions = [[1, 2, 3]] * 500
-        df = pl.DataFrame({"items": transactions})
+        """500 identieke transacties: elke count is 500, niet 500 % 256 = 244."""
+        df = pl.DataFrame({"items": [[1, 2, 3]] * 500})
+        counts = _counter_counts(df, 0.5, sparse=True)
+        assert len(counts) == 7
+        assert set(counts.values()) == {500}
 
-        sparse = _son(df, 0.5, 300, sparse=True)
-        nonsparse = _son(df, 0.5, 300, sparse=False)
-
-        assert sparse.height == nonsparse.height
-        assert sparse.height > 0, "Should find frequent itemsets"
-
-        # Check dat counts correct zijn (niet 500 % 256 = 244)
-        for row in sparse.iter_rows(named=True):
-            if len(row["itemset"]) == 2:
-                # Support voor k=2 paren moet 1.0 zijn (500/500)
-                assert row["support"] == 1.0, f"Expected support 1.0, got {row['support']}"
-
-    def test_boundary_256_transactions(self):
-        """Exact 256 transacties met [1,2] - edge case voor uint8."""
-        transactions = [[1, 2]] * 256 + [[3]]
-        df = pl.DataFrame({"items": transactions})
-
-        sparse = _son(df, 0.5, 256, sparse=True)
-        nonsparse = _son(df, 0.5, 256, sparse=False)
-
-        assert sparse.height == nonsparse.height
-
-    def test_boundary_257_transactions(self):
-        """257 transacties - eerste overflow met uint8."""
-        transactions = [[1, 2]] * 257 + [[3]]
-        df = pl.DataFrame({"items": transactions})
-
-        sparse = _son(df, 0.5, 257, sparse=True)
-        nonsparse = _son(df, 0.5, 257, sparse=False)
-
-        assert sparse.height == nonsparse.height
-        # Met uint8 bug zou sparse 1 itemset vinden (257%256=1 < threshold)
-        # Nu moeten beide alle itemsets vinden
+    @pytest.mark.parametrize("n", [255, 256, 257])
+    def test_counts_around_256(self, n):
+        """n transacties met [1,2]; met de uint8 bug telt 256 als 0 en 257 als 1."""
+        df = pl.DataFrame({"items": [[1, 2]] * n + [[3]]})
+        assert _counter_counts(df, 0.5, sparse=True) == _mined_counts(df, 0.5) == {(1,): n, (2,): n, (1, 2): n}

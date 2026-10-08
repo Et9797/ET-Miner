@@ -423,8 +423,8 @@ def apriori(
         max_length: Maximum itemset length (None = unlimited).
         item_col: Column name with item lists.
         use_gpu: Mine on the GPU with the row-split miner (requires CuPy).
-        batch_size: Candidates per batch for SON streaming's CPU counter. None = no
-            batching. No effect on the CPU route.
+        batch_size: Validated (a positive int or None) but read by no route: SON's
+            CPU passes count from a CSR and no longer batch candidates.
         profile: If True, return profiling metrics alongside results.
         show_progress: If True, display progress bars where a route has them
             (requires tqdm).
@@ -455,14 +455,14 @@ def apriori(
             which also skips every candidate that cannot be free. False counts
             every candidate the prefix groups generate, and is honoured only by
             the row-split miner (the CPU route and SON always test).
-        sparse: Deprecated on the CPU route, where it no longer selects a counting
-            engine (a non-None value warns and is ignored). For streaming=True:
-            True = scipy CSR, False = Polars, None = auto.
+        sparse: Deprecated. It selects no counting engine on the CPU route or
+            in SON's CPU passes (a non-None value warns and is ignored there),
+            and the GPU routes do not read it.
         n_jobs: Parallel workers for counting. 1 = sequential, -1 = all CPUs.
         enable_length_filter: Skip transactions shorter than k when counting
             k-itemsets. Set to False to disable (results are the same).
-        streaming: Use SON algorithm for chunked processing. Memory becomes
-            O(chunk_size × n_items) instead of O(total × n_items).
+        streaming: Use SON algorithm for chunked processing. Memory holds one
+            chunk's CSR and the candidates instead of the whole dataset.
         chunk_size: Transactions per chunk when streaming=True. Default 10M.
         n_gpus: GPUs for the row-split miner and for streaming (default 1).
             Requires CuPy.
@@ -624,6 +624,15 @@ def apriori(
     if transactions is None:
         raise ValueError("Either 'transactions' or 'bitvecs' must be provided")
 
+    if sparse is not None and not use_gpu and not (streaming and n_gpus > 1):
+        warnings.warn(
+            "sparse= no longer selects a counting engine on the CPU: the CPU route and SON's CPU passes "
+            "count from a CSR whatever its value, and the argument is ignored there. It will be removed "
+            "in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     # Route to streaming implementation if requested
     if streaming:
         # Multi-GPU streaming if n_gpus > 1
@@ -660,7 +669,6 @@ def apriori(
             batch_size=batch_size,
             profile=profile,
             show_progress=show_progress,
-            sparse=sparse,
             n_jobs=n_jobs,
             progress_callback=progress_callback,
         )
@@ -704,14 +712,6 @@ def apriori(
         )
 
     # ── CPU path: one CSR of the frequent items, mined level by level ──
-    if sparse is not None:
-        warnings.warn(
-            "sparse= no longer selects a counting engine on the CPU route: every level is counted "
-            "from one CSR whatever its value, and the argument is ignored there. It still applies "
-            "to streaming=True and will be removed from the CPU route in a future release.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     from .cpu_miner import mine_cpu
 
     return mine_cpu(

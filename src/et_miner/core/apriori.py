@@ -4,7 +4,8 @@ Routes: the CPU miner (et_miner.core.cpu_miner, the default), the row-split
 GPU miner (et_miner.gpu.row_split; use_gpu=True or bitvecs=), and SON
 streaming on one or more devices (et_miner.streaming; streaming=True). This
 module validates the parameters, rejects combinations a route cannot honour,
-and holds the free-set and Pascal helpers the CPU miner shares.
+and holds list-based reference implementations of the free-set test and
+Pascal inference (core.cpu_miner applies both to arrays).
 
 Usage:
     from et_miner import apriori
@@ -101,8 +102,9 @@ def _prune_equal_support(
 ) -> list[tuple[str, ...]]:
     """Keep only the free-sets (generators) of a level (reference implementation).
 
-    The CPU miner applies the same test to arrays (``core.cpu_miner``);
-    ``tests/test_cpu_miner.py`` holds the two equal against a brute force.
+    The CPU miner applies the same test to arrays (``core.cpu_miner``), and
+    ``tests/test_cpu_miner.py`` checks its free-sets against a brute force;
+    nothing calls this function on a mining route.
 
     An itemset is a *free-set* when no proper subset has the same support
     [Bastide et al. 2000, Pascal]. If support({A,B,C}) == support({A,B}) then C

@@ -4,11 +4,12 @@ Semi-stable internal API: keep the signatures put even as the mining modules
 evolve.
 
 **Not every path routes its output through _build_result_df, despite what an
-earlier version of this docstring said.** The direct CPU path
-(core/apriori.py), gpu/mining.py and both streaming paths do. The multi-GPU
-row-split miner does not: gpu/row_split.py imports _build_result_df but calls
-it only for the empty-result early return, and builds its two real return
-frames directly from numpy via Arrow.
+earlier version of this docstring said.** Both streaming paths (SON and
+multi-GPU) do. The CPU route does not: core/cpu_miner.py builds its frame in
+_emit from arrays and uses only _min_count and _empty_result from here. The
+multi-GPU row-split miner does not either: gpu/row_split.py imports
+_build_result_df but calls it only for the empty-result early return, and
+builds its two real return frames directly from numpy via Arrow.
 
 That matters because the claim was two-thirds true -- row_split *does* use
 _min_count and _empty_result -- so spot-checking "does row_split use the result

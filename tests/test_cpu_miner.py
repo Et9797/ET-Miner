@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import itertools
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import polars as pl
@@ -109,6 +110,24 @@ def test_nothing_frequent_returns_none():
     assert tc is None
 
 
+def test_item_counts_are_int64():
+    """Polars counts in UInt32, which wraps past 2**32 entries; the CSR's size is summed from these counts."""
+    column = pl.Series("items", [[1, 2], [1], [2, 2]])
+    lens = column.list.len().to_numpy().astype(np.int64)
+    assert cpu_miner._count_items(column, lens).schema["count"] == pl.Int64
+    assert cpu_miner._count_items(column.clear(), lens[:0]).schema["count"] == pl.Int64
+
+
+def test_csr_and_route_with_an_int64_indptr(monkeypatch):
+    monkeypatch.setattr(cpu_miner, "INDPTR32_LIMIT", 0)
+    rows = _random_rows(3)
+    df = pl.DataFrame({"items": rows}, schema={"items": pl.List(pl.Int64)})
+    tc = cpu_miner.build_transaction_csr(df.lazy(), 0.03, "items")
+    assert tc.indptr.dtype == np.int64
+    assert np.array_equal(tc.to_scipy().toarray().astype(bool), _presence(rows, tc.items.to_list()))
+    assert _mined(df, 0.03) == _oracle(rows, 0.03)
+
+
 # ── L1: K=2 from one Gram matrix ────────────────────────────────────────────
 
 
@@ -159,6 +178,15 @@ def test_both_k2_paths_give_the_route_the_same_result(monkeypatch, ratio):
     monkeypatch.setattr(cpu_miner, "GRAM_BITVEC_RATIO", ratio)
     df = pl.DataFrame({"items": _dense_rows(4, n_rows=500)})
     assert _mined(df, 0.05) == _brute_lattice(df["items"].to_list(), 0.05)[0]
+
+
+@pytest.mark.parametrize("ratio", [0.0, 1e12])
+def test_min_support_zero_keeps_the_occurring_itemsets_on_both_k2_paths(monkeypatch, ratio):
+    """At min_count 0 the bitvectors would keep pairs that never co-occur, which the Gram cannot see."""
+    monkeypatch.setattr(cpu_miner, "GRAM_BITVEC_RATIO", ratio)
+    df = pl.DataFrame({"items": [[1], [2], [3, 4, 5]]})
+    want = {s: 1 for s in [(1,), (2,), (3,), (4,), (5,), (3, 4), (3, 5), (4, 5), (3, 4, 5)]}
+    assert _mined(df, 0.0) == want
 
 
 def test_count_pairs_on_fewer_than_two_columns():
@@ -245,15 +273,19 @@ def test_bitvecs_over_a_row_subset(monkeypatch, chunk):
     assert np.array_equal(bits, dense[rows].T)
 
 
+@pytest.mark.parametrize("budget", [cpu_miner.GRAM_BUDGET_BYTES, 12 * 4 * 2, 1])
 @pytest.mark.parametrize("chunk", [cpu_miner.BITVEC_CHUNK, 7])
-def test_row_space_gram_matches_a_dense_product(monkeypatch, chunk):
+def test_row_space_gram_pairs_match_a_dense_product(monkeypatch, chunk, budget):
+    """The whole Gram, row blocks of two and one row per block give the same pair counts."""
     monkeypatch.setattr(cpu_miner, "BITVEC_CHUNK", chunk)
     dense, m = _random_csr(9, n_rows=300, n_cols=10)
     space = cpu_miner.RowSpace(m.indptr, m.indices, 10)
     rows = np.flatnonzero(dense[:, 2])
-    suffix = np.array([1, 4, 5, 9])
+    suffix = np.array([1, 4, 5, 8, 9])
+    ia, ib = (np.array(x) for x in zip(*itertools.combinations(range(1, 5), 2)))
     x = dense[rows][:, suffix].astype(np.int64)
-    assert np.array_equal(space.gram(rows, suffix), x.T @ x)
+    assert np.array_equal(space.gram_pairs(rows, suffix, ia, ib, budget), (x.T @ x)[ia, ib])
+    assert len(space.gram_pairs(rows, suffix, ia[:0], ib[:0], budget)) == 0
 
 
 @pytest.mark.parametrize("table", [False, True])
@@ -291,6 +323,23 @@ def test_count_candidates_matches_a_brute_force(monkeypatch, path, k):
     assert (space.bitvecs is None) == (path == "tidset")
     got = cpu_miner.count_candidates(cands, k, space)
     assert np.array_equal(got, _brute_counts(dense, cands))
+
+
+@pytest.mark.parametrize("path", ["proj", "tidset"])
+def test_projection_under_a_tiny_gram_budget_matches_a_brute_force(monkeypatch, path):
+    """One Gram row per block bounds the projection's memory and leaves its counts unchanged."""
+    monkeypatch.setattr(cpu_miner, "GRAM_BUDGET_BYTES", 1)
+    if path == "proj":
+        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 0),))
+    else:
+        monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", 0)
+    dense, m = _random_csr(13, n_rows=700, n_cols=12)
+    for k in (3, 4):
+        cands = _all_candidates(12, k)
+        got = cpu_miner.count_candidates(cands, k, cpu_miner.RowSpace(m.indptr, m.indices, 12))
+        assert np.array_equal(got, _brute_counts(dense, cands))
+    rows = _random_rows(2, messy=False)
+    assert _mined(pl.DataFrame({"items": rows}), 0.02) == _oracle(rows, 0.02)
 
 
 def test_count_candidates_on_a_group_with_an_empty_prefix():
@@ -410,20 +459,45 @@ def test_an_empty_result_keeps_the_schema():
 # ── n_jobs > 1: the same counts from a thread pool ──────────────────────────
 
 
-def test_pool_variants_match_the_sequential_kernels():
-    from concurrent.futures import ThreadPoolExecutor
+class _RecordingPool(ThreadPoolExecutor):
+    """A thread pool that records the functions it runs, so a test can show it reached the pooled kernels."""
 
+    def __init__(self, n_workers: int) -> None:
+        super().__init__(n_workers)
+        self.ran: set[str] = set()
+
+    def submit(self, fn, /, *args, **kwargs):
+        self.ran.add(fn.__name__)
+        return super().submit(fn, *args, **kwargs)
+
+
+@pytest.mark.parametrize("path", ["bitvec", "proj", "tidset"])
+def test_pool_variants_match_the_sequential_kernels(monkeypatch, path):
+    """The thresholds that keep small inputs on the calling thread are lowered so every kernel uses the pool."""
+    monkeypatch.setattr(cpu_miner, "PARALLEL_GRAM_WORK", 0)
+    monkeypatch.setattr(cpu_miner, "HEAVY_GROUP_WORK", 0)
+    monkeypatch.setattr(cpu_miner, "BITVEC_CHUNK", 50)
+    if path == "proj":
+        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 0),))
+        monkeypatch.setattr(cpu_miner, "GRAM_BUDGET_BYTES", 12 * 16 * 4)
+    if path == "tidset":
+        monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", 0)
     dense, m = _random_csr(21, n_rows=900, n_cols=16)
     gen = np.ones(16, dtype=bool)
-    with ThreadPoolExecutor(4) as pool:
+    with _RecordingPool(4) as pool:
         p1, c1 = cpu_miner.count_pairs(m, gen, 10)
         p4, c4 = cpu_miner.count_pairs(m, gen, 10, pool, 4)
         assert np.array_equal(p1, p4) and np.array_equal(c1, c4)
-        assert np.array_equal(cpu_miner.build_bitvecs(m.indptr, m.indices, 16),
-                              cpu_miner.build_bitvecs(m.indptr, m.indices, 16, pool=pool))
+        assert "block" in pool.ran
+        if path != "tidset":
+            assert np.array_equal(cpu_miner.build_bitvecs(m.indptr, m.indices, 16),
+                                  cpu_miner.build_bitvecs(m.indptr, m.indices, 16, pool=pool))
+            assert "fill" in pool.ran
         cands = _all_candidates(16, 4)
         space = cpu_miner.RowSpace(m.indptr, m.indices, 16, pool=pool)
+        assert (space.bitvecs is None) == (path == "tidset")
         assert np.array_equal(cpu_miner.count_candidates(cands, 4, space, pool, 4), _brute_counts(dense, cands))
+        assert "_count_groups" in pool.ran
 
 
 @pytest.mark.parametrize("kw", [{}, {"prune_equal_support": True}, {"use_generator_pruning": True}])

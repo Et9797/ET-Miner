@@ -73,9 +73,10 @@ Observed, not part of a registered rule: every level of smoke, wide and or005
 prefix groups every level with 2.56–87 (levels with a mean of 1.00 tie), except K=3/K=4 of skew at T1 and K=3 of
 deepk, which per-candidate wins.
 
-## Open decision (owner)
+## Decision (owner)
 
-Rule 3 as registered picks per-candidate. A dispatch on two facts known before
-the level (row-space words and mean group size) would follow the observed
-split, but it is read from these rows after the fact, so it needs the owner's
-approval as an amendment and S1's three reps to confirm it.
+Rule 3 as registered picks per-candidate. The owner approved instead a dispatch
+on two facts known before the level, read from these rows after the fact:
+per-candidate at most 512 row-space words or a mean group size below 2.5,
+prefix groups otherwise (`PROTOCOL.md` Amendment 4). S1's three reps confirm
+the built tree.

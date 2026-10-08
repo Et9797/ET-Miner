@@ -294,3 +294,26 @@ on the measured tree before each phase.
 workloads for `array` and `incore`, and on five for `array-pc`, before this
 amendment was written (or002 `array` was stopped by hand, or003 `array` hit a
 600 s cap). Those rows are discarded.
+
+## Amendment 4 (2026-10-08, the pass-2 K≥3 counter, approved by the owner after S0)
+
+Rule 3's fallback picks per-candidate counting by geometric mean; it loses
+11.4 s (skew T1) and 19.9 s (skew T4) while the geometric mean is carried by
+regimes whose K≥3 counting takes under 25 ms (`bench/results/2026-10-08-son-s0/FINDINGS.md`).
+The owner approved a dispatch on two facts known before a level is counted,
+read from S0's rows after the fact:
+
+- per-candidate AND when the level's row space has at most
+  `PER_CANDIDATE_MAX_WORDS = 512` bitvector words (S0: per-candidate wins every
+  level at 134–391 words; levels at 906–3,879 words are split; 512 lies in the
+  unmeasured gap between them), or when its candidates average fewer than
+  `PER_CANDIDATE_MEAN_GROUP = 2.5` per prefix group (S0: on 906+ words
+  per-candidate wins every level with a mean of at most 2.04, prefix groups
+  every level from 2.56 to 87);
+- prefix groups (`count_candidates`) otherwise, and whenever the row space has
+  no bitvectors.
+
+Known losses against the faster counter per level in S0: K=3 and K=4 of skew at
+T1 (about 2.3 s) and K=3 of deepk (about 0.3 s). S1 confirms the built tree as
+Amendment 3 sets out; its report puts `built`'s wall time next to S0's `array`
+and `array-pc` rows for each regime.

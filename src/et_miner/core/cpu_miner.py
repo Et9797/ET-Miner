@@ -16,9 +16,10 @@ Usage:
 Options (module constants, patched by tests):
     CSR_CHUNK_NNZ      list entries mapped to columns per chunk while the CSR
                        is built; bounds the build's temporary memory
-    GRAM_BUDGET_BYTES  bytes one K=2 Gram block may take (12 B per entry of
-                       a dense block); above it the columns are split into
-                       blocks
+    GRAM_BUDGET_BYTES  bytes a Gram block may take (12 B per entry of a
+                       dense block), K=2 and the K>=3 projections alike;
+                       above it the Gram is produced in blocks. Pooled K>=3
+                       counting splits it over the blocks in flight
     CAND_CHUNK         K>=3 candidates generated (before the subset test) per
                        chunk; bounds the generation's temporary memory
     PAIR_MASK_BYTES    largest n_items**2 for which the K=3 subset test reads
@@ -27,6 +28,7 @@ Options (module constants, patched by tests):
                        above it every K>=3 group is counted by projection
     BITVEC_CHUNK       CSR entries turned into bitvector words, or gathered
                        for one projection Gram, per step
+    INDPTR32_LIMIT     CSR entries from which the indptr is int64 (int32 below)
     PROJ_MIN_SUFFIXES  (max words, min suffixes) steps: a prefix group with at
                        least that many suffixes is counted by projection when
                        the bitvectors have at most that many words
@@ -66,6 +68,7 @@ CAND_CHUNK = 2_000_000
 PAIR_MASK_BYTES = 64 << 20
 BITVEC_BUDGET_BYTES = 512 << 20
 BITVEC_CHUNK = 125_000
+INDPTR32_LIMIT = 2**31
 #: Measured by bench/cpu/l3_crossover.py on real prefix groups (K=3 and K=4): projection becomes
 #: faster at about 30-40 suffixes on 570-1,563 words and about 66-100 on 3,907-15,625 words.
 PROJ_MIN_SUFFIXES: tuple[tuple[float, int], ...] = ((2048, 40), (float("inf"), 80))
@@ -125,22 +128,27 @@ def _chunk_bounds(lens: np.ndarray, chunk_nnz: int) -> list[tuple[int, int]]:
 
 
 def _count_items(column: pl.Series, lens: np.ndarray) -> pl.DataFrame:
-    """(item, count) over the list column, nulls dropped, counted per row chunk and summed.
+    """(item, count Int64) over the list column, nulls dropped, counted per row chunk and summed.
 
     Chunking keeps Polars' hash tables to one chunk's distinct items, where one
     explode + group_by over the whole column held a table per thread.
     """
     parts = [
-        column.slice(r0, r1 - r0).explode().drop_nulls().to_frame("item").group_by("item").agg(pl.len().alias("count"))
+        column.slice(r0, r1 - r0)
+        .explode()
+        .drop_nulls()
+        .to_frame("item")
+        .group_by("item")
+        .agg(pl.len().cast(pl.Int64).alias("count"))
         for r0, r1 in _chunk_bounds(lens, CSR_CHUNK_NNZ)
     ]
     if not parts:
-        return pl.DataFrame(schema={"item": column.dtype.inner, "count": pl.UInt32})
+        return pl.DataFrame(schema={"item": column.dtype.inner, "count": pl.Int64})
     return pl.concat(parts).group_by("item").agg(pl.col("count").sum())
 
 
 def _map_rows(column: pl.Series, items: pl.Series, bound: int) -> tuple[np.ndarray, np.ndarray]:
-    """(indptr, indices int32) of each row's frequent items; indptr is int32 below 2**31 entries.
+    """(indptr, indices int32) of each row's frequent items; indptr is int32 below ``INDPTR32_LIMIT`` entries.
 
     Steps per row chunk: explode the chunk's lists (a null list explodes to
     one null, so its length counts as 1 for row alignment), map each value to
@@ -156,7 +164,7 @@ def _map_rows(column: pl.Series, items: pl.Series, bound: int) -> tuple[np.ndarr
     lens = column.list.len().fill_null(1).to_numpy().astype(np.int64)
     n_rows = len(lens)
     col_ids = pl.Series(np.arange(len(items), dtype=np.int32))
-    indptr = np.zeros(n_rows + 1, dtype=np.int32 if bound < 2**31 else np.int64)
+    indptr = np.zeros(n_rows + 1, dtype=np.int32 if bound < INDPTR32_LIMIT else np.int64)
     out = np.empty(bound, dtype=np.int32)
     filled = 0
     for r0, r1 in _chunk_bounds(lens, CSR_CHUNK_NNZ):
@@ -550,32 +558,51 @@ class RowSpace:
             rows = np.intersect1d(rows, idx[ptr[it] : ptr[it + 1]], assume_unique=True)
         return rows
 
-    def gram(self, rows: np.ndarray, suffix: np.ndarray) -> np.ndarray:
-        """Dense Gram matrix (int64) of the ``suffix`` columns over transaction rows ``rows``.
+    def gram_pairs(
+        self, rows: np.ndarray, suffix: np.ndarray, ia: np.ndarray, ib: np.ndarray, budget: int
+    ) -> np.ndarray:
+        """Counts (int64) of the suffix-position pairs (ia, ib), ia < ib, over transaction rows ``rows``.
 
-        Steps per chunk of rows holding about ``BITVEC_CHUNK`` entries: gather
-        their entries from the CSR, keep those in a suffix column (a lookup
-        table maps column -> suffix position), build that small CSR and add
-        its X.T @ X.
+        The counts are entries of the Gram matrix G = X.T @ X of the ``suffix``
+        columns over ``rows``. Only G's rows ia.min() .. ia.max() are needed,
+        and of each row block [a0, a1) only the columns from a0 on. The blocks
+        are as tall as their dense form (12 B per entry: the int64 sum and one
+        int32 product) allows within ``budget``. Per block and per chunk of
+        rows holding about ``BITVEC_CHUNK`` entries: gather the rows' entries
+        from the CSR, keep those in a suffix column at or after a0 (a lookup
+        table maps column -> suffix position), build that small CSR X and add
+        X[:, :a1 - a0].T @ X; then read the block's pairs.
         """
+        out = np.zeros(len(ia), dtype=np.int64)
+        if len(ia) == 0:
+            return out
         s = len(suffix)
         lut = np.full(self.n_cols, -1, dtype=np.int32)
         lut[suffix] = np.arange(s, dtype=np.int32)
-        g = np.zeros((s, s), dtype=np.int64)
         lens_all = np.diff(self.indptr).astype(np.int64)[rows]
-        for r0, r1 in _chunk_bounds(lens_all, BITVEC_CHUNK):
-            lens = lens_all[r0:r1]
-            if lens.sum() == 0:
+        chunks = _chunk_bounds(lens_all, BITVEC_CHUNK)
+        lo, hi = int(ia.min()), int(ia.max()) + 1
+        height = max(1, int(budget // (12 * (s - lo))))
+        for a0 in range(lo, hi, height):
+            a1 = min(hi, a0 + height)
+            sel = np.flatnonzero((ia >= a0) & (ia < a1))
+            if len(sel) == 0:
                 continue
-            pos = lut[self.indices[_row_entries(self.indptr, rows[r0:r1], lens)]]
-            local = np.repeat(np.arange(r1 - r0, dtype=np.int64), lens)
-            keep = pos >= 0
-            local, pos = local[keep], pos[keep]
-            ptr = np.zeros(r1 - r0 + 1, dtype=np.int64)
-            np.cumsum(np.bincount(local, minlength=r1 - r0), out=ptr[1:])
-            x = csr_matrix((np.ones(len(pos), dtype=np.int32), pos, ptr), shape=(r1 - r0, s))
-            g += (x.T @ x).toarray()
-        return g
+            g = np.zeros((a1 - a0, s - a0), dtype=np.int64)
+            for r0, r1 in chunks:
+                lens = lens_all[r0:r1]
+                if lens.sum() == 0:
+                    continue
+                pos = lut[self.indices[_row_entries(self.indptr, rows[r0:r1], lens)]]
+                local = np.repeat(np.arange(r1 - r0, dtype=np.int64), lens)
+                keep = pos >= a0
+                local, pos = local[keep], pos[keep] - a0
+                ptr = np.zeros(r1 - r0 + 1, dtype=np.int64)
+                np.cumsum(np.bincount(local, minlength=r1 - r0), out=ptr[1:])
+                x = csr_matrix((np.ones(len(pos), dtype=np.int32), pos, ptr), shape=(r1 - r0, s - a0))
+                g += (x.T.tocsr()[: a1 - a0] @ x).toarray()
+            out[sel] = g[ia[sel] - a0, ib[sel] - a0]
+        return out
 
 
 def _group_runs(cands: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
@@ -603,9 +630,11 @@ def _count_group_bitvec(bv: np.ndarray, pre: np.ndarray, ia: np.ndarray, ib: np.
     return out
 
 
-def _count_group_proj(space: RowSpace, rows: np.ndarray, ia: np.ndarray, ib: np.ndarray, suffix: np.ndarray):
+def _count_group_proj(
+    space: RowSpace, rows: np.ndarray, ia: np.ndarray, ib: np.ndarray, suffix: np.ndarray, budget: int | None = None
+):
     """Pair counts of one group: the Gram matrix of the suffix columns over the prefix's transaction rows."""
-    return space.gram(rows, suffix)[ia, ib]
+    return space.gram_pairs(rows, suffix, ia, ib, GRAM_BUDGET_BYTES if budget is None else budget)
 
 
 def count_candidates(
@@ -624,25 +653,29 @@ def count_candidates(
     worker, and counted on the pool while the lighter groups are counted on
     the calling thread (many small numpy calls from several threads contend
     for the GIL and run slower than one thread). Every group writes its own
-    range of the output.
+    range of the output. A projection's Gram blocks fit ``GRAM_BUDGET_BYTES``,
+    shared by the workers and the calling thread when a pool runs.
     """
     out = np.empty(len(cands), dtype=np.int64)
     starts, ends = _group_runs(cands, k)
     if pool is None or len(starts) < 2:
-        _count_groups(cands, k, space, starts, ends, out)
+        _count_groups(cands, k, space, starts, ends, out, GRAM_BUDGET_BYTES)
         return out
+    budget = GRAM_BUDGET_BYTES // (n_workers + 1)
     work = (ends - starts).astype(np.float64) * max(1, space.words)
     heavy = work >= HEAVY_GROUP_WORK
     hs, he = starts[heavy], ends[heavy]
     slices = _split_by_weight(work[heavy], 4 * n_workers, len(hs)) if len(hs) else []
-    futures = [pool.submit(_count_groups, cands, k, space, hs[a:b], he[a:b], out) for a, b in slices]
-    _count_groups(cands, k, space, starts[~heavy], ends[~heavy], out)
+    futures = [pool.submit(_count_groups, cands, k, space, hs[a:b], he[a:b], out, budget) for a, b in slices]
+    _count_groups(cands, k, space, starts[~heavy], ends[~heavy], out, budget)
     for f in futures:
         f.result()
     return out
 
 
-def _count_groups(cands: np.ndarray, k: int, space: RowSpace, starts: np.ndarray, ends: np.ndarray, out: np.ndarray):
+def _count_groups(
+    cands: np.ndarray, k: int, space: RowSpace, starts: np.ndarray, ends: np.ndarray, out: np.ndarray, budget: int
+):
     """count_candidates' per-group work over the runs [starts[i], ends[i]), written into ``out``."""
     bv = space.bitvecs
     parent_key, parent_and = None, None
@@ -652,7 +685,7 @@ def _count_groups(cands: np.ndarray, k: int, space: RowSpace, starts: np.ndarray
         suffix = np.union1d(a, b)
         ia, ib = np.searchsorted(suffix, a), np.searchsorted(suffix, b)
         if bv is None:
-            out[s:e] = _count_group_proj(space, space.tidset(prefix), ia, ib, suffix)
+            out[s:e] = _count_group_proj(space, space.tidset(prefix), ia, ib, suffix, budget)
             continue
         if k == 3:
             pre = bv[prefix[0]]
@@ -666,7 +699,7 @@ def _count_groups(cands: np.ndarray, k: int, space: RowSpace, starts: np.ndarray
             pre = parent_and & bv[prefix[-1]]
         if len(suffix) >= space.proj_min:
             local = np.flatnonzero(np.unpackbits(pre.view(np.uint8), bitorder="little"))
-            out[s:e] = _count_group_proj(space, space.full_rows(local), ia, ib, suffix)
+            out[s:e] = _count_group_proj(space, space.full_rows(local), ia, ib, suffix, budget)
         else:
             out[s:e] = _count_group_bitvec(bv, pre, ia, ib, suffix)
 
@@ -796,7 +829,8 @@ def mine_cpu(
         return done(_empty_result())
 
     n_trans, n_cols = tc.n_rows, tc.n_cols
-    min_count = _min_count(min_support, n_trans)
+    # min_support=0 gives 0; at 0 the Gram (which only sees co-occurring pairs) and the bitvectors would disagree.
+    min_count = max(1, _min_count(min_support, n_trans))
     max_tx_length = lf.select(pl.col(item_col).list.len().max()).collect(engine="streaming").item() or 0
     effective_max_length = min(max_length if max_length else float("inf"), max_tx_length, n_cols)
 

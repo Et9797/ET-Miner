@@ -30,7 +30,7 @@ flat = np.array([[0, 1], [0, 2], [0, 3], [1, 2], [1, 3]], dtype=np.int32)
 g = build_k3plus_groups_from_flat(flat)
 ref = _build_k3plus_groups_numpy(flat)
 rows = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3], [0, 1, 2, 3], [0, 1]] * 20
-res = apriori(pl.DataFrame({"items": rows}), min_support=0.3, sparse=True)
+res = apriori(pl.DataFrame({"items": rows}), min_support=0.3, streaming=True, chunk_size=40, sparse=True)
 print(json.dumps({
     "backends": [backends.RUST_INSTALLED, backends.get_rust_ext() is None, backends.RUST_DISABLED],
     "copies": [et_miner.HAS_RUST, sparse.RUST_INSTALLED, bitvec.RUST_INSTALLED],

@@ -76,6 +76,10 @@ All notable changes to ET-Miner are recorded here. Versions follow
   array miner. It still selects SON's counter under `streaming=True`. The Rust
   extension is no longer used by the CPU route; SON's sparse counter and the
   GPU route's host steps still use it.
+- **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
+  (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
+  `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner
+  had no leg. It skips without the Rust extension.
 - `ProfilingSession.record_phase(name, duration_ms, **extra)` records a phase
   timed elsewhere: the CPU route interleaves candidate generation and counting
   per chunk. `apriori(profile=True)` keeps its phase names.

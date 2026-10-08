@@ -9,7 +9,7 @@ Guidance for Claude Code when working in this repository.
 - The **tier-equivalence chain** must hold on the `smoke` synthetic preset
   (`et_miner.synthetic.PRESETS["smoke"]`):
 
-  Tier 1 Polars == Tier 2 Rust (`sparse=True`) == row-split 1 GPU ==
+  Tier 1 Polars == Tier 2 Rust (`apriori_from_csr`) == row-split 1 GPU ==
   row-split 1 GPU, tiled kernel pinned == row-split 1 GPU, per-candidate
   kernel pinned ==
   row-split 1 GPU, group kernel pinned (plain / forced chunks / count inference / no subset test) ==

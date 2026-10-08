@@ -110,6 +110,15 @@ def _estimate_chunk_size_from_memory(
     return max(100_000, min(chunk_size, 100_000_000))  # 100K to 100M
 
 
+def _check_local_support_factor(local_support_factor: float) -> None:
+    """Raise unless 0 < factor <= 1: above 1 a globally frequent itemset can be locally infrequent in every chunk."""
+    if not 0 < local_support_factor <= 1:
+        raise ValueError(
+            f"local_support_factor must be in (0, 1], got {local_support_factor}: above 1 pass 1 mines each "
+            "chunk above the global threshold and can miss globally frequent itemsets"
+        )
+
+
 def apriori_streaming(
     transactions: pl.LazyFrame | pl.DataFrame,
     min_support: float = 0.5,
@@ -149,8 +158,10 @@ def apriori_streaming(
         chunk_size: Number of transactions per chunk (default 40M).
         memory_budget_gb: If set, automatically calculate chunk_size to stay
             within this memory budget. Overrides chunk_size parameter.
-        local_support_factor: Factor to lower local support threshold (default 0.9).
-            Lower values reduce false negatives but increase candidates.
+        local_support_factor: Factor to lower local support threshold (default 0.9),
+            in (0, 1]; every value gives the same result. Lower values make pass 1
+            mine more local itemsets; on the CPU they also tighten pass 2's bound,
+            on the GPU pass 2 counts every one of them.
         use_gpu: Mine each chunk on the GPU with the row-split miner and count
             pass 2 with the batched itemset kernel; otherwise both passes run
             on the CPU's array miner.
@@ -194,6 +205,7 @@ def apriori_streaming(
             "gpu_resident was removed: with use_gpu=True, SON mines each chunk on the "
             "row-split miner and counts pass 2 with the batched kernel. Drop the argument."
         )
+    _check_local_support_factor(local_support_factor)
     if sparse is not None and not use_gpu:
         warnings.warn(
             "sparse= no longer selects a counting engine under streaming=True: SON's CPU passes count "

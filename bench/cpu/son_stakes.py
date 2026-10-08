@@ -30,7 +30,9 @@ Arms:
              per-group cost of ``count_candidates`` weighs most.
     incore   ``apriori()`` without streaming (the CPU route), for reference.
     built    ``apriori(streaming=True)`` on the tree as it is, untimed inside:
-             the current SON before the port, the port after it.
+             the current SON before the port, the port after it. With
+             ``--factor``, ``apriori_streaming`` at that
+             ``local_support_factor`` (``apriori()`` does not take one).
 
 Phases (seconds): count_transactions; pass 1 p1_matrix, p1_mine (p1_gen and
 p1_count inside it) for ``current``, p1_csr and p1_mine for the array arms;
@@ -48,6 +50,7 @@ Options:
     --threads    thread budget: the env pools and n_jobs
     --arm        current | array | array-pc | incore | built
     --chunks     SON chunks (chunk_size = ceil(N / chunks)); default 4
+    --factor     local_support_factor of the built arm (default: the tree's)
     --out        jsonl file the row is appended to
     --check      compare the signatures per workload in a jsonl file and exit
     --workloads  comma-separated workload ids for --matrix (default SON_WORKLOADS)
@@ -55,6 +58,8 @@ Options:
                  per config, rep-major, a config past --cap seconds recorded as
                  a timeout and not repeated, no new config after --max-hours
     --arms       comma-separated arms for --matrix (default built,incore)
+    --factors    comma-separated factors for --matrix: the built arm runs once
+                 per factor, in this order (default: the tree's)
     --reps       repetitions for --matrix (default 1)
     --cap        seconds per config for --matrix (default 600)
     --max-hours  no new config after this many hours (default 1.5)
@@ -80,6 +85,7 @@ for _k in ("POLARS_MAX_THREADS", "RAYON_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NU
     os.environ[_k] = _argv_threads()
 
 import argparse  # noqa: E402
+import functools  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
 import resource  # noqa: E402
@@ -352,14 +358,24 @@ def run_incore(lf: pl.LazyFrame, min_support: float, max_length, chunk_size: int
         return apriori(lf, min_support=min_support, max_length=max_length, n_jobs=n_jobs), {}
 
 
-def run_built(lf: pl.LazyFrame, min_support: float, max_length, chunk_size: int, n_jobs: int, ph: Phases) -> tuple:
+def run_built(
+    lf: pl.LazyFrame, min_support: float, max_length, chunk_size: int, n_jobs: int, ph: Phases,
+    factor: float | None = None,
+) -> tuple:
     from et_miner import apriori
+    from et_miner.streaming.son import apriori_streaming
 
     with ph("son"):
-        res = apriori(
-            lf, min_support=min_support, max_length=max_length, streaming=True, chunk_size=chunk_size,
-            n_jobs=n_jobs, show_progress=False,
-        )
+        if factor is None:
+            res = apriori(
+                lf, min_support=min_support, max_length=max_length, streaming=True, chunk_size=chunk_size,
+                n_jobs=n_jobs, show_progress=False,
+            )
+        else:
+            res = apriori_streaming(
+                lf, min_support=min_support, max_length=max_length, chunk_size=chunk_size,
+                local_support_factor=factor, n_jobs=n_jobs, show_progress=False,
+            )
     return res, {}
 
 
@@ -414,12 +430,13 @@ def run_matrix(args) -> int:
     )
     t_end = time.time() + args.max_hours * 3600
     timed_out: set[tuple] = set()
+    factors = [float(f) for f in args.factors.split(",")] if args.factors else [None]
     for rep in range(args.reps):
         for w in args.workloads.split(","):
             for t in (1, 4):
-                for arm in args.arms.split(","):
-                    base = {"workload": w, "arm": arm, "threads": t, "chunks": args.chunks, "rep": rep}
-                    if (w, t, arm) in timed_out:
+                for arm, factor in [(a, f) for a in args.arms.split(",") for f in (factors if a == "built" else [None])]:
+                    base = {"workload": w, "arm": arm, "threads": t, "chunks": args.chunks, "rep": rep, "factor": factor}
+                    if (w, t, arm, factor) in timed_out:
                         _append(args.out, {**base, "status": "skipped: timed out in an earlier rep"})
                         continue
                     if time.time() > t_end:
@@ -427,11 +444,13 @@ def run_matrix(args) -> int:
                         continue
                     cmd = [sys.executable, __file__, "--workload", w, "--threads", str(t), "--arm", arm,
                            "--chunks", str(args.chunks), "--rep", str(rep), "--out", args.out]
-                    print(f"rep {rep} {w} T{t} {arm}", flush=True)
+                    if factor is not None:
+                        cmd += ["--factor", str(factor)]
+                    print(f"rep {rep} {w} T{t} {arm}" + (f" f={factor}" if factor is not None else ""), flush=True)
                     try:
                         p = subprocess.run(cmd, timeout=args.cap, capture_output=True, text=True)
                     except subprocess.TimeoutExpired:
-                        timed_out.add((w, t, arm))
+                        timed_out.add((w, t, arm, factor))
                         _append(args.out, {**base, "status": "timeout", "cap_s": args.cap, "rev": _rev()})
                         continue
                     if p.returncode != 0:
@@ -446,6 +465,8 @@ def main() -> int:
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--arm", choices=sorted(ARMS))
     ap.add_argument("--chunks", type=int, default=4)
+    ap.add_argument("--factor", type=float)
+    ap.add_argument("--factors")
     ap.add_argument("--rep", type=int, default=0)
     ap.add_argument("--out")
     ap.add_argument("--check")
@@ -468,6 +489,10 @@ def main() -> int:
     df, n_rows, _ = _load(dataset)
     chunk_size = math.ceil(n_rows / args.chunks)
     fn = ARMS[args.arm]
+    if args.factor is not None:
+        if args.arm != "built":
+            ap.error("--factor applies to the built arm only")
+        fn = functools.partial(run_built, factor=args.factor)
 
     warm = pl.read_parquet(REPO / "datasets" / "synth" / "smoke.parquet").head(WARMUP_ROWS)
     fn(warm.lazy(), 0.02, 3, WARMUP_ROWS // 2, args.threads, Phases())
@@ -480,7 +505,7 @@ def main() -> int:
     cpu = time.process_time() - c0
     row = {
         "workload": args.workload, "arm": args.arm, "threads": args.threads, "chunks": args.chunks,
-        "rep": args.rep, "chunk_size": chunk_size, "status": "ok", "wall_s": round(wall, 4),
+        "factor": args.factor, "rep": args.rep, "chunk_size": chunk_size, "status": "ok", "wall_s": round(wall, 4),
         "cpu_s": round(cpu, 4), "phases_s": {k: round(v, 4) for k, v in sorted(ph.s.items())},
         "ru_maxrss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
         **extra, **result_signatures(res, n_rows),

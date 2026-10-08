@@ -43,6 +43,7 @@ from et_miner._compat import HAS_TQDM, tqdm
 # SON-specific helpers live in streaming.py; generic ones in matrix.py (foundation layer)
 from et_miner.streaming.son import (
     _build_matrix_for_items,
+    _check_local_support_factor,
     _count_candidates_gpu,
     _estimate_chunk_size_from_memory,
     _get_memory_gb,
@@ -150,8 +151,9 @@ def apriori_streaming_multi_gpu(
         item_col: Column name with item lists.
         n_gpus: Number of GPUs to use (default 8).
         chunk_size: Number of transactions per chunk (default 10M).
-        local_support_factor: Factor to lower local support threshold (default 0.9).
-            Lower values reduce false negatives but increase candidates.
+        local_support_factor: Factor to lower local support threshold (default 0.9),
+            in (0, 1]; every value gives the same result. Lower values make pass 1
+            mine more local itemsets, and pass 2 counts every one of them.
         batch_size: Accepted for parity with apriori_streaming; the GPU
             passes do not read it.
         show_progress: If True, display progress bars (requires tqdm).
@@ -182,6 +184,8 @@ def apriori_streaming_multi_gpu(
         ...     show_progress=True,
         ... )
     """
+    _check_local_support_factor(local_support_factor)
+
     # Validate GPU availability
     if not has_cupy():
         raise MiningError(

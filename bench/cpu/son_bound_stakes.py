@@ -43,7 +43,7 @@ sys.path.insert(0, str(REPO / "bench" / "cpu"))
 
 from consolidation_run import _load  # noqa: E402
 from matrix import WORKLOADS  # noqa: E402
-from son_stakes import SON_WORKLOADS, _rev  # noqa: E402
+from son_stakes import INPUT_WORKLOADS, SON_WORKLOADS, _rev  # noqa: E402
 
 
 def _local(lf: pl.LazyFrame, local_s: float, max_length: int | None):
@@ -165,7 +165,7 @@ def main() -> int:
 
     logger.remove()
     for w in args.workloads.split(","):
-        dataset, min_support, max_length = WORKLOADS[w]
+        dataset, min_support, max_length = {**WORKLOADS, **INPUT_WORKLOADS}[w]
         df, _, _ = _load(dataset)
         for factor in map(float, args.factors.split(",")):
             row = {"workload": w, **stakes(df, min_support, max_length, args.chunks, factor)}

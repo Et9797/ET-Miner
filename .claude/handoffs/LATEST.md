@@ -1,147 +1,103 @@
-# Session Handoff: ET-Miner, 2026-10-08 20:11
+# Session Handoff: ET-Miner, 2026-10-08 23:39
 
-**Branch:** `perf/son-partition-bound` @ `a1f4c2c` (in sync with origin; merged into `main` as `c973ed3`)
-**Tree:** clean apart from this handoff (`LATEST.md` is tracked); 1 stash (`stash@{0}`: README local edits, made on main)
-**Focus:** work through the remaining open items (should/nice) after PR #29
+**Branch:** `perf/input-layer` @ `bf87644` (in sync with origin)
+**Tree:** clean; 1 stash (`stash@{0}`: README local edits, made on main)
+**Focus:** handoff item 2 (input layer) is done; PR #30 is open and waits for the owner's merge
 **Reason:** end of session
-**Previous handoff:** `HANDOFF-2026-10-08-1900.md`. Its items 1 (PR #28) and 4 (partition bound) are done; the rest is carried over below.
+**Previous handoff:** `HANDOFF-2026-10-08-2011.md` (its item 2 is done; the other items carry over below)
 
 ## Verify on Resume
-- Run `git status --short --branch` and `git rev-parse --short HEAD`.
-- Expect HEAD `a1f4c2c` on `perf/son-partition-bound`, and `origin/main` at `c973ed3` (the merge of PR #29). `M .claude/handoffs/LATEST.md` is this handoff.
-- Next work branches from `main`: `git switch main && git merge --ff-only origin/main`, then a new branch. The modified `LATEST.md` comes along; commit it there (`git add -f` is not needed, it is tracked).
+- Run `git status --short --branch` and `git rev-parse --short HEAD`. Expect HEAD `bf87644` on `perf/input-layer` and a clean tree.
+- If PR #30 has been merged: `git switch main && git pull --ff-only`, then branch for the next item.
 
 ## Current State
-- PR #29 (SON partition upper bound) is merged (2026-10-08 18:09 UTC). CI was green on `a1f4c2c`.
-- `/council review` of PR #29: unanimous APPROVE in round 1. Its flags are fixed in `a1f4c2c`.
-- No work is in progress and no run is active.
-- Council teammates (architect-2, math-2, alternatives-2, auditor-2) were not sent shutdown requests; ignore their idle messages.
+- PR #30 (https://github.com/Et9797/ET-Miner/pull/30): CI green on `bf87644`; the body includes the council review. Not merged: the owner decides.
+- `/council review` of PR #30: unanimous APPROVE in round 1. The flags are fixed in `bf87644`.
+- No run is active. The council teammates (architect-3, math-3, alternatives-3, auditor-3) were not shut down; ignore their idle messages.
 
-## Next Steps (no must-fix open)
-1. **(should) GPU verification**, open since PR #25. PR #28 and PR #29 add to it. Needs a GPU box.
-   - Run the GPU legs of `tests/test_tier_equivalence.py` (SON 1 GPU / 2 GPUs, forced chunks) and `bench/selfcheck.py`.
-   - The GPU SON passes are unchanged by #29.
-2. **(should) Input layer and threaded bitvector build.**
-   - The CSR build is about 30 % of wall time on deep_k/skew.
-   - The threaded `build_bitvecs` is slower than the sequential one.
-   - Measure `build_transaction_csr` stages and `build_bitvecs` at T1/T4 first, then pre-register an amendment.
-   - Memory headroom: deep_k/skew T1 are at 1.17-1.18x of Phase 0 (limit 1.25x).
-3. **(should, owner decides) SON pass 1 is now 61-100 % of SON's wall time.**
-   - or005 mines 1.13M local itemsets for 10,488 frequent ones.
-   - Levers:
-     - `local_support_factor` 0.9 -> 1.0 or another value (the owner's call). With the bound, 1.0 is worse on pass 2 (more slack, fewer exact counts). Measure pass 1 + pass 2 together.
-     - Count a candidate only in the chunks that did not emit it: -25 % (candidate, chunk) pairs on skew, -40 % on or005 (`stakes.jsonl` `pairs_to_count`). Each union row must then carry its emitting chunks. Do not use a uint64 bitmask: it caps at 64 chunks.
-4. **(should, small) Apply the bound to SON's GPU passes.** Both mine each chunk completely, so `_bound` carries over. Out of Amendment 5's scope; needs a GPU to verify.
-5. **(nice) Carried from PR #28's council flags:**
-   - De-duplicate mine_cpu's K=1 seeding (`cpu_miner.py` `mine_cpu`, `son.py` `_local_levels`, `bench/cpu/son_stakes.py` `run_array`).
-   - Two predicates stated twice: the K=2 bitvec/Gram rule and the row-space compaction rule (`count_itemsets` vs `_mine_levels`).
-   - Thread the per-candidate counter (`count_per_candidate`), which is single-threaded.
-   - SON GPU pass 1 via `_build_csr_from_transactions`.
-   - The pair-mask K=2 union idea is moot: `sum_rows` took or0001k2's pass 1 from 6.2 to 2.8 s.
-6. **(nice) Carried from PR #26:**
-   - The Gram peak is about 1.8-1.9x the budget.
-   - `sel` in `gram_pairs` scans all of `ia` per block.
-   - There is no test for the per-worker budget split.
-   - `test_support_001` oracle convention (owner).
-   - The GPU route adopting `build_transaction_csr`.
-7. **(nice) Profile schema:** only the CPU SON pass 1 reports `n_bounded`/`n_exact` (`son.py` `_son_cpu`). Align the GPU branch if item 4 lands.
-8. Remind the owner about `stash@{0}`: popping it on main may conflict in README.md.
+## Next Steps
+1. Owner: merge PR #30 (or give feedback).
+2. **(should) GPU verification** (needs a GPU box): the GPU legs of `tests/test_tier_equivalence.py` (SON 1 and 2 GPUs, forced chunks) and `bench/selfcheck.py`. PRs #25, #28, #29 and #30 add to it. The GPU route's CSR build (`core/matrix.py` `_build_csr_from_transactions`) is unchanged.
+3. **(should, owner decides) SON pass 1 is 61–100 % of SON's wall time.** Levers:
+   - `local_support_factor`;
+   - count a candidate only in the chunks that did not emit it: −25 % pairs on skew, −40 % on or005. Without a uint64 bitmask, which caps at 64 chunks.
+4. **(should, small, GPU)** Apply the SON bound to SON's GPU passes.
+5. **(nice) Left open by the council on PR #30:**
+   - every `_map_rows` caller must pass `ids` (`son.py:720`);
+   - `_INT_DTYPES` (`cpu_miner.py:99`) and `_emit`'s `is_integer()` are two idioms for integer dtypes;
+   - a lookup table sized to the items' range instead of the column's would skip SON pass 2's per-chunk `list.min`/`list.max` and admit columns whose span exceeds 2²²;
+   - a tiny input with a 2²² span costs a fixed ~45 MB.
+6. **(nice)** Carried from PRs #26 and #28: de-duplicate the K=1 seeding; two predicates are stated twice; thread `count_per_candidate`; the Gram peak is 1.8–1.9× its budget; the `test_support_001` oracle convention.
+7. Remind the owner about `stash@{0}`: popping it on main may conflict in README.md.
 
 ## Session Instructions
 - Chat in Dutch, concise. Files, code, comments, commits and PRs in English.
-- Tag findings (must-fix)/(should)/(nice). For "wat stel jij voor?", give one recommendation.
-- Measure first:
-  - Write the stakes as an untimed count where possible.
-  - Pre-register a `bench/cpu/PROTOCOL.md` amendment before any timed run.
-  - Do not rewrite pre-registered text; correct it with an erratum, as Amendment 5 does.
-- A/B timing: run base (main, `git checkout --detach <sha>`) and the change back to back with `son_stakes.py --matrix`. `incore` is the drift control.
-- No commits or tracked-file edits during a timed run.
-- PR or merge only on the owner's word. "Open een PR" covered PR #29 only.
-- Ask before runs > 2 h, new runtime dependencies, or raising a floor.
+- Rule 2's 1 s floor stays; the owner chose to add a workload at scale (`dslk2`) instead of lowering it.
+- Measure first; pre-register a `bench/cpu/PROTOCOL.md` amendment before any timed run; correct pre-registered text only by erratum.
+- No commits or tracked-file edits during a timed run. A PR or merge only on the owner's word: "Open een PR" covered PR #30 only.
 
 ## Decisions & Rationale
-- **The bound** (`son.py` `_bound`):
-  - `count(X) <= known + S - slack`, where slack per chunk is `_local_min_count - 1` and S sums the slack of every chunk, including chunks with no frequent item.
-  - Exact when `S - slack == 0`.
-  - It needs pass 1 to mine every chunk completely; `_local_levels` raises if a chunk's row count differs from `chunk_sizes`.
-- **Union sums** are int32 below 2^31 transactions, int64 otherwise. Each sum is <= n_total because only emitting chunks add to a row.
-- **`sum_rows` replaces `unique_rows`** (argsort / lexsort + `np.add.reduceat(dtype=w.dtype)`). Without `dtype`, reduceat promotes int32 to int64.
-- **B1 baseline**: a fresh run at `e892d8a`, not S1's rows. S1 reproduced within 1.2 %.
-- **Retargeted test:** the CPU SON completeness test runs at min_support 0.035, because at 0.05 pass 2 reads no chunk. It asserts `n_counted > 0` so it cannot go vacuous again.
-- **Not changed:** `local_support_factor` stays 0.9.
+- **Integer path** (`cpu_miner.py:146-219`):
+  - applies to Int8–Int64 and UInt8–UInt32 with span ≤ `INT_SPAN_LIMIT` = 2²² (`:74`);
+  - K=1 is a bincount over the id range; mapping is a lookup table on Polars' exploded values;
+  - null lists and null items map to −1.
+  - Rejected UInt64: it cannot be cast safely to intp for bincount.
+- **Running-count row starts** in `_map_rows` (`:222`), shared by both paths, replace per-entry row ids plus bincount. A chunk whose explode does not match its lengths raises `RuntimeError` (`:249`).
+- **A/B/A design with harness overlay:** the base tree `c973ed3` lacks `dslk2`, so the base runs used the input commit's `son_stakes.py`; their rows carry `c973ed3+dirty`. The repeated base is the drift control, because both arms run the changed code.
+- **Bitvector build untouched:** on this box the pooled build beats the sequential one (0.17 → 0.10 s on deepk).
 
 ## Dead Ends
-- Do not use `np.unique` on int64 keys in hot paths: NumPy 2.5.2 hashes them. On 12M keys it took 6.37 s against 0.23 s for sort + mask; `np.unique(return_inverse=True)` is faster (1.8 s) but still slower than argsort.
-- Do not prune the union during pass 1: the bound only rises as chunks arrive (a newly emitting chunk adds `count - slack >= 1`).
-- `gh pr checks --watch` and `gh pr view --json headRefOid` do not exist in this gh version. Poll `gh pr checks <n>` in a loop and read the run's sha via `gh api repos/Et9797/ET-Miner/actions/runs/<id> --jq .head_sha`.
-- `git add` of a tracked file under the ignored `.claude/handoffs` prints a hint and exits 1, but still stages it. This put `LATEST.md` into `5b10e79`.
-- Carried: `gh pr edit --body-file` fails; use `gh api -X PATCH repos/Et9797/ET-Miner/pulls/<n> -F body=@file`. `pkill -f`/`pgrep -f` kill the tool shell. `uv run ty` fails; use `uvx ty check <file>` against main.
+- Do not read Arrow buffers (`Series.to_arrow`) on the CPU route: it imports pyarrow, which adds 27 MB RSS (80 → 107 MB) and failed the memory rule in Phase I1.
+- Do not use `deep_sparse_large` at full depth for the input layer: K≤5 alone took over 130 s against ~9 s of CSR build.
+- Do not `np.compress(..., out=out[slice])` into the CSR output: it was slower (4.83 against 4.35 s on dsl).
+- `git switch main` with a modified `LATEST.md` is refused, and a following `git merge --ff-only origin/main` then fast-forwards the current branch. Commit or stash first.
+- Carried: `uv run ty` fails, use `uvx ty check <file>`; `gh pr edit --body-file` fails, use `gh api -X PATCH repos/Et9797/ET-Miner/pulls/<n> -F body=@file`; `gh pr checks --watch` does not exist.
 
 ## Key Findings
-- B1 (`bench/results/2026-10-08-son-bound/FINDINGS.md`), base vs bound, medians of 3:
-  - deepk 4.74 -> 2.59 s (T1) and 4.25 -> 2.26 s (T4);
-  - skew 31.2 -> 22.3 s and 15.0 -> 11.0 s;
-  - or005 13.9 -> 8.1 s and 13.4 -> 7.8 s;
-  - or0001k2 7.9 -> 2.8 s and 8.0 -> 2.9 s; RSS 768 -> 579 and 854 -> 672 MB;
-  - smoke and wide within 0.02 s; RSS 0.75-1.02x; incore drift -2.0 to +1.2 %.
-- Stakes (`stakes.jsonl`, factor 0.9): or005 1,125,261 -> 36,978 within the bound (4,138 exact); deepk and or0001k2 are fully exact.
-- or0001k2's local min_count is 1 at factors 0.9 and 1.0, so it has no slack.
-- `0.02 * 0.9 = 0.018000000000000002`, so deepk's local min_count is 4,501.
-- SON is still 1.3-28x slower than in-core (or005 8.1 s vs 0.43 s).
+- I2 (`bench/results/2026-10-08-input-layer/FINDINGS.md`), medians of 3, against `c973ed3`:
+  - dslk2 in core 17.46 → 11.61 s (T1) and 12.47 → 8.69 s (T4); SON 16.54 → 11.73 s and 11.07 → 8.53 s;
+  - deepk and skew 0.13–0.64 s faster; others within 0.10 s;
+  - RSS 0.92–1.03×; drift −2.6 % to +1.9 %.
+- CSR build at T1: deepk 0.55 → 0.24 s, skew 0.60 → 0.28 s, dsl 9.2 → 5.0 s (the Arrow version was 4.3 s).
+- Polars 2.0 `Series.explode()` drops empty lists and emits one null per null list; the signature shows `empty_as_null=True` all the same. `_map_rows` passes `empty_as_null=False, keep_nulls=True` explicitly.
+- `deep_sparse_large`: generating it takes 4.5 min with a 24 GB peak; 382 MB parquet, SHA-256 `f6828374…48b1`, gitignored, now present locally.
 
 ## Blockers & Pending Decisions
-- GPU legs and selfcheck: need a GPU box.
-- `local_support_factor` default (owner).
-- `batch_size`: deprecate or remove (owner).
+- Merge of PR #30: owner.
+- GPU legs: need a GPU box.
+- `local_support_factor` default; `batch_size` deprecate or remove: owner.
 
 ## Test Status
-At `a1f4c2c`:
-- `uv run pytest -q -m "not slow"` (4 `test_support_00*` deselected): 793 passed, 276 skipped.
+At `bf87644` (23:20):
+- `uv run pytest -q -m "not slow"` (four `test_support_00*` deselected): 829 passed, 276 skipped.
 - Tier/SON/streaming/free-set suites: 59 passed, 138 skipped.
-- ruff clean; ty on `son.py` equals main (7).
-- CI green.
+- ruff clean; ty 7 diagnostics on `cpu_miner.py` (equal to main); CI green.
 
 ## What Was Done
-- `src/et_miner/streaming/son.py`: `_CandidateUnion` (known/slack), `_bound`, `_local_min_count`, the row guard in `_local_levels`, the `_son_cpu` wiring, pass 2 skipped when empty.
-- `src/et_miner/core/cpu_miner.py`: `sum_rows`.
-- Tests:
-  - `tests/test_streaming.py` (bound, exact, empty bound, row guard, factors, int64);
-  - `tests/test_cpu_miner.py` (`sum_rows`);
-  - `tests/test_son_completeness.py` (0.035).
-- Bench:
-  - scripts `bench/cpu/son_bound_stakes.py` and `bench/cpu/son_phases.py`;
-  - `bench/cpu/PROTOCOL.md` Amendment 5 and its erratum;
-  - `bench/results/2026-10-08-son-bound/`;
-  - the CHANGELOG entry.
+- `src/et_miner/core/cpu_miner.py`: `_IntIds`/`_int_ids` (`:146`, `:158`), integer `_count_items` (`:169`), `_column_ids` (`:199`), `_map_rows` running count plus length check (`:222`).
+- `src/et_miner/streaming/son.py:720`: pass 2 passes `_int_ids(column)`.
+- `tests/test_cpu_miner.py`: int path vs Polars path across dtypes, a chunked and sliced column, `_int_ids` cases, items outside the range, and explode/lengths raising.
+- `bench/cpu/input_stages.py` (stage diagnostic); `bench/cpu/son_stakes.py:108` (`INPUT_WORKLOADS`) and `:314` (S0 arm keeps the Polars mapping).
+- `bench/cpu/PROTOCOL.md` Amendments 6 (`:408`) and 7 (`:497`) plus erratum (`:537`); `bench/results/2026-10-08-input-layer/`; CHANGELOG entry.
 
 ## Commits This Session
-- `a1f4c2c` son: council flags for PR #29
-- `d94d2b7` bench: SON partition-bound Phase B1 rows and findings; CHANGELOG numbers
-- `740404f` son: bound pass-2 candidates by pass 1's local counts
-- `5b10e79` bench: SON partition-bound stakes and protocol Amendment 5 (also carries the previous LATEST.md)
+- `bf87644` cpu: council flags for PR #30
+- `6ad386b` bench: input-layer Phase I2 rows and findings; CHANGELOG numbers
+- `b328cc1` cpu: integer CSR path from Polars' explode instead of the Arrow buffers
+- `ff5e92c` bench: input-layer Phase I1 rows and findings; protocol Amendment 7
+- `7fddd05` cpu: read integer item ids from the Arrow buffers in the CSR build
+- `df8ecac` bench: input-layer stage diagnostic, dslk2 workload and protocol Amendment 6 (also carries the previous LATEST.md)
 
 ## Key Files
 | File | Role |
 |------|------|
-| `src/et_miner/streaming/son.py` | SON; `_CandidateUnion`, `_bound`, `_local_min_count`, `_local_levels`, `_son_cpu` |
-| `src/et_miner/core/cpu_miner.py` | `sum_rows`, `count_itemsets`, `build_transaction_csr` |
-| `bench/cpu/son_stakes.py` | SON timing harness (`--matrix --arms built,incore`) |
-| `bench/cpu/son_bound_stakes.py` | untimed bound stakes with oracle checks |
-| `bench/cpu/son_phases.py` | diagnostic pass-1/pass-2 split |
-| `bench/cpu/PROTOCOL.md` | Amendments 3-5 |
-| `bench/results/2026-10-08-son-bound/` | B1 rows, stakes, FINDINGS |
+| `src/et_miner/core/cpu_miner.py` | CSR build: `_int_ids`, `_count_items`, `_column_ids`, `_map_rows`, `build_transaction_csr` (`:275`) |
+| `src/et_miner/streaming/son.py` | SON; pass 2 mapping at `:720` |
+| `bench/cpu/son_stakes.py` | timing harness (`--matrix --arms built,incore`, `dslk2`) |
+| `bench/cpu/input_stages.py` | stage diagnostic (instruments the `c973ed3` build) |
+| `bench/cpu/PROTOCOL.md` | Amendments 6–7 and erratum |
+| `bench/results/2026-10-08-input-layer/` | stages, I1 (base/raw/base2), I2 (base3/raw2), FINDINGS |
 
 ## Extra Context
-- PR #29 gemerged; open punten afwerken. Start with item 1 if a GPU box is available. Otherwise item 2 or 3: measure first, amendment before timing.
-- Box: AMD Ryzen 5 4600G, 12 threads, 30 GB, no GPU. A B1-style A/B campaign takes about 7 min per run.
-- Rust extension build: `env -u CONDA_PREFIX PATH="$HOME/.cargo/bin:$PATH" uv run maturin develop --release -m rust_ext/Cargo.toml`.
-- Gate:
-  ```
-  uv run ruff check src tests bench
-  uv run pytest -q -m "not slow" \
-    --deselect tests/test_smoke_correctness.py::TestCPUvsEfficientApriori::test_support_001 \
-    --deselect tests/test_smoke_correctness.py::TestCPUvsEfficientApriori::test_support_0001 \
-    --deselect tests/test_smoke_correctness.py::TestGPUvsCPU::test_support_001 \
-    --deselect tests/test_smoke_correctness.py::TestGPUvsCPU::test_support_0001
-  uv run pytest -q tests/test_tier_equivalence.py tests/test_son_completeness.py tests/test_streaming.py tests/test_free_set_semantics.py
-  ```
+- Box: Ryzen 5 4600G, 12 threads, 30 GB, no GPU. One A/B campaign run with `dslk2` takes about 8–9 min.
+- Gate: `uv run ruff check src tests bench`; the not-slow suite with the four `test_support_00*` deselected; the tier/SON/streaming/free-set suites.

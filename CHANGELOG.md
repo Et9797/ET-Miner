@@ -261,6 +261,14 @@ figures move — measured, per artifact, not assumed.
 
 ### Fixed
 
+- **#47 — a `local_support_factor` outside (0, 1] raises `ValueError`**
+  (`apriori_streaming`, `apriori_streaming_multi_gpu`). Above 1, SON's pass 1
+  mined every chunk above the global threshold, so an itemset frequent overall
+  but below that threshold in every chunk was lost without an error
+  (`bench/repro/d47_local_support_factor_unvalidated.py`: factor 5.0 returned
+  0 of 3 itemsets). Zero, negative and NaN factors raise too. Every factor in
+  (0, 1] gives the same result; the docstrings no longer say that a lower one
+  reduces false negatives.
 - **Two-GPU runs on a box whose PCIe P2P drops device-to-device writes.**
   Such a box (a Ryzen AM4 host with two RTX A4000s behind the CPU's host
   bridge, `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`) reports

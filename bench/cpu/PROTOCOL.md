@@ -542,3 +542,104 @@ the revised build takes 0.7 s more than Amendment 6's (5.0 against 4.3 s), as
 the same paragraph's figures show. Rule 5 read through this amendment takes
 its numbers from I2 (`raw2.jsonl` against `base3.jsonl`); the CHANGELOG
 quotes I2.
+
+## Amendment 8 (2026-10-08, the default of SON's `local_support_factor`)
+
+Question under test: at which `local_support_factor` SON on the CPU
+(`apriori_streaming`, `use_gpu=False`) is fastest. Every factor in (0, 1]
+gives the same result, so this is a choice of speed alone. This amendment
+measures; the owner chooses the default. The default (0.9) does not change
+with it.
+
+**The trade.** Pass 1 mines chunk i at m_i = max(1, ceil(s · f · n_i))
+(Amendment 5; s · f is the float product). A lower factor mines more local
+itemsets (a larger union, more pass-1 work) and leaves each chunk less slack
+(m_i − 1), so the bound drops more candidates and takes more counts as exact:
+pass 2 counts fewer. A higher factor does the reverse. Since B1, pass 1 is
+61–100 % of SON's wall time.
+
+**Validation (in the measured tree).** A factor outside (0, 1] now raises
+`ValueError` in `apriori_streaming` and `apriori_streaming_multi_gpu` (defect
+#47, `bench/repro/d47_local_support_factor_unvalidated.py`, now FIXED): above
+1 an itemset frequent overall can be infrequent in every chunk and is lost
+without an error. At 1 nothing is lost: S = Σ(ceil(s · n_i) − 1) < s · N ≤
+min_count, so an itemset no chunk emitted is below min_count.
+
+**Stakes (untimed).** `bench/cpu/son_bound_stakes.py --factors
+0.8,0.9,0.95,1.0`, 4 chunks, on Amendment 3's workloads and dslk2 (Amendment
+6); rows in `bench/results/2026-10-08-son-factor/stakes.jsonl` (tree `082731c`;
+`+dirty` is the handoff file and this branch's edits, none of which changes
+pass 1 or the bound). The script's checks passed: every frequent itemset is in
+the union within its bound, and every exact count equals the in-core count.
+Union, then candidates left to count in pass 2:
+
+| workload | f = 0.8 | f = 0.9 | f = 0.95 | f = 1.0 |
+|---|---|---|---|---|
+| smoke | 1,109 / 0 | 924 / 11 | 868 / 36 | 825 / 181 |
+| deepk | 17,273 / 0 | 13,070 / 0 | 12,981 / 0 | 9,888 / 1,065 |
+| skew | 285,457 / 61,014 | 221,111 / 97,121 | 197,154 / 127,404 | 175,148 / 173,512 |
+| wide | 6,074 / 4 | 5,262 / 228 | 5,009 / 477 | 4,636 / 1,180 |
+| or005 | 7,254,832 / 16,913 | 1,125,261 / 32,840 | 445,722 / 75,929 | 277,701 / 184,191 |
+| or0001k2 | 5,421,817 / 0 | 5,421,817 / 0 | 5,421,817 / 0 | 5,421,817 / 0 |
+| dslk2 | 1,230 / 0 | 1,192 / 0 | 1,152 / 0 | 1,147 / 19 |
+
+or0001k2's m_i is 1 at every factor (0.0001 · 9,106 < 1): the same work four
+times, which makes it the noise control below.
+
+**Harness.** `son_stakes.py` takes `--factor` (one config) and `--factors`
+(the matrix): the `built` arm then runs `apriori_streaming` at that factor
+(`apriori()` does not take one), once per factor in the listed order; the row
+records `factor`. Without them the arm is unchanged. `son_phases.py` takes
+`--factors` and `--workloads` (dslk2 included). Both checked on smoke, rows
+discarded.
+
+**Phase F1.** One run of `son_stakes.py --matrix --arms built,incore --factors
+0.8,0.9,0.95,1.0 --reps 3 --workloads smoke,deepk,skew,wide,or005,or0001k2,dslk2`
+on this box, with Amendment 3's threads, cap (600 s), warm-up and 4 chunks,
+`--max-hours 1.5`. Within a regime the four factors run in that order, then
+`incore`; rep-major as before. Rows in
+`bench/results/2026-10-08-son-factor/raw.jsonl`. The tree: this branch's commit
+with this amendment. No commit and no edit of a tracked file during the run.
+The factors share one run and alternate within every regime, so drift hits
+them alike. After the run, one diagnostic per workload and factor at T1 with
+`profile=True` (`son_phases.py --factors 0.8,0.9,0.95,1.0`, the seven
+workloads, rows in `diag.jsonl`) gives pass-1 and pass-2 seconds for the
+report; it is not used by the rules.
+
+**Correctness.** The tier-equivalence chain, the SON, streaming and free-set
+tests pass on the measured tree before F1. Every ok row of a workload carries
+one signature, across factors and `incore` (`son_stakes.py --check`).
+
+**Rules** (medians over the 3 reps; *rule 2* as in Amendment 3: at least 10 %
+below and at least 1 s saved; a *loss*, as in Amendment 5: at least 10 % and
+at least 0.1 s slower).
+
+1. *Exactness.* A factor with a divergent signature, an error or a cap hit is
+   out.
+2. *Qualifies.* A factor f ≠ 0.9 qualifies when its `built` meets rule 2
+   against `built` at 0.9 in at least one regime, has no loss against it in
+   any regime, and its `ru_maxrss_mb` stays within 1.25 × 0.9's in every
+   regime.
+3. *Recommendation.* Of the qualifying factors, the one with the lowest
+   geometric mean of its `built` medians over the 14 regimes. If none
+   qualifies the recommendation stays 0.9, and the report lists each factor's
+   wins and losses per regime.
+4. *Noise control.* or0001k2's four `built` medians agree within 10 % per
+   thread setting, and `incore`'s [min, max] lies within 10 % of its median in
+   every regime. A regime outside that is reported, and its verdict under
+   rules 2–3 is marked as affected by noise.
+5. The owner decides the default. CHANGELOG and README numbers come only from
+   F1.
+
+**Not measured.** The GPU passes (`use_gpu=True`, `apriori_streaming_multi_gpu`)
+read the same factor but apply no bound: there pass 2 counts the whole union,
+so a higher factor shrinks both passes. This box has no GPU.
+
+**Expectation, not a rule.** 0.8: or005's pass 1 mines 6.4× 0.9's union, a
+loss there. 1.0: or005's pass 1 shrinks the most (a union 25 % of 0.9's), but
+pass 2 counts 5.6× as many; skew's pass 2 counts 1.8× as many against a union
+21 % smaller; deepk's pass 2 reads every chunk again (1,065 candidates, none at
+0.9), and so does dslk2's (19 candidates, none at 0.8–0.95), which maps four
+5M-row chunks to count them. 0.95 keeps the pass 2 of deepk and dslk2 empty
+and cuts or005's union to 40 % of 0.9's (2.3× as many to count). A factor
+that wins or005 may lose skew, and 1.0 may lose dslk2.

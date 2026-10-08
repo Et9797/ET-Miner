@@ -332,6 +332,15 @@ class TestStreamingAPI:
             apriori_streaming(medium_transactions, min_support=0.05, chunk_size=200, sparse=True, show_progress=False)
         assert sum(issubclass(w.category, DeprecationWarning) for w in record) == 1
 
+    @pytest.mark.parametrize("factor", [0.0, -0.5, 1.0000001, 5.0, float("nan")])
+    def test_a_local_support_factor_outside_0_1_raises(self, small_transactions, factor):
+        """Above 1 an itemset frequent overall can be infrequent in every chunk and would be lost."""
+        from et_miner.streaming.multi_gpu import apriori_streaming_multi_gpu
+
+        for son in (apriori_streaming, apriori_streaming_multi_gpu):
+            with pytest.raises(ValueError, match=r"local_support_factor must be in \(0, 1\]"):
+                son(small_transactions, min_support=0.3, chunk_size=3, show_progress=False, local_support_factor=factor)
+
     def test_n_jobs_parameter_forwarded(self, medium_transactions):
         """n_jobs parameter should work in streaming mode."""
         result = apriori(

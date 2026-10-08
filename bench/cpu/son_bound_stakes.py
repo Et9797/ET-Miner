@@ -16,9 +16,10 @@ the chunks that did not emit them.
 Per workload and local support factor, this prints and appends one JSON row:
 per K the union size, the candidates left after the bound, those with an exact
 count from pass 1, those left to count, the (candidate, chunk) pairs left to
-count, and the globally frequent ones (in-core ``apriori``). It
-fails if a globally frequent itemset falls below its bound, or if a bound is
-below the itemset's true count.
+count, and the globally frequent ones (in-core ``apriori``). It fails if a
+globally frequent itemset is missing from the union, if its bound is below
+min_count or below its in-core count, or if an exact count differs from the
+in-core count.
 
 Usage:
     uv run python bench/cpu/son_bound_stakes.py --workloads smoke,deepk --factors 0.9,1.0 --out rows.jsonl

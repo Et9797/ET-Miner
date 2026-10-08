@@ -85,6 +85,9 @@ local itemsets, against 10,488 frequent ones.
   (candidate, chunk) pairs on skew against 388,484 (−25 %), and 78,644 on or005
   against 131,360 (`stakes.jsonl`, `pairs_to_count`). Each union row would have
   to carry the chunks that emitted it.
-- The factor: at 1.0 the bound keeps 67–100 % of a smaller union, because the
-  slack is larger and fewer counts are exact. A lower factor might make pass 2
-  cheaper at a cost to pass 1. Changing it is the owner's call.
+- The factor: at 1.0 the bound keeps 67–100 % of a smaller union on five
+  workloads (or005 67.4 %, wide 95.5 %, smoke 99.3 %, skew 99.9 %, deepk
+  100 %), because the slack is larger and fewer counts are exact. or0001k2 is
+  the same at both factors (49.4 %, all exact): its local min_count is 1
+  either way, so no chunk has slack. A lower factor might make pass 2 cheaper
+  at a cost to pass 1. Changing it is the owner's call.

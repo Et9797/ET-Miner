@@ -395,3 +395,12 @@ least 10 % below and at least 1 s saved).
 4. A regression under rule 2 is reported with its phases; the owner decides
    whether the bound stays, changes or goes.
 5. CHANGELOG and README numbers come only from B1 (bound against base).
+
+**Erratum (after B1, from the council review of PR #29; no rule or number
+changes).** "At factor 1.0 the bound keeps 67–100 % of a smaller union" holds
+for five workloads (or005 67.4 %, wide 95.5 %, smoke 99.3 %, skew 99.9 %,
+deepk 100 %), not for or0001k2. That workload is the same at both factors
+(5,421,817 → 2,678,808, 49.4 %, all exact): its local min_count is 1 either
+way. In m_i = max(1, ceil(local_s · n_i)), local_s is the float
+min_support × factor (0.02 × 0.9 = 0.018000000000000002, so deepk's m_i is
+4,501); slack and local mining use that same value.

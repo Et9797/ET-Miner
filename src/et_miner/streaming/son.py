@@ -20,10 +20,9 @@ chunk. Those sums bound each candidate's global count (``_bound``): pass 2
 drops the candidates that cannot reach the threshold, takes the exact count
 pass 1 already has where it has one, maps each chunk onto the candidate items
 and counts the rest with ``count_itemsets``, and reads no chunk when nothing is
-left to count. Memory
-holds one chunk's CSR and the candidate arrays, never the whole dataset. With
-``use_gpu=True`` each chunk is mined on the row-split GPU miner and pass 2
-counts with the batched itemset kernel.
+left to count. Memory holds one chunk's CSR and the candidate arrays, never
+the whole dataset. With ``use_gpu=True`` each chunk is mined on the row-split
+GPU miner and pass 2 counts with the batched itemset kernel.
 
 Usage:
     from et_miner.streaming.son import apriori_streaming
@@ -646,8 +645,9 @@ def _bound(
     did not emit X holds X in at most its slack rows, and X's global count is
     at most ``known + total_slack - slack`` (``_CandidateUnion``); with no
     slack left that bound is the count. Per length: (the lexsorted candidates
-    whose bound reaches min_count, their int64 counts where no slack is left
-    and 0 elsewhere, the mask of those pass 2 must count).
+    whose bound reaches min_count, their int64 counts, the mask of those pass 2
+    must count). The counts are exact where no slack is left and 0 under the
+    mask, until the caller writes pass 2's totals there.
     """
     out = {}
     for k, (rows, known, slack) in merged.items():
@@ -658,8 +658,14 @@ def _bound(
     return out
 
 
+def _local_min_count(local_min_support: float, n_rows: int) -> int:
+    """The min_count pass 1 mines a chunk of ``n_rows`` rows at; ``_bound``'s slack is this minus 1."""
+    return max(1, _min_count(local_min_support, n_rows))
+
+
 def _local_levels(
     chunk_lf: pl.LazyFrame,
+    n_rows: int,
     local_min_support: float,
     max_length: int | None,
     item_col: str,
@@ -670,11 +676,15 @@ def _local_levels(
 
     Steps: the chunk's CSR at the local threshold (``build_transaction_csr``),
     then the array miner's levels on it (``_mine_levels``, as ``mine_cpu``
-    runs them). None when no item is locally frequent.
+    runs them) at ``_local_min_count``. None when no item is locally frequent.
+    Raises if the chunk does not hold ``n_rows`` rows: its slack, computed
+    from ``n_rows``, would then not bound what it left out.
     """
     tc = build_transaction_csr(chunk_lf, local_min_support, item_col)
     if tc is None:
         return None
+    if tc.n_rows != n_rows:
+        raise RuntimeError(f"a SON chunk holds {tc.n_rows} rows where {n_rows} were counted")
     ones = np.arange(tc.n_cols, dtype=np.int32)[:, None]
     emitted = [(ones, tc.counts)]
     _mine_levels(
@@ -682,7 +692,7 @@ def _local_levels(
         gen=ones,
         prev=_Level(ones, tc.counts, tc.counts < tc.n_rows),
         emitted=emitted,
-        min_count=max(1, _min_count(local_min_support, tc.n_rows)),
+        min_count=_local_min_count(local_min_support, n_rows),
         effective_max_length=min(max_length or math.inf, int(np.diff(tc.indptr).max()), tc.n_cols),
         prune_equal_support=False,
         use_generator_pruning=False,
@@ -730,8 +740,8 @@ def _son_cpu(
 
     1. Pass 1 (profile phase ``pass1_local_mining``): per chunk, the locally
        frequent itemsets and their counts (``_local_levels``), added to
-       ``_CandidateUnion`` with the chunk's slack (its local min_count - 1, as
-       ``_local_levels`` mines it), which sums them per itemset.
+       ``_CandidateUnion`` with the chunk's slack (``_local_min_count`` - 1),
+       which sums them per itemset.
     2. The union's items in sorted order and, per length, its lexsorted
        candidates as column ids into them; ``_bound`` drops those that cannot
        reach the global min_count and keeps the exact count of those with no
@@ -746,7 +756,7 @@ def _son_cpu(
     counts while support is still divided by every row.
     """
     n_chunks = len(chunk_sizes)
-    slacks = [max(1, _min_count(local_min_support, n)) - 1 for n in chunk_sizes]
+    slacks = [_local_min_count(local_min_support, n) - 1 for n in chunk_sizes]
     min_count = _min_count(min_support, n_total)
     workers = _workers(n_jobs)
     pool = ThreadPoolExecutor(workers) if workers > 1 else None
@@ -757,7 +767,13 @@ def _son_cpu(
         bar = _chunks(n_chunks, "Pass 1: Local mining", show_progress)
         for chunk_idx in bar:
             local = _local_levels(
-                lf.slice(chunk_idx * chunk_size, chunk_size), local_min_support, max_length, item_col, pool, workers
+                lf.slice(chunk_idx * chunk_size, chunk_size),
+                chunk_sizes[chunk_idx],
+                local_min_support,
+                max_length,
+                item_col,
+                pool,
+                workers,
             )
             if local is not None:
                 union.add(*local, slacks[chunk_idx])
@@ -777,7 +793,7 @@ def _son_cpu(
             session.end_phase(
                 n_candidates=n_candidates, n_items=union.n_items, n_bounded=n_bounded, n_exact=n_bounded - n_counted
             )
-        if items is None or n_bounded == 0:
+        if items is None:
             return _empty_result()
         logger.info(
             "Pass 1 complete: {} candidate itemsets from {} items; {} within the partition bound, {} of them exact",

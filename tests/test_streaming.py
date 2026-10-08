@@ -531,6 +531,26 @@ class TestArrayPasses:
         assert "pass2" not in seen
         _same(son, apriori(df, min_support=0.03), df.height)
 
+    def test_a_union_the_bound_empties_still_profiles_pass_2(self):
+        """Each item is locally frequent in one chunk only, and none can reach the global min_count."""
+        rows = [[1]] * 5 + [[2]] * 5 + [[3]] * 5 + [[4]] * 5
+        res, session = apriori_streaming(
+            pl.DataFrame({"items": rows}), min_support=0.5, chunk_size=10, show_progress=False, profile=True
+        )
+        extra = {p.name: p.extra for p in session.phases}
+        assert len(res) == 0
+        assert extra["pass1_local_mining"]["n_candidates"] == 4
+        assert extra["pass1_local_mining"]["n_bounded"] == 0
+        assert extra["pass2_global_counting"]["n_counted"] == 0
+
+    def test_a_chunk_of_another_size_than_counted_raises(self):
+        """Its slack would be computed for the wrong row count."""
+        from et_miner.streaming import son as son_mod
+
+        lf = pl.DataFrame({"items": [[1, 2]] * 10}).lazy()
+        with pytest.raises(RuntimeError, match="holds 10 rows where 11 were counted"):
+            son_mod._local_levels(lf, 11, 0.5, None, "items", None, 1)
+
     @pytest.mark.parametrize("factor", [0.5, 1.0])
     def test_the_local_support_factor_does_not_change_the_result(self, factor):
         df = pl.DataFrame({"items": _messy_rows(6)}, schema={"items": pl.List(pl.Int64)})

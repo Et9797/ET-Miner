@@ -99,8 +99,8 @@ def test_rust_apriori_from_csr_keeps_the_boundary_itemset():
     `apriori_from_csr` is exported from et_miner (__init__.py) and is Tier 2 of
     CLAUDE.md's mandated chain. It carries its own copy of the threshold
     (`exact_min_count`), so the Python fixture above cannot speak for it -- and
-    Tier 2 in test_tier_equivalence.py reaches the Rust *counting* path via
-    apriori(sparse=True), not this function.
+    the Tier 2 leg in test_tier_equivalence.py catches an off-by-one there only
+    if the smoke data happens to hold an itemset at exactly the boundary count.
 
     Before the fix this returned 3 itemsets; the 4 containing item 0 were
     dropped because the threshold came back as 701 rather than 700.

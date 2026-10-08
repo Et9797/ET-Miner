@@ -2,7 +2,7 @@
 
 Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
 
-    Tier 1 Polars == Tier 2 Rust (sparse=True)
+    Tier 1 Polars == Tier 2 Rust (apriori_from_csr)
         == row-split 1 GPU (measured kernel dispatch)
         == row-split 1 GPU, tiled kernel pinned
         == row-split 1 GPU, per-candidate kernel pinned
@@ -60,6 +60,7 @@ import numpy as np
 import polars as pl
 import pytest
 
+from et_miner import HAS_RUST, apriori_from_csr
 from et_miner.core.apriori import apriori
 from et_miner.core.result import _min_count
 from et_miner.synthetic import PRESETS, generate_transactions
@@ -165,10 +166,23 @@ def test_tier1_polars_matches_oracle(tier1_set, oracle_set):
     _assert_counted_sets_equal(tier1_set, oracle_set, "Tier 1 Polars vs efficient-apriori")
 
 
+@pytest.mark.skipif(not HAS_RUST, reason="Rust extension not built or disabled")
 def test_tier2_rust_matches_oracle(smoke_dataset, oracle_set):
-    df, _ = smoke_dataset
-    got = _counted(apriori(df, min_support=SPEC.min_support, item_col="items", sparse=True), "Tier 2 Rust/sparse")
-    _assert_counted_sets_equal(got, oracle_set, "Tier 2 Rust/sparse vs efficient-apriori")
+    """Tier 2: the all-Rust miner, fed the generator's CSR (the oracle's own input).
+
+    Column ids are item ids here, so no mapping sits between the miner and the
+    comparison. max_length=0 is unlimited, as Tier 1 is.
+    """
+    _, data = smoke_dataset
+    itemsets, counts = apriori_from_csr(
+        data.indptr.astype(np.int64), data.indices.astype(np.int64), data.n_rows, data.n_cols, SPEC.min_support, 0
+    )
+    label = "Tier 2 Rust (apriori_from_csr)"
+    bad = [list(s) for s in itemsets if list(s) != sorted(s)]
+    assert not bad, f"{label}: {len(bad)} itemsets not in ascending item-id order, e.g. {bad[:5]}"
+    got: CountedSet = {(tuple(int(i) for i in s), int(c)) for s, c in zip(itemsets, counts)}
+    assert len(got) == len(itemsets), f"{label}: {len(itemsets) - len(got)} itemsets emitted more than once"
+    _assert_counted_sets_equal(got, oracle_set, f"{label} vs efficient-apriori")
 
 
 def test_boundary_count_is_kept_at_a_threshold_computed_independently():

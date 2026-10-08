@@ -114,8 +114,86 @@ def test_item_counts_are_int64():
     """Polars counts in UInt32, which wraps past 2**32 entries; the CSR's size is summed from these counts."""
     column = pl.Series("items", [[1, 2], [1], [2, 2]])
     lens = column.list.len().to_numpy().astype(np.int64)
-    assert cpu_miner._count_items(column, lens).schema["count"] == pl.Int64
-    assert cpu_miner._count_items(column.clear(), lens[:0]).schema["count"] == pl.Int64
+    for c, n in ((column, lens), (column.clear(), lens[:0])):
+        lists = cpu_miner._int_lists(c)
+        assert lists is not None
+        assert cpu_miner._count_items(c, n, None).schema["count"] == pl.Int64
+        assert cpu_miner._count_items(c, n, lists).schema["count"] == pl.Int64
+
+
+def _null_free_rows(seed: int, shift: int) -> list:
+    """``_random_rows`` with unsorted rows, repeats and empty lists but no null, ids moved by ``shift``."""
+    return [[x + shift for x in (r or []) if x is not None] for r in _random_rows(seed)]
+
+
+def _assert_same_csr(a, b) -> None:
+    assert a.items.dtype == b.items.dtype and a.items.to_list() == b.items.to_list()
+    assert a.indptr.dtype == b.indptr.dtype and np.array_equal(a.indptr, b.indptr)
+    assert a.indices.dtype == b.indices.dtype and np.array_equal(a.indices, b.indices)
+    assert np.array_equal(a.counts, b.counts) and a.n_rows == b.n_rows and a.n_scanned == b.n_scanned
+
+
+def _both_paths(monkeypatch, lf: pl.LazyFrame, min_support: float):
+    """build_transaction_csr through the integer path and, with INT_SPAN_LIMIT = 0, through Polars."""
+    fast = cpu_miner.build_transaction_csr(lf, min_support, "items")
+    with monkeypatch.context() as m:
+        m.setattr(cpu_miner, "INT_SPAN_LIMIT", 0)
+        slow = cpu_miner.build_transaction_csr(lf, min_support, "items")
+    return fast, slow
+
+
+@pytest.mark.parametrize(
+    "dtype, shift",
+    [(pl.Int8, -12), (pl.Int16, 0), (pl.Int32, -1_000), (pl.Int64, 0), (pl.Int64, -(2**40)), (pl.UInt8, 200),
+     (pl.UInt16, 0), (pl.UInt32, 4_000_000_000)],
+)
+@pytest.mark.parametrize("chunk_nnz", [3, 4_000_000])
+@pytest.mark.parametrize("seed", [0, 1])
+def test_int_path_matches_the_polars_path(monkeypatch, dtype, shift, chunk_nnz, seed):
+    monkeypatch.setattr(cpu_miner, "CSR_CHUNK_NNZ", chunk_nnz)
+    rows = _null_free_rows(seed, shift)
+    df = pl.DataFrame({"items": rows}, schema={"items": pl.List(dtype)})
+    assert cpu_miner._int_lists(df.get_column("items")) is not None
+    fast, slow = _both_paths(monkeypatch, df.lazy(), 0.03)
+    _assert_same_csr(fast, slow)
+    present = _presence(rows, fast.items.to_list())
+    assert np.array_equal(fast.to_scipy().toarray().astype(bool), present)
+
+
+def test_int_path_reads_every_arrow_chunk_and_slices(monkeypatch):
+    """A column of several Arrow chunks, and sliced ones (offsets not starting at 0), maps row for row."""
+    parts = [pl.DataFrame({"items": _null_free_rows(s, 5)}, schema={"items": pl.List(pl.Int64)}) for s in range(4)]
+    df = pl.concat(parts, rechunk=False).slice(37, 1_400)
+    column = df.get_column("items")
+    assert column.n_chunks() > 1 and cpu_miner._int_lists(column) is not None
+    monkeypatch.setattr(cpu_miner, "CSR_CHUNK_NNZ", 50)
+    fast, slow = _both_paths(monkeypatch, df.lazy(), 0.03)
+    _assert_same_csr(fast, slow)
+    assert np.array_equal(fast.to_scipy().toarray().astype(bool), _presence(column.to_list(), fast.items.to_list()))
+
+
+def test_int_lists_declines_what_it_cannot_read():
+    """Null lists, null items, other dtypes and a span past INT_SPAN_LIMIT go through Polars."""
+    assert cpu_miner._int_lists(pl.Series([[1, 2], None])) is None
+    assert cpu_miner._int_lists(pl.Series([[1, None], [2]])) is None
+    assert cpu_miner._int_lists(pl.Series([["a"], ["b"]])) is None
+    assert cpu_miner._int_lists(pl.Series([[1.0], [2.0]])) is None
+    assert cpu_miner._int_lists(pl.Series([[1], [2]], dtype=pl.List(pl.UInt64))) is None
+    assert cpu_miner._int_lists(pl.Series([[0], [cpu_miner.INT_SPAN_LIMIT]])) is None
+    assert cpu_miner._int_lists(pl.Series([[0], [cpu_miner.INT_SPAN_LIMIT - 1]])) is not None
+
+
+def test_map_rows_ignores_items_outside_the_column_range():
+    """SON maps a chunk onto the union's items, which may lie outside the chunk's id range."""
+    column = pl.Series("items", [[3, 5], [], [5, 4, 3, 3], [7]])
+    items = pl.Series([1, 3, 5, 7, 99])
+    lens = column.list.len().to_numpy().astype(np.int64)
+    bound = int(lens.sum())
+    fast = cpu_miner._map_rows(column, items, bound, cpu_miner._int_lists(column))
+    slow = cpu_miner._map_rows(column, items, bound, None)
+    for a, b in zip(fast, slow):
+        assert np.array_equal(a, b)
+    assert fast[0].tolist() == [0, 2, 2, 4, 5] and fast[1].tolist() == [1, 2, 1, 2, 3]
 
 
 def test_csr_and_route_with_an_int64_indptr(monkeypatch):

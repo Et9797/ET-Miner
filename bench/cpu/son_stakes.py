@@ -44,7 +44,7 @@ Usage:
     uv run python bench/cpu/son_stakes.py --matrix --arms built,incore --reps 3 --out rows.jsonl
 
 Options:
-    --workload   an id of bench/cpu/matrix.py WORKLOADS
+    --workload   an id of bench/cpu/matrix.py WORKLOADS, or of INPUT_WORKLOADS
     --threads    thread budget: the env pools and n_jobs
     --arm        current | array | array-pc | incore | built
     --chunks     SON chunks (chunk_size = ceil(N / chunks)); default 4
@@ -104,6 +104,8 @@ LOCAL_SUPPORT_FACTOR = 0.9
 WARMUP_ROWS = 20_000
 #: PROTOCOL.md Amendment 3: or003 and or002 are left out (a chunk's local lattice is out of reach for any engine).
 SON_WORKLOADS = ("smoke", "deepk", "skew", "wide", "or005", "or0001k2")
+#: PROTOCOL.md Amendment 6: the input layer at scale (deep_sparse_large, 20M rows), mined to K=2 as or0001k2 is.
+INPUT_WORKLOADS = {"dslk2": ("deep_sparse_large", 0.015, 2)}
 
 
 class Phases:
@@ -308,8 +310,9 @@ def run_array(
         for off, n in bounds:
             with ph("p2_csr"):
                 column = lf.slice(off, n).select(pl.col("items")).collect(engine="in-memory").get_column("items")
-                bound = int(column.list.len().fill_null(1).sum())
-                indptr, indices = cm._map_rows(column, items, bound)
+                bound = int(column.list.len().fill_null(1).cast(pl.Int64).sum())
+                # ids=None: S0's Polars mapping, not the integer path SON's pass 2 ships with.
+                indptr, indices = cm._map_rows(column, items, bound, None)
                 del column
             with ph("p2_k1"):
                 totals[1] += np.bincount(indices, minlength=n_cols)
@@ -461,7 +464,7 @@ def main() -> int:
     from loguru import logger
 
     logger.remove()
-    dataset, min_support, max_length = WORKLOADS[args.workload]
+    dataset, min_support, max_length = {**WORKLOADS, **INPUT_WORKLOADS}[args.workload]
     df, n_rows, _ = _load(dataset)
     chunk_size = math.ceil(n_rows / args.chunks)
     fn = ARMS[args.arm]

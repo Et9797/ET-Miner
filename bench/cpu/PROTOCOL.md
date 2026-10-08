@@ -404,3 +404,92 @@ deepk 100 %), not for or0001k2. That workload is the same at both factors
 way. In m_i = max(1, ceil(local_s · n_i)), local_s is the float
 min_support × factor (0.02 × 0.9 = 0.018000000000000002, so deepk's m_i is
 4,501); slack and local mining use that same value.
+
+## Amendment 6 (2026-10-08, the input layer: integer ids read from the Arrow buffers)
+
+Goal under test: the CSR build (`cpu_miner.build_transaction_csr`, used by the
+in-core CPU route and by SON's pass 1) and the mapping onto given items
+(`_map_rows`, SON's pass 2) count and map integer item ids without Polars'
+explode, group_by and `replace_strict`; output identical.
+
+**The change.** A list column of integer ids (Int8–Int64, UInt8–UInt32) with
+no null list, no null item and max − min + 1 ≤ `INT_SPAN_LIMIT` = 2²² is read as
+numpy views of each Arrow chunk's offsets and values (`_int_lists`). The K=1
+counts are a bincount over the id range; the mapping is a lookup table. Every
+other column goes through Polars as before. In both paths each row's start
+among the kept entries comes from a running count of the kept entries, read
+at the rows' entry offsets, instead of per-entry row ids and a bincount; the
+fallback that sorts and deduplicates unsorted rows keeps the row ids. The
+bitvector build is not changed.
+
+**Diagnostic (not used by the rules).** `bench/cpu/input_stages.py` at
+`c973ed3` (`+dirty` is the handoff file), one process per workload and thread
+setting, rows in `bench/results/2026-10-08-input-layer/stages.jsonl`:
+
+- The CSR build's share of the in-core wall time at T1: deepk 26 % (0.54 of
+  2.07 s), skew 22 % (0.59 of 2.71 s), wide 11 %, or005 9 %, or0001k2 5 %,
+  smoke 30 % (0.02 s).
+- deepk's 0.54 s: `replace_strict` 0.24 s, the group_by count 0.14 s, row ids
+  and the filter 0.08 s.
+- Bitvector builds: the pool beats one thread on this box (deepk's full build
+  0.17 → 0.10 s at T4). Phase 1's 0.40 → 0.62 s, on the 4 vCPU Xeon, does not
+  reproduce here; nothing to take.
+
+**Probes (outside this protocol).** A prototype of the integer path took
+deepk's CSR build from 0.55 to 0.17 s and skew's from 0.60 to 0.21 s at T1.
+The largest in-core saving on Amendment 3's workloads is about 0.4 s, below
+rule 2's 1 s floor. The owner chose a workload at scale over a lower floor.
+deep_sparse_large at full depth does not serve: its levels up to K=5 took over
+130 s at T1 (stopped there), against about 9 s of CSR build. Mined to K=2, as
+or0001k2 is, its CSR build takes 9.2 s (T1) and 7.0 s (T4) on `c973ed3`, and
+4.3 s with the change (both settings: the integer path runs on one thread). The
+change's CSR build on deepk and skew: 0.19 and 0.21 s.
+
+**Workload added.** `dslk2`: deep_sparse_large (20,000,000 rows, 246,852,619
+list entries, `python -m et_miner.synthetic --preset deep_sparse_large`,
+SHA-256 `f68283743a646a5784fa0ebac8431fe98b3ac034e369a379b1d4a2655ad348b1`),
+min_support 0.015, max_length 2 (`son_stakes.py` `INPUT_WORKLOADS`). Harness
+check on the change, rows discarded: `incore` 11.2 s and `built` 10.7 s at
+T1, 1,143 itemsets.
+
+**Phase I1.** Three runs of `son_stakes.py --matrix --arms built,incore --reps 3
+--workloads smoke,deepk,skew,wide,or005,or0001k2,dslk2`, back to back on this
+box, with Amendment 3's threads, order, cap (600 s), warm-up and 4 chunks,
+`--max-hours 1.0` each:
+
+1. *base*: the tree at `c973ed3` (main after PR #29), checked out detached,
+   with `bench/cpu/son_stakes.py` taken from the input commit (the base copy
+   has no `dslk2`; nothing else in it differs), so its rows carry
+   `c973ed3+dirty`; rows in `bench/results/2026-10-08-input-layer/base.jsonl`;
+2. *input*: the branch's commit with this amendment and the change, rows in
+   `raw.jsonl`;
+3. *base again*: as base, rows in `base2.jsonl`.
+
+Both arms run the changed code, so neither is a drift control; the repeated
+base is. No commit and no edit of a tracked file during the runs, apart from
+the harness file in the base runs.
+
+**Correctness.** The tier-equivalence chain, the SON, streaming and free-set
+tests pass on the input tree before I1. Every ok row of a workload carries one
+signature across the three files (`son_stakes.py --check` on their
+concatenation).
+
+**Decision rules** (medians over the 3 reps; *rule 2* as in Amendment 3: at
+least 10 % below and at least 1 s saved).
+
+1. *Exactness.* A divergent signature or an error fails the change.
+2. *Go.* `incore` or `built` on input meets rule 2 against the same arm on
+   base in at least one regime; in no regime is either arm at least 10 % and
+   at least 0.1 s slower; `ru_maxrss_mb` stays within 1.25 × base's in every
+   regime.
+3. *Drift control.* Each arm of base again agrees with base within 10 % per
+   regime. A regime outside that is reported, and its verdict under rule 2 is
+   marked as affected by drift.
+4. A regression under rule 2 is reported with its phases; the owner decides
+   whether the change stays, changes or goes.
+5. CHANGELOG and README numbers come only from I1 (input against base).
+
+**Expectation, not a rule.** dslk2: `incore` about 5 s faster at T1 and
+about 3 s at T4; `built` builds four 5M-row CSRs in pass 1 and maps every
+chunk in pass 2, so a similar saving. deepk and skew: 0.2–0.4 s, below the
+floor. or005, or0001k2, wide and smoke: under 0.1 s.

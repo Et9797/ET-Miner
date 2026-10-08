@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import tracemalloc
 
+import numpy as np
 import polars as pl
 import pytest
 
@@ -496,8 +497,70 @@ class TestArrayPasses:
         merged_once = apriori_streaming(df, **kw)
         monkeypatch.setattr(son, "UNION_PENDING_BYTES", 0)
         merges = []
-        real = son.unique_rows
-        monkeypatch.setattr(son, "unique_rows", lambda *a: merges.append(1) or real(*a))
+        real = son.sum_rows
+        monkeypatch.setattr(son, "sum_rows", lambda *a: merges.append(1) or real(*a))
         _same(apriori_streaming(df, **kw), merged_once, df.height)
         _same(merged_once, apriori(df, min_support=0.03), df.height)
         assert len(merges) > len(merged_once["itemset"].list.len().unique())
+
+    def test_the_bound_drops_candidates_and_keeps_exact_counts(self):
+        """Pass 1's counts drop union candidates and spare the exact ones from pass 2; the result stays the CPU route's."""
+        df = pl.DataFrame({"items": _messy_rows(4)}, schema={"items": pl.List(pl.Int64)})
+        son, session = apriori_streaming(df, min_support=0.03, chunk_size=150, show_progress=False, profile=True)
+        extra = {p.name: p.extra for p in session.phases}
+        pass1, pass2 = extra["pass1_local_mining"], extra["pass2_global_counting"]
+        assert pass1["n_bounded"] < pass1["n_candidates"]
+        assert pass1["n_exact"] > 0
+        assert pass2["n_counted"] == pass1["n_bounded"] - pass1["n_exact"] > 0
+        _same(son, apriori(df, min_support=0.03), df.height)
+
+    def test_pass_2_reads_no_chunk_when_every_count_is_exact(self, monkeypatch):
+        """A local min_count of 1 leaves no slack: pass 1's counts are the global ones."""
+        from et_miner.streaming import son as son_mod
+
+        def fail(*a, **k):
+            raise AssertionError("pass 2 read a chunk")
+
+        df = pl.DataFrame({"items": _messy_rows(5)}, schema={"items": pl.List(pl.Int64)})
+        seen = []
+        monkeypatch.setattr(son_mod, "_count_chunk", fail)
+        son = apriori_streaming(
+            df, min_support=0.03, chunk_size=25, show_progress=False,
+            progress_callback=lambda phase, i, n, m: seen.append(phase),
+        )
+        assert "pass2" not in seen
+        _same(son, apriori(df, min_support=0.03), df.height)
+
+    @pytest.mark.parametrize("factor", [0.5, 1.0])
+    def test_the_local_support_factor_does_not_change_the_result(self, factor):
+        df = pl.DataFrame({"items": _messy_rows(6)}, schema={"items": pl.List(pl.Int64)})
+        son = apriori_streaming(df, min_support=0.03, chunk_size=130, show_progress=False, local_support_factor=factor)
+        _same(son, apriori(df, min_support=0.03), df.height)
+
+
+def test_bound_per_candidate():
+    """Two chunks of slack 2 each, min_count 5."""
+    from et_miner.streaming.son import _bound
+
+    rows = np.arange(8, dtype=np.int32).reshape(4, 2)
+    known = np.array([6, 3, 2, 4], dtype=np.int32)
+    slack = np.array([4, 2, 2, 4], dtype=np.int32)
+    kept, counts, need = _bound({2: (rows, known, slack)}, total_slack=4, min_count=5)[2]
+    assert kept.tolist() == [[0, 1], [2, 3]]
+    assert counts.tolist() == [6, 0]
+    assert need.tolist() == [False, True]
+
+
+def test_union_sums_in_int64_from_2_31_transactions():
+    from et_miner.streaming.son import _CandidateUnion
+
+    union = _CandidateUnion(2**31)
+    big = np.array([2**30, 2**30], dtype=np.int64)
+    for _ in range(2):
+        union.add(pl.Series([5, 9]), [(np.array([[0], [1]], dtype=np.int32), big)], 2**30)
+    items, merged = union.finish()
+    rows, known, slack = merged[1]
+    assert items.to_list() == [5, 9]
+    assert known.dtype == slack.dtype == np.int64
+    assert known.tolist() == [2**31, 2**31]
+    assert slack.tolist() == [2**31, 2**31]

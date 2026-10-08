@@ -363,14 +363,25 @@ def test_count_candidates_on_a_group_with_an_empty_prefix():
 
 
 @pytest.mark.parametrize("packed", [True, False])
-def test_unique_rows_matches_numpy(monkeypatch, packed):
+def test_sum_rows_matches_numpy(monkeypatch, packed):
     rng = np.random.default_rng(3)
     sets = np.sort(rng.integers(0, 40, size=(500, 3)), axis=1).astype(np.int32)
+    w = rng.integers(1, 9, size=500).astype(np.int32)
     if not packed:
         monkeypatch.setattr(cpu_miner, "_pack", lambda rows, base: None)
-    got = cpu_miner.unique_rows(sets, 40)
+    got, (summed, ones) = cpu_miner.sum_rows(sets, 40, [w, np.ones(500, dtype=np.int64)])
+    want, inverse, n = np.unique(sets, axis=0, return_inverse=True, return_counts=True)
     assert got.dtype == np.int32
-    assert np.array_equal(got, np.unique(sets, axis=0))
+    assert summed.dtype == np.int32
+    assert np.array_equal(got, want)
+    assert np.array_equal(summed, np.bincount(inverse.ravel(), weights=w).astype(np.int32))
+    assert np.array_equal(ones, n)
+
+
+def test_sum_rows_of_nothing():
+    got, (w,) = cpu_miner.sum_rows(np.empty((0, 2), dtype=np.int32), 5, [np.empty(0, dtype=np.int32)])
+    assert got.shape == (0, 2)
+    assert len(w) == 0
 
 
 def test_count_per_candidate_matches_a_brute_force(monkeypatch):

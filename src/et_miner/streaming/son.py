@@ -66,6 +66,10 @@ from et_miner.core.profiling import ProfilingSession
 
 from loguru import logger
 
+#: Bytes of a length's not yet deduplicated pass-1 rows before they are merged into the union (when they also
+#: exceed the union's own rows); a memory bound, not a measured crossover.
+UNION_PENDING_BYTES = 256 << 20
+
 
 def _estimate_chunk_size_from_memory(
     memory_budget_gb: float,
@@ -150,6 +154,9 @@ def apriori_streaming(
             (phase: str, chunk_idx: int, n_chunks: int, metrics: dict)
             where phase is "pass1" or "pass2", and metrics contains
             {candidates, items, memory_gb} for pass1 or {counted, memory_gb} for pass2.
+            On the CPU, pass 1's candidates count the itemsets collected so
+            far before duplicates across chunks are removed (an upper bound);
+            the profile's n_candidates is the deduplicated count.
 
     Returns:
         If profile=False: DataFrame with columns [itemset, support]
@@ -536,24 +543,30 @@ def _chunks(n_chunks: int, desc: str, show_progress: bool):
 
 
 class _CandidateUnion:
-    """The union of the chunks' locally frequent itemsets, deduplicated chunk by chunk.
+    """The union of the chunks' locally frequent itemsets, as int32 rows of item ids per length.
 
     Items get ids in the order they are first seen (``seen``), so a chunk's
-    column ids map onto them without knowing the later chunks; each length
-    keeps one lexsorted int32 array of distinct rows of ids. ``finish``
-    renumbers the ids in sorted item order.
+    column ids map onto them without knowing the later chunks. A chunk's rows
+    wait in ``pending``; once a length's pending rows take more than
+    ``UNION_PENDING_BYTES`` and more than its deduplicated rows, they are
+    merged into those (``unique_rows``). A small union is so sorted once, in
+    ``finish``; a large one is merged when its pending rows have doubled it,
+    which bounds memory to about twice the union. ``finish`` renumbers the ids
+    in sorted item order and deduplicates what remains.
     """
 
     def __init__(self) -> None:
         self.seen: pl.Series | None = None
         self.levels: dict[int, np.ndarray] = {}
+        self.pending: dict[int, list[np.ndarray]] = {}
 
     @property
     def n_items(self) -> int:
         return 0 if self.seen is None else len(self.seen)
 
     def __len__(self) -> int:
-        return sum(len(v) for v in self.levels.values())
+        """Rows held: the distinct ones plus the pending ones (an upper bound on the distinct itemsets)."""
+        return sum(len(v) for v in self.levels.values()) + sum(len(p) for v in self.pending.values() for p in v)
 
     def add(self, items: pl.Series, levels: list[np.ndarray]) -> None:
         """Add one chunk: its frequent items (column order) and its levels as column ids."""
@@ -566,20 +579,26 @@ class _CandidateUnion:
             if len(sets) == 0:
                 continue
             k = sets.shape[1]
-            rows = np.sort(remap[sets], axis=1)
-            if k in self.levels:
-                rows = np.concatenate([self.levels[k], rows])
-            self.levels[k] = unique_rows(rows, len(self.seen))
+            pending = self.pending.setdefault(k, [])
+            pending.append(np.sort(remap[sets], axis=1))
+            held = self.levels[k].nbytes if k in self.levels else 0
+            if sum(p.nbytes for p in pending) > max(UNION_PENDING_BYTES, held):
+                parts = ([self.levels[k]] if k in self.levels else []) + self.pending.pop(k)
+                self.levels[k] = unique_rows(np.concatenate(parts), len(self.seen))
 
     def finish(self) -> tuple[pl.Series, dict[int, np.ndarray]]:
-        """(the items in sorted order, per length the lexsorted candidates as column ids into them)."""
+        """(the items in sorted order, per length the lexsorted distinct candidates as column ids into them)."""
         if self.seen is None:
             raise ValueError("no chunk was added")
         order = self.seen.arg_sort().to_numpy()
         rank = np.empty(len(order), dtype=np.int32)
         rank[order] = np.arange(len(order), dtype=np.int32)
         items = self.seen.gather(pl.Series(order))
-        return items, {k: unique_rows(np.sort(rank[v], axis=1), len(items)) for k, v in sorted(self.levels.items())}
+        out = {}
+        for k in sorted(set(self.levels) | set(self.pending)):
+            parts = ([self.levels.pop(k)] if k in self.levels else []) + self.pending.pop(k, [])
+            out[k] = unique_rows(np.sort(rank[np.concatenate(parts)], axis=1), len(items))
+        return items, out
 
 
 def _local_levels(
@@ -684,12 +703,12 @@ def _son_cpu(
             if progress_callback:
                 metrics = {"candidates": len(union), "items": union.n_items, "memory_gb": _get_memory_gb()}
                 progress_callback("pass1", chunk_idx, n_chunks, metrics)
-        n_candidates = len(union)
+        items, cands = union.finish() if union.n_items else (None, {})
+        n_candidates = sum(len(c) for c in cands.values())
         if session:
             session.end_phase(n_candidates=n_candidates, n_items=union.n_items)
-        if n_candidates == 0:
+        if items is None or n_candidates == 0:
             return _empty_result()
-        items, cands = union.finish()
         logger.info("Pass 1 complete: {} candidate itemsets from {} items", n_candidates, len(items))
 
         if session:

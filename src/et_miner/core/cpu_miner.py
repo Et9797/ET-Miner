@@ -809,9 +809,13 @@ def count_itemsets(
             if space is not None and space.bitvecs is not None:
                 out[k] = count_per_candidate(c, space.bitvecs)
             else:
-                cols = np.unique(c)
-                ia, ib = np.searchsorted(cols, c[:, 0]), np.searchsorted(cols, c[:, 1])
-                out[k] = gram_pairs(indptr, indices, n_cols, np.arange(n_rows), cols, ia, ib, GRAM_BUDGET_BYTES)
+                used = np.zeros(n_cols, dtype=bool)
+                used[c.ravel()] = True
+                pos = np.cumsum(used) - 1
+                ia, ib = pos[c[:, 0]], pos[c[:, 1]]
+                out[k] = gram_pairs(
+                    indptr, indices, n_cols, np.arange(n_rows), np.flatnonzero(used), ia, ib, GRAM_BUDGET_BYTES
+                )
         else:
             rows_k = np.flatnonzero(np.diff(indptr) >= k)
             if space is None or len(rows_k) <= COMPACT_RATIO * space.n_rows:

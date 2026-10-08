@@ -483,5 +483,21 @@ class TestArrayPasses:
         )
         pass1 = {p.name: p.extra for p in session.phases}["pass1_local_mining"]
         assert [s[:3] for s in seen] == [("pass1", i, 4) for i in range(4)] + [("pass2", i, 4) for i in range(4)]
-        assert seen[3][3]["candidates"] == pass1["n_candidates"] >= len(res)
+        assert seen[3][3]["candidates"] >= pass1["n_candidates"] >= len(res)
         assert seen[3][3]["items"] == pass1["n_items"]
+
+    @pytest.mark.parametrize("chunk_size", [7, 150])
+    def test_merging_the_union_during_pass_1_changes_nothing(self, monkeypatch, chunk_size):
+        """With no pending budget, each chunk is merged into the union as soon as it outgrows it."""
+        from et_miner.streaming import son
+
+        df = pl.DataFrame({"items": _messy_rows(3)}, schema={"items": pl.List(pl.Int64)})
+        kw = {"min_support": 0.03, "chunk_size": chunk_size, "show_progress": False}
+        merged_once = apriori_streaming(df, **kw)
+        monkeypatch.setattr(son, "UNION_PENDING_BYTES", 0)
+        merges = []
+        real = son.unique_rows
+        monkeypatch.setattr(son, "unique_rows", lambda *a: merges.append(1) or real(*a))
+        _same(apriori_streaming(df, **kw), merged_once, df.height)
+        _same(merged_once, apriori(df, min_support=0.03), df.height)
+        assert len(merges) > len(merged_once["itemset"].list.len().unique())

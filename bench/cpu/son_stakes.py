@@ -6,13 +6,17 @@ process high-water RSS. Every arm of a workload must carry one signature; the
 driver (``--check``) compares them.
 
 Arms:
-    current  ``son.apriori_streaming`` as it is: per chunk a Polars boolean
-             matrix (``build_boolean_matrix``), ``_generate_candidates`` and
+    current  ``son.apriori_streaming`` before the port (trees up to
+             508cdb0): per chunk a Polars boolean matrix
+             (``build_boolean_matrix``), ``_generate_candidates`` and
              ``count_support_batched``; pass 2 rebuilds a boolean matrix of the
              candidate items per chunk (``_build_matrix_for_items``) and counts
              every candidate with ``count_support_batched``. Timed by wrapping
-             those functions in place.
-    array    the port under test: pass 1 builds each chunk's CSR
+             those functions in place; on a later tree it stops with an error,
+             and S1 reads it from S0's rows.
+    array    the port as S0 measured it (kept as it ran, so S0 can be
+             repeated; the product's versions live in son.py and
+             cpu_miner.py): pass 1 builds each chunk's CSR
              (``build_transaction_csr`` at the local threshold) and mines it
              with ``cpu_miner._mine_levels``; the local levels are mapped to one
              item order and deduplicated per K; pass 2 maps each chunk onto the
@@ -37,7 +41,7 @@ p2_count_k<k> per K for the array arms; filter_emit.
 Usage:
     uv run python bench/cpu/son_stakes.py --workload or005 --threads 1 --arm current --out rows.jsonl
     uv run python bench/cpu/son_stakes.py --check rows.jsonl
-    uv run python bench/cpu/son_stakes.py --matrix --arms current,array,array-pc,incore --out rows.jsonl
+    uv run python bench/cpu/son_stakes.py --matrix --arms built,incore --reps 3 --out rows.jsonl
 
 Options:
     --workload   an id of bench/cpu/matrix.py WORKLOADS
@@ -50,6 +54,10 @@ Options:
     --matrix     run --workloads x T1/T4 x --arms x --reps, one fresh process
                  per config, rep-major, a config past --cap seconds recorded as
                  a timeout and not repeated, no new config after --max-hours
+    --arms       comma-separated arms for --matrix (default built,incore)
+    --reps       repetitions for --matrix (default 1)
+    --cap        seconds per config for --matrix (default 600)
+    --max-hours  no new config after this many hours (default 1.5)
 """
 
 from __future__ import annotations
@@ -114,9 +122,12 @@ class Phases:
 
 
 def run_current(lf: pl.LazyFrame, min_support: float, max_length, chunk_size: int, n_jobs: int, ph: Phases) -> tuple:
-    """son.apriori_streaming with its building blocks timed in place."""
+    """son.apriori_streaming with its building blocks timed in place (trees before the port only)."""
     import et_miner.core.candidates as cand_mod
     from et_miner.streaming import son
+
+    if not hasattr(son, "_mine_chunk_frequent"):
+        raise RuntimeError("arm `current` measures SON before the port (trees up to 508cdb0); S1 reads it from S0")
 
     state = {"pass1": False}
     real = {
@@ -436,7 +447,7 @@ def main() -> int:
     ap.add_argument("--out")
     ap.add_argument("--check")
     ap.add_argument("--matrix", action="store_true")
-    ap.add_argument("--arms", default="current,array,array-pc,incore")
+    ap.add_argument("--arms", default="built,incore")
     ap.add_argument("--workloads", default=",".join(SON_WORKLOADS))
     ap.add_argument("--reps", type=int, default=1)
     ap.add_argument("--cap", type=float, default=600)

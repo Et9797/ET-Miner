@@ -26,7 +26,10 @@ Usage:
 
     result = apriori_streaming(pl.scan_parquet("big/*.parquet"), min_support=0.001, chunk_size=10_000_000)
 
-Options: the parameters of ``apriori_streaming``.
+Options: the parameters of ``apriori_streaming``, and one module constant:
+    UNION_PENDING_BYTES  bytes of one length's pass-1 rows held before they are
+                         deduplicated into the union (when they also exceed
+                         that length's deduplicated rows); a budget per length
 
 Reference:
     Savasere, A., Omiecinski, E. R., & Navathe, S. B. (1995).
@@ -66,8 +69,8 @@ from et_miner.core.profiling import ProfilingSession
 
 from loguru import logger
 
-#: Bytes of a length's not yet deduplicated pass-1 rows before they are merged into the union (when they also
-#: exceed the union's own rows); a memory bound, not a measured crossover.
+#: Bytes of one length's not yet deduplicated pass-1 rows before they are merged into the union (when they also
+#: exceed that length's deduplicated rows); a memory budget per length, not a measured crossover.
 UNION_PENDING_BYTES = 256 << 20
 
 
@@ -77,6 +80,11 @@ def _estimate_chunk_size_from_memory(
     items_per_transaction: int = 10,
 ) -> int:
     """Estimate chunk size from memory budget.
+
+    The model is the GPU passes' Polars boolean matrix (one bit per item and
+    transaction, doubled for intermediates). SON's CPU passes hold a CSR of
+    each chunk instead (4 B per item in a row, plus the row pointers), so for
+    sparse data the estimate is conservative there.
 
     Args:
         memory_budget_gb: Maximum memory to use in GB.
@@ -125,7 +133,8 @@ def apriori_streaming(
     2. Pass 2 - Global Counting: Count support for all candidate itemsets
        across the full dataset.
 
-    Memory usage is O(chunk_size × n_items), not O(total_transactions × n_items).
+    Memory holds one chunk (its CSR on the CPU, its boolean matrix with
+    ``use_gpu=True``) and the candidates, not the whole dataset.
 
     Args:
         transactions: Transaction data with item lists (LazyFrame recommended).
@@ -550,9 +559,12 @@ class _CandidateUnion:
     wait in ``pending``; once a length's pending rows take more than
     ``UNION_PENDING_BYTES`` and more than its deduplicated rows, they are
     merged into those (``unique_rows``). A small union is so sorted once, in
-    ``finish``; a large one is merged when its pending rows have doubled it,
-    which bounds memory to about twice the union. ``finish`` renumbers the ids
-    in sorted item order and deduplicates what remains.
+    ``finish``; a large one is merged when its pending rows have doubled it.
+    Between merges a length holds its distinct rows plus at most
+    max(``UNION_PENDING_BYTES``, those rows) of pending rows; a merge, and
+    ``finish``, briefly hold a few more copies of that length (concatenation,
+    packed keys, the sorted result). ``finish`` renumbers the ids in sorted
+    item order and deduplicates what remains.
     """
 
     def __init__(self) -> None:
@@ -648,7 +660,7 @@ def _count_chunk(
 ) -> dict[int, np.ndarray]:
     """One chunk's count of every candidate: its rows mapped onto the candidate items (``_map_rows``), then ``count_itemsets``."""
     column = chunk_lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
-    indptr, indices = _map_rows(column, items, int(column.list.len().fill_null(1).sum()))
+    indptr, indices = _map_rows(column, items, int(column.list.len().fill_null(1).cast(pl.Int64).sum()))
     del column
     return count_itemsets(indptr, indices, len(items), cands, pool, workers)
 

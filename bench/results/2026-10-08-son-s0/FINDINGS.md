@@ -34,10 +34,11 @@ smoke, deepk, skew, wide, or005, or0001k2. The pass-1 candidate counts of
 ## Rule 2: go for the port
 
 **Go.** Both array arms meet rule 2 against `current` in every regime but one:
-3.2× (deepk T4, `array-pc`) to 360× (wide T4) faster where `current` finished,
-and below half the cap where it did not. The exception is smoke T4, 5.6× faster
-but 0.79 s saved, under the 1 s floor. Peak RSS is below `current`'s in every regime where `current`
-finished (wide T4: 232 vs 1,732 MB). Where `current` hit the cap (or005,
+2.2× (skew T4, `array-pc`) to 363× (wide T4, `array-pc`) faster where
+`current` finished, and below half the cap where it did not. The exception is
+smoke T4, 5.6× faster but 0.79 s saved, under the 1 s floor. Peak RSS is below
+`current`'s in every regime where `current` finished (wide T4: 232 vs
+1,732 MB). Where `current` hit the cap (or005,
 or0001k2) no memory comparison exists; or0001k2's 774–867 MB is the 5.4M
 candidate pairs held for pass 2, against 332–384 MB in-core.
 
@@ -69,9 +70,9 @@ spaces; no timing):
 
 Observed, not part of a registered rule: every level of smoke, wide and or005
 (row spaces of 134–391 words) is won by per-candidate. On deepk and skew (906–
-3,879 words) per-candidate wins every level with a mean group size ≤ 2.04 and
-prefix groups every level with 2.56–87 (levels with a mean of 1.00 tie), except K=3/K=4 of skew at T1 and K=3 of
-deepk, which per-candidate wins.
+3,879 words) per-candidate wins every level with a mean group size ≤ 2.04
+(those at 1.00 by under 2 ms) and prefix groups every level with 2.56–87,
+except K=3/K=4 of skew at T1 and K=3 of deepk, which per-candidate wins.
 
 ## Decision (owner)
 

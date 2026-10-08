@@ -314,6 +314,6 @@ read from S0's rows after the fact:
   no bitvectors.
 
 Known losses against the faster counter per level in S0: K=3 and K=4 of skew at
-T1 (about 2.3 s) and K=3 of deepk (about 0.3 s). S1 confirms the built tree as
+T1 (about 2.4 s) and K=3 of deepk (about 0.3 s). S1 confirms the built tree as
 Amendment 3 sets out; its report puts `built`'s wall time next to S0's `array`
 and `array-pc` rows for each regime.

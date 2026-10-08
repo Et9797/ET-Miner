@@ -94,7 +94,7 @@ All notable changes to ET-Miner are recorded here. Versions follow
   the profile's `n_candidates` is exact.
   Measured with 4 chunks (`bench/results/2026-10-08-son-s1/`, median of 3,
   12-thread Ryzen 5 4600G; the old SON's single S0 value): deep_k 31.2 →
-  4.8 s at 1 thread and 15.1 → 4.2 s at 4; skewed_rows 157.0 → 31.2 s and
+  4.7 s at 1 thread and 15.1 → 4.2 s at 4; skewed_rows 157.0 → 31.2 s and
   79.0 → 15.1 s; wide_vocab 267.9 → 1.2 s and 235.9 → 0.6 s; Online Retail II
   at 0.005 and at 0.0001 with max_length 2 from over 600 s (the cap) to
   7.9–13.9 s. Peak RSS falls to 0.13–0.87× (wide_vocab at 4 threads: 1,732 →

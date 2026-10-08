@@ -21,7 +21,7 @@ import numpy as np
 import polars as pl
 
 import et_miner
-from et_miner import apriori, backends
+from et_miner import backends, build_boolean_matrix, count_support_batched
 from et_miner.core import sparse
 from et_miner.gpu import bitvec
 from et_miner.gpu.kernels.k3plus import _build_k3plus_groups_numpy, build_k3plus_groups_from_flat
@@ -30,13 +30,17 @@ flat = np.array([[0, 1], [0, 2], [0, 3], [1, 2], [1, 3]], dtype=np.int32)
 g = build_k3plus_groups_from_flat(flat)
 ref = _build_k3plus_groups_numpy(flat)
 rows = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3], [0, 1, 2, 3], [0, 1]] * 20
-res = apriori(pl.DataFrame({"items": rows}), min_support=0.3, streaming=True, chunk_size=40, sparse=True)
+matrix, col_to_item, n = build_boolean_matrix(pl.DataFrame({"items": rows}).lazy(), 0.3)
+cols = sorted(col_to_item)
+itemsets = [(a,) for a in cols] + [(a, b) for a in cols for b in cols if a < b]
+itemsets += [(a, b, c) for a in cols for b in cols for c in cols if a < b < c]
+counts = count_support_batched(matrix, itemsets, n, sparse=True, enable_length_filter=False)
 print(json.dumps({
     "backends": [backends.RUST_INSTALLED, backends.get_rust_ext() is None, backends.RUST_DISABLED],
     "copies": [et_miner.HAS_RUST, sparse.RUST_INSTALLED, bitvec.RUST_INSTALLED],
     "groups_equal": bool(np.array_equal(g.suffixes, ref.suffixes)
                          and np.array_equal(g.cumulative_pairs, ref.cumulative_pairs)),
-    "lattice": sorted((sorted(s), round(p * len(rows))) for s, p in zip(res["itemset"].to_list(), res["support"].to_list())),
+    "counts": sorted((sorted(col_to_item[c] for c in k), int(v)) for k, v in counts.items()),
 }))
 """
 
@@ -60,7 +64,8 @@ def test_the_switch_disables_every_detection_point_and_changes_no_result():
     assert on["copies"] == [True, True, True]
 
     assert off["groups_equal"] and on["groups_equal"]
-    assert off["lattice"] == on["lattice"]
+    assert off["counts"] == on["counts"]
+    assert len(off["counts"]) == 14
     assert "disabled by ET_MINER_DISABLE_RUST=1" in off_log
 
 

@@ -60,15 +60,17 @@ class _FailOnCall:
         return self.fn(*args, **kwargs)
 
 
-def test_single_gpu_son_raises_when_a_pass1_chunk_fails(transactions, monkeypatch):
-    failing = _FailOnCall(son.build_boolean_matrix, 2)
-    monkeypatch.setattr(son, "build_boolean_matrix", failing)
+@pytest.mark.parametrize("target", ["_local_levels", "_count_chunk"])
+def test_cpu_son_raises_when_a_chunk_fails(transactions, monkeypatch, target):
+    """Pass 1 (_local_levels) and pass 2 (_count_chunk) each fail the run on their second chunk."""
+    failing = _FailOnCall(getattr(son, target), 2)
+    monkeypatch.setattr(son, target, failing)
     with pytest.raises(RuntimeError, match="injected failure on call 2"):
         son.apriori_streaming(transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, show_progress=False)
     assert failing.calls == 2
 
 
-def test_single_gpu_son_matches_in_core_when_nothing_fails(transactions):
+def test_cpu_son_matches_in_core_when_nothing_fails(transactions):
     got = son.apriori_streaming(transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, show_progress=False)
     assert _as_set(got) == _as_set(apriori(transactions, min_support=MIN_SUPPORT))
 

@@ -359,6 +359,93 @@ def test_count_candidates_on_a_group_with_an_empty_prefix():
         assert got.tolist() == [0, 0, 0]
 
 
+# ── Counting given itemsets (SON's pass 2) ──────────────────────────────────
+
+
+@pytest.mark.parametrize("packed", [True, False])
+def test_unique_rows_matches_numpy(monkeypatch, packed):
+    rng = np.random.default_rng(3)
+    sets = np.sort(rng.integers(0, 40, size=(500, 3)), axis=1).astype(np.int32)
+    if not packed:
+        monkeypatch.setattr(cpu_miner, "_pack", lambda rows, base: None)
+    got = cpu_miner.unique_rows(sets, 40)
+    assert got.dtype == np.int32
+    assert np.array_equal(got, np.unique(sets, axis=0))
+
+
+def test_count_per_candidate_matches_a_brute_force(monkeypatch):
+    """Blocks of one candidate and one block of all give the same counts."""
+    dense, m = _random_csr(21, n_rows=700, n_cols=12)
+    bv = cpu_miner.build_bitvecs(m.indptr, m.indices, 12)
+    for k in (2, 3, 4):
+        cands = _all_candidates(12, k)
+        for chunk in (1, cpu_miner.AND_CHUNK_BYTES):
+            monkeypatch.setattr(cpu_miner, "AND_CHUNK_BYTES", chunk)
+            assert np.array_equal(cpu_miner.count_per_candidate(cands, bv), _brute_counts(dense, cands))
+
+
+def _sparse_candidates(n_cols: int, seed: int) -> dict[int, np.ndarray]:
+    """Lexsorted samples of every length 1-4: groups of one candidate and groups of many."""
+    rng = np.random.default_rng(seed)
+    out = {}
+    for k in (1, 2, 3, 4):
+        every = _all_candidates(n_cols, k)
+        out[k] = every[np.sort(rng.choice(len(every), size=min(len(every), 40 * k), replace=False))]
+    return out
+
+
+_COUNT_PATHS = {
+    "bitvec-percand": {"PER_CANDIDATE_MAX_WORDS": 10**9},
+    "gram-groups": {"GRAM_BITVEC_RATIO": 0.0, "PER_CANDIDATE_MAX_WORDS": 0, "PER_CANDIDATE_MEAN_GROUP": 0.0},
+    "no-bitvecs": {"BITVEC_BUDGET_BYTES": 0},
+    "gram-tiny-budget": {"GRAM_BITVEC_RATIO": 0.0, "GRAM_BUDGET_BYTES": 1},
+}
+
+
+@pytest.mark.parametrize("pooled", [False, True])
+@pytest.mark.parametrize("path", sorted(_COUNT_PATHS))
+def test_count_itemsets_matches_a_brute_force(monkeypatch, path, pooled):
+    for name, value in _COUNT_PATHS[path].items():
+        monkeypatch.setattr(cpu_miner, name, value)
+    dense, m = _random_csr(23, n_rows=900, n_cols=14)
+    dense[::3] = False  # short rows, so the K>=3 row spaces compact
+    from scipy.sparse import csr_matrix
+
+    m = csr_matrix(dense.astype(np.int32))
+    cands = _sparse_candidates(14, 5)
+    pool = ThreadPoolExecutor(3) if pooled else None
+    try:
+        got = cpu_miner.count_itemsets(m.indptr, m.indices, 14, cands, pool, 3 if pooled else 1)
+    finally:
+        if pool is not None:
+            pool.shutdown()
+    assert sorted(got) == [1, 2, 3, 4]
+    for k, c in cands.items():
+        assert np.array_equal(got[k], _brute_counts(dense, c)), f"k={k}"
+
+
+@pytest.mark.parametrize(
+    ("max_words", "spread", "want"),
+    [
+        (10**9, False, "count_per_candidate"),  # few words: per candidate whatever the groups
+        (0, True, "count_per_candidate"),  # many words, one candidate per prefix group
+        (0, False, "count_candidates"),  # many words, one large prefix group
+    ],
+)
+def test_count_itemsets_dispatches_on_words_and_group_size(monkeypatch, max_words, spread, want):
+    monkeypatch.setattr(cpu_miner, "PER_CANDIDATE_MAX_WORDS", max_words)
+    dense, m = _random_csr(29, n_rows=300, n_cols=12)
+    every = _all_candidates(12, 3)
+    cands = every[np.r_[True, every[1:, 0] != every[:-1, 0]]] if spread else every[every[:, 0] == 0]
+    calls = []
+    for name in ("count_per_candidate", "count_candidates"):
+        real = getattr(cpu_miner, name)
+        monkeypatch.setattr(cpu_miner, name, lambda *a, _r=real, _n=name, **k: calls.append(_n) or _r(*a, **k))
+    got = cpu_miner.count_itemsets(m.indptr, m.indices, 12, {3: cands})
+    assert calls == [want]
+    assert np.array_equal(got[3], _brute_counts(dense, cands))
+
+
 # ── L5: array levels, free-sets, Pascal, emission ───────────────────────────
 
 
@@ -544,10 +631,13 @@ def test_sparse_is_deprecated_on_the_cpu_route_and_changes_nothing():
             assert _mined(df, 0.03, sparse=value) == plain
 
 
-def test_streaming_single_chunk_fallback_does_not_warn_about_sparse():
+def test_streaming_single_chunk_fallback_warns_about_sparse_once_and_changes_nothing():
     df = pl.DataFrame({"items": _random_rows(7, messy=False)})
     plain = _mined(df, 0.03)
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
-        for value in (True, False, None):
+        assert _mined(df, 0.03, streaming=True, sparse=None) == plain
+    for value in (True, False):
+        with pytest.warns(DeprecationWarning, match="sparse= no longer selects") as record:
             assert _mined(df, 0.03, streaming=True, sparse=value) == plain
+        assert sum(issubclass(w.category, DeprecationWarning) for w in record) == 1

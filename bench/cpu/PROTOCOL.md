@@ -206,3 +206,114 @@ approved about an hour more:
   efficient-apriori per regime, rule 2 against the Phase 0 baseline for the
   before/after, and the 25 % rule on `ru_maxrss_mb` against the same arm and
   thread setting of the baseline.
+
+## Amendment 3 (2026-10-08, SON on the array miner)
+
+Goal under test: SON (`apriori(streaming=True)` with `use_gpu=False`) mined
+with the array miner in both passes, faster than the current SON, with
+identical output. The GPU branches of SON are out of scope and keep their code.
+
+**Box.** This one, not the Phase 0/1 container: 12 logical CPUs (AMD Ryzen 5
+4600G, 6 cores with 2 threads each, 2 × 4 MB L3), 30 GB RAM, no GPU. Python
+3.13.11, Polars 2.0.0, NumPy 2.5.2, SciPy 1.18.0; `env.txt` records the rest.
+No time measured here is compared with a Phase 0 or Phase 1 row.
+
+**Harness.** `bench/cpu/son_stakes.py`. Arms:
+
+| arm | what runs |
+|---|---|
+| `current` | `son.apriori_streaming` as it is, its building blocks timed in place |
+| `array` | the port: pass 1 = `build_transaction_csr` at the local threshold + `_mine_levels` per chunk; local levels mapped to one item order and deduplicated per K; pass 2 per chunk = `_map_rows` onto the candidate items, K=1 bincount, K=2 bitvectors or Gram (the in-core rule), K≥3 `count_candidates` |
+| `array-pc` | `array` with pass 2's K≥3 counted per candidate (AND of the k column bitvectors, popcount) |
+| `incore` | `apriori()` without streaming, for reference |
+| `built` | `apriori(streaming=True)` on the tree as it is (Phase S1) |
+
+**SON setting.** 4 chunks (`chunk_size = ceil(N / 4)`) and the default
+`local_support_factor` 0.9, on every workload.
+
+**Workloads.** smoke, deepk, skew, wide, or005, or0001k2 (ids of the table
+above). Not included: or003 and or002. With 4 chunks one chunk's local lattice
+is beyond any engine: chunk 1 of or003 holds 11.2M locally frequent itemsets up
+to K=16 at the local threshold (112 s in-core on the array miner), chunks 2 and
+3 did not finish in 120 s, and or002's threshold is lower. These numbers come
+from the harness check below and are not results.
+
+**Threads.** `T1` and `T4` as above (the five env pools and `n_jobs`).
+
+**Timing.** Fresh process per config. The dataset is loaded before the timer;
+warm-up is the same arm on a 20,000-row slice of smoke (min_support 0.02,
+max_length 3, 2 chunks). The timer covers the mining call.
+
+**Metrics per row.** `wall_s`, `cpu_s`, per-phase seconds (count_transactions;
+`current`: p1_matrix, p1_mine with p1_gen and p1_count inside it, p2_matrix,
+p2_count; array arms: p1_csr, p1_mine, union, p2_csr, p2_k1, p2_k2_bitvec or
+p2_k2_gram, p2_space, p2_count_k<k> per K; filter_emit), `ru_maxrss_mb`, the
+result signature, pass-1 candidates per K, prefix groups per K with their mean
+size, and the tree digest (`rev`).
+
+**Phase S0 (stakes).** Arms `current`, `array`, `array-pc`, `incore`; 1 rep;
+order: workloads as listed, `T1` then `T4` within a workload, arms in the
+order above. Cap 600 s per config (the child process, load and warm-up
+included); a cap hit is a lower bound and is not repeated. `--max-hours 1.5`
+stops new configs. Output: `bench/results/2026-10-08-son-s0/`.
+
+**Phase S1 (campaign on the built tree).** Arms `built` and `incore`; 3 reps,
+rep-major, the same workloads, thread settings, order and cap;
+`--max-hours 1.0`. Output: `bench/results/<date>-son-s1/`. Its `current` side
+is S0's `current` row (1 rep, single value), as Amendment 2 accepted for the
+single-rep baseline regimes.
+
+**Correctness.** Every ok row of a workload carries one signature
+(`son_stakes.py --check`), across S0 and S1; a divergence fails the phase. The
+tier-equivalence chain, the SON and streaming tests and the free-set tests pass
+on the measured tree before each phase.
+
+**Decision rules.**
+
+1. *Exactness.* An arm with a signature divergence or an error is out.
+2. *Go for the port (S0).* `array` or `array-pc` meets rule 2 against
+   `current` in at least one regime, and its `ru_maxrss_mb` stays within
+   1.25 × `current`'s in every regime where `current` finished. With one rep,
+   rule 2 reads: at least 10 % below and at least 1 s saved. Where `current`
+   hit the cap, its time is a lower bound (600 s minus load and warm-up), and a
+   finished array arm below half the cap meets it.
+3. *Pass-2 K≥3 counter (S0).* Compare `array` and `array-pc` per level on
+   p2_count_k<k>. If one is at least as fast on every level of every regime
+   (within 10 %), keep it. Otherwise dispatch per level on the mean candidates
+   per prefix group, a fact known before the level is counted: groups-path at
+   or above the crossover, per-candidate below it. The crossover is the mean
+   group size that separates the levels each counter wins, read from the S0
+   rows; if no single threshold separates them, keep the counter with the
+   better geometric mean of pass-2 K≥3 time and record what it loses.
+4. *Confirmation (S1).* `built` meets rule 2 against S0's `current` in every
+   regime where the S0 go held, with its median over the 3 reps; its
+   `ru_maxrss_mb` stays within 1.25 × `current`'s where `current` finished.
+   CHANGELOG and README numbers come only from S1.
+
+**Harness check.** The harness was run on smoke (every arm), on all eight
+workloads for `array` and `incore`, and on five for `array-pc`, before this
+amendment was written (or002 `array` was stopped by hand, or003 `array` hit a
+600 s cap). Those rows are discarded.
+
+## Amendment 4 (2026-10-08, the pass-2 K≥3 counter, approved by the owner after S0)
+
+Rule 3's fallback picks per-candidate counting by geometric mean; it loses
+11.4 s (skew T1) and 19.9 s (skew T4) while the geometric mean is carried by
+regimes whose K≥3 counting takes under 25 ms (`bench/results/2026-10-08-son-s0/FINDINGS.md`).
+The owner approved a dispatch on two facts known before a level is counted,
+read from S0's rows after the fact:
+
+- per-candidate AND when the level's row space has at most
+  `PER_CANDIDATE_MAX_WORDS = 512` bitvector words (S0: per-candidate wins every
+  level at 134–391 words; levels at 906–3,879 words are split; 512 lies in the
+  unmeasured gap between them), or when its candidates average fewer than
+  `PER_CANDIDATE_MEAN_GROUP = 2.5` per prefix group (S0: on 906+ words
+  per-candidate wins every level with a mean of at most 2.04, prefix groups
+  every level from 2.56 to 87);
+- prefix groups (`count_candidates`) otherwise, and whenever the row space has
+  no bitvectors.
+
+Known losses against the faster counter per level in S0: K=3 and K=4 of skew at
+T1 (about 2.4 s) and K=3 of deepk (about 0.3 s). S1 confirms the built tree as
+Amendment 3 sets out; its report puts `built`'s wall time next to S0's `array`
+and `array-pc` rows for each regime.

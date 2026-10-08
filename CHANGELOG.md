@@ -71,11 +71,34 @@ All notable changes to ET-Miner are recorded here. Versions follow
   331 → 389 MB), within the 1.25× bound the protocol allows.
 - **No mined output changes**: each workload keeps one itemset signature across
   every arm of both campaigns, and the tier-equivalence chain passes.
-- **`sparse=` is deprecated on the CPU route.** A non-`None` value there warns
-  (`DeprecationWarning`) and is ignored, because every level is counted by the
-  array miner. It still selects SON's counter under `streaming=True`. The Rust
-  extension is no longer used by the CPU route; SON's sparse counter and the
-  GPU route's host steps still use it.
+- **`sparse=` is deprecated on the CPU route and in SON's CPU passes.** A
+  non-`None` value there warns (`DeprecationWarning`) and is ignored, because
+  every level is counted by the array miner. The Rust extension is no longer
+  used by either; `count_support_batched(sparse=True)` and the GPU route's
+  host steps still use it.
+- **SON's CPU passes (`streaming=True` without `use_gpu`) run on the array
+  miner** (`streaming/son.py`). Pass 1 builds each chunk's CSR at the local
+  threshold and mines it with the CPU route's levels; the union of the local
+  results is one int32 array per length, deduplicated chunk by chunk. Pass 2
+  maps each chunk onto the candidate items and counts the candidates with
+  `cpu_miner.count_itemsets`: K=1 by a bincount, K=2 on bitvectors or from the
+  Gram (the in-core rule), K≥3 per candidate (AND of the k bitvectors) when
+  the row space has at most 512 words or the level averages fewer than 2.5
+  candidates per prefix group, by prefix group otherwise
+  (`bench/cpu/PROTOCOL.md` Amendments 3–4). The Polars boolean matrix,
+  `_generate_candidates` and `count_support_batched` are gone from SON's CPU
+  passes; the GPU passes keep theirs. `batch_size` is no longer read by any
+  route. Output is unchanged. Pass 1's `progress_callback` candidate count is
+  now an upper bound until the end of the pass (duplicates across chunks are
+  removed once the pending rows outgrow `UNION_PENDING_BYTES` and the union);
+  the profile's `n_candidates` is exact.
+  Measured with 4 chunks (`bench/results/2026-10-08-son-s1/`, median of 3,
+  12-thread Ryzen 5 4600G; the old SON's single S0 value): deep_k 31.2 →
+  4.7 s at 1 thread and 15.1 → 4.2 s at 4; skewed_rows 157.0 → 31.2 s and
+  79.0 → 15.1 s; wide_vocab 267.9 → 1.2 s and 235.9 → 0.6 s; Online Retail II
+  at 0.005 and at 0.0001 with max_length 2 from over 600 s (the cap) to
+  7.9–13.9 s. Peak RSS falls to 0.13–0.87× (wide_vocab at 4 threads: 1,732 →
+  226 MB).
 - **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
   (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
   `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner

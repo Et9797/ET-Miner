@@ -34,10 +34,10 @@ uv sync                                                   # package + dev group
 uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
 
-It changes no result, only the time. The CPU route does not use it; SON
-streaming's sparse counter and the GPU route's host steps do. In the
-consolidation campaign (`bench/consolidation/REPORT.md`) the GPU route's host
-steps were 2–27× slower per call without it.
+It changes no result, only the time. Neither the CPU route nor SON's CPU
+passes use it; `count_support_batched(sparse=True)` and the GPU route's host
+steps do. In the consolidation campaign (`bench/consolidation/REPORT.md`) the
+GPU route's host steps were 2–27× slower per call without it.
 Another project depends on it explicitly, pinned to the engine's revision:
 `uv add "et_miner_rust @ git+https://github.com/Et9797/et-miner.git@<rev>#subdirectory=rust_ext"`.
 

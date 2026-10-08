@@ -42,6 +42,11 @@ Options (module constants, patched by tests):
                        the K=2 Gram is split into blocks for the thread pool
     GRAM_BITVEC_RATIO  K=2 runs on bitvectors instead of the scipy Gram when
                        candidate pairs x words <= this x pair occurrences
+    PER_CANDIDATE_MAX_WORDS, PER_CANDIDATE_MEAN_GROUP
+                       ``count_itemsets`` counts a K>=3 level per candidate
+                       when its row space has at most this many words, or its
+                       candidates average fewer than this per prefix group;
+                       otherwise by prefix group
 """
 
 from __future__ import annotations
@@ -79,6 +84,11 @@ PARALLEL_GRAM_WORK = 5_000_000
 #: Measured on the eight campaign workloads (bitvector K=2 incl. its build, over the scipy Gram): 0.61x and
 #: 0.69x at work ratios 1.7 and 2.7 (skewed_rows, deep_k), 6.3-38.6x at 7.1-175 (smoke, Online Retail, wide).
 GRAM_BITVEC_RATIO = 3.0
+#: Measured on SON's pass 2 (bench/results/2026-10-08-son-s0, PROTOCOL.md Amendment 4): per-candidate counting
+#: wins every level at 134-391 words; at 906-3,879 words it wins up to a mean of 2.04 candidates per prefix
+#: group and prefix groups win from 2.56 to 87.
+PER_CANDIDATE_MAX_WORDS = 512
+PER_CANDIDATE_MEAN_GROUP = 2.5
 
 _LUT16 = np.array([bin(i).count("1") for i in range(1 << 16)], dtype=np.uint8)
 _HAS_BITWISE_COUNT = hasattr(np, "bitwise_count")
@@ -341,6 +351,23 @@ def _pack(rows: np.ndarray, base: int) -> np.ndarray | None:
     return key
 
 
+def unique_rows(sets: np.ndarray, base: int) -> np.ndarray:
+    """Lexsorted distinct rows of an int32 (n, k) array of column ids below ``base``.
+
+    Packs each row into an int64 key (``_pack``), takes the distinct keys and
+    unpacks them; rows whose keys could overflow go through np.unique on the
+    rows.
+    """
+    keys = _pack(sets, base)
+    if keys is None:
+        return np.unique(sets, axis=0).astype(np.int32)
+    keys = np.unique(keys)
+    out = np.empty((len(keys), sets.shape[1]), dtype=np.int32)
+    for c in range(sets.shape[1] - 1, -1, -1):
+        keys, out[:, c] = np.divmod(keys, base)
+    return out
+
+
 class _Membership:
     """Which rows of an int32 array occur in a lexsorted level of the same width.
 
@@ -561,48 +588,62 @@ class RowSpace:
     def gram_pairs(
         self, rows: np.ndarray, suffix: np.ndarray, ia: np.ndarray, ib: np.ndarray, budget: int
     ) -> np.ndarray:
-        """Counts (int64) of the suffix-position pairs (ia, ib), ia < ib, over transaction rows ``rows``.
+        """Counts (int64) of the suffix-position pairs (ia, ib), ia < ib, over transaction rows ``rows``."""
+        return gram_pairs(self.indptr, self.indices, self.n_cols, rows, suffix, ia, ib, budget)
 
-        The counts are entries of the Gram matrix G = X.T @ X of the ``suffix``
-        columns over ``rows``. Only G's rows ia.min() .. ia.max() are needed,
-        and of each row block [a0, a1) only the columns from a0 on. The blocks
-        are as tall as their dense form (12 B per entry: the int64 sum and one
-        int32 product) allows within ``budget``. Per block and per chunk of
-        rows holding about ``BITVEC_CHUNK`` entries: gather the rows' entries
-        from the CSR, keep those in a suffix column at or after a0 (a lookup
-        table maps column -> suffix position), build that small CSR X and add
-        X[:, :a1 - a0].T @ X; then read the block's pairs.
-        """
-        out = np.zeros(len(ia), dtype=np.int64)
-        if len(ia) == 0:
-            return out
-        s = len(suffix)
-        lut = np.full(self.n_cols, -1, dtype=np.int32)
-        lut[suffix] = np.arange(s, dtype=np.int32)
-        lens_all = np.diff(self.indptr).astype(np.int64)[rows]
-        chunks = _chunk_bounds(lens_all, BITVEC_CHUNK)
-        lo, hi = int(ia.min()), int(ia.max()) + 1
-        height = max(1, int(budget // (12 * (s - lo))))
-        for a0 in range(lo, hi, height):
-            a1 = min(hi, a0 + height)
-            sel = np.flatnonzero((ia >= a0) & (ia < a1))
-            if len(sel) == 0:
-                continue
-            g = np.zeros((a1 - a0, s - a0), dtype=np.int64)
-            for r0, r1 in chunks:
-                lens = lens_all[r0:r1]
-                if lens.sum() == 0:
-                    continue
-                pos = lut[self.indices[_row_entries(self.indptr, rows[r0:r1], lens)]]
-                local = np.repeat(np.arange(r1 - r0, dtype=np.int64), lens)
-                keep = pos >= a0
-                local, pos = local[keep], pos[keep] - a0
-                ptr = np.zeros(r1 - r0 + 1, dtype=np.int64)
-                np.cumsum(np.bincount(local, minlength=r1 - r0), out=ptr[1:])
-                x = csr_matrix((np.ones(len(pos), dtype=np.int32), pos, ptr), shape=(r1 - r0, s - a0))
-                g += (x.T.tocsr()[: a1 - a0] @ x).toarray()
-            out[sel] = g[ia[sel] - a0, ib[sel] - a0]
+
+def gram_pairs(
+    indptr: np.ndarray,
+    indices: np.ndarray,
+    n_cols: int,
+    rows: np.ndarray,
+    suffix: np.ndarray,
+    ia: np.ndarray,
+    ib: np.ndarray,
+    budget: int,
+) -> np.ndarray:
+    """Counts (int64) of the suffix-position pairs (ia, ib), ia < ib, over rows ``rows`` of a CSR.
+
+    The counts are entries of the Gram matrix G = X.T @ X of the ``suffix``
+    columns over ``rows``. Only G's rows ia.min() .. ia.max() are needed,
+    and of each row block [a0, a1) only the columns from a0 on. The blocks
+    are as tall as their dense form (12 B per entry: the int64 sum and one
+    int32 product) allows within ``budget``. Per block and per chunk of
+    rows holding about ``BITVEC_CHUNK`` entries: gather the rows' entries
+    from the CSR, keep those in a suffix column at or after a0 (a lookup
+    table maps column -> suffix position), build that small CSR X and add
+    X[:, :a1 - a0].T @ X; then read the block's pairs.
+    """
+    out = np.zeros(len(ia), dtype=np.int64)
+    if len(ia) == 0:
         return out
+    s = len(suffix)
+    lut = np.full(n_cols, -1, dtype=np.int32)
+    lut[suffix] = np.arange(s, dtype=np.int32)
+    lens_all = np.diff(indptr).astype(np.int64)[rows]
+    chunks = _chunk_bounds(lens_all, BITVEC_CHUNK)
+    lo, hi = int(ia.min()), int(ia.max()) + 1
+    height = max(1, int(budget // (12 * (s - lo))))
+    for a0 in range(lo, hi, height):
+        a1 = min(hi, a0 + height)
+        sel = np.flatnonzero((ia >= a0) & (ia < a1))
+        if len(sel) == 0:
+            continue
+        g = np.zeros((a1 - a0, s - a0), dtype=np.int64)
+        for r0, r1 in chunks:
+            lens = lens_all[r0:r1]
+            if lens.sum() == 0:
+                continue
+            pos = lut[indices[_row_entries(indptr, rows[r0:r1], lens)]]
+            local = np.repeat(np.arange(r1 - r0, dtype=np.int64), lens)
+            keep = pos >= a0
+            local, pos = local[keep], pos[keep] - a0
+            ptr = np.zeros(r1 - r0 + 1, dtype=np.int64)
+            np.cumsum(np.bincount(local, minlength=r1 - r0), out=ptr[1:])
+            x = csr_matrix((np.ones(len(pos), dtype=np.int32), pos, ptr), shape=(r1 - r0, s - a0))
+            g += (x.T.tocsr()[: a1 - a0] @ x).toarray()
+        out[sel] = g[ia[sel] - a0, ib[sel] - a0]
+    return out
 
 
 def _group_runs(cands: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
@@ -702,6 +743,91 @@ def _count_groups(
             out[s:e] = _count_group_proj(space, space.full_rows(local), ia, ib, suffix, budget)
         else:
             out[s:e] = _count_group_bitvec(bv, pre, ia, ib, suffix)
+
+
+def count_per_candidate(cands: np.ndarray, bv: np.ndarray) -> np.ndarray:
+    """Counts (int64) of itemsets on column bitvectors: the AND of each row's columns, popcounted.
+
+    ``cands`` is an int32 (m, k) array of column ids, k >= 2. The ANDs are
+    taken for blocks of candidates whose materialised words stay within
+    ``AND_CHUNK_BYTES``.
+    """
+    out = np.empty(len(cands), dtype=np.int64)
+    step = max(1, AND_CHUNK_BYTES // (8 * max(1, bv.shape[1])))
+    for c0 in range(0, len(cands), step):
+        c = cands[c0 : c0 + step]
+        acc = bv[c[:, 0]] & bv[c[:, 1]]
+        for j in range(2, c.shape[1]):
+            acc &= bv[c[:, j]]
+        out[c0 : c0 + len(c)] = popcount_rows(acc)
+    return out
+
+
+def count_itemsets(
+    indptr: np.ndarray,
+    indices: np.ndarray,
+    n_cols: int,
+    cands: dict[int, np.ndarray],
+    pool: ThreadPoolExecutor | None = None,
+    n_workers: int = 1,
+) -> dict[int, np.ndarray]:
+    """Counts (int64) of given itemsets over every row of a CSR, per length k.
+
+    ``cands[k]`` is a lexsorted int32 (m, k) array of distinct column ids per
+    row, ascending. Steps:
+
+    1. K=1: a bincount of the columns.
+    2. K=2: per candidate on column bitvectors of every row when they fit
+       ``BITVEC_BUDGET_BYTES`` and candidate pairs x words stay within
+       ``GRAM_BITVEC_RATIO`` x pair occurrences (the in-core K=2 rule);
+       otherwise read from the Gram of the candidates' columns
+       (``gram_pairs``).
+    3. K>=3, level by level: a row space of the rows holding at least k items,
+       rebuilt once they are at most ``COMPACT_RATIO`` of the current one (the
+       K=2 bitvectors serve until then). A level is counted per candidate on
+       the bitvectors when the space has at most ``PER_CANDIDATE_MAX_WORDS``
+       words or the level averages fewer than ``PER_CANDIDATE_MEAN_GROUP``
+       candidates per prefix group; otherwise, or without bitvectors, by
+       prefix group (``count_candidates``).
+    """
+    n_rows = len(indptr) - 1
+    out: dict[int, np.ndarray] = {}
+    space: RowSpace | None = None
+    for k in sorted(cands):
+        c = cands[k]
+        if len(c) == 0:
+            out[k] = np.zeros(0, dtype=np.int64)
+        elif k == 1:
+            out[k] = np.bincount(indices, minlength=n_cols).astype(np.int64)[c[:, 0]]
+        elif k == 2:
+            lens = np.diff(indptr).astype(np.int64)
+            words = (n_rows + 63) // 64
+            if n_cols * words * 8 <= BITVEC_BUDGET_BYTES and len(c) * words <= GRAM_BITVEC_RATIO * int(
+                (lens * (lens - 1) // 2).sum()
+            ):
+                space = RowSpace(indptr, indices, n_cols, None, pool)
+            if space is not None and space.bitvecs is not None:
+                out[k] = count_per_candidate(c, space.bitvecs)
+            else:
+                used = np.zeros(n_cols, dtype=bool)
+                used[c.ravel()] = True
+                pos = np.cumsum(used) - 1
+                ia, ib = pos[c[:, 0]], pos[c[:, 1]]
+                out[k] = gram_pairs(
+                    indptr, indices, n_cols, np.arange(n_rows), np.flatnonzero(used), ia, ib, GRAM_BUDGET_BYTES
+                )
+        else:
+            rows_k = np.flatnonzero(np.diff(indptr) >= k)
+            if space is None or len(rows_k) <= COMPACT_RATIO * space.n_rows:
+                space = RowSpace(indptr, indices, n_cols, rows_k if len(rows_k) < n_rows else None, pool)
+            n_groups = len(_group_runs(c, k)[0])
+            if space.bitvecs is not None and (
+                space.words <= PER_CANDIDATE_MAX_WORDS or len(c) < PER_CANDIDATE_MEAN_GROUP * n_groups
+            ):
+                out[k] = count_per_candidate(c, space.bitvecs)
+            else:
+                out[k] = count_candidates(c, k, space, pool, n_workers)
+    return out
 
 
 class _LevelIndex:

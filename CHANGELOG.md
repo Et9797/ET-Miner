@@ -99,6 +99,25 @@ All notable changes to ET-Miner are recorded here. Versions follow
   at 0.005 and at 0.0001 with max_length 2 from over 600 s (the cap) to
   7.9–13.9 s. Peak RSS falls to 0.13–0.87× (wide_vocab at 4 threads: 1,732 →
   226 MB).
+- **SON's CPU pass 2 counts only what pass 1 cannot settle**
+  (`streaming/son.py` `_bound`). Pass 1 mines each chunk completely at its
+  local min_count, so a chunk that did not emit an itemset holds it in at most
+  min_count − 1 rows. The union now sums each candidate's local counts and the
+  slack of the chunks that emitted it. A candidate whose upper bound misses the
+  global min_count is dropped; one with no slack left keeps pass 1's exact
+  count; pass 2 counts the rest and reads no chunk when none is left. The
+  union's merges sort packed keys (`cpu_miner.sum_rows`, replacing
+  `unique_rows`, whose `np.unique` hashed int64 keys). Output is unchanged.
+  The profile's pass 1 reports `n_bounded` and `n_exact`, pass 2's `n_counted`
+  is the number it counted, and pass 2 reports no `progress_callback` chunk
+  when it reads none.
+  Measured with 4 chunks against main at `e892d8a` on the same box
+  (`bench/results/2026-10-08-son-bound/`, median of 3, `bench/cpu/PROTOCOL.md`
+  Amendment 5): deep_k 4.7 → 2.6 s at 1 thread and 4.2 → 2.3 s at 4;
+  skewed_rows 31.2 → 22.3 s and 15.0 → 11.0 s; Online Retail II at 0.005
+  13.9 → 8.1 s and 13.4 → 7.8 s, at 0.0001 with max_length 2 7.9 → 2.8 s and
+  8.0 → 2.9 s (peak RSS 768 → 579 and 854 → 672 MB); smoke and wide_vocab
+  within 0.02 s.
 - **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
   (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
   `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner

@@ -28,6 +28,8 @@ from et_miner.streaming import son
 N_ROWS = 3_000
 CHUNK = 1_000
 MIN_SUPPORT = 0.05
+#: Pairs near this threshold are locally frequent in some chunks only, so pass 1's bound leaves pass 2 candidates to count.
+CPU_MIN_SUPPORT = 0.035
 
 
 @pytest.fixture(scope="module")
@@ -66,13 +68,16 @@ def test_cpu_son_raises_when_a_chunk_fails(transactions, monkeypatch, target):
     failing = _FailOnCall(getattr(son, target), 2)
     monkeypatch.setattr(son, target, failing)
     with pytest.raises(RuntimeError, match="injected failure on call 2"):
-        son.apriori_streaming(transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, show_progress=False)
+        son.apriori_streaming(transactions, min_support=CPU_MIN_SUPPORT, chunk_size=CHUNK, show_progress=False)
     assert failing.calls == 2
 
 
 def test_cpu_son_matches_in_core_when_nothing_fails(transactions):
-    got = son.apriori_streaming(transactions, min_support=MIN_SUPPORT, chunk_size=CHUNK, show_progress=False)
-    assert _as_set(got) == _as_set(apriori(transactions, min_support=MIN_SUPPORT))
+    got, session = son.apriori_streaming(
+        transactions, min_support=CPU_MIN_SUPPORT, chunk_size=CHUNK, show_progress=False, profile=True
+    )
+    assert {p.name: p.extra for p in session.phases}["pass2_global_counting"]["n_counted"] > 0
+    assert _as_set(got) == _as_set(apriori(transactions, min_support=CPU_MIN_SUPPORT))
 
 
 def test_gpu_resident_is_refused(transactions):

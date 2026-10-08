@@ -15,11 +15,14 @@ Pass 2 - Global counting:
 
 On the CPU both passes run on the array miner (core/cpu_miner.py): pass 1
 mines each chunk's CSR level by level, and the union is kept as one int32
-array per length, deduplicated chunk by chunk; pass 2 maps each chunk onto the
-candidate items and counts the candidates with ``count_itemsets``. Memory
-holds one chunk's CSR and the candidate arrays, never the whole dataset. With
-``use_gpu=True`` each chunk is mined on the row-split GPU miner and pass 2
-counts with the batched itemset kernel.
+array per length with each row's local counts summed, deduplicated chunk by
+chunk. Those sums bound each candidate's global count (``_bound``): pass 2
+drops the candidates that cannot reach the threshold, takes the exact count
+pass 1 already has where it has one, maps each chunk onto the candidate items
+and counts the rest with ``count_itemsets``, and reads no chunk when nothing is
+left to count. Memory holds one chunk's CSR and the candidate arrays, never
+the whole dataset. With ``use_gpu=True`` each chunk is mined on the row-split
+GPU miner and pass 2 counts with the batched itemset kernel.
 
 Usage:
     from et_miner.streaming.son import apriori_streaming
@@ -27,9 +30,10 @@ Usage:
     result = apriori_streaming(pl.scan_parquet("big/*.parquet"), min_support=0.001, chunk_size=10_000_000)
 
 Options: the parameters of ``apriori_streaming``, and one module constant:
-    UNION_PENDING_BYTES  bytes of one length's pass-1 rows held before they are
-                         deduplicated into the union (when they also exceed
-                         that length's deduplicated rows); a budget per length
+    UNION_PENDING_BYTES  bytes of one length's pass-1 rows and local counts
+                         held before they are merged into the union (when they
+                         also exceed that length's merged rows); a budget per
+                         length
 
 Reference:
     Savasere, A., Omiecinski, E. R., & Navathe, S. B. (1995).
@@ -57,7 +61,7 @@ from et_miner.core.cpu_miner import (
     _workers,
     build_transaction_csr,
     count_itemsets,
-    unique_rows,
+    sum_rows,
 )
 from et_miner.core.matrix import build_boolean_matrix
 from et_miner.core.result import (
@@ -165,7 +169,10 @@ def apriori_streaming(
             {candidates, items, memory_gb} for pass1 or {counted, memory_gb} for pass2.
             On the CPU, pass 1's candidates count the itemsets collected so
             far before duplicates across chunks are removed (an upper bound);
-            the profile's n_candidates is the deduplicated count.
+            the profile's n_candidates is the deduplicated count, n_bounded
+            those within pass 1's bound and n_exact those of them pass 1
+            already counted. Pass 2 reports no chunk when nothing is left to
+            count.
 
     Returns:
         If profile=False: DataFrame with columns [itemset, support]
@@ -552,25 +559,32 @@ def _chunks(n_chunks: int, desc: str, show_progress: bool):
 
 
 class _CandidateUnion:
-    """The union of the chunks' locally frequent itemsets, as int32 rows of item ids per length.
+    """The union of the chunks' locally frequent itemsets per length: int32 rows of item ids, each with two sums.
+
+    Per distinct row X: ``known``, the sum of X's local counts over the chunks
+    that emitted it, and ``slack``, the sum of those chunks' slack (local
+    min_count - 1, the most rows of a chunk an itemset it did not emit can
+    occur in). Both are int32 below 2**31 transactions (each sum is at most
+    their number), int64 otherwise.
 
     Items get ids in the order they are first seen (``seen``), so a chunk's
     column ids map onto them without knowing the later chunks. A chunk's rows
-    wait in ``pending``; once a length's pending rows take more than
-    ``UNION_PENDING_BYTES`` and more than its deduplicated rows, they are
-    merged into those (``unique_rows``). A small union is so sorted once, in
+    and local counts wait in ``pending``; once a length's pending arrays take
+    more than ``UNION_PENDING_BYTES`` and more than its merged arrays, they are
+    merged into those (``sum_rows``). A small union is so sorted once, in
     ``finish``; a large one is merged when its pending rows have doubled it.
-    Between merges a length holds its distinct rows plus at most
-    max(``UNION_PENDING_BYTES``, those rows) of pending rows; a merge, and
+    Between merges a length holds its merged arrays plus at most
+    max(``UNION_PENDING_BYTES``, those arrays) of pending ones; a merge, and
     ``finish``, briefly hold a few more copies of that length (concatenation,
-    packed keys, the sorted result). ``finish`` renumbers the ids in sorted
-    item order and deduplicates what remains.
+    packed keys, sort order, the merged result). ``finish`` renumbers the ids
+    in sorted item order and merges what remains.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, n_total: int) -> None:
+        self.dtype = np.int32 if n_total < 2**31 else np.int64
         self.seen: pl.Series | None = None
-        self.levels: dict[int, np.ndarray] = {}
-        self.pending: dict[int, list[np.ndarray]] = {}
+        self.levels: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+        self.pending: dict[int, list[tuple[np.ndarray, np.ndarray, int]]] = {}
 
     @property
     def n_items(self) -> int:
@@ -578,58 +592,99 @@ class _CandidateUnion:
 
     def __len__(self) -> int:
         """Rows held: the distinct ones plus the pending ones (an upper bound on the distinct itemsets)."""
-        return sum(len(v) for v in self.levels.values()) + sum(len(p) for v in self.pending.values() for p in v)
+        return sum(len(v[0]) for v in self.levels.values()) + sum(len(p[0]) for v in self.pending.values() for p in v)
 
-    def add(self, items: pl.Series, levels: list[np.ndarray]) -> None:
-        """Add one chunk: its frequent items (column order) and its levels as column ids."""
+    def add(self, items: pl.Series, levels: list[tuple[np.ndarray, np.ndarray]], slack: int) -> None:
+        """Add one chunk: its frequent items (column order), its levels as (column ids, local counts), its slack."""
         self.seen = (
             items if self.seen is None else pl.concat([self.seen, items.filter(~items.is_in(self.seen.implode()))])
         )
         ids = pl.Series(np.arange(len(self.seen), dtype=np.int32))
         remap = items.replace_strict(self.seen, ids, return_dtype=pl.Int32).to_numpy()
-        for sets in levels:
+        for sets, counts in levels:
             if len(sets) == 0:
                 continue
             k = sets.shape[1]
             pending = self.pending.setdefault(k, [])
-            pending.append(np.sort(remap[sets], axis=1))
-            held = self.levels[k].nbytes if k in self.levels else 0
-            if sum(p.nbytes for p in pending) > max(UNION_PENDING_BYTES, held):
-                parts = ([self.levels[k]] if k in self.levels else []) + self.pending.pop(k)
-                self.levels[k] = unique_rows(np.concatenate(parts), len(self.seen))
+            pending.append((np.sort(remap[sets], axis=1), counts.astype(self.dtype), slack))
+            held = sum(a.nbytes for a in self.levels[k]) if k in self.levels else 0
+            if sum(p[0].nbytes + p[1].nbytes for p in pending) > max(UNION_PENDING_BYTES, held):
+                self.levels[k] = self._merge(k, None)
 
-    def finish(self) -> tuple[pl.Series, dict[int, np.ndarray]]:
-        """(the items in sorted order, per length the lexsorted distinct candidates as column ids into them)."""
+    def _merge(self, k: int, rank: np.ndarray | None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Length k's merged and pending arrays as one: (lexsorted distinct rows, known, slack), ids through ``rank``."""
+        parts = ([self.levels.pop(k)] if k in self.levels else []) + [
+            (rows, counts, np.full(len(rows), slack, dtype=self.dtype))
+            for rows, counts, slack in self.pending.pop(k, [])
+        ]
+        rows = np.concatenate([p[0] for p in parts])
+        if rank is not None:
+            rows = np.sort(rank[rows], axis=1)
+        weights = [np.concatenate([p[1] for p in parts]), np.concatenate([p[2] for p in parts])]
+        del parts
+        rows, (known, slack) = sum_rows(rows, self.n_items, weights)
+        return rows, known, slack
+
+    def finish(self) -> tuple[pl.Series, dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]]]:
+        """(the items in sorted order, per length (lexsorted distinct rows as column ids into them, known, slack))."""
         if self.seen is None:
             raise ValueError("no chunk was added")
         order = self.seen.arg_sort().to_numpy()
         rank = np.empty(len(order), dtype=np.int32)
         rank[order] = np.arange(len(order), dtype=np.int32)
-        items = self.seen.gather(pl.Series(order))
-        out = {}
-        for k in sorted(set(self.levels) | set(self.pending)):
-            parts = ([self.levels.pop(k)] if k in self.levels else []) + self.pending.pop(k, [])
-            out[k] = unique_rows(np.sort(rank[np.concatenate(parts)], axis=1), len(items))
-        return items, out
+        out = {k: self._merge(k, rank) for k in sorted(set(self.levels) | set(self.pending))}
+        return self.seen.gather(pl.Series(order)), out
+
+
+def _bound(
+    merged: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]], total_slack: int, min_count: int
+) -> dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Pass 1's upper bound on each union candidate's global count, applied before pass 2.
+
+    Pass 1 mines every chunk completely at its local min_count, so a chunk that
+    did not emit X holds X in at most its slack rows, and X's global count is
+    at most ``known + total_slack - slack`` (``_CandidateUnion``); with no
+    slack left that bound is the count. Per length: (the lexsorted candidates
+    whose bound reaches min_count, their int64 counts, the mask of those pass 2
+    must count). The counts are exact where no slack is left and 0 under the
+    mask, until the caller writes pass 2's totals there.
+    """
+    out = {}
+    for k, (rows, known, slack) in merged.items():
+        left = total_slack - slack.astype(np.int64)
+        keep = known + left >= min_count
+        need = left[keep] > 0
+        out[k] = (rows[keep], np.where(need, 0, known[keep]).astype(np.int64), need)
+    return out
+
+
+def _local_min_count(local_min_support: float, n_rows: int) -> int:
+    """The min_count pass 1 mines a chunk of ``n_rows`` rows at; ``_bound``'s slack is this minus 1."""
+    return max(1, _min_count(local_min_support, n_rows))
 
 
 def _local_levels(
     chunk_lf: pl.LazyFrame,
+    n_rows: int,
     local_min_support: float,
     max_length: int | None,
     item_col: str,
     pool: ThreadPoolExecutor | None,
     workers: int,
-) -> tuple[pl.Series, list[np.ndarray]] | None:
-    """One chunk's locally frequent itemsets: (its frequent items, a lexsorted int32 array of column ids per K).
+) -> tuple[pl.Series, list[tuple[np.ndarray, np.ndarray]]] | None:
+    """One chunk's locally frequent itemsets: (its frequent items, per K a lexsorted int32 array of column ids and their counts).
 
     Steps: the chunk's CSR at the local threshold (``build_transaction_csr``),
     then the array miner's levels on it (``_mine_levels``, as ``mine_cpu``
-    runs them). None when no item is locally frequent.
+    runs them) at ``_local_min_count``. None when no item is locally frequent.
+    Raises if the chunk does not hold ``n_rows`` rows: its slack, computed
+    from ``n_rows``, would then not bound what it left out.
     """
     tc = build_transaction_csr(chunk_lf, local_min_support, item_col)
     if tc is None:
         return None
+    if tc.n_rows != n_rows:
+        raise RuntimeError(f"a SON chunk holds {tc.n_rows} rows where {n_rows} were counted")
     ones = np.arange(tc.n_cols, dtype=np.int32)[:, None]
     emitted = [(ones, tc.counts)]
     _mine_levels(
@@ -637,7 +692,7 @@ def _local_levels(
         gen=ones,
         prev=_Level(ones, tc.counts, tc.counts < tc.n_rows),
         emitted=emitted,
-        min_count=max(1, _min_count(local_min_support, tc.n_rows)),
+        min_count=_local_min_count(local_min_support, n_rows),
         effective_max_length=min(max_length or math.inf, int(np.diff(tc.indptr).max()), tc.n_cols),
         prune_equal_support=False,
         use_generator_pruning=False,
@@ -647,7 +702,7 @@ def _local_levels(
         pool=pool,
         workers=workers,
     )
-    return tc.items, [sets for sets, _ in emitted]
+    return tc.items, emitted
 
 
 def _count_chunk(
@@ -684,49 +739,74 @@ def _son_cpu(
     Steps:
 
     1. Pass 1 (profile phase ``pass1_local_mining``): per chunk, the locally
-       frequent itemsets (``_local_levels``), added to ``_CandidateUnion``,
-       which deduplicates them chunk by chunk.
+       frequent itemsets and their counts (``_local_levels``), added to
+       ``_CandidateUnion`` with the chunk's slack (``_local_min_count`` - 1),
+       which sums them per itemset.
     2. The union's items in sorted order and, per length, its lexsorted
-       candidates as column ids into them.
-    3. Pass 2 (``pass2_global_counting``): per chunk, the count of every
-       candidate (``_count_chunk``), summed in int64.
-    4. Keep the candidates whose total reaches the global min_count and build
+       candidates as column ids into them; ``_bound`` drops those that cannot
+       reach the global min_count and keeps the exact count of those with no
+       slack left.
+    3. Pass 2 (``pass2_global_counting``): per chunk, the count of the
+       candidates left (``_count_chunk``), summed in int64; with none left no
+       chunk is read.
+    4. Keep the candidates whose count reaches the global min_count and build
        the result as the CPU route does (``_emit``).
 
     A chunk that fails raises: a skipped chunk would drop its candidates or its
     counts while support is still divided by every row.
     """
     n_chunks = len(chunk_sizes)
+    slacks = [_local_min_count(local_min_support, n) - 1 for n in chunk_sizes]
+    min_count = _min_count(min_support, n_total)
     workers = _workers(n_jobs)
     pool = ThreadPoolExecutor(workers) if workers > 1 else None
     try:
         if session:
             session.start_phase("pass1_local_mining")
-        union = _CandidateUnion()
+        union = _CandidateUnion(n_total)
         bar = _chunks(n_chunks, "Pass 1: Local mining", show_progress)
         for chunk_idx in bar:
             local = _local_levels(
-                lf.slice(chunk_idx * chunk_size, chunk_size), local_min_support, max_length, item_col, pool, workers
+                lf.slice(chunk_idx * chunk_size, chunk_size),
+                chunk_sizes[chunk_idx],
+                local_min_support,
+                max_length,
+                item_col,
+                pool,
+                workers,
             )
             if local is not None:
-                union.add(*local)
+                union.add(*local, slacks[chunk_idx])
             if show_progress and HAS_TQDM:
                 bar.set_postfix(candidates=len(union), items=union.n_items)  # type: ignore[union-attr]
             if progress_callback:
                 metrics = {"candidates": len(union), "items": union.n_items, "memory_gb": _get_memory_gb()}
                 progress_callback("pass1", chunk_idx, n_chunks, metrics)
-        items, cands = union.finish() if union.n_items else (None, {})
-        n_candidates = sum(len(c) for c in cands.values())
+        items, merged = union.finish() if union.n_items else (None, {})
+        n_candidates = sum(len(v[0]) for v in merged.values())
+        bounded = _bound(merged, sum(slacks), min_count)
+        del merged
+        cands = {k: rows[need] for k, (rows, _, need) in bounded.items() if need.any()}
+        n_bounded = sum(len(v[0]) for v in bounded.values())
+        n_counted = sum(len(c) for c in cands.values())
         if session:
-            session.end_phase(n_candidates=n_candidates, n_items=union.n_items)
-        if items is None or n_candidates == 0:
+            session.end_phase(
+                n_candidates=n_candidates, n_items=union.n_items, n_bounded=n_bounded, n_exact=n_bounded - n_counted
+            )
+        if items is None:
             return _empty_result()
-        logger.info("Pass 1 complete: {} candidate itemsets from {} items", n_candidates, len(items))
+        logger.info(
+            "Pass 1 complete: {} candidate itemsets from {} items; {} within the partition bound, {} of them exact",
+            n_candidates,
+            len(items),
+            n_bounded,
+            n_bounded - n_counted,
+        )
 
         if session:
             session.start_phase("pass2_global_counting")
         totals = {k: np.zeros(len(c), dtype=np.int64) for k, c in cands.items()}
-        for chunk_idx in _chunks(n_chunks, "Pass 2: Global counting", show_progress):
+        for chunk_idx in _chunks(n_chunks if cands else 0, "Pass 2: Global counting", show_progress):
             counts = _count_chunk(lf.slice(chunk_idx * chunk_size, chunk_size), item_col, items, cands, pool, workers)
             for k, c in counts.items():
                 totals[k] += c
@@ -735,13 +815,15 @@ def _son_cpu(
                     "pass2", chunk_idx, n_chunks, {"counted": chunk_idx + 1, "memory_gb": _get_memory_gb()}
                 )
         if session:
-            session.end_phase(n_counted=n_candidates)
+            session.end_phase(n_counted=n_counted)
     finally:
         if pool is not None:
             pool.shutdown()
 
-    min_count = _min_count(min_support, n_total)
-    levels = [(cands[k][totals[k] >= min_count], totals[k][totals[k] >= min_count]) for k in cands]
+    for k, total in totals.items():
+        _, counts, need = bounded[k]
+        counts[need] = total
+    levels = [(rows[counts >= min_count], counts[counts >= min_count]) for rows, counts, _ in bounded.values()]
     logger.info(
         "Pass 2 complete: {}/{} candidates are globally frequent (support >= {:.6f})",
         sum(len(c) for c, _ in levels),

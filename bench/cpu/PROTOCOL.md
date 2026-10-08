@@ -317,3 +317,90 @@ Known losses against the faster counter per level in S0: K=3 and K=4 of skew at
 T1 (about 2.4 s) and K=3 of deepk (about 0.3 s). S1 confirms the built tree as
 Amendment 3 sets out; its report puts `built`'s wall time next to S0's `array`
 and `array-pc` rows for each regime.
+
+## Amendment 5 (2026-10-08, SON's partition upper bound before pass 2)
+
+Goal under test: pass 2 of SON on the CPU counts only the union candidates that
+can still be globally frequent, and takes the exact count pass 1 already has
+where it has one; output identical. The GPU branches of SON are out of scope.
+
+**The bound.** Pass 1 mines chunk i completely at its local min_count
+m_i = max(1, ceil(local_s · n_i)), so a chunk that did not emit X holds X in at
+most m_i − 1 rows (its slack). With known(X) the sum of X's local counts over
+the chunks that emitted it, slack(X) the sum of those chunks' slack and S the
+sum of every chunk's slack, X's global count is at most
+known(X) + S − slack(X). A candidate below the global min_count is dropped; a
+candidate with slack(X) = S has count known(X) and is not counted again;
+pass 2 counts the rest in every chunk and reads no chunk when none is left.
+
+**The union.** Each row carries known and slack (int32 below 2³¹
+transactions, int64 otherwise), summed per distinct row by a sort of the
+packed keys and `np.add.reduceat` (`cpu_miner.sum_rows`), which replaces
+`unique_rows`. `unique_rows` called `np.unique`, which hashes int64 keys on
+NumPy 2.5.2: 6.4 s against 0.23 s for a sort and a mask on 12M keys, in a
+probe outside this protocol. `UNION_PENDING_BYTES` now counts the rows and
+their local counts.
+
+**Stakes (untimed).** `bench/cpu/son_bound_stakes.py`, 4 chunks, rows in
+`bench/results/2026-10-08-son-bound/stakes.jsonl` (tree `e892d8a`; `+dirty`
+is the handoff file). The script checks that every globally frequent itemset
+(in-core `apriori`) is in the union within its bound, and that every exact
+count equals the in-core count. At the default factor 0.9:
+
+| workload | union | within the bound | exact | left to count | frequent |
+|---|---|---|---|---|---|
+| smoke | 924 | 695 | 684 | 11 | 694 |
+| deepk | 13,070 | 8,841 | 8,841 | 0 | 8,841 |
+| skew | 221,111 | 98,619 | 1,498 | 97,121 | 10,350 |
+| wide | 5,262 | 3,919 | 3,691 | 228 | 3,872 |
+| or005 | 1,125,261 | 36,978 | 4,138 | 32,840 | 10,488 |
+| or0001k2 | 5,421,817 | 2,678,808 | 2,678,808 | 0 | 2,678,808 |
+
+At factor 1.0 the bound keeps 67–100 % of a smaller union (larger slack, fewer
+exact counts); the factor is not changed here. The built tree's profile
+reproduces these counts on all six workloads, with S1's signatures.
+
+**Expectation, not a rule.** deepk and or0001k2 read no chunk in pass 2 (S0's
+pass 2 there: about 2.2–2.4 s and 1.6 s); or005's pass 2 counts 2.9 % of the
+union (S0's `array-pc` pass 2: about 4.9 s); skew's counts 44 %; or0001k2's
+union (S0: 4.1–4.3 s) no longer hashes.
+
+**Phase B1.** Two runs of `son_stakes.py --matrix --arms built,incore --reps 3`,
+back to back on this box, with Amendment 3's workloads, threads, order, cap
+(600 s), warm-up and 4 chunks, `--max-hours 1.0` each:
+
+- *base*: the tree at `e892d8a` (main after PR #28), checked out detached,
+  rows in `bench/results/2026-10-08-son-bound/base.jsonl`;
+- *bound*: the branch's commit with this amendment and the bound, rows in
+  `bench/results/2026-10-08-son-bound/raw.jsonl`.
+
+No commit and no edit of a tracked file during either run. After both, one
+diagnostic run per workload at T1 with `profile=True` gives pass-1 and pass-2
+seconds for the report; it is not used by the rules.
+
+**Correctness.** The tier-equivalence chain, the SON, streaming and free-set
+tests pass on the bound tree before B1. Every ok row of a workload carries
+S1's signature (`son_stakes.py --check` on each file).
+
+**Decision rules** (medians over the 3 reps; *rule 2* as in Amendment 3: at
+least 10 % below and at least 1 s saved).
+
+1. *Exactness.* A divergent signature or an error fails the bound.
+2. *Go.* `built` on bound meets rule 2 against `built` on base in at least one
+   regime; in no regime is it at least 10 % and at least 0.1 s slower; its
+   `ru_maxrss_mb` stays within 1.25 × base's in every regime.
+3. *Drift control.* `incore` (code unchanged by the bound) of the two runs
+   agree within 10 % per regime. A regime outside that is reported, and its
+   verdict under rule 2 is marked as affected by drift.
+4. A regression under rule 2 is reported with its phases; the owner decides
+   whether the bound stays, changes or goes.
+5. CHANGELOG and README numbers come only from B1 (bound against base).
+
+**Erratum (after B1, from the council review of PR #29; no rule or number
+changes).** "At factor 1.0 the bound keeps 67–100 % of a smaller union" holds
+for five workloads (or005 67.4 %, wide 95.5 %, smoke 99.3 %, skew 99.9 %,
+deepk 100 %), not for or0001k2. That workload is the same at both factors
+(5,421,817 → 2,678,808, 49.4 %, all exact): its local min_count is 1 either
+way. In m_i = max(1, ceil(local_s · n_i)), local_s is the float
+min_support × factor (0.02 × 0.9 = 0.018000000000000002, so deepk's m_i is
+4,501); slack and local mining use that same value.

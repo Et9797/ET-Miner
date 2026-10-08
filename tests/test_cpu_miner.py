@@ -115,15 +115,15 @@ def test_item_counts_are_int64():
     column = pl.Series("items", [[1, 2], [1], [2, 2]])
     lens = column.list.len().to_numpy().astype(np.int64)
     for c, n in ((column, lens), (column.clear(), lens[:0])):
-        lists = cpu_miner._int_lists(c)
-        assert lists is not None
+        ids = cpu_miner._int_ids(c)
+        assert ids is not None
         assert cpu_miner._count_items(c, n, None).schema["count"] == pl.Int64
-        assert cpu_miner._count_items(c, n, lists).schema["count"] == pl.Int64
+        assert cpu_miner._count_items(c, n, ids).schema["count"] == pl.Int64
 
 
-def _null_free_rows(seed: int, shift: int) -> list:
-    """``_random_rows`` with unsorted rows, repeats and empty lists but no null, ids moved by ``shift``."""
-    return [[x + shift for x in (r or []) if x is not None] for r in _random_rows(seed)]
+def _shifted_rows(seed: int, shift: int) -> list:
+    """``_random_rows`` (unsorted rows, repeats, empty and null lists, null items) with ids moved by ``shift``."""
+    return [None if r is None else [None if x is None else x + shift for x in r] for r in _random_rows(seed)]
 
 
 def _assert_same_csr(a, b) -> None:
@@ -151,36 +151,36 @@ def _both_paths(monkeypatch, lf: pl.LazyFrame, min_support: float):
 @pytest.mark.parametrize("seed", [0, 1])
 def test_int_path_matches_the_polars_path(monkeypatch, dtype, shift, chunk_nnz, seed):
     monkeypatch.setattr(cpu_miner, "CSR_CHUNK_NNZ", chunk_nnz)
-    rows = _null_free_rows(seed, shift)
+    rows = _shifted_rows(seed, shift)
     df = pl.DataFrame({"items": rows}, schema={"items": pl.List(dtype)})
-    assert cpu_miner._int_lists(df.get_column("items")) is not None
+    assert cpu_miner._int_ids(df.get_column("items")) is not None
     fast, slow = _both_paths(monkeypatch, df.lazy(), 0.03)
     _assert_same_csr(fast, slow)
     present = _presence(rows, fast.items.to_list())
     assert np.array_equal(fast.to_scipy().toarray().astype(bool), present)
 
 
-def test_int_path_reads_every_arrow_chunk_and_slices(monkeypatch):
-    """A column of several Arrow chunks, and sliced ones (offsets not starting at 0), maps row for row."""
-    parts = [pl.DataFrame({"items": _null_free_rows(s, 5)}, schema={"items": pl.List(pl.Int64)}) for s in range(4)]
+def test_int_path_on_a_chunked_and_sliced_column(monkeypatch):
+    """A column of several chunks, sliced, with row chunks that straddle them, maps row for row."""
+    parts = [pl.DataFrame({"items": _shifted_rows(s, 5)}, schema={"items": pl.List(pl.Int64)}) for s in range(4)]
     df = pl.concat(parts, rechunk=False).slice(37, 1_400)
     column = df.get_column("items")
-    assert column.n_chunks() > 1 and cpu_miner._int_lists(column) is not None
+    assert column.n_chunks() > 1 and cpu_miner._int_ids(column) is not None
     monkeypatch.setattr(cpu_miner, "CSR_CHUNK_NNZ", 50)
     fast, slow = _both_paths(monkeypatch, df.lazy(), 0.03)
     _assert_same_csr(fast, slow)
     assert np.array_equal(fast.to_scipy().toarray().astype(bool), _presence(column.to_list(), fast.items.to_list()))
 
 
-def test_int_lists_declines_what_it_cannot_read():
-    """Null lists, null items, other dtypes and a span past INT_SPAN_LIMIT go through Polars."""
-    assert cpu_miner._int_lists(pl.Series([[1, 2], None])) is None
-    assert cpu_miner._int_lists(pl.Series([[1, None], [2]])) is None
-    assert cpu_miner._int_lists(pl.Series([["a"], ["b"]])) is None
-    assert cpu_miner._int_lists(pl.Series([[1.0], [2.0]])) is None
-    assert cpu_miner._int_lists(pl.Series([[1], [2]], dtype=pl.List(pl.UInt64))) is None
-    assert cpu_miner._int_lists(pl.Series([[0], [cpu_miner.INT_SPAN_LIMIT]])) is None
-    assert cpu_miner._int_lists(pl.Series([[0], [cpu_miner.INT_SPAN_LIMIT - 1]])) is not None
+def test_int_ids_declines_other_dtypes_and_wide_spans():
+    """Other dtypes and a span past INT_SPAN_LIMIT go through Polars; nulls and all-empty columns do not."""
+    assert cpu_miner._int_ids(pl.Series([["a"], ["b"]])) is None
+    assert cpu_miner._int_ids(pl.Series([[1.0], [2.0]])) is None
+    assert cpu_miner._int_ids(pl.Series([[1], [2]], dtype=pl.List(pl.UInt64))) is None
+    assert cpu_miner._int_ids(pl.Series([[-3], [cpu_miner.INT_SPAN_LIMIT - 3]])) is None
+    assert cpu_miner._int_ids(pl.Series([[-3], [cpu_miner.INT_SPAN_LIMIT - 4]])) == cpu_miner._IntIds(-3, cpu_miner.INT_SPAN_LIMIT, pl.Int64)
+    assert cpu_miner._int_ids(pl.Series([[1, None], None, [4]])) == cpu_miner._IntIds(1, 4, pl.Int64)
+    assert cpu_miner._int_ids(pl.Series([[], None], dtype=pl.List(pl.Int32))) == cpu_miner._IntIds(0, 1, pl.Int32)
 
 
 def test_map_rows_ignores_items_outside_the_column_range():
@@ -189,7 +189,7 @@ def test_map_rows_ignores_items_outside_the_column_range():
     items = pl.Series([1, 3, 5, 7, 99])
     lens = column.list.len().to_numpy().astype(np.int64)
     bound = int(lens.sum())
-    fast = cpu_miner._map_rows(column, items, bound, cpu_miner._int_lists(column))
+    fast = cpu_miner._map_rows(column, items, bound, cpu_miner._int_ids(column))
     slow = cpu_miner._map_rows(column, items, bound, None)
     for a, b in zip(fast, slow):
         assert np.array_equal(a, b)

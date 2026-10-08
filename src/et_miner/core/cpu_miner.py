@@ -18,8 +18,7 @@ Options (module constants, patched by tests):
                        is built; bounds the build's temporary memory
     INT_SPAN_LIMIT     integer item ids spanning at most this many values
                        (max - min + 1) are counted with a bincount and mapped
-                       with a lookup table, read straight from the Arrow
-                       buffers; other columns go through Polars
+                       with a lookup table; other columns go through Polars
     GRAM_BUDGET_BYTES  bytes a Gram block may take (12 B per entry of a
                        dense block), K=2 and the K>=3 projections alike;
                        above it the Gram is produced in blocks. Pooled K>=3
@@ -144,61 +143,45 @@ def _chunk_bounds(lens: np.ndarray, chunk_nnz: int) -> list[tuple[int, int]]:
 
 
 @dataclass(frozen=True)
-class _IntLists:
-    """An integer list column as numpy views of its Arrow buffers: (offsets, values) per chunk, and the ids' range.
+class _IntIds:
+    """The range of a list column's integer ids: the smallest, ``span`` = max - min + 1, and their dtype."""
 
-    ``values`` of a chunk start at its first row (``offsets[0]``); ``lo`` is
-    the smallest id, ``span`` = max - min + 1 and ``dtype`` the ids' dtype.
-    """
-
-    chunks: list[tuple[np.ndarray, np.ndarray]]
     lo: int
     span: int
     dtype: pl.DataType | pl.datatypes.DataTypeClass
 
-    def ids(self, values: np.ndarray) -> np.ndarray:
-        """Values shifted to 0 .. span - 1."""
+    def shift(self, values: np.ndarray) -> np.ndarray:
+        """Ids moved to 0 .. span - 1."""
         return values if self.lo == 0 else values.astype(np.int64) - self.lo
 
 
-def _int_lists(column: pl.Series) -> _IntLists | None:
-    """The column's Arrow buffers when it holds integer ids within ``INT_SPAN_LIMIT`` and no null list or item, else None."""
+def _int_ids(column: pl.Series) -> _IntIds | None:
+    """The id range of a list column of integer ids spanning at most ``INT_SPAN_LIMIT`` values, else None."""
     dtype = column.dtype
-    if not isinstance(dtype, pl.List) or dtype.inner not in _INT_DTYPES or column.null_count():
+    if not isinstance(dtype, pl.List) or dtype.inner not in _INT_DTYPES:
         return None
-    chunks, lo, hi = [], 0, -1
-    for part in column.get_chunks():
-        arr = part.to_arrow()
-        off = arr.offsets.to_numpy()
-        vals = arr.values.slice(int(off[0]), int(off[-1] - off[0]))
-        if vals.null_count:
-            return None
-        v = vals.to_numpy()
-        if len(v):
-            vlo, vhi = int(v.min()), int(v.max())
-            lo, hi = (vlo, vhi) if hi < lo else (min(lo, vlo), max(hi, vhi))
-        chunks.append((off, v))
-    if hi - lo + 1 > INT_SPAN_LIMIT:
-        return None
-    return _IntLists(chunks, lo, max(1, hi - lo + 1), dtype.inner)
+    lo, hi = column.list.min().min(), column.list.max().max()
+    if not isinstance(lo, int) or not isinstance(hi, int):
+        lo = hi = 0
+    return _IntIds(lo, hi - lo + 1, dtype.inner) if hi - lo + 1 <= INT_SPAN_LIMIT else None
 
 
-def _count_items(column: pl.Series, lens: np.ndarray, lists: _IntLists | None) -> pl.DataFrame:
+def _count_items(column: pl.Series, lens: np.ndarray, ids: _IntIds | None) -> pl.DataFrame:
     """(item, count Int64) over the list column, nulls dropped, counted per row chunk and summed.
 
-    With ``lists`` (``_int_lists``) a bincount over the id range, in steps of
-    at least ``CSR_CHUNK_NNZ`` entries. Otherwise explode + group_by per row
-    chunk: chunking keeps Polars' hash tables to one chunk's distinct items,
-    where one explode + group_by over the whole column held a table per thread.
+    With ``ids`` (``_int_ids``) a bincount over the id range, per row chunk of
+    at least ``CSR_CHUNK_NNZ`` and at least ``span`` entries. Otherwise
+    group_by: chunking keeps Polars' hash tables to one chunk's distinct
+    items, where one explode + group_by over the whole column held a table
+    per thread.
     """
-    if lists is not None:
-        counts = np.zeros(lists.span, dtype=np.int64)
-        step = max(CSR_CHUNK_NNZ, lists.span)
-        for _, v in lists.chunks:
-            for s in range(0, len(v), step):
-                counts += np.bincount(lists.ids(v[s : s + step]), minlength=lists.span)
+    if ids is not None:
+        counts = np.zeros(ids.span, dtype=np.int64)
+        for r0, r1 in _chunk_bounds(lens, max(CSR_CHUNK_NNZ, ids.span)):
+            v = column.slice(r0, r1 - r0).explode().drop_nulls().to_numpy()
+            counts += np.bincount(ids.shift(v), minlength=ids.span)
         present = np.flatnonzero(counts)
-        return pl.DataFrame({"item": pl.Series(present + lists.lo).cast(lists.dtype), "count": counts[present]})
+        return pl.DataFrame({"item": pl.Series(present + ids.lo).cast(ids.dtype), "count": counts[present]})
     parts = [
         column.slice(r0, r1 - r0)
         .explode()
@@ -213,47 +196,36 @@ def _count_items(column: pl.Series, lens: np.ndarray, lists: _IntLists | None) -
     return pl.concat(parts).group_by("item").agg(pl.col("count").sum())
 
 
-def _mapped_chunks(
-    column: pl.Series, items: pl.Series, lens: np.ndarray, lists: _IntLists | None
-) -> Iterator[tuple[int, int, np.ndarray]]:
-    """Per row chunk (r0, r1, the column id int32 of every list entry of rows r0 .. r1 - 1, -1 if not in ``items``).
+def _column_ids(items: pl.Series, ids: _IntIds | None) -> Callable[[pl.Series], np.ndarray]:
+    """Maps exploded list entries to column ids int32: positions in ``items``, -1 for other values and nulls.
 
-    With ``lists`` a lookup table over the id range, per Arrow chunk. Otherwise
-    explode (a null list explodes to one null, so its length counts as 1) and
-    ``replace_strict``; nulls map to -1.
+    With ``ids`` a lookup table over the id range; otherwise ``replace_strict``.
     """
-    if lists is None:
+    if ids is None:
         col_ids = pl.Series(np.arange(len(items), dtype=np.int32))
-        for r0, r1 in _chunk_bounds(lens, CSR_CHUNK_NNZ):
-            c = (
-                column.slice(r0, r1 - r0)
-                .explode()
-                .replace_strict(items, col_ids, default=None, return_dtype=pl.Int32)
-                .fill_null(-1)
-                .to_numpy()
-            )
-            yield r0, r1, c
-        return
-    lut = np.full(lists.span, -1, dtype=np.int32)
-    ids = items.to_numpy().astype(np.int64) - lists.lo
-    inside = (ids >= 0) & (ids < lists.span)
-    lut[ids[inside]] = np.flatnonzero(inside).astype(np.int32)
-    row0 = 0
-    for off, v in lists.chunks:
-        n = len(off) - 1
-        for r0, r1 in _chunk_bounds(lens[row0 : row0 + n], CSR_CHUNK_NNZ):
-            yield row0 + r0, row0 + r1, lut[lists.ids(v[off[r0] - off[0] : off[r1] - off[0]])]
-        row0 += n
+        return lambda x: x.replace_strict(items, col_ids, default=None, return_dtype=pl.Int32).fill_null(-1).to_numpy()
+    lut = np.full(ids.span, -1, dtype=np.int32)
+    pos = items.to_numpy().astype(np.int64) - ids.lo
+    inside = (pos >= 0) & (pos < ids.span)
+    lut[pos[inside]] = np.flatnonzero(inside).astype(np.int32)
+
+    def lookup(x: pl.Series) -> np.ndarray:
+        if not x.null_count():
+            return lut[ids.shift(x.to_numpy())]
+        c = lut[ids.shift(x.fill_null(ids.lo).to_numpy())]
+        c[x.is_null().to_numpy()] = -1
+        return c
+
+    return lookup
 
 
-def _map_rows(
-    column: pl.Series, items: pl.Series, bound: int, lists: _IntLists | None
-) -> tuple[np.ndarray, np.ndarray]:
+def _map_rows(column: pl.Series, items: pl.Series, bound: int, ids: _IntIds | None) -> tuple[np.ndarray, np.ndarray]:
     """(indptr, indices int32) of each row's frequent items; indptr is int32 below ``INDPTR32_LIMIT`` entries.
 
-    Steps per row chunk: map each list entry to its column id
-    (``_mapped_chunks``; values that are not frequent, and nulls, map to -1)
-    and keep the mapped entries; a running count of the kept entries, read at
+    Steps per row chunk: explode the chunk's lists (a null list explodes to
+    one null, so its length counts as 1), map each entry to its column id
+    (``_column_ids``; values that are not frequent, and nulls, map to -1) and
+    keep the mapped entries; a running count of the kept entries, read at
     the rows' entry offsets (from the list lengths), gives each row's start
     among them. A chunk whose column ids are not strictly increasing within a
     row (an unsorted row, or an item repeated in it) is sorted per row and
@@ -267,7 +239,9 @@ def _map_rows(
     indptr = np.zeros(n_rows + 1, dtype=np.int32 if bound < INDPTR32_LIMIT else np.int64)
     out = np.empty(bound, dtype=np.int32)
     filled = 0
-    for r0, r1, c in _mapped_chunks(column, items, lens, lists):
+    to_cols = _column_ids(items, ids)
+    for r0, r1 in _chunk_bounds(lens, CSR_CHUNK_NNZ):
+        c = to_cols(column.slice(r0, r1 - r0).explode())
         ends = np.zeros(r1 - r0 + 1, dtype=np.int64)
         np.cumsum(lens[r0:r1], out=ends[1:])
         valid = c >= 0
@@ -303,19 +277,19 @@ def build_transaction_csr(lf: pl.LazyFrame, min_support: float, item_col: str = 
     the column to column ids in row chunks (``_map_rows``); recount each
     column once per row. An item that reached min_count only through repeats
     inside rows falls below it here and its column is removed. Integer ids
-    within ``INT_SPAN_LIMIT`` and without nulls are counted and mapped from
-    the Arrow buffers (``_int_lists``), anything else through Polars.
+    within ``INT_SPAN_LIMIT`` are counted with a bincount and mapped with a
+    lookup table (``_int_ids``), anything else through Polars.
     """
     column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
     n_rows = len(column)
     min_count = _min_count(min_support, n_rows)
     lens = column.list.len().fill_null(1).to_numpy().astype(np.int64)
-    lists = _int_lists(column)
-    freq = _count_items(column, lens, lists).filter(pl.col("count") >= min_count).sort("item")
+    ids = _int_ids(column)
+    freq = _count_items(column, lens, ids).filter(pl.col("count") >= min_count).sort("item")
     if freq.height == 0:
         return None
     items = freq.get_column("item")
-    indptr, indices = _map_rows(column, items, int(freq.get_column("count").sum()), lists)
+    indptr, indices = _map_rows(column, items, int(freq.get_column("count").sum()), ids)
     counts = np.bincount(indices, minlength=len(items)).astype(np.int64)
     keep = counts >= min_count
     if not keep.all():

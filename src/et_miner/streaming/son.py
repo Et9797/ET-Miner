@@ -55,7 +55,7 @@ import polars as pl
 from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.core.cpu_miner import (
     _emit,
-    _int_lists,
+    _int_ids,
     _Level,
     _map_rows,
     _mine_levels,
@@ -717,7 +717,7 @@ def _count_chunk(
     """One chunk's count of every candidate: its rows mapped onto the candidate items (``_map_rows``), then ``count_itemsets``."""
     column = chunk_lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
     bound = int(column.list.len().fill_null(1).cast(pl.Int64).sum())
-    indptr, indices = _map_rows(column, items, bound, _int_lists(column))
+    indptr, indices = _map_rows(column, items, bound, _int_ids(column))
     del column
     return count_itemsets(indptr, indices, len(items), cands, pool, workers)
 

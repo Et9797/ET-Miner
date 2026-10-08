@@ -310,7 +310,8 @@ def run_array(
         for off, n in bounds:
             with ph("p2_csr"):
                 column = lf.slice(off, n).select(pl.col("items")).collect(engine="in-memory").get_column("items")
-                bound = int(column.list.len().fill_null(1).sum())
+                bound = int(column.list.len().fill_null(1).cast(pl.Int64).sum())
+                # ids=None: S0's Polars mapping, not the integer path SON's pass 2 ships with.
                 indptr, indices = cm._map_rows(column, items, bound, None)
                 del column
             with ph("p2_k1"):

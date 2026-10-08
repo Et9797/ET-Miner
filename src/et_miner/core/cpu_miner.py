@@ -222,12 +222,13 @@ def _column_ids(items: pl.Series, ids: _IntIds | None) -> Callable[[pl.Series], 
 def _map_rows(column: pl.Series, items: pl.Series, bound: int, ids: _IntIds | None) -> tuple[np.ndarray, np.ndarray]:
     """(indptr, indices int32) of each row's frequent items; indptr is int32 below ``INDPTR32_LIMIT`` entries.
 
-    Steps per row chunk: explode the chunk's lists (a null list explodes to
-    one null, so its length counts as 1), map each entry to its column id
-    (``_column_ids``; values that are not frequent, and nulls, map to -1) and
-    keep the mapped entries; a running count of the kept entries, read at
-    the rows' entry offsets (from the list lengths), gives each row's start
-    among them. A chunk whose column ids are not strictly increasing within a
+    Steps per row chunk: explode the chunk's lists (an empty list explodes to
+    nothing and a null list to one null, so its length counts as 1; a chunk
+    whose entries do not add up to its lengths raises), map each entry to its
+    column id (``_column_ids``; values that are not frequent, and nulls, map
+    to -1) and keep the mapped entries; a running count of the kept entries,
+    read at the rows' entry offsets (from the list lengths), gives each row's
+    start among them. A chunk whose column ids are not strictly increasing within a
     row (an unsorted row, or an item repeated in it) is sorted per row and
     deduplicated, so every row holds each column at most once. The output is
     written into one array of ``bound`` entries (the frequent items' explode
@@ -241,9 +242,11 @@ def _map_rows(column: pl.Series, items: pl.Series, bound: int, ids: _IntIds | No
     filled = 0
     to_cols = _column_ids(items, ids)
     for r0, r1 in _chunk_bounds(lens, CSR_CHUNK_NNZ):
-        c = to_cols(column.slice(r0, r1 - r0).explode())
+        c = to_cols(column.slice(r0, r1 - r0).explode(empty_as_null=False, keep_nulls=True))
         ends = np.zeros(r1 - r0 + 1, dtype=np.int64)
         np.cumsum(lens[r0:r1], out=ends[1:])
+        if ends[-1] != len(c):
+            raise RuntimeError(f"rows {r0}..{r1} explode to {len(c)} entries, their lengths sum to {ends[-1]}")
         valid = c >= 0
         kept = np.zeros(len(c) + 1, dtype=np.int64)
         np.cumsum(valid, out=kept[1:])

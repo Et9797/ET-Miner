@@ -730,3 +730,15 @@ def test_streaming_single_chunk_fallback_warns_about_sparse_once_and_changes_not
         with pytest.warns(DeprecationWarning, match="sparse= no longer selects") as record:
             assert _mined(df, 0.03, streaming=True, sparse=value) == plain
         assert sum(issubclass(w.category, DeprecationWarning) for w in record) == 1
+
+
+def test_map_rows_raises_when_explode_and_lengths_disagree(monkeypatch):
+    """The row starts are read at the list lengths' offsets; an explode that emits a null per empty list must fail loudly."""
+    explode = pl.Series.explode
+    monkeypatch.setattr(pl.Series, "explode", lambda self, **kw: explode(self, empty_as_null=True, keep_nulls=True))
+    column = pl.Series("items", [[], [1], [2]])
+    if len(column.explode()) == 2:
+        pytest.skip("this Polars drops empty lists even with empty_as_null=True")
+    for ids in (cpu_miner._int_ids(column), None):
+        with pytest.raises(RuntimeError, match="explode to"):
+            cpu_miner._map_rows(column, pl.Series([1, 2]), 3, ids)

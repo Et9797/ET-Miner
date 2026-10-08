@@ -64,8 +64,9 @@ again against base.
 2. **Go: not met.**
    - Time: rule 2 holds in four regimes, all of them dslk2: `incore` 1.58× at
      T1 (6.41 s saved) and 1.52× at T4 (4.26 s), `built` 1.56× (5.94 s) and
-     1.48× (3.61 s). No regime is slower; elsewhere the change saves
-     0.00–0.61 s, below the 1 s floor.
+     1.48× (3.61 s). No regime is slower under rule 2's 10 % and 0.1 s:
+     or005 `built` T4 loses 0.03 s (0.4 %); elsewhere the change saves up
+     to 0.61 s, below the 1 s floor.
    - Memory: `ru_maxrss_mb` exceeds 1.25 × base's in five regimes: smoke in
      all four (1.28–1.42×, +43–55 MB) and wide `built` T1 (1.26×, +63 MB).
      Every regime rose, by 27–67 MB.
@@ -143,9 +144,10 @@ is I1's base against base again.
 1. **Exactness: met.**
 2. **Go: met.** Rule 2 holds in the four dslk2 regimes: `incore` 1.50× at T1
    (5.85 s saved) and 1.43× at T4 (3.78 s), `built` 1.41× (4.81 s) and 1.30×
-   (2.53 s). No regime is slower: the largest loss is or005 `built` at T1,
-   0.02 s (0.3 %). Elsewhere the change saves up to 0.64 s (skew `built` T1),
-   below the 1 s floor. Peak RSS is 0.92–1.03× of base's.
+   (2.53 s). No regime is slower under rule 2's 10 % and 0.1 s: or005
+   `built` loses 0.02 s (0.2 %) at T1 and at T4. Elsewhere the change saves
+   up to 0.64 s (skew `built` T1), below the 1 s floor. Peak RSS is
+   0.92–1.03× of base's.
 3. **Drift control: met.** I1's base agrees with base again within −2.6 % to
    +1.9 %.
 4. No regression to report.

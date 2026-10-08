@@ -533,3 +533,12 @@ harness file in the base run.
 Rule 3's drift control compares `base3.jsonl` with I1's `base.jsonl`, per arm
 and regime, within 10 %. Rule 1 holds when every ok row of a workload carries
 one signature across all five files.
+
+**Erratum (after I2, from the council review of PR #30; no rule or measured
+number changes).** "The two explodes cost about 1.3 s on dslk2's 247M
+entries" is the Polars time in a cProfile of the revised build (both
+explodes, `list.min` and `list.max`), not the difference between the builds:
+the revised build takes 0.7 s more than Amendment 6's (5.0 against 4.3 s), as
+the same paragraph's figures show. Rule 5 read through this amendment takes
+its numbers from I2 (`raw2.jsonl` against `base3.jsonl`); the CHANGELOG
+quotes I2.

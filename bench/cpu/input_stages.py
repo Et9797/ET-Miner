@@ -7,7 +7,10 @@ max_length 3), then
 1. one ``mine_cpu(profile=True)`` call, recording every ``build_bitvecs`` call
    (selected rows, columns, words, seconds, pooled or not);
 2. ``build_transaction_csr``'s stages on an instrumented copy whose output is
-   checked against the real function, median of 3;
+   checked against the real function, median of 3. The copy is the build at
+   ``c973ed3`` (Polars ``group_by`` and ``replace_strict``, per-entry row
+   ids), the one PROTOCOL.md Amendment 6 measured; on later trees only its
+   output still matches the real function, not its stages;
 3. every recorded ``build_bitvecs`` call replayed sequentially and, at T4, on a
    4-worker pool (median of 3), and split sequentially into gather, sort and OR.
 

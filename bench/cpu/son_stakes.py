@@ -311,7 +311,7 @@ def run_array(
             with ph("p2_csr"):
                 column = lf.slice(off, n).select(pl.col("items")).collect(engine="in-memory").get_column("items")
                 bound = int(column.list.len().fill_null(1).sum())
-                indptr, indices = cm._map_rows(column, items, bound)
+                indptr, indices = cm._map_rows(column, items, bound, None)
                 del column
             with ph("p2_k1"):
                 totals[1] += np.bincount(indices, minlength=n_cols)

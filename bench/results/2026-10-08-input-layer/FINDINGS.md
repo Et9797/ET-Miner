@@ -1,4 +1,4 @@
-# The input layer: Phase I1
+# The input layer: Phases I1 and I2
 
 Protocol: `bench/cpu/PROTOCOL.md`, Amendment 6. Harness:
 `bench/cpu/son_stakes.py --matrix --arms built,incore --reps 3`, cap 600 s,
@@ -82,3 +82,78 @@ cost is most of smoke's 0.06–0.19 s run.
 
 Amendment 7 removes it: the integer path takes its values from Polars'
 explode instead (`to_numpy`), keeping the bincount and the lookup table.
+
+# Phase I2
+
+Protocol: Amendment 7. The integer path reads the exploded values through
+Polars (`to_numpy`) instead of the Arrow buffers. Two runs, back to back:
+
+- *base again* at `c973ed3` with the input commit's harness file (unchanged
+  from `7fddd05`'s), so its rows carry `c973ed3+dirty`: `base3.jsonl`,
+  `base3-env.txt`, 21:42–21:51;
+- *input* at `b328cc1`: `raw2.jsonl`, `env2.txt`, 21:51–21:59.
+
+All 168 rows are ok. The env files differ only in `rev`, and `base3-env.txt`
+equals `base-env.txt`. The gate passed on `b328cc1` before the run: ruff; 828
+passed without the slow tests and the four `test_support_00*`; the
+tier-equivalence, SON, streaming and free-set suites, 59 passed.
+
+## Correctness
+
+One signature per workload across all five files (`son_stakes.py --check`).
+
+## Results
+
+Medians over 3 reps with [min, max]. *ratio* is base again / input; *drift*
+is I1's base against base again.
+
+| regime | arm | base again | input | ratio | saved | peak RSS base → input | drift |
+|---|---|---|---|---|---|---|---|
+| smoke T1 | incore | 0.08 s [0.08, 0.08] | 0.07 s [0.07, 0.07] | 1.19× | 0.01 s | 145 → 134 MB (0.92×) | +0.5 % |
+| smoke T1 | built | 0.14 s [0.13, 0.14] | 0.12 s [0.11, 0.12] | 1.18× | 0.02 s | 131 → 126 MB (0.96×) | −2.6 % |
+| smoke T4 | incore | 0.08 s [0.07, 0.08] | 0.07 s [0.07, 0.07] | 1.10× | 0.01 s | 162 → 151 MB (0.93×) | −2.5 % |
+| smoke T4 | built | 0.13 s [0.13, 0.13] | 0.12 s [0.12, 0.12] | 1.08× | 0.01 s | 136 → 130 MB (0.96×) | +1.4 % |
+| deepk T1 | incore | 2.05 s [2.05, 2.06] | 1.76 s [1.75, 1.78] | 1.17× | 0.29 s | 363 → 347 MB (0.96×) | +0.3 % |
+| deepk T1 | built | 2.58 s [2.55, 2.61] | 2.30 s [2.30, 2.32] | 1.12× | 0.28 s | 284 → 282 MB (0.99×) | −0.2 % |
+| deepk T4 | incore | 1.62 s [1.61, 1.64] | 1.50 s [1.49, 1.50] | 1.09× | 0.13 s | 399 → 378 MB (0.95×) | +0.0 % |
+| deepk T4 | built | 2.24 s [2.24, 2.28] | 2.11 s [2.11, 2.13] | 1.06× | 0.14 s | 335 → 321 MB (0.96×) | +0.4 % |
+| skew T1 | incore | 2.63 s [2.63, 2.65] | 2.33 s [2.32, 2.33] | 1.13× | 0.30 s | 408 → 390 MB (0.96×) | +0.6 % |
+| skew T1 | built | 22.22 s [22.11, 22.24] | 21.58 s [21.50, 21.61] | 1.03× | 0.64 s | 382 → 370 MB (0.97×) | −0.4 % |
+| skew T4 | incore | 1.72 s [1.72, 1.73] | 1.59 s [1.58, 1.60] | 1.08× | 0.13 s | 462 → 443 MB (0.96×) | −0.7 % |
+| skew T4 | built | 10.86 s [10.79, 10.88] | 10.57 s [10.56, 10.61] | 1.03× | 0.29 s | 433 → 433 MB (1.00×) | −0.2 % |
+| wide T1 | incore | 0.83 s [0.83, 0.83] | 0.77 s [0.77, 0.77] | 1.08× | 0.06 s | 267 → 258 MB (0.97×) | +0.6 % |
+| wide T1 | built | 1.12 s [1.11, 1.14] | 1.02 s [1.01, 1.02] | 1.10× | 0.10 s | 235 → 242 MB (1.03×) | −0.4 % |
+| wide T4 | incore | 0.37 s [0.37, 0.37] | 0.33 s [0.33, 0.33] | 1.11× | 0.04 s | 269 → 252 MB (0.93×) | +0.8 % |
+| wide T4 | built | 0.55 s [0.55, 0.56] | 0.49 s [0.49, 0.49] | 1.13× | 0.06 s | 218 → 204 MB (0.94×) | −0.7 % |
+| or005 T1 | incore | 0.43 s [0.43, 0.44] | 0.41 s [0.41, 0.41] | 1.06× | 0.03 s | 192 → 180 MB (0.94×) | +0.2 % |
+| or005 T1 | built | 8.00 s [7.97, 8.02] | 8.02 s [8.01, 8.10] | 1.00× | −0.02 s | 257 → 256 MB (1.00×) | +1.6 % |
+| or005 T4 | incore | 0.28 s [0.28, 0.29] | 0.26 s [0.26, 0.26] | 1.05× | 0.01 s | 200 → 183 MB (0.92×) | +0.4 % |
+| or005 T4 | built | 7.62 s [7.61, 7.83] | 7.63 s [7.62, 7.64] | 1.00× | −0.01 s | 288 → 281 MB (0.98×) | +1.9 % |
+| or0001k2 T1 | incore | 0.82 s [0.82, 0.83] | 0.79 s [0.79, 0.80] | 1.04× | 0.03 s | 336 → 324 MB (0.96×) | +0.3 % |
+| or0001k2 T1 | built | 2.79 s [2.78, 2.79] | 2.78 s [2.75, 2.78] | 1.00× | 0.00 s | 578 → 576 MB (0.99×) | +0.0 % |
+| or0001k2 T4 | incore | 0.56 s [0.56, 0.56] | 0.54 s [0.54, 0.55] | 1.03× | 0.01 s | 382 → 368 MB (0.96×) | +0.8 % |
+| or0001k2 T4 | built | 2.85 s [2.85, 2.86] | 2.85 s [2.84, 2.88] | 1.00× | 0.00 s | 672 → 669 MB (1.00×) | +0.7 % |
+| dslk2 T1 | incore | 17.46 s [17.42, 17.51] | 11.61 s [11.60, 11.62] | 1.50× | 5.85 s | 4961 → 4956 MB (1.00×) | +0.1 % |
+| dslk2 T1 | built | 16.54 s [16.45, 16.57] | 11.73 s [11.61, 11.78] | 1.41× | 4.81 s | 2882 → 2898 MB (1.01×) | −0.1 % |
+| dslk2 T4 | incore | 12.47 s [12.37, 12.54] | 8.69 s [8.62, 8.77] | 1.43× | 3.78 s | 4968 → 4953 MB (1.00×) | −0.1 % |
+| dslk2 T4 | built | 11.07 s [11.05, 11.07] | 8.53 s [8.47, 8.56] | 1.30× | 2.53 s | 2924 → 2924 MB (1.00×) | +0.0 % |
+
+## Rules
+
+1. **Exactness: met.**
+2. **Go: met.** Rule 2 holds in the four dslk2 regimes: `incore` 1.50× at T1
+   (5.85 s saved) and 1.43× at T4 (3.78 s), `built` 1.41× (4.81 s) and 1.30×
+   (2.53 s). No regime is slower: the largest loss is or005 `built` at T1,
+   0.02 s (0.3 %). Elsewhere the change saves up to 0.64 s (skew `built` T1),
+   below the 1 s floor. Peak RSS is 0.92–1.03× of base's.
+3. **Drift control: met.** I1's base agrees with base again within −2.6 % to
+   +1.9 %.
+4. No regression to report.
+
+## Against I1
+
+Without pyarrow, peak RSS falls by 43–70 MB against I1's input and lies
+below base's in 25 of 28 regimes (the others: wide `built` T1 +7 MB, dslk2
+`built` +16 MB at T1 and +0 MB at T4). The explode costs time on dslk2:
+`incore` 11.06 → 11.61 s at T1 and 8.21 → 8.69 s at T4, `built` 10.57 →
+11.73 s and 7.46 → 8.53 s. The other regimes move by at most 0.16 s.

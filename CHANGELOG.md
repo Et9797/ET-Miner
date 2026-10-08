@@ -118,6 +118,23 @@ All notable changes to ET-Miner are recorded here. Versions follow
   13.9 → 8.1 s and 13.4 → 7.8 s, at 0.0001 with max_length 2 7.9 → 2.8 s and
   8.0 → 2.9 s (peak RSS 768 → 579 and 854 → 672 MB); smoke and wide_vocab
   within 0.02 s.
+- **The CSR build counts and maps integer item ids without hashing**
+  (`core/cpu_miner.py` `_int_ids`). For a list column of integer ids
+  (Int8–Int64, UInt8–UInt32) spanning at most 2²² values, the K=1 counts are a
+  bincount over the id range and each row chunk's exploded values reach their
+  column through a lookup table, in place of Polars' `group_by` and
+  `replace_strict`. Null lists and null items are dropped as before. Other
+  columns (strings, categoricals, floats, UInt64, wider spans) still go
+  through Polars. In both paths a row's start among the kept entries comes
+  from a running count instead of per-entry row ids. The in-core route and
+  both SON passes use it. Output is unchanged, and pyarrow is not loaded.
+  Measured against main at `c973ed3` on the same box
+  (`bench/results/2026-10-08-input-layer/`, median of 3, `bench/cpu/PROTOCOL.md`
+  Amendments 6–7): deep_sparse_large (20M rows, 247M list entries, s=0.015,
+  max_length 2) in core 17.5 → 11.6 s at 1 thread and 12.5 → 8.7 s at 4, with
+  SON (4 chunks) 16.5 → 11.7 s and 11.1 → 8.5 s; deep_k and skewed_rows
+  0.13–0.64 s faster (in core at 1 thread 2.05 → 1.76 s and 2.63 → 2.33 s);
+  wide_vocab, Online Retail II and smoke within 0.10 s. Peak RSS 0.92–1.03×.
 - **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
   (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
   `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner

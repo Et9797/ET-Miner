@@ -493,3 +493,43 @@ least 10 % below and at least 1 s saved).
 about 3 s at T4; `built` builds four 5M-row CSRs in pass 1 and maps every
 chunk in pass 2, so a similar saving. deepk and skew: 0.2–0.4 s, below the
 floor. or005, or0001k2, wide and smoke: under 0.1 s.
+
+## Amendment 7 (2026-10-08, after I1: the integer path without pyarrow)
+
+I1 (`bench/results/2026-10-08-input-layer/FINDINGS.md`) failed Amendment 6's
+rule 2 on memory: `ru_maxrss_mb` rose 1.26–1.42× in five regimes (smoke in all
+four, wide `built` T1), and by 27–67 MB in every regime. The time side held in
+the four dslk2 regimes. Cause, measured: reading the Arrow buffers imports
+pyarrow, which the CPU route did not load before; in a fresh process RSS goes
+from 80 to 107 MB at the first `Series.to_arrow`.
+
+**The change, revised.** The integer path no longer reads Arrow buffers. Per
+row chunk it explodes the lists with Polars and takes the values as numpy
+(`to_numpy`); the K=1 counts stay a bincount over the id range and the mapping
+a lookup table. The range comes from Polars (`list.min`, `list.max`). Nulls no
+longer send a column to Polars: a null item, and the null a null list
+explodes to, map to −1 and are not counted. The rest of Amendment 6's change
+stands: the running count of kept entries in both paths, `INT_SPAN_LIMIT` =
+2²², the dtypes Int8–Int64 and UInt8–UInt32.
+
+**Probes (outside this protocol).** CSR build at T1: deepk 0.24 s, skew
+0.28 s, dslk2 5.0 s (Amendment 6's version 0.19, 0.21 and 4.3 s; base 0.55,
+0.60 and 9.2 s); the two explodes cost about 1.3 s on dslk2's 247M entries.
+`ru_maxrss_mb` at T1, one run each: smoke `incore` 134 and `built` 126, wide
+259 and 225 (I1's base medians: 146, 130, 271 and 235).
+
+**Phase I2.** Two runs, back to back, with Amendment 6's command, workloads,
+thread settings, cap and `--max-hours`:
+
+1. *base again*: as I1's base (`c973ed3` with the harness file of the input
+   commit below, which is unchanged from `7fddd05`'s), rows in `base3.jsonl`;
+2. *input*: the branch's commit with this amendment and the revised change,
+   rows in `raw2.jsonl`.
+
+No commit and no edit of a tracked file during the runs, apart from the
+harness file in the base run.
+
+**Rules.** Amendment 6's rules 1–5, with `raw2.jsonl` against `base3.jsonl`.
+Rule 3's drift control compares `base3.jsonl` with I1's `base.jsonl`, per arm
+and regime, within 10 %. Rule 1 holds when every ok row of a workload carries
+one signature across all five files.

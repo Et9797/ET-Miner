@@ -88,7 +88,17 @@ All notable changes to ET-Miner are recorded here. Versions follow
   (`bench/cpu/PROTOCOL.md` Amendments 3–4). The Polars boolean matrix,
   `_generate_candidates` and `count_support_batched` are gone from SON's CPU
   passes; the GPU passes keep theirs. `batch_size` is no longer read by any
-  route. Output is unchanged.
+  route. Output is unchanged. Pass 1's `progress_callback` candidate count is
+  now an upper bound until the end of the pass (duplicates across chunks are
+  removed once the pending rows outgrow `UNION_PENDING_BYTES` and the union);
+  the profile's `n_candidates` is exact.
+  Measured with 4 chunks (`bench/results/2026-10-08-son-s1/`, median of 3,
+  12-thread Ryzen 5 4600G; the old SON's single S0 value): deep_k 31.2 →
+  4.8 s at 1 thread and 15.1 → 4.2 s at 4; skewed_rows 157.0 → 31.2 s and
+  79.0 → 15.1 s; wide_vocab 267.9 → 1.2 s and 235.9 → 0.6 s; Online Retail II
+  at 0.005 and at 0.0001 with max_length 2 from over 600 s (the cap) to
+  7.9–13.9 s. Peak RSS falls to 0.13–0.87× (wide_vocab at 4 threads: 1,732 →
+  226 MB).
 - **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
   (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
   `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner

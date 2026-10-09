@@ -43,7 +43,9 @@ sys.path.insert(0, str(REPO / "bench" / "cpu"))
 
 from consolidation_run import _load  # noqa: E402
 from matrix import WORKLOADS  # noqa: E402
-from son_stakes import SON_WORKLOADS, _rev  # noqa: E402
+from son_stakes import INPUT_WORKLOADS, SON_WORKLOADS, _rev  # noqa: E402
+
+from et_miner.streaming.son import LOCAL_SUPPORT_FACTOR  # noqa: E402
 
 
 def _local(lf: pl.LazyFrame, local_s: float, max_length: int | None):
@@ -156,7 +158,7 @@ def stakes(df: pl.DataFrame, min_support: float, max_length: int | None, n_chunk
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workloads", default=",".join(SON_WORKLOADS))
-    ap.add_argument("--factors", default="0.9")
+    ap.add_argument("--factors", default=str(LOCAL_SUPPORT_FACTOR))
     ap.add_argument("--chunks", type=int, default=4)
     ap.add_argument("--out")
     args = ap.parse_args()
@@ -165,7 +167,7 @@ def main() -> int:
 
     logger.remove()
     for w in args.workloads.split(","):
-        dataset, min_support, max_length = WORKLOADS[w]
+        dataset, min_support, max_length = {**WORKLOADS, **INPUT_WORKLOADS}[w]
         df, _, _ = _load(dataset)
         for factor in map(float, args.factors.split(",")):
             row = {"workload": w, **stakes(df, min_support, max_length, args.chunks, factor)}

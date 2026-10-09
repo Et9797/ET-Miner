@@ -1,8 +1,9 @@
 """#47 -- `local_support_factor` is unvalidated; a value above 1.0 silently
 breaks SON's superset guarantee.
 
-son.py:198 computes `local_min_support = min_support * local_support_factor`
-with no range check. SON is only correct when the local threshold is <= the
+`apriori_streaming` (son.py) computed
+`local_min_support = min_support * local_support_factor` with no range check.
+Fixed: both SON entries raise ValueError outside (0, 1]. SON is only correct when the local threshold is <= the
 global one ("frequent globally => frequent in at least one chunk"); a factor
 above 1.0 makes pass 1 STRICTER than pass 2, so globally frequent itemsets can
 be missed entirely, with no error.
@@ -29,8 +30,11 @@ def reproduce() -> tuple[bool, str]:
 
     ok = apriori_streaming(df.lazy(), min_support=0.5, chunk_size=100,
                            local_support_factor=0.9, show_progress=False)
-    bad = apriori_streaming(df.lazy(), min_support=0.5, chunk_size=100,
-                            local_support_factor=5.0, show_progress=False)
+    try:
+        bad = apriori_streaming(df.lazy(), min_support=0.5, chunk_size=100,
+                                local_support_factor=5.0, show_progress=False)
+    except ValueError as e:
+        return False, f"factor=5.0 raises ValueError: {e}"
 
     accepted = True  # it did not raise
     lost = ok.height - bad.height

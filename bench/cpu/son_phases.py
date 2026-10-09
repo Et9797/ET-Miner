@@ -7,6 +7,11 @@ tree digest. Not used by any decision rule.
 
 Usage:
     uv run python bench/cpu/son_phases.py rows.jsonl
+    uv run python bench/cpu/son_phases.py rows.jsonl --factors 0.8,0.9 --workloads smoke,dslk2
+
+Options:
+    --factors    local_support_factor values, one run each per workload (default: the tree's)
+    --workloads  comma-separated workload ids (default: Amendment 3's six)
 """
 
 import os
@@ -24,7 +29,7 @@ from pathlib import Path  # noqa: E402
 REPO = Path(__file__).resolve().parents[2]
 
 
-def one(w: str, out: str) -> None:
+def one(w: str, out: str, factor: float | None) -> None:
     sys.path.insert(0, str(REPO / "bench"))
     sys.path.insert(0, str(REPO / "bench" / "cpu"))
     from loguru import logger
@@ -33,21 +38,23 @@ def one(w: str, out: str) -> None:
     import polars as pl
     from consolidation_run import _load
     from matrix import WORKLOADS
-    from son_stakes import WARMUP_ROWS, _rev
+    from son_stakes import INPUT_WORKLOADS, WARMUP_ROWS, _rev
 
     from et_miner.streaming.son import apriori_streaming
 
-    ds, ms, ml = WORKLOADS[w]
+    ds, ms, ml = {**WORKLOADS, **INPUT_WORKLOADS}[w]
     df, n, _ = _load(ds)
     warm = pl.read_parquet(REPO / "datasets" / "synth" / "smoke.parquet").head(WARMUP_ROWS)
     apriori_streaming(warm.lazy(), min_support=0.02, max_length=3, chunk_size=WARMUP_ROWS // 2, show_progress=False, n_jobs=1)
+    kw = {} if factor is None else {"local_support_factor": factor}
     t0 = time.perf_counter()
     _, sess = apriori_streaming(
-        df.lazy(), min_support=ms, max_length=ml, chunk_size=math.ceil(n / 4), show_progress=False, profile=True, n_jobs=1
+        df.lazy(), min_support=ms, max_length=ml, chunk_size=math.ceil(n / 4), show_progress=False, profile=True,
+        n_jobs=1, **kw,
     )
     wall = time.perf_counter() - t0
     row = {
-        "workload": w, "threads": 1, "wall_s": round(wall, 4),
+        "workload": w, "threads": 1, "factor": factor, "wall_s": round(wall, 4),
         "phases_s": {p.name: round(p.duration_ms / 1000, 4) for p in sess.phases},
         "extra": {p.name: p.extra for p in sess.phases}, "rev": _rev(), "time": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
@@ -58,7 +65,16 @@ def one(w: str, out: str) -> None:
 
 if __name__ == "__main__":
     if sys.argv[1] == "--one":
-        one(sys.argv[2], sys.argv[3])
+        factor = sys.argv[4] if len(sys.argv) > 4 else "default"
+        one(sys.argv[2], sys.argv[3], None if factor == "default" else float(factor))
     else:
-        for w in ["smoke", "deepk", "skew", "wide", "or005", "or0001k2"]:
-            subprocess.run([sys.executable, __file__, "--one", w, sys.argv[1]], check=True)
+        import argparse
+
+        ap = argparse.ArgumentParser()
+        ap.add_argument("out")
+        ap.add_argument("--factors", default="default")
+        ap.add_argument("--workloads", default="smoke,deepk,skew,wide,or005,or0001k2")
+        args = ap.parse_args()
+        for w in args.workloads.split(","):
+            for f in args.factors.split(","):
+                subprocess.run([sys.executable, __file__, "--one", w, args.out, f], check=True)

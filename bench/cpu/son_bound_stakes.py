@@ -45,6 +45,8 @@ from consolidation_run import _load  # noqa: E402
 from matrix import WORKLOADS  # noqa: E402
 from son_stakes import INPUT_WORKLOADS, SON_WORKLOADS, _rev  # noqa: E402
 
+from et_miner.streaming.son import LOCAL_SUPPORT_FACTOR  # noqa: E402
+
 
 def _local(lf: pl.LazyFrame, local_s: float, max_length: int | None):
     """(items, [(sets, counts) per K]) of one chunk as SON's pass 1 mines it, or None."""
@@ -156,7 +158,7 @@ def stakes(df: pl.DataFrame, min_support: float, max_length: int | None, n_chunk
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workloads", default=",".join(SON_WORKLOADS))
-    ap.add_argument("--factors", default="0.9")
+    ap.add_argument("--factors", default=str(LOCAL_SUPPORT_FACTOR))
     ap.add_argument("--chunks", type=int, default=4)
     ap.add_argument("--out")
     args = ap.parse_args()

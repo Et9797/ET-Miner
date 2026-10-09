@@ -1,8 +1,9 @@
 """#47 -- `local_support_factor` is unvalidated; a value above 1.0 silently
 breaks SON's superset guarantee.
 
-son.py:198 computes `local_min_support = min_support * local_support_factor`
-with no range check. SON is only correct when the local threshold is <= the
+`apriori_streaming` (son.py) computed
+`local_min_support = min_support * local_support_factor` with no range check.
+Fixed: both SON entries raise ValueError outside (0, 1]. SON is only correct when the local threshold is <= the
 global one ("frequent globally => frequent in at least one chunk"); a factor
 above 1.0 makes pass 1 STRICTER than pass 2, so globally frequent itemsets can
 be missed entirely, with no error.

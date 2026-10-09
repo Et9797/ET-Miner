@@ -65,7 +65,8 @@ def one(w: str, out: str, factor: float | None) -> None:
 
 if __name__ == "__main__":
     if sys.argv[1] == "--one":
-        one(sys.argv[2], sys.argv[3], None if sys.argv[4] == "default" else float(sys.argv[4]))
+        factor = sys.argv[4] if len(sys.argv) > 4 else "default"
+        one(sys.argv[2], sys.argv[3], None if factor == "default" else float(factor))
     else:
         import argparse
 

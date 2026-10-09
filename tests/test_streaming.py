@@ -560,6 +560,15 @@ class TestArrayPasses:
         with pytest.raises(RuntimeError, match="holds 10 rows where 11 were counted"):
             son_mod._local_levels(lf, 11, 0.5, None, "items", None, 1)
 
+    def test_a_slack_that_reaches_min_count_raises(self, monkeypatch):
+        """An itemset no chunk emits could then be frequent: SON must not return without it."""
+        from et_miner.streaming import son as son_mod
+
+        monkeypatch.setattr(son_mod, "_local_min_count", lambda local_min_support, n_rows: n_rows)
+        df = pl.DataFrame({"items": [[1, 2]] * 10})
+        with pytest.raises(RuntimeError, match="reaches min_count"):
+            apriori_streaming(df, min_support=0.5, chunk_size=5, show_progress=False)
+
     @pytest.mark.parametrize("factor", [0.5, 1.0])
     def test_the_local_support_factor_does_not_change_the_result(self, factor):
         df = pl.DataFrame({"items": _messy_rows(6)}, schema={"items": pl.List(pl.Int64)})

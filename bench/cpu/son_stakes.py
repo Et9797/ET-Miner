@@ -32,7 +32,10 @@ Arms:
     built    ``apriori(streaming=True)`` on the tree as it is, untimed inside:
              the current SON before the port, the port after it. With
              ``--factor``, ``apriori_streaming`` at that
-             ``local_support_factor`` (``apriori()`` does not take one).
+             ``local_support_factor`` (``apriori()`` does not take one); the
+             two differ by ``apriori()``'s parameter checks before it calls
+             ``apriori_streaming``, so rows with and without a factor time the
+             same passes but not the same call.
 
 Phases (seconds): count_transactions; pass 1 p1_matrix, p1_mine (p1_gen and
 p1_count inside it) for ``current``, p1_csr and p1_mine for the array arms;
@@ -106,7 +109,9 @@ from child_run import result_signatures  # noqa: E402
 from consolidation_run import _load  # noqa: E402
 from matrix import WORKLOADS  # noqa: E402
 
-LOCAL_SUPPORT_FACTOR = 0.9
+#: The factor the `array` arms ran at in S0 (the tree's default then), kept so S0 can be repeated; `built` takes
+#: the tree's default or --factor.
+S0_LOCAL_SUPPORT_FACTOR = 0.9
 WARMUP_ROWS = 20_000
 #: PROTOCOL.md Amendment 3: or003 and or002 are left out (a chunk's local lattice is out of reach for any engine).
 SON_WORKLOADS = ("smoke", "deepk", "skew", "wide", "or005", "or0001k2")
@@ -275,7 +280,7 @@ def run_array(
     with ph("count_transactions"):
         n_total = lf.select(pl.len()).collect(engine="streaming").item()
     bounds = [(o, min(chunk_size, n_total - o)) for o in range(0, n_total, chunk_size)]
-    local_s = min_support * LOCAL_SUPPORT_FACTOR
+    local_s = min_support * S0_LOCAL_SUPPORT_FACTOR
     workers = cm._workers(n_jobs)
     pool = ThreadPoolExecutor(workers) if workers > 1 else None
     try:

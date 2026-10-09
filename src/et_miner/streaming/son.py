@@ -29,11 +29,13 @@ Usage:
 
     result = apriori_streaming(pl.scan_parquet("big/*.parquet"), min_support=0.001, chunk_size=10_000_000)
 
-Options: the parameters of ``apriori_streaming``, and one module constant:
-    UNION_PENDING_BYTES  bytes of one length's pass-1 rows and local counts
-                         held before they are merged into the union (when they
-                         also exceed that length's merged rows); a budget per
-                         length
+Options: the parameters of ``apriori_streaming``, and two module constants:
+    UNION_PENDING_BYTES   bytes of one length's pass-1 rows and local counts
+                          held before they are merged into the union (when they
+                          also exceed that length's merged rows); a budget per
+                          length
+    LOCAL_SUPPORT_FACTOR  the default ``local_support_factor`` of both SON
+                          entries (``bench/cpu/PROTOCOL.md`` Amendment 8)
 
 Reference:
     Savasere, A., Omiecinski, E. R., & Navathe, S. B. (1995).
@@ -77,6 +79,8 @@ from loguru import logger
 #: Bytes of one length's not yet deduplicated pass-1 rows before they are merged into the union (when they also
 #: exceed that length's deduplicated rows); a memory budget per length, not a measured crossover.
 UNION_PENDING_BYTES = 256 << 20
+#: Default local_support_factor, chosen from Phase F1 (bench/results/2026-10-08-son-factor/FINDINGS.md).
+LOCAL_SUPPORT_FACTOR = 0.95
 
 
 def _estimate_chunk_size_from_memory(
@@ -126,7 +130,7 @@ def apriori_streaming(
     item_col: str = "items",
     chunk_size: int = 40_000_000,
     memory_budget_gb: float | None = None,
-    local_support_factor: float = 0.95,
+    local_support_factor: float = LOCAL_SUPPORT_FACTOR,
     use_gpu: bool = False,
     gpu_resident: bool = False,
     batch_size: int | None = 10_000,
@@ -158,10 +162,12 @@ def apriori_streaming(
         chunk_size: Number of transactions per chunk (default 40M).
         memory_budget_gb: If set, automatically calculate chunk_size to stay
             within this memory budget. Overrides chunk_size parameter.
-        local_support_factor: Factor to lower local support threshold (default 0.95),
-            in (0, 1]; every value gives the same result. Lower values make pass 1
-            mine more local itemsets; on the CPU they also tighten pass 2's bound,
-            on the GPU pass 2 counts every one of them.
+        local_support_factor: Factor to lower local support threshold (default
+            ``LOCAL_SUPPORT_FACTOR``, 0.95), in (0, 1]; every value gives the same
+            result. Lower values make pass 1 mine more local itemsets; on the CPU
+            they also tighten pass 2's bound, on the GPU pass 2 counts every one
+            of them. Near 0 every chunk's local min_count is 1, and pass 1 mines
+            each chunk's whole lattice.
         use_gpu: Mine each chunk on the GPU with the row-split miner and count
             pass 2 with the batched itemset kernel; otherwise both passes run
             on the CPU's array miner.
@@ -772,6 +778,10 @@ def _son_cpu(
     n_chunks = len(chunk_sizes)
     slacks = [_local_min_count(local_min_support, n) - 1 for n in chunk_sizes]
     min_count = _min_count(min_support, n_total)
+    if sum(slacks) >= min_count:
+        raise RuntimeError(
+            f"SON's slack {sum(slacks)} reaches min_count {min_count}: an itemset no chunk emits could be frequent"
+        )
     workers = _workers(n_jobs)
     pool = ThreadPoolExecutor(workers) if workers > 1 else None
     try:

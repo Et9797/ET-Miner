@@ -643,3 +643,13 @@ pass 2 counts 5.6× as many; skew's pass 2 counts 1.8× as many against a union
 5M-row chunks to count them. 0.95 keeps the pass 2 of deepk and dslk2 empty
 and cuts or005's union to 40 % of 0.9's (2.3× as many to count). A factor
 that wins or005 may lose skew, and 1.0 may lose dslk2.
+
+**Erratum (after F1, from the council review of PR #31; no rule or number
+changes).** The validation paragraph proves completeness only at f = 1. For
+0 < f < 1: the float product s · f is at most s, and the shortest decimal
+that round-trips (`_min_count`'s reading of a float) is monotone in the
+float, so the local threshold t read from s · f is at most s's decimal s̃.
+Then m_i − 1 < t · n_i for every chunk, and S < t · N ≤ s̃ · N ≤ min_count.
+`_son_cpu` now raises if S reaches min_count, as a guard on that invariant.
+"The default (0.9) does not change with it" held for the amendment; after
+F1 the owner chose 0.95 (FINDINGS, *Decision (owner)*).

@@ -56,16 +56,17 @@ Peak RSS (`ru_maxrss_mb`) against 0.9: 0.95 0.82–1.08×, 1.0 0.76–1.01×,
      2.12×, 4.19 s saved) and T4 (7.71 → 3.49 s, 2.21×, 4.22 s), with no
      loss and RSS at most 1.08× (wide T1).
    - **1.0 does not.** It wins or005 (2.58× and 2.71×, 4.87 s each) but loses
-     dslk2 (+71 % and +75 %, +8.26 and +6.32 s), skew (+11 % and +12 %,
-     +2.35 and +1.30 s) and smoke T1 and T4 (+12 % and +11 %, both +0.01 s,
-     under the 0.1 s floor, so no loss).
-   - **0.8 does not.** It loses or005 (+659 % and +667 %, about +52 s),
-     deepk (+44 % and +35 %, +1.02 and +0.74 s) and wide T1 (+11 %,
-     +0.11 s), and its RSS exceeds 1.25× on or005 (3.19× and 3.02×).
+     dslk2 (+71 % and +75 %, +8.26 and +6.32 s) and skew (+11 % and +12 %,
+     +2.35 and +1.30 s). smoke is 12 % and 11 % slower, but by 0.01 s, under
+     the 0.1 s floor of a loss.
+   - **0.8 does not.** It wins no regime (smoke is 17–21 % faster, by under
+     0.03 s) and loses or005 (+659 % and +667 %, about +52 s), deepk (+44 %
+     and +35 %, +1.02 and +0.74 s) and wide T1 (+11 %, +0.11 s); its RSS
+     exceeds 1.25× on or005 (3.19× and 3.02×).
 3. **Recommendation: 0.95**, the only qualifying factor.
 4. **Noise control: met.** or0001k2's four `built` medians agree within
-   0.2 % at both thread settings; every `incore` [min, max] lies within 10 %
-   of its median (widest: dslk2 T4, 8.63–8.78 against 8.76).
+   0.22 % at T1 and 0.17 % at T4; every `incore` [min, max] lies within 10 %
+   of its median (widest: smoke T4, 0.0675–0.0691 s against 0.0680 s, 1.6 %).
 5. The owner decides the default.
 
 What 0.95 costs against 0.9, under rule 2's thresholds: skew +4.6 % at T1

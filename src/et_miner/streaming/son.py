@@ -5,7 +5,7 @@ chunks:
 
 Pass 1 - Local mining:
     Mine each chunk at a lowered support threshold (``local_support_factor`` x
-    min_support, 0.9 by default). Every globally frequent itemset is locally
+    min_support, 0.95 by default). Every globally frequent itemset is locally
     frequent in at least one chunk, so the union of the local results holds
     them all.
 
@@ -126,7 +126,7 @@ def apriori_streaming(
     item_col: str = "items",
     chunk_size: int = 40_000_000,
     memory_budget_gb: float | None = None,
-    local_support_factor: float = 0.9,
+    local_support_factor: float = 0.95,
     use_gpu: bool = False,
     gpu_resident: bool = False,
     batch_size: int | None = 10_000,
@@ -158,7 +158,7 @@ def apriori_streaming(
         chunk_size: Number of transactions per chunk (default 40M).
         memory_budget_gb: If set, automatically calculate chunk_size to stay
             within this memory budget. Overrides chunk_size parameter.
-        local_support_factor: Factor to lower local support threshold (default 0.9),
+        local_support_factor: Factor to lower local support threshold (default 0.95),
             in (0, 1]; every value gives the same result. Lower values make pass 1
             mine more local itemsets; on the CPU they also tighten pass 2's bound,
             on the GPU pass 2 counts every one of them.

@@ -135,6 +135,18 @@ All notable changes to ET-Miner are recorded here. Versions follow
   SON (4 chunks) 16.5 → 11.7 s and 11.1 → 8.5 s; deep_k and skewed_rows
   0.13–0.64 s faster (in core at 1 thread 2.05 → 1.76 s and 2.63 → 2.33 s);
   wide_vocab, Online Retail II and smoke within 0.10 s. Peak RSS 0.92–1.03×.
+- **SON's `local_support_factor` defaults to 0.95** (was 0.9), in
+  `apriori_streaming` and `apriori_streaming_multi_gpu`. Every factor in
+  (0, 1] gives the same result. A higher factor mines fewer local itemsets in
+  pass 1 and leaves the bound more to count in pass 2. Measured with 4 chunks
+  on the same box (`bench/results/2026-10-08-son-factor/`, median of 3,
+  `bench/cpu/PROTOCOL.md` Amendment 8), 0.9 → 0.95: Online Retail II at 0.005
+  7.95 → 3.75 s at 1 thread and 7.71 → 3.49 s at 4; skewed_rows
+  21.5 → 22.5 s and 10.5 → 11.1 s; deep_k, wide_vocab, smoke, Online Retail
+  II at 0.0001 (max_length 2) and deep_sparse_large (max_length 2) within
+  0.08 s. Peak RSS 0.82–1.08×. 1.0 was slower on deep_sparse_large (11.7 →
+  19.9 s at 1 thread: pass 2 maps every chunk to count 19 candidates) and
+  0.8 on Online Retail II (7.95 → 60.3 s). The GPU passes were not measured.
 - **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
   (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
   `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner

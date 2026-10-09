@@ -118,7 +118,7 @@ def apriori_streaming_multi_gpu(
     n_gpus: int = 8,
     chunk_size: int = 10_000_000,
     memory_budget_gb: float | None = None,
-    local_support_factor: float = 0.9,
+    local_support_factor: float = 0.95,
     batch_size: int | None = 10_000,
     show_progress: bool = True,
     sparse: bool | None = None,
@@ -151,7 +151,7 @@ def apriori_streaming_multi_gpu(
         item_col: Column name with item lists.
         n_gpus: Number of GPUs to use (default 8).
         chunk_size: Number of transactions per chunk (default 10M).
-        local_support_factor: Factor to lower local support threshold (default 0.9),
+        local_support_factor: Factor to lower local support threshold (default 0.95),
             in (0, 1]; every value gives the same result. Lower values make pass 1
             mine more local itemsets, and pass 2 counts every one of them.
         batch_size: Accepted for parity with apriori_streaming; the GPU

@@ -71,6 +71,12 @@ Peak RSS (`ru_maxrss_mb`) against 0.9: 0.95 0.82–1.08×, 1.0 0.76–1.01×,
 What 0.95 costs against 0.9, under rule 2's thresholds: skew +4.6 % at T1
 (+1.00 s) and +5.7 % at T4 (+0.59 s); smoke +2.9–3.9 % (under 0.01 s).
 
+## Decision (owner)
+
+The default is 0.95, in `apriori_streaming` and
+`apriori_streaming_multi_gpu`. The GPU passes take the same default
+unmeasured.
+
 ## Where the time went
 
 Diagnostic, outside the rules: `son_phases.py`, T1, one run per workload and

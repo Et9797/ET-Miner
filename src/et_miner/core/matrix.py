@@ -25,7 +25,7 @@ from loguru import logger
 
 from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.backends import CUPY_INSTALLED
-from et_miner.core.result import _min_count
+from et_miner.core.result import _item_dtype, _min_count
 
 # Scipy for sparse matrix operations
 from scipy.sparse import coo_matrix, csr_matrix
@@ -77,6 +77,12 @@ def _filter_transactions_by_length(
         return matrix, 0
 
     return matrix.filter(mask), n_filtered
+
+
+def _item_literal(item, item_dtype: pl.DataType | pl.datatypes.DataTypeClass | None):
+    """``item`` for ``list.contains``: a literal of the column's dtype for integer ids, whose Python int Polars
+    would otherwise read as a signed 128-bit value at most (a UInt128 id from 2**127 on overflows)."""
+    return pl.lit(item, dtype=item_dtype) if item_dtype is not None and item_dtype.is_integer() else item
 
 
 def build_boolean_matrix(
@@ -162,7 +168,11 @@ def build_boolean_matrix(
     # Trade-off: O(T × m) vs O(T × k) where m = frequent items, k = avg items/tx
     # In practice, list.contains is faster AND uses dramatically less memory.
 
-    exprs = [pl.col(item_col).list.contains(item_id).alias(col_name) for col_name, item_id in col_to_item.items()]
+    item_dtype = _item_dtype(transactions, item_col)
+    exprs = [
+        pl.col(item_col).list.contains(_item_literal(item_id, item_dtype)).alias(col_name)
+        for col_name, item_id in col_to_item.items()
+    ]
 
     # In-memory engine, pinned: Polars 2.0 made streaming the default, and for one
     # list.contains per item it is slower (bench/cpu/list_contains_check.py measured
@@ -563,7 +573,7 @@ def _build_csr_from_transactions(
     # ── explode + join → (row_idx, col_idx) COO pairs ──────────────────
     item_mapping = pl.DataFrame(
         {
-            item_col: item_ids,
+            item_col: freq_1.get_column(item_col),
             "__col_idx": np.arange(n_items, dtype=np.int64),
         }
     ).lazy()

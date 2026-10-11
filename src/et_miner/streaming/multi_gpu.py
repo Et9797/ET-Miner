@@ -55,6 +55,7 @@ from et_miner.core.matrix import build_boolean_matrix
 from et_miner.core.result import (
     _build_result_df,
     _empty_result,
+    _item_dtype,
     _min_count,
 )
 from et_miner.backends import CUPY_INSTALLED, get_gpu_count, has_cupy
@@ -525,4 +526,4 @@ def apriori_streaming_multi_gpu(
         min_support,
     )
 
-    return _build_result_df(results)
+    return _build_result_df(results, _item_dtype(lf, item_col))

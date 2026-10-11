@@ -25,6 +25,31 @@ from fractions import Fraction
 
 import polars as pl
 
+#: Integer item dtypes Int64 holds every value of: a result carries their ids as Int64.
+_INT64_ITEM_DTYPES = (pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.UInt8, pl.UInt16, pl.UInt32)
+#: Integer item dtypes with values beyond Int64: a result keeps them.
+_WIDE_ITEM_DTYPES = (pl.UInt64, pl.Int128, pl.UInt128)
+
+
+def _item_dtype(lf: pl.LazyFrame, item_col: str) -> pl.DataType | pl.datatypes.DataTypeClass | None:
+    """The inner dtype of the list column ``item_col``; None when it is not a list."""
+    dtype = lf.collect_schema()[item_col]
+    return dtype.inner if isinstance(dtype, pl.List) else None
+
+
+def _result_item_dtype(
+    item_dtype: pl.DataType | pl.datatypes.DataTypeClass | None,
+) -> pl.DataType | pl.datatypes.DataTypeClass | None:
+    """A result's item dtype for integer items: Int64 where it holds every value, the dtype itself otherwise.
+
+    None for any other dtype (the caller's own rule applies).
+    """
+    if item_dtype in _INT64_ITEM_DTYPES:
+        return pl.Int64
+    if item_dtype in _WIDE_ITEM_DTYPES:
+        return item_dtype
+    return None
+
 
 def _min_count(min_support: float, n_transactions: int) -> int:
     """Minimum absolute count for an itemset to be frequent: ceil(s * N), exactly.
@@ -56,17 +81,20 @@ def _empty_result() -> pl.DataFrame:
     return pl.DataFrame(schema={"itemset": pl.List(pl.Int64), "support": pl.Float64})
 
 
-def _build_result_df(results: list[tuple[list, float]]) -> pl.DataFrame:
+def _build_result_df(
+    results: list[tuple[list, float]], item_dtype: pl.DataType | pl.datatypes.DataTypeClass | None = None
+) -> pl.DataFrame:
     """Build result DataFrame from collected itemsets.
 
-    Preserves the original item types (int, str, etc.) from the input data.
+    Integer items take ``_result_item_dtype(item_dtype)``, the input's item
+    dtype; other items keep the type Polars infers from the values (str etc.).
     """
     if not results:
         return _empty_result()
-    # Don't force cast to Int64 - let Polars infer the type from the actual items
+    out = _result_item_dtype(item_dtype)
     return pl.DataFrame(
         {
-            "itemset": [r[0] for r in results],
+            "itemset": pl.Series([r[0] for r in results], dtype=pl.List(out) if out is not None else None),
             "support": [float(r[1]) for r in results],
         }
     )

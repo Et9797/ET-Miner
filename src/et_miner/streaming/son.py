@@ -67,10 +67,11 @@ from et_miner.core.cpu_miner import (
     count_itemsets,
     sum_rows,
 )
-from et_miner.core.matrix import build_boolean_matrix
+from et_miner.core.matrix import _item_literal, build_boolean_matrix
 from et_miner.core.result import (
     _build_result_df,
     _empty_result,
+    _item_dtype,
     _min_count,
 )
 from et_miner.core.profiling import ProfilingSession
@@ -503,7 +504,7 @@ def apriori_streaming(
         min_support,
     )
 
-    result_df = _build_result_df(results)
+    result_df = _build_result_df(results, _item_dtype(lf, item_col))
 
     if profile:
         return result_df, session
@@ -871,7 +872,8 @@ def _build_matrix_for_items(
     item_to_col: dict[int, str],
 ) -> pl.DataFrame:
     """Boolean matrix with a column per item in `items` — used in SON Pass 2 for consistent mapping."""
-    exprs = [pl.col(item_col).list.contains(item).alias(item_to_col[item]) for item in items]
+    item_dtype = _item_dtype(transactions, item_col)
+    exprs = [pl.col(item_col).list.contains(_item_literal(item, item_dtype)).alias(item_to_col[item]) for item in items]
 
     # In-memory engine: faster than streaming for one list.contains per item (bench/cpu/list_contains_check.py).
     return transactions.select(exprs).collect(engine="in-memory")

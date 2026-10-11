@@ -68,7 +68,7 @@ from loguru import logger
 from scipy.sparse import csr_matrix
 
 from .profiling import ProfilingSession
-from .result import _empty_result, _min_count
+from .result import _INT64_ITEM_DTYPES, _empty_result, _min_count, _result_item_dtype
 
 CSR_CHUNK_NNZ = 500_000
 INT_SPAN_LIMIT = 1 << 22
@@ -96,7 +96,6 @@ PER_CANDIDATE_MEAN_GROUP = 2.5
 
 _LUT16 = np.array([bin(i).count("1") for i in range(1 << 16)], dtype=np.uint8)
 _HAS_BITWISE_COUNT = hasattr(np, "bitwise_count")
-_INT_DTYPES = (pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.UInt8, pl.UInt16, pl.UInt32)
 
 
 @dataclass(frozen=True)
@@ -158,7 +157,7 @@ class _IntIds:
 def _int_ids(column: pl.Series) -> _IntIds | None:
     """The id range of a list column of integer ids spanning at most ``INT_SPAN_LIMIT`` values, else None."""
     dtype = column.dtype
-    if not isinstance(dtype, pl.List) or dtype.inner not in _INT_DTYPES:
+    if not isinstance(dtype, pl.List) or dtype.inner not in _INT64_ITEM_DTYPES:
         return None
     lo, hi = column.list.min().min(), column.list.max().max()
     if not isinstance(lo, int) or not isinstance(hi, int):
@@ -985,14 +984,15 @@ def _emit(levels: list[tuple[np.ndarray, np.ndarray]], items: pl.Series, n_rows:
     """The result frame: every emitted level's itemsets as item-id lists, support = count / n_rows.
 
     Item ids keep the input's kind as the old per-row emission did: integers as
-    Int64 (UInt64 kept), floats as Float64, categoricals as String.
+    ``_result_item_dtype`` gives them (Int64 where it holds every value; UInt64,
+    Int128 and UInt128 kept), floats as Float64, categoricals as String.
     """
     levels = [(s, c) for s, c in levels if len(s)]
     if not levels:
         return _empty_result()
     dtype = items.dtype
-    if dtype.is_integer() and dtype != pl.UInt64:
-        items = items.cast(pl.Int64)
+    if (out := _result_item_dtype(dtype)) is not None:
+        items = items.cast(out)
     elif dtype.is_float():
         items = items.cast(pl.Float64)
     elif dtype.base_type() in (pl.Categorical, pl.Enum):

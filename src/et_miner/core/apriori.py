@@ -29,7 +29,9 @@ from et_miner.gpu.density import validate_sparse_from_k
 
 from .profiling import ProfilingSession
 from .result import (
+    _WIDE_ITEM_DTYPES,
     _empty_result,
+    _item_dtype,
 )
 
 def _warn_complexity(
@@ -373,6 +375,22 @@ def _validate_route_support(
         )
 
 
+def _as_item_dtype(result: Any, items: pl.Series, column_ids: bool) -> Any:
+    """The GPU route's result (a frame, or (frame, session)) with its itemsets as ``items.dtype``.
+
+    With ``column_ids`` the route mined column ids, which map to ``items``;
+    otherwise it emitted the item ids as Int64, which are cast back.
+    """
+    df, session = result if isinstance(result, tuple) else (result, None)
+    if column_ids:
+        cols = pl.Series(range(len(items)), dtype=pl.Int64)
+        itemset = pl.col("itemset").list.eval(pl.element().replace_strict(cols, items, return_dtype=items.dtype))
+    else:
+        itemset = pl.col("itemset").cast(pl.List(items.dtype))
+    df = df.with_columns(itemset)
+    return df if session is None else (df, session)
+
+
 def apriori(
     transactions: pl.LazyFrame | pl.DataFrame | None = None,
     min_support: float = 0.5,
@@ -689,9 +707,23 @@ def apriori(
 
         csr, idx_to_item, n_trans = csr_result
 
+        # The route holds item ids in 64 bits. Ids of a wider dtype mine as
+        # column ids when one lies outside Int64, and the result keeps their dtype.
+        item_dtype = _item_dtype(lf, item_col)
+        items = pl.Series(list(idx_to_item.values()), dtype=item_dtype) if item_dtype in _WIDE_ITEM_DTYPES else None
+        column_ids = items is not None and items.cast(pl.Int64, strict=False).null_count() > items.null_count()
+        if column_ids:
+            if output_dir or resume_from_k is not None or anchor_items is not None:
+                raise ValueError(
+                    f"item ids of {item_dtype} lie outside the Int64 range: output_dir, resume_from_k and "
+                    "anchor_items store item ids in 64 bits on the GPU route. Map the ids to Int64, or mine "
+                    "without those options."
+                )
+            idx_to_item = {c: c for c in idx_to_item}
+
         from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
 
-        return _apriori_row_split_multi_gpu(
+        result = _apriori_row_split_multi_gpu(
             csr,
             idx_to_item,
             n_trans,
@@ -710,6 +742,7 @@ def apriori(
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
         )
+        return result if items is None else _as_item_dtype(result, items, column_ids)
 
     # ── CPU path: one CSR of the frequent items, mined level by level ──
     from .cpu_miner import mine_cpu

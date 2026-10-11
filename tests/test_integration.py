@@ -4,22 +4,7 @@ import polars as pl
 import pytest
 
 from et_miner import apriori, generate_rules
-from et_miner.core.result import _min_count
-
-
-def _ea_counts(transactions: list[tuple], min_support: float) -> dict[tuple, int]:
-    """efficient-apriori's {sorted itemset: count} under the oracle convention of CLAUDE.md.
-
-    ``(min_count - 0.5) / N`` and the longest transaction as ``max_length``
-    (efficient-apriori otherwise stops at 8).
-    """
-    ea = pytest.importorskip("efficient_apriori")
-    n = len(transactions)
-    max_length = max(len(set(t)) for t in transactions)
-    itemsets, _ = ea.itemsets_from_transactions(
-        transactions, (_min_count(min_support, n) - 0.5) / n, max_length=max_length
-    )
-    return {tuple(sorted(k)): v for level in itemsets.values() for k, v in level.items()}
+from tests._oracle import ea_counts as _ea_counts
 
 
 class TestFullPipeline:

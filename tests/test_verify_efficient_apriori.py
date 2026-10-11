@@ -13,9 +13,10 @@ import numpy as np
 import polars as pl
 import pytest
 
-ea = pytest.importorskip("efficient_apriori", reason="efficient_apriori not installed")
+pytest.importorskip("efficient_apriori", reason="efficient_apriori not installed")
 from et_miner import apriori as pa_apriori
-from et_miner.core.result import _min_count
+from tests._oracle import ea_counts
+from tests._oracle import mined_counts as pa_counts
 
 pytestmark = pytest.mark.gpu
 
@@ -25,27 +26,6 @@ REAL_DATASET = Path(__file__).resolve().parent.parent / "datasets" / "online_ret
 # ---------------------------------------------------------------------------
 # Conversion helpers
 # ---------------------------------------------------------------------------
-
-def ea_counts(transactions: list, min_support: float) -> dict[tuple, int]:
-    """efficient-apriori's {sorted itemset: count} under the oracle convention of CLAUDE.md.
-
-    ``(min_count - 0.5) / N`` makes its float threshold keep exactly the counts
-    the miner keeps (``count >= min_count``), and ``max_length`` is the longest
-    transaction, since efficient-apriori otherwise stops at 8.
-    """
-    tx = [tuple(t) for t in transactions]
-    n = len(tx)
-    max_length = max(len(set(t)) for t in tx)
-    itemsets, _ = ea.itemsets_from_transactions(tx, (_min_count(min_support, n) - 0.5) / n, max_length=max_length)
-    return {tuple(sorted(k)): v for level in itemsets.values() for k, v in level.items()}
-
-
-def pa_counts(result_df: pl.DataFrame, n_trans: int) -> dict[tuple, int]:
-    """et-miner's {sorted itemset: count}."""
-    itemsets = result_df.get_column("itemset").to_list()
-    supports = result_df.get_column("support").to_list()
-    return {tuple(sorted(s)): round(p * n_trans) for s, p in zip(itemsets, supports)}
-
 
 def assert_results_match(ea_counts: dict[tuple, int], pa_counts: dict[tuple, int], label: str = "") -> None:
     """Assert both implementations found the same itemsets with the same absolute counts."""

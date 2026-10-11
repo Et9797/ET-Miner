@@ -352,6 +352,12 @@ class TestStreamingAPI:
         with pytest.raises(ValueError, match=r"chunk_size must be >= 1"):
             apriori(small_transactions, min_support=0.3, streaming=True, chunk_size=chunk_size)
 
+    def test_memory_budget_gb_overrides_an_invalid_chunk_size(self, small_transactions):
+        """chunk_size is not read when memory_budget_gb sets the chunk, so it is not checked either."""
+        got = apriori_streaming(small_transactions, min_support=0.3, chunk_size=0, memory_budget_gb=1.0,
+                                show_progress=False)
+        assert got.sort("itemset").equals(apriori(small_transactions, min_support=0.3).sort("itemset"))
+
     def test_n_jobs_parameter_forwarded(self, medium_transactions):
         """n_jobs parameter should work in streaming mode."""
         result = apriori(

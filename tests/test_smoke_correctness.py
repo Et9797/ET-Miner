@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from tests._oracle import ea_counts, mined_counts
+
 pytest.importorskip("efficient_apriori", reason="efficient_apriori not installed")
 
 DATASET = Path(__file__).parent.parent / "datasets" / "online_retail_ii" / "transactions.parquet"
@@ -27,20 +29,11 @@ def _run_et_miner(lf, min_support, use_gpu=False) -> dict[tuple, int]:
 
     from et_miner import apriori
     res = apriori(lf, min_support=min_support, item_col="items", use_gpu=use_gpu)
-    n = lf.select(pl.len()).collect().item()
-    return {tuple(sorted(s)): round(p * n) for s, p in zip(res["itemset"].to_list(), res["support"].to_list())}
+    return mined_counts(res, lf.select(pl.len()).collect().item())
 
 
 def _run_efficient_apriori(lf, min_support) -> dict[tuple, int]:
-    """The oracle with the convention of CLAUDE.md: (min_count - 0.5) / N and an explicit max_length."""
-    from efficient_apriori import itemsets_from_transactions
-
-    from et_miner.core.result import _min_count
-    transactions = [tuple(t) for t in lf.select("items").collect(engine="streaming").to_series().to_list()]
-    n = len(transactions)
-    max_length = max(len(set(t)) for t in transactions)
-    itemsets, _ = itemsets_from_transactions(transactions, (_min_count(min_support, n) - 0.5) / n, max_length=max_length)
-    return {tuple(sorted(k)): v for level in itemsets.values() for k, v in level.items()}
+    return ea_counts(lf.select("items").collect(engine="streaming").to_series().to_list(), min_support)
 
 
 @SKIP_NO_DATASET

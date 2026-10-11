@@ -68,7 +68,7 @@ from loguru import logger
 from scipy.sparse import csr_matrix
 
 from .profiling import ProfilingSession
-from .result import _INT64_ITEM_DTYPES, _empty_result, _min_count, _result_item_dtype
+from .result import _INT64_ITEM_DTYPES, _empty_result, _item_dtype, _min_count, _result_item_dtype
 
 CSR_CHUNK_NNZ = 500_000
 INT_SPAN_LIMIT = 1 << 22
@@ -989,7 +989,7 @@ def _emit(levels: list[tuple[np.ndarray, np.ndarray]], items: pl.Series, n_rows:
     """
     levels = [(s, c) for s, c in levels if len(s)]
     if not levels:
-        return _empty_result()
+        return _empty_result(items.dtype)
     dtype = items.dtype
     if (out := _result_item_dtype(dtype)) is not None:
         items = items.cast(out)
@@ -1071,7 +1071,7 @@ def mine_cpu(
             n_transactions=tc.n_rows if tc else lf.select(pl.len()).collect(engine="streaming").item(),
         )
     if tc is None:
-        return done(_empty_result())
+        return done(_empty_result(_item_dtype(lf, item_col)))
 
     n_trans, n_cols = tc.n_rows, tc.n_cols
     min_count = _mining_min_count(min_support, n_trans)
@@ -1087,7 +1087,7 @@ def mine_cpu(
     if level_callback:
         level_callback(1, tc.n_scanned, len(gen), (time.perf_counter() - t_level) * 1000)
     if len(gen) == 0:
-        return done(_empty_result())
+        return done(_empty_result(tc.items.dtype))
     if warn_complexity:
         _warn_complexity(len(gen), min_support)
 

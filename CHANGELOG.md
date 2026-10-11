@@ -260,12 +260,14 @@ figures move — measured, per artifact, not assumed.
 One change moves the result's dtype, not its values:
 
 - **Integer item ids follow one dtype rule on every route** (CPU, GPU, SON on
-  either, multi-GPU SON). Int8–Int64 and UInt8–UInt32 come back as Int64, as
-  before. UInt64, Int128 and UInt128 now come back as themselves. Before:
+  either, multi-GPU SON), empty results included. Int8–Int64 and UInt8–UInt32
+  come back as Int64, as before. UInt64, Int128 and UInt128 now come back as
+  themselves. Before:
   - the GPU route returned UInt64 and Int128 ids as Int64;
   - SON on the GPU took the dtype from the values (UInt64 below 2⁶³ as Int64,
     UInt128 as Int128);
-  - the CPU route cast Int128 and UInt128 ids to Int64.
+  - the CPU route cast Int128 and UInt128 ids to Int64;
+  - every route returned an empty result as List(Int64).
 
   Who is affected: code that joins or concatenates results of a UInt64,
   Int128 or UInt128 item column with Int64 frames.
@@ -302,7 +304,8 @@ One change moves the result's dtype, not its values:
   chunk count, so both passes ran no chunk and SON returned an empty frame
   without an error, which looked like "nothing was frequent"
   (`bench/repro/d48_chunk_size_unvalidated.py`). NaN and fractions below 1
-  raise as well.
+  raise as well. With `memory_budget_gb` set, `chunk_size` is not read and not
+  checked.
 - **Item ids beyond the Int64 range mine on every route.** Before:
   - the GPU route raised `OverflowError` on UInt64 ids from 2⁶³ and on 128-bit
     ids outside Int64, and a `SchemaError` on UInt128 columns;
@@ -312,8 +315,15 @@ One change moves the result's dtype, not its values:
 
   The GPU route now mines such ids as column ids and maps them back. Its
   `output_dir`, `resume_from_k` and `anchor_items` store item ids in 64 bits,
-  so they raise `ValueError` for ids outside Int64. `tests/test_item_dtypes.py`
-  pins every route.
+  so they raise `ValueError` for ids outside Int64, before the CSR is built.
+  `tests/test_item_dtypes.py` pins every route.
+- **Null items mine on the GPU paths as on the CPU route: as no items.** A
+  frequent null (null items inside baskets, or enough empty and null baskets)
+  crashed the GPU route (`TypeError`) and SON on the GPU and multi-GPU SON
+  (`'<' not supported`). The GPU-side item counts now drop nulls, as the CPU
+  route's `_count_items` does.
+- **`mine_two_phase` removes its temporary phase directories when a phase
+  raises.** They were left behind in the system temp directory.
 - **Two-GPU runs on a box whose PCIe P2P drops device-to-device writes.**
   Such a box (a Ryzen AM4 host with two RTX A4000s behind the CPU's host
   bridge, `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`) reports

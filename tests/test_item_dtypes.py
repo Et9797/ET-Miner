@@ -92,10 +92,15 @@ def test_gpu_route_profile_keeps_the_dtype():
     assert session is not None
 
 
-@pytest.mark.gpu
-@pytest.mark.parametrize("kwargs", [{"output_dir": "OUT"}, {"anchor_items": {BIG}}])
-def test_gpu_route_rejects_ids_beyond_int64_where_it_stores_them(kwargs, tmp_path):
-    """Per-K parquet and anchors hold item ids in 64 bits; ids beyond Int64 raise there instead of overflowing."""
+@pytest.mark.parametrize("kwargs", [{"output_dir": "OUT"}, {"anchor_items": {BIG}}, {"resume_from_k": 2}])
+def test_gpu_route_rejects_ids_beyond_int64_where_it_stores_them(kwargs, tmp_path, monkeypatch):
+    """Per-K parquet, resume and anchors hold item ids in 64 bits: ids beyond Int64 raise, before any CSR is built."""
+    from et_miner.core import matrix
+
+    def no_csr(*args, **kwargs):
+        raise AssertionError("the CSR was built before the ids were checked")
+
+    monkeypatch.setattr(matrix, "coo_matrix", no_csr)
     if "output_dir" in kwargs:
         kwargs = {"output_dir": str(tmp_path)}
     with pytest.raises(ValueError, match="outside the Int64 range"):
@@ -117,3 +122,75 @@ def test_build_result_df_takes_the_input_dtype():
     assert _build_result_df([([5], 0.5)], pl.Int16).schema["itemset"] == pl.List(pl.Int64)
     assert _build_result_df([([2**127], 0.5)], pl.UInt128)["itemset"].to_list() == [[2**127]]
     assert _build_result_df([(["a"], 0.5)], pl.String).schema["itemset"] == pl.List(pl.String)
+
+
+ROUTES = {
+    "cpu": lambda df, s: apriori(df, min_support=s),
+    "son-cpu": lambda df, s: apriori_streaming(df, min_support=s, chunk_size=4, show_progress=False),
+}
+GPU_ROUTES = {
+    "gpu": lambda df, s: apriori(df, min_support=s, use_gpu=True),
+    "son-gpu": lambda df, s: apriori_streaming(df, min_support=s, chunk_size=4, use_gpu=True, show_progress=False),
+}
+EMPTY_CASES = [
+    (pl.Int32, pl.Int64, (5, 7, 9)),
+    (pl.UInt64, pl.UInt64, (5, 7, 9)),
+    (pl.UInt128, pl.UInt128, (BIG, 2**127, 2**128 - 1)),
+]
+
+
+def _empty_and_full(route, dtype, want, ids) -> None:
+    """Nothing frequent, an empty frame, and a result: all three carry the same itemset dtype and concatenate."""
+    df = _frame(dtype, ids)
+    none_frequent = route(df, 0.95)
+    no_rows = route(df.clear(), 0.5)
+    full = route(df, 0.5)
+    for res in (none_frequent, no_rows, full):
+        assert res.schema["itemset"] == pl.List(want)
+    assert pl.concat([full, none_frequent, no_rows]).height == full.height
+
+
+@pytest.mark.parametrize("route", ROUTES)
+@pytest.mark.parametrize("dtype,want,ids", EMPTY_CASES, ids=[str(c[0]) for c in EMPTY_CASES])
+def test_an_empty_result_keeps_the_dtype(route, dtype, want, ids):
+    _empty_and_full(ROUTES[route], dtype, want, ids)
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("route", GPU_ROUTES)
+@pytest.mark.parametrize("dtype,want,ids", EMPTY_CASES, ids=[str(c[0]) for c in EMPTY_CASES])
+def test_an_empty_gpu_result_keeps_the_dtype(route, dtype, want, ids):
+    _empty_and_full(GPU_ROUTES[route], dtype, want, ids)
+
+
+def test_mine_two_phase_removes_its_temp_dir_when_phase_1_raises(tmp_path, monkeypatch):
+    """Phase 1 stores ids in 64 bits, so ids beyond Int64 raise there; the temp dir it made goes with it."""
+    import tempfile
+
+    from et_miner.gpu.row_split import mine_two_phase
+
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    with pytest.raises(ValueError, match="outside the Int64 range"):
+        mine_two_phase(_frame(pl.Int128, (-BIG, BIG, BIG + 1)), phase1_support=0.5, phase2_support=0.4)
+    assert list(tmp_path.iterdir()) == []
+
+
+NULL_ROWS = [[1, None, 2]] * 4 + [[1, None]] * 2 + [[]] * 3 + [None] * 2
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("dtype", [pl.Int64, pl.UInt64])
+def test_null_items_are_no_items_on_the_gpu(dtype):
+    """The CPU route drops null items and empty baskets' nulls; the GPU paths raised on them."""
+    from et_miner.streaming.multi_gpu import apriori_streaming_multi_gpu
+
+    df = pl.DataFrame({"items": NULL_ROWS}, schema={"items": pl.List(dtype)})
+    want = _counts(apriori(df, min_support=0.3), df.height)
+    assert want == {(1,): 6, (2,): 4, (1, 2): 4}
+    runs = {
+        "gpu": apriori(df, min_support=0.3, use_gpu=True),
+        "son-gpu": apriori_streaming(df, min_support=0.3, chunk_size=4, use_gpu=True, show_progress=False),
+        "multi-gpu": apriori_streaming_multi_gpu(df, min_support=0.3, chunk_size=4, n_gpus=1, show_progress=False),
+    }
+    for name, res in runs.items():
+        assert _counts(res, df.height) == want, name

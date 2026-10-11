@@ -14,6 +14,7 @@ import pytest
 from et_miner import apriori
 from et_miner.core import cpu_miner
 from et_miner.core.result import _min_count
+from tests._oracle import ea_counts as _oracle
 
 
 def _random_rows(seed: int, n_rows: int = 400, n_items: int = 25, messy: bool = True) -> list:
@@ -47,15 +48,6 @@ def _presence(rows: list, items: list) -> np.ndarray:
             if it in col:
                 m[i, col[it]] = True
     return m
-
-
-def _oracle(rows: list, min_support: float, max_length: int | None = None) -> dict[tuple, int]:
-    ea = pytest.importorskip("efficient_apriori")
-    tx = [tuple(x for x in (r or []) if x is not None) for r in rows]
-    n = len(tx)
-    ml = max_length or max((len(set(t)) for t in tx), default=1) or 1
-    itemsets, _ = ea.itemsets_from_transactions(tx, (_min_count(min_support, n) - 0.5) / n, max_length=ml)
-    return {tuple(sorted(k)): v for level in itemsets.values() for k, v in level.items()}
 
 
 def _mined(df: pl.DataFrame, min_support: float, **kw) -> dict[tuple, int]:

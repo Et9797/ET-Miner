@@ -220,7 +220,8 @@ def apriori_streaming(
             "row-split miner and counts pass 2 with the batched kernel. Drop the argument."
         )
     _check_local_support_factor(local_support_factor)
-    _check_chunk_size(chunk_size)
+    if memory_budget_gb is None:
+        _check_chunk_size(chunk_size)
     if sparse is not None and not use_gpu:
         warnings.warn(
             "sparse= no longer selects a counting engine under streaming=True: SON's CPU passes count "
@@ -242,7 +243,7 @@ def apriori_streaming(
         session.end_phase(n_transactions=n_total)
 
     if n_total == 0:
-        result = _empty_result()
+        result = _empty_result(_item_dtype(lf, item_col))
         if profile:
             return result, session
         return result
@@ -398,7 +399,7 @@ def apriori_streaming(
         )
 
     if not candidate_itemsets:
-        result = _empty_result()
+        result = _empty_result(_item_dtype(lf, item_col))
         if profile:
             return result, session
         return result
@@ -521,8 +522,8 @@ def _mine_chunk_gpu(
     """Mine one chunk on the current device with the row-split miner.
 
     The miner runs on column indices and the items are mapped back here, so
-    items of any type (strings, ids beyond int32, an empty basket's None)
-    mine as they do on the CPU route.
+    items of any type (strings, ids beyond int32) mine as they do on the CPU
+    route; null items are no items there (``build_boolean_matrix`` drops them).
     """
     import cupy as cp
 
@@ -826,7 +827,7 @@ def _son_cpu(
                 n_candidates=n_candidates, n_items=union.n_items, n_bounded=n_bounded, n_exact=n_bounded - n_counted
             )
         if items is None:
-            return _empty_result()
+            return _empty_result(_item_dtype(lf, item_col))
         logger.info(
             "Pass 1 complete: {} candidate itemsets from {} items; {} within the partition bound, {} of them exact",
             n_candidates,

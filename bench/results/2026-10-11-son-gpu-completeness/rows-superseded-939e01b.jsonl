@@ -1,0 +1,7 @@
+{"workload": "smoke", "factor": 0.95, "n_rows": 60000, "chunk_size": 15000, "ref_itemsets": 694, "gpu_itemsets": 694, "missing": 0, "extra": 0, "wrong_counts": 0, "ok": true, "untimed_wall_s": 1.73}
+{"workload": "deepk", "factor": 0.95, "n_rows": 1000000, "chunk_size": 250000, "ref_itemsets": 8841, "gpu_itemsets": 8841, "missing": 0, "extra": 0, "wrong_counts": 0, "ok": true, "untimed_wall_s": 20.98}
+{"workload": "skew", "factor": 0.95, "n_rows": 1000000, "chunk_size": 250000, "ref_itemsets": 10350, "gpu_itemsets": 10350, "missing": 0, "extra": 0, "wrong_counts": 0, "ok": true, "untimed_wall_s": 42.53}
+{"workload": "wide", "factor": 0.95, "n_rows": 100000, "chunk_size": 25000, "ref_itemsets": 3872, "gpu_itemsets": 3872, "missing": 0, "extra": 0, "wrong_counts": 0, "ok": true, "untimed_wall_s": 99.44}
+{"workload": "or005", "factor": 0.95, "n_rows": 36422, "chunk_size": 9106, "ref_itemsets": 10488, "gpu_itemsets": 10488, "missing": 0, "extra": 0, "wrong_counts": 0, "ok": true, "untimed_wall_s": 42.49}
+{"workload": "or0001k2", "factor": 0.95, "n_rows": 36422, "chunk_size": 9106, "ref_itemsets": 2678808, "gpu_itemsets": 2678808, "missing": 0, "extra": 0, "wrong_counts": 0, "ok": true, "untimed_wall_s": 347.57}
+{"workload": "dslk2", "factor": 0.95, "n_rows": 20000000, "chunk_size": 5000000, "ref_itemsets": 1143, "gpu_itemsets": 1143, "missing": 0, "extra": 0, "wrong_counts": 0, "ok": true, "untimed_wall_s": 594.88}

@@ -845,6 +845,32 @@ def count_per_candidate(cands: np.ndarray, bv: np.ndarray) -> np.ndarray:
     return out
 
 
+def _k2_on_bitvecs(indptr: np.ndarray, n_cols: int, n_pairs: int) -> bool:
+    """The in-core K=2 rule: column bitvectors of every row fit ``BITVEC_BUDGET_BYTES`` and pairs x words stay
+    within ``GRAM_BITVEC_RATIO`` x pair occurrences; otherwise the Gram counts K=2."""
+    words = (len(indptr) - 1 + 63) // 64
+    if n_cols * words * 8 > BITVEC_BUDGET_BYTES:
+        return False
+    lens = np.diff(indptr).astype(np.int64)
+    return n_pairs * words <= GRAM_BITVEC_RATIO * int((lens * (lens - 1) // 2).sum())
+
+
+def _level_space(
+    indptr: np.ndarray,
+    indices: np.ndarray,
+    n_cols: int,
+    k: int,
+    space: RowSpace | None,
+    pool: ThreadPoolExecutor | None,
+) -> RowSpace:
+    """Level k's row space: the rows holding at least k items, rebuilt once they are at most ``COMPACT_RATIO`` of
+    ``space``'s rows (kept until then)."""
+    rows_k = np.flatnonzero(np.diff(indptr) >= k)
+    if space is None or len(rows_k) <= COMPACT_RATIO * space.n_rows:
+        return RowSpace(indptr, indices, n_cols, rows_k if len(rows_k) < len(indptr) - 1 else None, pool)
+    return space
+
+
 def count_itemsets(
     indptr: np.ndarray,
     indices: np.ndarray,
@@ -882,11 +908,7 @@ def count_itemsets(
         elif k == 1:
             out[k] = np.bincount(indices, minlength=n_cols).astype(np.int64)[c[:, 0]]
         elif k == 2:
-            lens = np.diff(indptr).astype(np.int64)
-            words = (n_rows + 63) // 64
-            if n_cols * words * 8 <= BITVEC_BUDGET_BYTES and len(c) * words <= GRAM_BITVEC_RATIO * int(
-                (lens * (lens - 1) // 2).sum()
-            ):
+            if _k2_on_bitvecs(indptr, n_cols, len(c)):
                 space = RowSpace(indptr, indices, n_cols, None, pool)
             if space is not None and space.bitvecs is not None:
                 out[k] = count_per_candidate(c, space.bitvecs)
@@ -899,9 +921,7 @@ def count_itemsets(
                     indptr, indices, n_cols, np.arange(n_rows), np.flatnonzero(used), ia, ib, GRAM_BUDGET_BYTES
                 )
         else:
-            rows_k = np.flatnonzero(np.diff(indptr) >= k)
-            if space is None or len(rows_k) <= COMPACT_RATIO * space.n_rows:
-                space = RowSpace(indptr, indices, n_cols, rows_k if len(rows_k) < n_rows else None, pool)
+            space = _level_space(indptr, indices, n_cols, k, space, pool)
             n_groups = len(_group_runs(c, k)[0])
             if space.bitvecs is not None and (
                 space.words <= PER_CANDIDATE_MAX_WORDS or len(c) < PER_CANDIDATE_MEAN_GROUP * n_groups
@@ -985,6 +1005,23 @@ def _emit(levels: list[tuple[np.ndarray, np.ndarray]], items: pl.Series, n_rows:
     return pl.concat(frames)
 
 
+def _mining_min_count(min_support: float, n_rows: int) -> int:
+    """``_min_count``, at least 1: at 0 the Gram (which only sees co-occurring pairs) and the bitvectors would
+    disagree."""
+    return max(1, _min_count(min_support, n_rows))
+
+
+def _k1_seed(
+    tc: TransactionCSR, prune_equal_support: bool
+) -> tuple[np.ndarray, _Level, list[tuple[np.ndarray, np.ndarray]]]:
+    """K=1 for ``_mine_levels``: (the generators, the level, the emitted levels); every column, with only the
+    free ones generating and emitted under ``prune_equal_support``."""
+    ones = np.arange(tc.n_cols, dtype=np.int32)[:, None]
+    free = tc.counts < tc.n_rows
+    gen = ones[free] if prune_equal_support else ones
+    return gen, _Level(ones, tc.counts, free), [(gen, tc.counts[free] if prune_equal_support else tc.counts)]
+
+
 def mine_cpu(
     lf: pl.LazyFrame,
     min_support: float,
@@ -1037,19 +1074,14 @@ def mine_cpu(
         return done(_empty_result())
 
     n_trans, n_cols = tc.n_rows, tc.n_cols
-    # min_support=0 gives 0; at 0 the Gram (which only sees co-occurring pairs) and the bitvectors would disagree.
-    min_count = max(1, _min_count(min_support, n_trans))
+    min_count = _mining_min_count(min_support, n_trans)
     max_tx_length = lf.select(pl.col(item_col).list.len().max()).collect(engine="streaming").item() or 0
     effective_max_length = min(max_length if max_length else float("inf"), max_tx_length, n_cols)
 
     t_level = time.perf_counter()
     if session:
         session.start_phase("k1_support")
-    ones = np.arange(n_cols, dtype=np.int32)[:, None]
-    free = tc.counts < n_trans
-    prev = _Level(ones, tc.counts, free)
-    gen = ones[free] if prune_equal_support else ones
-    emitted = [(gen, tc.counts[free] if prune_equal_support else tc.counts)]
+    gen, prev, emitted = _k1_seed(tc, prune_equal_support)
     if session:
         session.end_phase(n_frequent=len(gen))
     if level_callback:
@@ -1088,7 +1120,7 @@ def _mine_levels(
     workers: int,
 ) -> None:
     """mine_cpu's levels K>=2: appends each emitted level (itemsets, counts) to ``emitted``."""
-    n_trans, n_cols = tc.n_rows, tc.n_cols
+    n_cols = tc.n_cols
     track_free = prune_equal_support or use_generator_pruning
     space: RowSpace | None = None
     k = 2
@@ -1098,11 +1130,7 @@ def _mine_levels(
             if session:
                 session.record_phase("k2_candidate_gen", 0.0, n_candidates=len(gen) * (len(gen) - 1) // 2)
                 session.start_phase("k2_support_count")
-            lens = np.diff(tc.indptr).astype(np.int64)
-            occurrences = int((lens * (lens - 1) // 2).sum())
-            words = (n_trans + 63) // 64
-            pairs_work = len(gen) * (len(gen) - 1) // 2 * words
-            if n_cols * words * 8 <= BITVEC_BUDGET_BYTES and pairs_work <= GRAM_BITVEC_RATIO * occurrences:
+            if _k2_on_bitvecs(tc.indptr, n_cols, len(gen) * (len(gen) - 1) // 2):
                 space = RowSpace(tc.indptr, tc.indices, n_cols, None, pool)
                 sets, counts = count_pairs_bitvec(space.bitvecs, gen[:, 0], min_count, pool)
             else:
@@ -1115,9 +1143,7 @@ def _mine_levels(
             n_inferred = n_candidates - (len(gen) - n_nonfree) * (len(gen) - n_nonfree - 1) // 2
         else:
             if enable_length_filter:
-                rows_k = np.flatnonzero(np.diff(tc.indptr) >= k)
-                if space is None or len(rows_k) <= COMPACT_RATIO * space.n_rows:
-                    space = RowSpace(tc.indptr, tc.indices, n_cols, rows_k if len(rows_k) < n_trans else None, pool)
+                space = _level_space(tc.indptr, tc.indices, n_cols, k, space, pool)
             elif space is None:
                 space = RowSpace(tc.indptr, tc.indices, n_cols, pool=pool)
             infer = use_generator_pruning and not prune_equal_support

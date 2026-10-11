@@ -58,9 +58,10 @@ from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.core.cpu_miner import (
     _emit,
     _int_ids,
-    _Level,
+    _k1_seed,
     _map_rows,
     _mine_levels,
+    _mining_min_count,
     _workers,
     build_transaction_csr,
     count_itemsets,
@@ -686,7 +687,7 @@ def _bound(
 
 def _local_min_count(local_min_support: float, n_rows: int) -> int:
     """The min_count pass 1 mines a chunk of ``n_rows`` rows at; ``_bound``'s slack is this minus 1."""
-    return max(1, _min_count(local_min_support, n_rows))
+    return _mining_min_count(local_min_support, n_rows)
 
 
 def _local_levels(
@@ -711,12 +712,11 @@ def _local_levels(
         return None
     if tc.n_rows != n_rows:
         raise RuntimeError(f"a SON chunk holds {tc.n_rows} rows where {n_rows} were counted")
-    ones = np.arange(tc.n_cols, dtype=np.int32)[:, None]
-    emitted = [(ones, tc.counts)]
+    gen, prev, emitted = _k1_seed(tc, prune_equal_support=False)
     _mine_levels(
         tc,
-        gen=ones,
-        prev=_Level(ones, tc.counts, tc.counts < tc.n_rows),
+        gen=gen,
+        prev=prev,
         emitted=emitted,
         min_count=_local_min_count(local_min_support, n_rows),
         effective_max_length=min(max_length or math.inf, int(np.diff(tc.indptr).max()), tc.n_cols),

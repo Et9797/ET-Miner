@@ -44,6 +44,7 @@ from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.streaming.son import (
     LOCAL_SUPPORT_FACTOR,
     _build_matrix_for_items,
+    _check_chunk_size,
     _check_local_support_factor,
     _count_candidates_gpu,
     _estimate_chunk_size_from_memory,
@@ -188,6 +189,7 @@ def apriori_streaming_multi_gpu(
         ... )
     """
     _check_local_support_factor(local_support_factor)
+    _check_chunk_size(chunk_size)
 
     # Validate GPU availability
     if not has_cupy():

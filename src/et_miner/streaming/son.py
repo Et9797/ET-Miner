@@ -123,6 +123,12 @@ def _check_local_support_factor(local_support_factor: float) -> None:
         )
 
 
+def _check_chunk_size(chunk_size: int) -> None:
+    """Raise unless chunk_size >= 1: 0 divided by zero, and a negative size gave zero chunks and an empty result."""
+    if not chunk_size >= 1:
+        raise ValueError(f"chunk_size must be >= 1, got {chunk_size}")
+
+
 def apriori_streaming(
     transactions: pl.LazyFrame | pl.DataFrame,
     min_support: float = 0.5,
@@ -212,6 +218,7 @@ def apriori_streaming(
             "row-split miner and counts pass 2 with the batched kernel. Drop the argument."
         )
     _check_local_support_factor(local_support_factor)
+    _check_chunk_size(chunk_size)
     if sparse is not None and not use_gpu:
         warnings.warn(
             "sparse= no longer selects a counting engine under streaming=True: SON's CPU passes count "

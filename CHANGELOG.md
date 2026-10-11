@@ -281,6 +281,13 @@ figures move — measured, per artifact, not assumed.
   0 of 3 itemsets). Zero, negative and NaN factors raise too. Every factor in
   (0, 1] gives the same result; the docstrings no longer say that a lower one
   reduces false negatives.
+- **#48 — a `chunk_size` below 1 raises `ValueError`** (`apriori_streaming`,
+  `apriori_streaming_multi_gpu`, and `apriori(streaming=True)` through the
+  former). Zero raised `ZeroDivisionError`. A negative size gave a negative
+  chunk count, so both passes ran no chunk and SON returned an empty frame
+  without an error, which looked like "nothing was frequent"
+  (`bench/repro/d48_chunk_size_unvalidated.py`). NaN and fractions below 1
+  raise as well.
 - **Two-GPU runs on a box whose PCIe P2P drops device-to-device writes.**
   Such a box (a Ryzen AM4 host with two RTX A4000s behind the CPU's host
   bridge, `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`) reports

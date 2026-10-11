@@ -341,6 +341,17 @@ class TestStreamingAPI:
             with pytest.raises(ValueError, match=r"local_support_factor must be in \(0, 1\]"):
                 son(small_transactions, min_support=0.3, chunk_size=3, show_progress=False, local_support_factor=factor)
 
+    @pytest.mark.parametrize("chunk_size", [0, -1, 0.5, float("nan")])
+    def test_a_chunk_size_below_1_raises(self, small_transactions, chunk_size):
+        """0 divided by zero; a negative size mined no chunk and returned an empty frame without an error."""
+        from et_miner.streaming.multi_gpu import apriori_streaming_multi_gpu
+
+        for son in (apriori_streaming, apriori_streaming_multi_gpu):
+            with pytest.raises(ValueError, match=r"chunk_size must be >= 1"):
+                son(small_transactions, min_support=0.3, chunk_size=chunk_size, show_progress=False)
+        with pytest.raises(ValueError, match=r"chunk_size must be >= 1"):
+            apriori(small_transactions, min_support=0.3, streaming=True, chunk_size=chunk_size)
+
     def test_n_jobs_parameter_forwarded(self, medium_transactions):
         """n_jobs parameter should work in streaming mode."""
         result = apriori(

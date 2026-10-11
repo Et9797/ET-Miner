@@ -1402,35 +1402,36 @@ def mine_two_phase(
 
     from et_miner.core.apriori import apriori
 
-    phase1_result = apriori(
-        transactions,
-        min_support=phase1_support,
-        max_length=max_length,
-        item_col=item_col,
-        use_gpu=True,
-        n_gpus=n_gpus,
-        output_dir=phase1_dir,
-        sparse_from_k=sparse_from_k,
-        prune_equal_support=True,
-        level_callback=level_callback,
-    )
+    try:
+        phase1_result = apriori(
+            transactions,
+            min_support=phase1_support,
+            max_length=max_length,
+            item_col=item_col,
+            use_gpu=True,
+            n_gpus=n_gpus,
+            output_dir=phase1_dir,
+            sparse_from_k=sparse_from_k,
+            prune_equal_support=True,
+            level_callback=level_callback,
+        )
 
-    # Extract anchor items from ALL K-levels
-    anchor_items = set()
-    for k_file in sorted(Path(phase1_dir).glob("frequent_k*.parquet")):
-        df = pl.scan_parquet(k_file).collect(engine="streaming")
-        if "items" in df.columns:
-            for item_list in df["items"].to_list():
-                anchor_items.update(int(x) for x in item_list)
-        elif "itemset" in df.columns:
-            for item_list in df["itemset"].to_list():
-                anchor_items.update(int(x) for x in item_list)
+        # Extract anchor items from ALL K-levels
+        anchor_items = set()
+        for k_file in sorted(Path(phase1_dir).glob("frequent_k*.parquet")):
+            df = pl.scan_parquet(k_file).collect(engine="streaming")
+            if "items" in df.columns:
+                for item_list in df["items"].to_list():
+                    anchor_items.update(int(x) for x in item_list)
+            elif "itemset" in df.columns:
+                for item_list in df["itemset"].to_list():
+                    anchor_items.update(int(x) for x in item_list)
+    finally:
+        # The temp dir goes once the anchors are read, or when phase 1 raises.
+        if _cleanup_phase1:
+            shutil.rmtree(phase1_dir, ignore_errors=True)
 
     logger.info(f"  Phase 1 complete: {len(anchor_items)} anchor items")
-
-    # Clean up Phase 1 temp dir (anchors extracted, parquets no longer needed)
-    if _cleanup_phase1:
-        shutil.rmtree(phase1_dir, ignore_errors=True)
 
     if not anchor_items:
         logger.warning("  Phase 1 found 0 anchor items — Phase 2 will run unfiltered")
@@ -1440,24 +1441,25 @@ def mine_two_phase(
     phase2_dir = os.path.join(output_dir, "phase2") if output_dir else tempfile.mkdtemp(prefix="etminer_p2_")
     os.makedirs(phase2_dir, exist_ok=True)
 
-    phase2_result = apriori(
-        transactions,
-        min_support=phase2_support,
-        max_length=max_length,
-        item_col=item_col,
-        use_gpu=True,
-        n_gpus=n_gpus,
-        output_dir=phase2_dir,
-        sparse_from_k=sparse_from_k,
-        prune_equal_support=True,
-        anchor_items=anchor_items if anchor_items else None,
-        level_callback=level_callback,
-    )
+    try:
+        phase2_result = apriori(
+            transactions,
+            min_support=phase2_support,
+            max_length=max_length,
+            item_col=item_col,
+            use_gpu=True,
+            n_gpus=n_gpus,
+            output_dir=phase2_dir,
+            sparse_from_k=sparse_from_k,
+            prune_equal_support=True,
+            anchor_items=anchor_items if anchor_items else None,
+            level_callback=level_callback,
+        )
+    finally:
+        if _cleanup_phase2:
+            shutil.rmtree(phase2_dir, ignore_errors=True)
 
     logger.info("  Phase 2 complete")
-
-    if _cleanup_phase2:
-        shutil.rmtree(phase2_dir, ignore_errors=True)
 
     logger.info("TWO-PHASE MINING DONE")
     return phase1_result, phase2_result, anchor_items

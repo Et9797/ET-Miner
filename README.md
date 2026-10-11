@@ -63,8 +63,9 @@ for rule in generate_rules(itemsets, min_confidence=0.7):
 # [3] -> [2]: conf=0.75, lift=1.00
 ```
 
-`apriori()` returns `itemset` (`List[Int64]`, items ascending) and `support`
-(`Float64`). The main options (all documented in its docstring):
+`apriori()` returns `itemset` (`List[Int64]`, items ascending; UInt64, Int128
+and UInt128 ids keep their dtype) and `support` (`Float64`). The main options
+(all documented in its docstring):
 
 | Option | Effect |
 |--------|--------|

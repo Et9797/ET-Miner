@@ -257,6 +257,21 @@ figures move — measured, per artifact, not assumed.
 | **#24** | any GPU result-buffer overflow raises instead of silently truncating | runs that were completing with a non-deterministic ≤5% loss now fail loudly and say which knob to raise |
 | **#51** | `--min-lift` filters at `>=` its value, including the default `1.0` | CLI users relying on the accidental no-op at 1.0 |
 
+One change moves the result's dtype, not its values:
+
+- **Integer item ids follow one dtype rule on every route** (CPU, GPU, SON on
+  either, multi-GPU SON), empty results included. Int8–Int64 and UInt8–UInt32
+  come back as Int64, as before. UInt64, Int128 and UInt128 now come back as
+  themselves. Before:
+  - the GPU route returned UInt64 and Int128 ids as Int64;
+  - SON on the GPU took the dtype from the values (UInt64 below 2⁶³ as Int64,
+    UInt128 as Int128);
+  - the CPU route cast Int128 and UInt128 ids to Int64;
+  - every route returned an empty result as List(Int64).
+
+  Who is affected: code that joins or concatenates results of a UInt64,
+  Int128 or UInt128 item column with Int64 frames.
+
 ### Migration
 
 - **Re-check any published figure** against
@@ -266,6 +281,8 @@ figures move — measured, per artifact, not assumed.
   thresholds at N = 1,000,000.
 - **Self-sufficiency values must be recomputed.** The old `max`-based ratio and
   the new `min`-based one agree on no row in practice.
+- **To get the old Int64 itemsets back** from a UInt64, Int128 or UInt128
+  input whose ids fit Int64: `res.with_columns(pl.col("itemset").cast(pl.List(pl.Int64)))`.
 - **Phase 2 of `mine_two_phase` gets slower** and its default `phase2_support`
   is raised. That is the fix working: the old speed was purchased by discarding
   up to 99.3% of the correct answer. `bench/baseline/perf-baseline.json` holds
@@ -281,6 +298,32 @@ figures move — measured, per artifact, not assumed.
   0 of 3 itemsets). Zero, negative and NaN factors raise too. Every factor in
   (0, 1] gives the same result; the docstrings no longer say that a lower one
   reduces false negatives.
+- **#48 — a `chunk_size` below 1 raises `ValueError`** (`apriori_streaming`,
+  `apriori_streaming_multi_gpu`, and `apriori(streaming=True)` through the
+  former). Zero raised `ZeroDivisionError`. A negative size gave a negative
+  chunk count, so both passes ran no chunk and SON returned an empty frame
+  without an error, which looked like "nothing was frequent"
+  (`bench/repro/d48_chunk_size_unvalidated.py`). NaN and fractions below 1
+  raise as well. With `memory_budget_gb` set, `chunk_size` is not read and not
+  checked.
+- **Item ids beyond the Int64 range mine on every route.** Before:
+  - the GPU route raised `OverflowError` on UInt64 ids from 2⁶³ and on 128-bit
+    ids outside Int64, and a `SchemaError` on UInt128 columns;
+  - the CPU route and SON on the CPU raised `InvalidOperationError` on 128-bit
+    ids outside Int64;
+  - SON on the GPU and multi-GPU SON overflowed on UInt128 ids from 2¹²⁷.
+
+  The GPU route now mines such ids as column ids and maps them back. Its
+  `output_dir`, `resume_from_k` and `anchor_items` store item ids in 64 bits,
+  so they raise `ValueError` for ids outside Int64, before the CSR is built.
+  `tests/test_item_dtypes.py` pins every route.
+- **Null items mine on the GPU paths as on the CPU route: as no items.** A
+  frequent null (null items inside baskets, or enough empty and null baskets)
+  crashed the GPU route (`TypeError`) and SON on the GPU and multi-GPU SON
+  (`'<' not supported`). The GPU-side item counts now drop nulls, as the CPU
+  route's `_count_items` does.
+- **`mine_two_phase` removes its temporary phase directories when a phase
+  raises.** They were left behind in the system temp directory.
 - **Two-GPU runs on a box whose PCIe P2P drops device-to-device writes.**
   Such a box (a Ryzen AM4 host with two RTX A4000s behind the CPU's host
   bridge, `bench/results/2026-09-28-consolidation-2gpu/nccl-hang/`) reports

@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 from et_miner import apriori, generate_rules
+from tests._oracle import ea_counts as _ea_counts
 
 
 class TestFullPipeline:
@@ -61,14 +62,10 @@ class TestMatchesEfficientApriori:
 
     def test_itemset_counts_match(self, comparison_transactions):
         """Test that et-miner finds same number of itemsets."""
-        pytest.importorskip("efficient_apriori")
-        from efficient_apriori import apriori as ea_apriori
-
         min_support = 0.4
 
         # Run efficient-apriori
-        ea_itemsets, _ = ea_apriori(comparison_transactions["tuples"], min_support)
-        ea_count = sum(len(v) for v in ea_itemsets.values())
+        ea_count = len(_ea_counts(comparison_transactions["tuples"], min_support))
 
         # Run et-miner
         pa_result = apriori(comparison_transactions["polars"], min_support)
@@ -78,17 +75,10 @@ class TestMatchesEfficientApriori:
 
     def test_itemsets_match(self, comparison_transactions):
         """Test that et-miner finds exactly the same itemsets."""
-        pytest.importorskip("efficient_apriori")
-        from efficient_apriori import apriori as ea_apriori
-
         min_support = 0.4
 
         # Run efficient-apriori
-        ea_itemsets, _ = ea_apriori(comparison_transactions["tuples"], min_support)
-        ea_set = set()
-        for size_dict in ea_itemsets.values():
-            for itemset in size_dict.keys():
-                ea_set.add(tuple(sorted(itemset)))
+        ea_set = set(_ea_counts(comparison_transactions["tuples"], min_support))
 
         # Run et-miner
         pa_result = apriori(comparison_transactions["polars"], min_support)
@@ -97,29 +87,15 @@ class TestMatchesEfficientApriori:
         assert pa_set == ea_set, f"Itemsets differ:\nEA only: {ea_set - pa_set}\nPA only: {pa_set - ea_set}"
 
     def test_supports_match(self, comparison_transactions):
-        """Test that support values match between implementations."""
-        pytest.importorskip("efficient_apriori")
-        from efficient_apriori import apriori as ea_apriori
-
+        """Test that absolute counts match between implementations."""
         min_support = 0.4
         n_transactions = len(comparison_transactions["tuples"])
 
-        # Run efficient-apriori (returns absolute counts, not fractions)
-        ea_itemsets, _ = ea_apriori(comparison_transactions["tuples"], min_support)
-        ea_supports = {}
-        for size_dict in ea_itemsets.values():
-            for itemset, count in size_dict.items():
-                # Convert count to fraction for comparison
-                ea_supports[tuple(sorted(itemset))] = count / n_transactions
-
-        # Run et-miner (returns fractions)
+        ea_counts = _ea_counts(comparison_transactions["tuples"], min_support)
         pa_result = apriori(comparison_transactions["polars"], min_support)
-        pa_supports = {
-            tuple(sorted(row["itemset"])): row["support"]
+        pa_counts = {
+            tuple(sorted(row["itemset"])): round(row["support"] * n_transactions)
             for row in pa_result.iter_rows(named=True)
         }
 
-        for itemset in ea_supports:
-            assert itemset in pa_supports, f"Missing itemset: {itemset}"
-            assert abs(ea_supports[itemset] - pa_supports[itemset]) < 0.001, \
-                f"Support mismatch for {itemset}: EA={ea_supports[itemset]}, PA={pa_supports[itemset]}"
+        assert pa_counts == ea_counts

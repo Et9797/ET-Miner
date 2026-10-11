@@ -17,6 +17,7 @@ to scipy sparse CSR matrices is available (scipy is a core dependency).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -25,7 +26,7 @@ from loguru import logger
 
 from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.backends import CUPY_INSTALLED
-from et_miner.core.result import _min_count
+from et_miner.core.result import _INT_ITEM_DTYPES, _item_dtype, _min_count
 
 # Scipy for sparse matrix operations
 from scipy.sparse import coo_matrix, csr_matrix
@@ -79,6 +80,12 @@ def _filter_transactions_by_length(
     return matrix.filter(mask), n_filtered
 
 
+def _item_literal(item, item_dtype: pl.DataType | pl.datatypes.DataTypeClass | None):
+    """``item`` for ``list.contains``: a literal of the column's dtype for integer ids, whose Python int Polars
+    would otherwise read as a signed 128-bit value at most (a UInt128 id from 2**127 on overflows)."""
+    return pl.lit(item, dtype=item_dtype) if item_dtype in _INT_ITEM_DTYPES else item
+
+
 def build_boolean_matrix(
     transactions: pl.LazyFrame,
     min_support: float,
@@ -119,7 +126,7 @@ def build_boolean_matrix(
     # math.ceil ensures we don't include items below threshold due to float rounding.
     min_count = _min_count(min_support, n_transactions)
     freq_1 = (
-        transactions.select(pl.col(item_col).explode().alias("item"))
+        transactions.select(pl.col(item_col).explode().drop_nulls().alias("item"))
         .group_by("item")
         .agg(pl.len().alias("count"))
         .filter(pl.col("count") >= min_count)
@@ -162,7 +169,11 @@ def build_boolean_matrix(
     # Trade-off: O(T × m) vs O(T × k) where m = frequent items, k = avg items/tx
     # In practice, list.contains is faster AND uses dramatically less memory.
 
-    exprs = [pl.col(item_col).list.contains(item_id).alias(col_name) for col_name, item_id in col_to_item.items()]
+    item_dtype = _item_dtype(transactions, item_col)
+    exprs = [
+        pl.col(item_col).list.contains(_item_literal(item_id, item_dtype)).alias(col_name)
+        for col_name, item_id in col_to_item.items()
+    ]
 
     # In-memory engine, pinned: Polars 2.0 made streaming the default, and for one
     # list.contains per item it is slower (bench/cpu/list_contains_check.py measured
@@ -508,6 +519,7 @@ def _build_csr_from_transactions(
     transactions: pl.LazyFrame,
     min_support: float,
     item_col: str = "items",
+    check_items: Callable[[pl.Series], None] | None = None,
 ) -> tuple[csr_matrix, dict[int, int], int] | None:
     """Build CSR sparse matrix directly from transactions, bypassing dense boolean.
 
@@ -525,6 +537,8 @@ def _build_csr_from_transactions(
         transactions: LazyFrame with a list column of item IDs.
         min_support: Minimum support threshold (0.0–1.0).
         item_col: Name of the list column.
+        check_items: Called with the frequent items (ascending, the column
+            order) before the O(nnz) join, so a caller can reject them early.
 
     Returns:
         Tuple of (csr_matrix, col_to_item, n_transactions) or None if no
@@ -543,7 +557,7 @@ def _build_csr_from_transactions(
 
     # ── frequent 1-itemsets ─────────────────────────────────────────────
     freq_1 = (
-        transactions.select(pl.col(item_col).explode())
+        transactions.select(pl.col(item_col).explode().drop_nulls())
         .group_by(item_col)
         .agg(pl.len().alias("__count"))
         .filter(pl.col("__count") >= min_count)
@@ -553,6 +567,8 @@ def _build_csr_from_transactions(
 
     if freq_1.height == 0:
         return None
+    if check_items is not None:
+        check_items(freq_1.get_column(item_col))
 
     item_ids = freq_1.get_column(item_col).to_list()
     n_items = len(item_ids)
@@ -563,7 +579,7 @@ def _build_csr_from_transactions(
     # ── explode + join → (row_idx, col_idx) COO pairs ──────────────────
     item_mapping = pl.DataFrame(
         {
-            item_col: item_ids,
+            item_col: freq_1.get_column(item_col),
             "__col_idx": np.arange(n_items, dtype=np.int64),
         }
     ).lazy()

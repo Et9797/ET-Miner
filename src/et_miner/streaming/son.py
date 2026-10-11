@@ -58,18 +58,20 @@ from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.core.cpu_miner import (
     _emit,
     _int_ids,
-    _Level,
+    _k1_seed,
     _map_rows,
     _mine_levels,
+    _mining_min_count,
     _workers,
     build_transaction_csr,
     count_itemsets,
     sum_rows,
 )
-from et_miner.core.matrix import build_boolean_matrix
+from et_miner.core.matrix import _item_literal, build_boolean_matrix
 from et_miner.core.result import (
     _build_result_df,
     _empty_result,
+    _item_dtype,
     _min_count,
 )
 from et_miner.core.profiling import ProfilingSession
@@ -121,6 +123,12 @@ def _check_local_support_factor(local_support_factor: float) -> None:
             f"local_support_factor must be in (0, 1], got {local_support_factor}: above 1 pass 1 mines each "
             "chunk above the global threshold and can miss globally frequent itemsets"
         )
+
+
+def _check_chunk_size(chunk_size: int) -> None:
+    """Raise unless chunk_size >= 1: 0 divided by zero, and a negative size gave zero chunks and an empty result."""
+    if not chunk_size >= 1:
+        raise ValueError(f"chunk_size must be >= 1, got {chunk_size}")
 
 
 def apriori_streaming(
@@ -212,6 +220,8 @@ def apriori_streaming(
             "row-split miner and counts pass 2 with the batched kernel. Drop the argument."
         )
     _check_local_support_factor(local_support_factor)
+    if memory_budget_gb is None:
+        _check_chunk_size(chunk_size)
     if sparse is not None and not use_gpu:
         warnings.warn(
             "sparse= no longer selects a counting engine under streaming=True: SON's CPU passes count "
@@ -233,7 +243,7 @@ def apriori_streaming(
         session.end_phase(n_transactions=n_total)
 
     if n_total == 0:
-        result = _empty_result()
+        result = _empty_result(_item_dtype(lf, item_col))
         if profile:
             return result, session
         return result
@@ -389,7 +399,7 @@ def apriori_streaming(
         )
 
     if not candidate_itemsets:
-        result = _empty_result()
+        result = _empty_result(_item_dtype(lf, item_col))
         if profile:
             return result, session
         return result
@@ -495,7 +505,7 @@ def apriori_streaming(
         min_support,
     )
 
-    result_df = _build_result_df(results)
+    result_df = _build_result_df(results, _item_dtype(lf, item_col))
 
     if profile:
         return result_df, session
@@ -512,8 +522,8 @@ def _mine_chunk_gpu(
     """Mine one chunk on the current device with the row-split miner.
 
     The miner runs on column indices and the items are mapped back here, so
-    items of any type (strings, ids beyond int32, an empty basket's None)
-    mine as they do on the CPU route.
+    items of any type (strings, ids beyond int32) mine as they do on the CPU
+    route; null items are no items there (``build_boolean_matrix`` drops them).
     """
     import cupy as cp
 
@@ -679,7 +689,7 @@ def _bound(
 
 def _local_min_count(local_min_support: float, n_rows: int) -> int:
     """The min_count pass 1 mines a chunk of ``n_rows`` rows at; ``_bound``'s slack is this minus 1."""
-    return max(1, _min_count(local_min_support, n_rows))
+    return _mining_min_count(local_min_support, n_rows)
 
 
 def _local_levels(
@@ -704,12 +714,11 @@ def _local_levels(
         return None
     if tc.n_rows != n_rows:
         raise RuntimeError(f"a SON chunk holds {tc.n_rows} rows where {n_rows} were counted")
-    ones = np.arange(tc.n_cols, dtype=np.int32)[:, None]
-    emitted = [(ones, tc.counts)]
+    gen, prev, emitted = _k1_seed(tc, prune_equal_support=False)
     _mine_levels(
         tc,
-        gen=ones,
-        prev=_Level(ones, tc.counts, tc.counts < tc.n_rows),
+        gen=gen,
+        prev=prev,
         emitted=emitted,
         min_count=_local_min_count(local_min_support, n_rows),
         effective_max_length=min(max_length or math.inf, int(np.diff(tc.indptr).max()), tc.n_cols),
@@ -818,7 +827,7 @@ def _son_cpu(
                 n_candidates=n_candidates, n_items=union.n_items, n_bounded=n_bounded, n_exact=n_bounded - n_counted
             )
         if items is None:
-            return _empty_result()
+            return _empty_result(_item_dtype(lf, item_col))
         logger.info(
             "Pass 1 complete: {} candidate itemsets from {} items; {} within the partition bound, {} of them exact",
             n_candidates,
@@ -864,7 +873,8 @@ def _build_matrix_for_items(
     item_to_col: dict[int, str],
 ) -> pl.DataFrame:
     """Boolean matrix with a column per item in `items` — used in SON Pass 2 for consistent mapping."""
-    exprs = [pl.col(item_col).list.contains(item).alias(item_to_col[item]) for item in items]
+    item_dtype = _item_dtype(transactions, item_col)
+    exprs = [pl.col(item_col).list.contains(_item_literal(item, item_dtype)).alias(item_to_col[item]) for item in items]
 
     # In-memory engine: faster than streaming for one list.contains per item (bench/cpu/list_contains_check.py).
     return transactions.select(exprs).collect(engine="in-memory")

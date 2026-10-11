@@ -44,6 +44,7 @@ from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.streaming.son import (
     LOCAL_SUPPORT_FACTOR,
     _build_matrix_for_items,
+    _check_chunk_size,
     _check_local_support_factor,
     _count_candidates_gpu,
     _estimate_chunk_size_from_memory,
@@ -54,6 +55,7 @@ from et_miner.core.matrix import build_boolean_matrix
 from et_miner.core.result import (
     _build_result_df,
     _empty_result,
+    _item_dtype,
     _min_count,
 )
 from et_miner.backends import CUPY_INSTALLED, get_gpu_count, has_cupy
@@ -188,6 +190,8 @@ def apriori_streaming_multi_gpu(
         ... )
     """
     _check_local_support_factor(local_support_factor)
+    if memory_budget_gb is None:
+        _check_chunk_size(chunk_size)
 
     # Validate GPU availability
     if not has_cupy():
@@ -222,7 +226,7 @@ def apriori_streaming_multi_gpu(
     n_total = lf.select(pl.len()).collect(engine="streaming").item()
 
     if n_total == 0:
-        return _empty_result()
+        return _empty_result(_item_dtype(lf, item_col))
 
     # memory_budget_gb overrides chunk_size, in streaming/son.py's ORDER: resolve
     # the effective chunk size first, THEN test whether the data fits in one.
@@ -387,7 +391,7 @@ def apriori_streaming_multi_gpu(
             )
 
     if not candidate_itemsets:
-        return _empty_result()
+        return _empty_result(_item_dtype(lf, item_col))
 
     logger.info(
         "Pass 1 complete: {} candidate itemsets from {} items",
@@ -523,4 +527,4 @@ def apriori_streaming_multi_gpu(
         min_support,
     )
 
-    return _build_result_df(results)
+    return _build_result_df(results, _item_dtype(lf, item_col))

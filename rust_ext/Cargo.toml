@@ -20,9 +20,6 @@ numpy = "0.27"
 # Rayon for work-stealing parallelism
 rayon = "1.10"
 
-# Portable SIMD for stable Rust
-wide = "0.7"
-
 # Random number generation for synthetic data
 rand = "0.8"
 rand_xoshiro = "0.6"

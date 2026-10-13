@@ -828,11 +828,13 @@ replacement.
   `bench/consolidation/INVENTORY.md`; `et_miner_rust` 0.4.0).
   `count_itemsets_simd`, `count_itemsets_sparse` and `prune_groups_apriori`
   are gone from the extension, with `core/counting.rs`, the per-call thread
-  budget only the counters used, and the `bitvec` crate. No route reached
-  either: the CPU route and SON's CPU passes count on the array miner, and
-  the GPU route's host-side group prune was removed in the consolidation
-  (above). The counter's last caller was the public
-  `count_support_batched(sparse=True)`, which now counts K>2 itemsets with
+  budget only the counters used, the `bitvec` crate and the unused `wide`
+  crate. No route reached either: the CPU route and SON's CPU passes count
+  on the array miner, and the GPU route's host-side group prune was removed
+  in the consolidation (above). The counter's last caller was the public
+  `count_support_batched` on its sparse path: `sparse=True`, or
+  `sparse=None` when the auto-chooser picks sparse (many frequent items, low
+  density or a large dense estimate). That path now counts K>2 itemsets with
   scipy (threaded at `n_jobs > 1`) whether or not the extension is built.
   Its counts do not change; with the extension built its K>2 calls get
   slower (the consolidation measured the old sparse route's K≥3 levels 4–36×
@@ -842,8 +844,11 @@ replacement.
   `prune_non_free_flat`, `build_column_bitvecs_u64` and `apriori_from_csr`.
   `et_miner_rust.__version__` now reads `Cargo.toml` instead of a literal
   that had stayed at 0.3.0. `bench/cpu/stakes.py` skips its `rust_simd`
-  variant on a 0.4.0 wheel. Code that calls a removed function directly must
-  pin an `et_miner_rust` revision from before this change.
+  variant, with a `skipped` row, when the extension lacks the counter.
+  Migration: code that calls a removed function directly must pin an
+  `et_miner_rust` revision from before this change, and so must an et-miner
+  from before it, whose sparse path raises `AttributeError` on
+  `count_itemsets_sparse` at K>2 against a 0.4.0 wheel.
 
 ---
 

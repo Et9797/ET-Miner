@@ -40,6 +40,8 @@ print(json.dumps({
     "groups_equal": bool(np.array_equal(g.suffixes, ref.suffixes)
                          and np.array_equal(g.cumulative_pairs, ref.cumulative_pairs)),
     "counts": sorted((sorted(col_to_item[c] for c in k), int(v)) for k, v in counts.items()),
+    "brute": sorted((sorted(col_to_item[c] for c in k), sum({col_to_item[c] for c in k} <= set(r) for r in rows))
+                    for k in itemsets),
 }))
 """
 
@@ -63,7 +65,7 @@ def test_the_switch_disables_every_detection_point_and_changes_no_result():
     assert on["copies"] == [True, True]
 
     assert off["groups_equal"] and on["groups_equal"]
-    assert off["counts"] == on["counts"]
+    assert off["counts"] == on["counts"] == on["brute"]
     assert len(off["counts"]) == 14
     assert "disabled by ET_MINER_DISABLE_RUST=1" in off_log
 

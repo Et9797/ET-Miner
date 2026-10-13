@@ -54,7 +54,7 @@ where
 /// Validate a CSR shape at the boundary, so a bad shape is a Python exception
 /// naming the offending value rather than an index-out-of-bounds panic from
 /// somewhere inside the kernel.
-fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<usize>) -> PyResult<()> {
+fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: usize) -> PyResult<()> {
     if indptr.is_empty() {
         return Err(PyValueError::new_err("csr_indptr must have at least one element"));
     }
@@ -158,14 +158,12 @@ fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<u
                 )));
             }
         }
-        if let Some(n_cols) = n_cols {
-            let last = row[row.len() - 1];
-            if last as usize >= n_cols {
-                return Err(PyValueError::new_err(format!(
-                    "column index {} is out of range for n_cols={} (row {})",
-                    last, n_cols, i
-                )));
-            }
+        let last = row[row.len() - 1];
+        if last as usize >= n_cols {
+            return Err(PyValueError::new_err(format!(
+                "column index {} is out of range for n_cols={} (row {})",
+                last, n_cols, i
+            )));
         }
     }
     Ok(())
@@ -182,7 +180,7 @@ fn build_column_bitvecs_u64<'py>(
 ) -> PyResult<Bound<'py, PyArray2<u64>>> {
     let indptr_c = contiguous(&csr_indptr);
     let indices_c = contiguous(&csr_indices);
-    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, Some(n_cols))?;
+    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, n_cols)?;
     let bitvecs = core::bitvec::build_column_bitvecs_u64_raw(
         indptr_c.as_ref(),
         indices_c.as_ref(),
@@ -248,7 +246,7 @@ fn apriori_from_csr<'py>(
 ) -> PyResult<(Vec<Vec<usize>>, Vec<u32>)> {
     let indptr_c = contiguous(&csr_indptr);
     let indices_c = contiguous(&csr_indices);
-    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, Some(n_cols))?;
+    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, n_cols)?;
     let result = core::apriori::apriori_from_csr(
         indptr_c.as_ref(),
         indices_c.as_ref(),

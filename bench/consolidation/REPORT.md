@@ -90,6 +90,11 @@ added: `count_tiled_fused`, `k2_groups`, `select_k3plus_groups`.
 R2 is not the only reason Rust survives (R1 and R4 are measured wins too), so
 no `refactor/drop-rust` branch was prepared.
 
+> **Superseded (et_miner_rust 0.4.0).** R1 and R3 were later removed from the
+> extension: the CPU route and SON's CPU passes moved to the array miner, so
+> DP8's sparse route no longer reaches R1. See `CHANGELOG.md`, Unreleased →
+> Removed. The table above is kept as recorded.
+
 ## Phase 4 verification
 
 | Check | Result |

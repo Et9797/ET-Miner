@@ -29,19 +29,6 @@ pub use core::CscMatrix;
 // PyO3 Wrappers - Thin bindings that call into core functions
 // =============================================================================
 
-/// Count support for multiple itemsets in parallel using SPARSE CSR format.
-///
-/// This is the preferred function for sparse data, avoiding the massive
-/// overhead of CSR → Dense conversion.
-///
-/// # Arguments
-/// * `indptr` - CSR row pointers array (n_rows + 1)
-/// * `indices` - CSR column indices array
-/// * `n_rows` - Number of rows in the matrix
-/// * `itemsets` - List of itemsets, each itemset is a list of column indices
-///
-/// # Returns
-/// * `Vec<u32>` - Support count for each itemset
 // =============================================================================
 // FFI boundary helpers
 //
@@ -67,7 +54,7 @@ where
 /// Validate a CSR shape at the boundary, so a bad shape is a Python exception
 /// naming the offending value rather than an index-out-of-bounds panic from
 /// somewhere inside the kernel.
-fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<usize>) -> PyResult<()> {
+fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: usize) -> PyResult<()> {
     if indptr.is_empty() {
         return Err(PyValueError::new_err("csr_indptr must have at least one element"));
     }
@@ -122,17 +109,15 @@ fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<u
     // Per-row STRICTLY INCREASING, not a global min/max range test. Three
     // separate defects live in this one clause:
     //
-    //   * SORTEDNESS: `count_itemsets_sparse_raw` binary-searches each row --
-    //     its own comment says "the indices are sorted, so we can use binary
-    //     search" -- and nothing validated it. A row stored descending silently
-    //     UNDERCOUNTS there (measured 2 against a truth of 3, a 33% loss) while
-    //     the SIMD path returns the right answer, so which number a caller got
-    //     was decided by `hasattr(rust, "count_itemsets_simd")`, an
-    //     optional-feature probe. That is Tier 2 of CLAUDE.md's mandated chain
-    //     disagreeing with itself depending on how the wheel was built.
+    //   * SORTEDNESS: the binary-searching sparse counter that first needed it
+    //     (count_itemsets_sparse, removed in 0.4.0) silently UNDERCOUNTED a
+    //     row stored descending. No remaining entry point searches a row, but
+    //     ascending rows are canonical CSR (scipy's canonical format), and
+    //     keeping the rule means a future searching consumer cannot quietly
+    //     reintroduce that undercount.
     //   * STRICTNESS, which is a SEPARATE reason and the one most likely to be
-    //     relaxed by mistake. Duplicates are harmless to the binary search and
-    //     idempotent in the bitvec path, so "non-decreasing" looks sufficient.
+    //     relaxed by mistake. Duplicates are idempotent in the bitvec path, so
+    //     "non-decreasing" looks sufficient.
     //     It is not: `find_frequent_1` (core/apriori.rs:217 and :230) counts
     //     CSC column-list ENTRIES rather than distinct rows, so one row {0,1}
     //     with column 0 stored twice yields (0,) -> count 2 over n_rows = 1,
@@ -173,73 +158,15 @@ fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: Option<u
                 )));
             }
         }
-        if let Some(n_cols) = n_cols {
-            let last = row[row.len() - 1];
-            if last as usize >= n_cols {
-                return Err(PyValueError::new_err(format!(
-                    "column index {} is out of range for n_cols={} (row {})",
-                    last, n_cols, i
-                )));
-            }
+        let last = row[row.len() - 1];
+        if last as usize >= n_cols {
+            return Err(PyValueError::new_err(format!(
+                "column index {} is out of range for n_cols={} (row {})",
+                last, n_cols, i
+            )));
         }
     }
     Ok(())
-}
-
-#[pyfunction]
-#[pyo3(signature = (indptr, indices, n_rows, itemsets, n_threads = 0))]
-fn count_itemsets_sparse<'py>(
-    py: Python<'py>,
-    indptr: PyReadonlyArray1<'py, i64>,
-    indices: PyReadonlyArray1<'py, i64>,
-    n_rows: usize,
-    itemsets: Vec<Vec<usize>>,
-    n_threads: usize,
-) -> PyResult<Bound<'py, PyArray1<u32>>> {
-    // The slices are hoisted out of the closure deliberately: a
-    // PyReadonlyArray1 is tied to the 'py lifetime and is not Send, so it
-    // cannot cross into a rayon pool. &[i64] can.
-    let indptr_c = contiguous(&indptr);
-    let indices_c = contiguous(&indices);
-    let (indptr_s, indices_s) = (indptr_c.as_ref(), indices_c.as_ref());
-    validate_csr(indptr_s, indices_s, n_rows, None)?;
-    // n_threads == 0 keeps the previous behaviour (the global rayon pool, i.e.
-    // every core). Anything else is the caller's n_jobs, honoured for real.
-    let counts = core::utils::with_thread_budget(n_threads, || {
-        core::counting::count_itemsets_sparse_raw(indptr_s, indices_s, n_rows, &itemsets)
-    });
-    Ok(PyArray1::from_vec(py, counts))
-}
-
-/// Count itemset support using column-based SIMD intersection.
-///
-/// This is a faster alternative to `count_itemsets_sparse` that uses:
-/// 1. CSC format for direct column access (no binary search)
-/// 2. Bitvec row masks for efficient set intersection
-/// 3. SIMD-friendly popcount for counting
-#[pyfunction]
-#[pyo3(signature = (csr_indptr, csr_indices, n_rows, n_cols, itemsets, n_threads = 0))]
-fn count_itemsets_simd<'py>(
-    py: Python<'py>,
-    csr_indptr: PyReadonlyArray1<'py, i64>,
-    csr_indices: PyReadonlyArray1<'py, i64>,
-    n_rows: usize,
-    n_cols: usize,
-    itemsets: Vec<Vec<usize>>,
-    n_threads: usize,
-) -> PyResult<Bound<'py, PyArray1<u32>>> {
-    // Slices hoisted out of the closure: PyReadonlyArray1 is tied to 'py and
-    // is not Send, so it cannot cross into a rayon pool. &[i64] can.
-    let indptr_c = contiguous(&csr_indptr);
-    let indices_c = contiguous(&csr_indices);
-    let (indptr_s, indices_s) = (indptr_c.as_ref(), indices_c.as_ref());
-    validate_csr(indptr_s, indices_s, n_rows, Some(n_cols))?;
-    // n_threads == 0 keeps the previous behaviour (the global rayon pool, i.e.
-    // every core). Anything else is the caller's n_jobs, honoured for real.
-    let counts = core::utils::with_thread_budget(n_threads, || {
-        core::counting::count_itemsets_simd_raw(indptr_s, indices_s, n_rows, n_cols, &itemsets)
-    });
-    Ok(PyArray1::from_vec(py, counts))
 }
 
 /// Build column bitvecs as u64 arrays for GPU transfer.
@@ -253,7 +180,7 @@ fn build_column_bitvecs_u64<'py>(
 ) -> PyResult<Bound<'py, PyArray2<u64>>> {
     let indptr_c = contiguous(&csr_indptr);
     let indices_c = contiguous(&csr_indices);
-    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, Some(n_cols))?;
+    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, n_cols)?;
     let bitvecs = core::bitvec::build_column_bitvecs_u64_raw(
         indptr_c.as_ref(),
         indices_c.as_ref(),
@@ -319,7 +246,7 @@ fn apriori_from_csr<'py>(
 ) -> PyResult<(Vec<Vec<usize>>, Vec<u32>)> {
     let indptr_c = contiguous(&csr_indptr);
     let indices_c = contiguous(&csr_indices);
-    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, Some(n_cols))?;
+    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, n_cols)?;
     let result = core::apriori::apriori_from_csr(
         indptr_c.as_ref(),
         indices_c.as_ref(),
@@ -472,86 +399,6 @@ fn prune_non_free_flat<'py>(
     Ok(PyArray1::from_vec(py, mask))
 }
 
-/// Apriori-prune prefix groups: remove suffix pairs whose candidates have
-/// non-frequent (k-1)-subsets.
-///
-/// Takes group arrays + prev_flat, returns pruned group arrays or None.
-/// Uses Rayon parallel iteration over groups with HashSet membership tests.
-/// The optional `suffix_src_rows` (int64, parallel to `suffixes`) is carried
-/// through the prune slot-for-slot; the result tuple always has it as its
-/// sixth element (empty when it was not supplied).
-#[pyfunction]
-#[pyo3(signature = (prefix_items, prefix_offsets, suffixes, suffix_offsets, cumulative_pairs, total_candidates, prev_flat, suffix_src_rows = None))]
-fn prune_groups_apriori<'py>(
-    py: Python<'py>,
-    prefix_items: PyReadonlyArray1<'py, i32>,
-    prefix_offsets: PyReadonlyArray1<'py, i64>,
-    suffixes: PyReadonlyArray1<'py, i32>,
-    suffix_offsets: PyReadonlyArray1<'py, i64>,
-    cumulative_pairs: PyReadonlyArray1<'py, i64>,
-    total_candidates: i64,
-    prev_flat: PyReadonlyArray2<'py, i32>,
-    suffix_src_rows: Option<PyReadonlyArray1<'py, i64>>,
-) -> Option<(
-    Bound<'py, PyArray1<i32>>,
-    Bound<'py, PyArray1<i64>>,
-    Bound<'py, PyArray1<i32>>,
-    Bound<'py, PyArray1<i64>>,
-    Bound<'py, PyArray1<i64>>,
-    Bound<'py, PyArray1<i64>>,
-    i64,
-)> {
-    let n_prev = prev_flat.shape()[0];
-    let k = prev_flat.shape()[1] + 1; // prev is (k-1), candidates are k-length
-
-    // Build the K3PlusGroupsResult from arrays (safe fallback for non-contiguous)
-    fn slice_or_copy_i32(arr: &PyReadonlyArray1<'_, i32>) -> Vec<i32> {
-        match arr.as_slice() {
-            Ok(s) => s.to_vec(),
-            Err(_) => arr.as_array().iter().copied().collect(),
-        }
-    }
-    fn slice_or_copy_i64(arr: &PyReadonlyArray1<'_, i64>) -> Vec<i64> {
-        match arr.as_slice() {
-            Ok(s) => s.to_vec(),
-            Err(_) => arr.as_array().iter().copied().collect(),
-        }
-    }
-    let groups = core::groups::K3PlusGroupsResult {
-        prefix_items: slice_or_copy_i32(&prefix_items),
-        prefix_offsets: slice_or_copy_i64(&prefix_offsets),
-        suffixes: slice_or_copy_i32(&suffixes),
-        suffix_offsets: slice_or_copy_i64(&suffix_offsets),
-        cumulative_pairs: slice_or_copy_i64(&cumulative_pairs),
-        total_candidates,
-        suffix_src_rows: suffix_src_rows.as_ref().map(slice_or_copy_i64).unwrap_or_default(),
-    };
-
-    let prev_flat_owned: Vec<i32>;
-    let prev_flat_slice: &[i32] = match prev_flat.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            prev_flat_owned = prev_flat.as_array().iter().copied().collect();
-            &prev_flat_owned
-        }
-    };
-
-    #[allow(deprecated)]
-    let result = py.allow_threads(|| {
-        core::groups::prune_groups_apriori_raw(&groups, prev_flat_slice, n_prev, k)
-    })?;
-
-    Some((
-        PyArray1::from_vec(py, result.prefix_items),
-        PyArray1::from_vec(py, result.prefix_offsets),
-        PyArray1::from_vec(py, result.suffixes),
-        PyArray1::from_vec(py, result.suffix_offsets),
-        PyArray1::from_vec(py, result.cumulative_pairs),
-        PyArray1::from_vec(py, result.suffix_src_rows),
-        result.total_candidates,
-    ))
-}
-
 // =============================================================================
 // Python Module Definition
 // =============================================================================
@@ -559,10 +406,6 @@ fn prune_groups_apriori<'py>(
 /// Python module definition.
 #[pymodule]
 fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Core counting functions
-    m.add_function(wrap_pyfunction!(count_itemsets_sparse, m)?)?;
-    m.add_function(wrap_pyfunction!(count_itemsets_simd, m)?)?;
-
     // GPU acceleration support
     m.add_function(wrap_pyfunction!(build_column_bitvecs_u64, m)?)?;
 
@@ -575,12 +418,11 @@ fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Phase 3: K>=3 group building (GPU bottleneck elimination)
     m.add_function(wrap_pyfunction!(build_k3plus_groups_from_flat, m)?)?;
 
-    // Phase 4: Pruning functions (K=4 regression elimination)
+    // Phase 4: free-set prune
     m.add_function(wrap_pyfunction!(prune_non_free_flat, m)?)?;
-    m.add_function(wrap_pyfunction!(prune_groups_apriori, m)?)?;
 
     // Version info
-    m.add("__version__", "0.3.0")?;
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("__author__",  "E. Ahmic")?;
 
     Ok(())

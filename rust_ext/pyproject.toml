@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "et_miner_rust"
-description = "High-performance Rust extension for ET-Miner support counting."
+description = "Rust extension for ET-Miner: the GPU route's host steps and a standalone Apriori miner."
 license = {file = "LICENSE"}
 requires-python = ">=3.10"
 authors = [

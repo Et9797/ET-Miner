@@ -1,8 +1,9 @@
 # ET-Miner
 
 **Efficient Transaction Miner** — exact frequent itemset mining (Apriori) and
-association rules with a Polars frontend, an optional Rust backend and a CUDA
-miner for one or more GPUs. Every route returns the same itemsets and counts;
+association rules with a Polars frontend, a NumPy/SciPy CPU miner and a CUDA
+miner for one or more GPUs; an optional Rust extension speeds up the GPU
+route's host steps. Every route returns the same itemsets and counts;
 `tests/test_tier_equivalence.py` checks each of them against efficient-apriori.
 
 | Route | Stack | Selected by |
@@ -35,9 +36,10 @@ uv run maturin develop --release -m rust_ext/Cargo.toml
 ```
 
 It changes no result, only the time. Neither the CPU route nor SON's CPU
-passes use it; `count_support_batched(sparse=True)` and the GPU route's host
-steps do. In the consolidation campaign (`bench/consolidation/REPORT.md`) the
-GPU route's host steps were 2–27× slower per call without it.
+passes use it; the GPU route's host steps do. In the consolidation campaign
+(`bench/consolidation/REPORT.md`) those steps were 2–27× slower per call
+without it. It also provides `apriori_from_csr`, a standalone all-Rust miner
+that no route calls.
 Another project depends on it explicitly, pinned to the engine's revision:
 `uv add "et_miner_rust @ git+https://github.com/Et9797/et-miner.git@<rev>#subdirectory=rust_ext"`.
 

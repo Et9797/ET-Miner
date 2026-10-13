@@ -15,7 +15,9 @@ Levers and variants:
     L4  K>=3 gen       array (lexsorted int32 (n, k) arrays, vectorised prefix-group
                        join, subset test by binary search on packed keys),
                        pyref (core.candidates._generate_candidates on the column names)
-    L3  K>=3 count     rust_simd (count_itemsets_simd, as the sparse route calls it),
+    L3  K>=3 count     rust_simd (count_itemsets_simd, as the sparse route called it; skipped,
+                       with a "skipped" row, when the extension lacks it: et_miner_rust
+                       >= 0.4.0 removed it, and ET_MINER_DISABLE_RUST=1 hides it),
                        bitvec (per-candidate AND of k uint64 columns + popcount),
                        proj (per prefix group: rows = prefix tidset, one scipy Gram of
                        the suffix columns), gbitvec (per group: prefix AND once, then
@@ -69,6 +71,7 @@ from child_run import result_signatures  # noqa: E402
 from consolidation_run import _load  # noqa: E402
 from cpu.matrix import WORKLOADS  # noqa: E402
 
+from et_miner.backends import rust_has  # noqa: E402
 from et_miner.core.result import _min_count  # noqa: E402
 
 LUT16 = np.array([bin(i).count("1") for i in range(1 << 16)], dtype=np.uint8)
@@ -441,6 +444,10 @@ def mine(workload: str, threads: int, rec: Recorder, raw: Path | None) -> dict:
     camp_freq = camp["levels"] if camp else {}
     min_count = _min_count(min_support, n_rows)
     max_tx = int(df.select(pl.col("items").list.len().max()).item() or 0)
+    if not rust_has("count_itemsets_simd"):
+        # et_miner_rust 0.4.0 removed the counter; the campaign rows at b40a1dd keep its numbers.
+        rec.skip.add("rust_simd")
+        rec.emit({"lever": "L3", "variant": "rust_simd", "skipped": "et_miner_rust has no count_itemsets_simd"})
 
     # L2
     ref = rec.run("L2", "explode_join", csr_explode_join, df, min_support)

@@ -149,6 +149,11 @@ sources of truth. Import-time copies: `src/et_miner/__init__.py:66-70`
 | R5 bitvec build | `gpu/bitvec.py:80` | `build_column_bitvecs_u64` | none: CUDA `csr_to_bitvec` is primary; Rust runs only if CUDA fails | WARNING when CUDA fails | A, B, D; not C | global |
 | R6 public API | `src/et_miner/__init__.py:70` `apriori_from_csr` | same | none (a stub raises `MiningError`) | — | none internal | global |
 
+> **Superseded (et_miner_rust 0.4.0).** R1 (`count_itemsets_simd`,
+> `count_itemsets_sparse`) and R3 (`prune_groups_apriori`) are no longer in the
+> extension; route F's K>2 counting is scipy-only. This inventory stays as
+> recorded at `7221037`. See `CHANGELOG.md`, Unreleased → Removed.
+
 `count_support_gpu_bitvec` (`gpu/bitvec.py:162`) additionally hard-requires
 `RUST_INSTALLED` although it uses no Rust unless the CUDA build fails.
 

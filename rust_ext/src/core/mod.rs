@@ -5,7 +5,6 @@
 //!
 //! # Module Organization
 //! - `matrix`: CSR/CSC matrix operations and construction
-//! - `counting`: Itemset support counting algorithms
 //! - `cooccurrence`: k=2 co-occurrence matrix computation
 //! - `bitvec`: Bitvector operations for GPU acceleration
 //! - `candidates`: Candidate generation for Apriori
@@ -13,7 +12,6 @@
 //! - `utils`: Thread control and utility functions
 
 pub mod matrix;
-pub mod counting;
 pub mod cooccurrence;
 pub mod bitvec;
 pub mod candidates;

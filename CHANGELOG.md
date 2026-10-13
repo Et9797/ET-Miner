@@ -150,14 +150,23 @@ All notable changes to ET-Miner are recorded here. Versions follow
 - **`count_support_batched`'s sparse path counts every non-pair itemset on
   the array miner** (`core/sparse.py`). K=1 and K≥3 itemsets (and K=0) go to
   `cpu_miner.count_itemsets`, as SON's pass 2 does, instead of one scipy
-  column slice and row sum per itemset; pairs keep the `M.T @ M` product. A
-  repeated item still counts once and the empty itemset still counts every
-  row. The per-itemset sequential and threaded functions, their MKL thread
-  juggling and `show_progress` on this path are gone. Counts are identical
-  on 66K itemsets over three synthetic matrices (3K × 14, 200K × 40,
-  500K × 120) at `n_jobs` 1 and 4; the same itemsets took 0.04–0.91 s
-  against 1.5–398 s on scipy and 0.01–8.4 s on the removed Rust counter
-  (`et_miner_rust` 0.3.0).
+  column slice and row sum per itemset. The CSR is first narrowed to the
+  columns the itemsets name. Pairs keep the `M.T @ M` product. A repeated
+  item counts once, the empty itemset counts every row, and a stored zero
+  counts as absent, as in the pair product. The per-itemset sequential and
+  threaded functions, their MKL thread juggling and `show_progress` on this
+  path are gone. Both sparse paths now resolve `n_jobs` as the CPU route
+  does; `n_jobs=0` used to divide by zero on the pair path.
+  On three synthetic matrices (3K × 14, 200K × 40, 500K × 120; 66K itemsets)
+  the counts are identical to scipy's and to the removed Rust counter's
+  (`et_miner_rust` 0.3.0). The array miner took 0.01–0.81 s, scipy 1.5–400 s
+  and Rust 0.01–8.0 s. Against Rust it is 3.2–12.4× faster on the two large
+  matrices and slower on the small one at `n_jobs=4` (0.014 against
+  0.010 s) (`bench/results/2026-10-13-sparse-non-pairs/`).
+- **`count_support_batched`'s length filter keys on distinct items.**
+  `("a", "a", "b")` is held by the row `{a, b}`, but the filter dropped every
+  row with fewer than three items, so such an itemset was undercounted on
+  every path. Batches without a repeated item filter as before.
 - **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
   (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
   `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner

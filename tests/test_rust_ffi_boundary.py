@@ -165,7 +165,9 @@ class TestValidateCsrCoversEveryMalformedShape:
         overflow-checks -- so `0 > indptr.len()` was false and the guard was
         skipped entirely."""
         with pytest.raises(ValueError, match="requires csr_indptr of length"):
-            rust.count_itemsets_sparse(self._i([0, 2]), self._i([0, 1]), 2**64 - 1, [[0]])
+            rust.build_column_bitvecs_u64(self._i([0, 2]), self._i([0, 1]), 2**64 - 1, 2)
+        with pytest.raises(ValueError, match="requires csr_indptr of length"):
+            rust.apriori_from_csr(self._i([0, 2]), self._i([0, 1]), 2**64 - 1, 2, 0.5, 3)
 
     @pytest.mark.parametrize(
         "indptr,indices,n_rows",
@@ -180,15 +182,14 @@ class TestValidateCsrCoversEveryMalformedShape:
         slice `indices[indptr[i]..indptr[i+1]]` panicked on rows 0..n_rows-1.
         A negative interior entry was never cast-checked and wrapped."""
         with pytest.raises(ValueError, match="non-decreasing"):
-            rust.count_itemsets_sparse(self._i(indptr), self._i(indices), n_rows, [[0]])
+            rust.build_column_bitvecs_u64(self._i(indptr), self._i(indices), n_rows, 2)
+        with pytest.raises(ValueError, match="non-decreasing"):
+            rust.apriori_from_csr(self._i(indptr), self._i(indices), n_rows, 2, 0.5, 3)
 
     def test_the_same_shape_is_rejected_by_every_guarded_entry_point(self):
-        """It panicked on all four, not just the one it was first found on."""
+        """It panicked on every guarded entry point, not just the one it was
+        first found on. Two remain since 0.4.0 removed the counting pair."""
         bad = (self._i([0, 5, 2]), self._i([0, 1]), 2)
-        with pytest.raises(ValueError):
-            rust.count_itemsets_sparse(*bad, [[0]])
-        with pytest.raises(ValueError):
-            rust.count_itemsets_simd(bad[0], bad[1], bad[2], 2, [[0]])
         with pytest.raises(ValueError):
             rust.build_column_bitvecs_u64(bad[0], bad[1], bad[2], 2)
         with pytest.raises(ValueError):
@@ -200,51 +201,50 @@ class TestValidateCsrCoversEveryMalformedShape:
         negative. `[-1, 1]` with n_cols=2 cleared it (max = 1 < 2) and panicked
         in-kernel."""
         with pytest.raises(ValueError, match="negative"):
-            rust.count_itemsets_simd(self._i([0, 2]), self._i([-1, 1]), 1, 2, [[0]])
+            rust.build_column_bitvecs_u64(self._i([0, 2]), self._i([-1, 1]), 1, 2)
+        with pytest.raises(ValueError, match="negative"):
+            rust.apriori_from_csr(self._i([0, 2]), self._i([-1, 1]), 1, 2, 0.5, 3)
         # control: an all-negative row was already caught
         with pytest.raises(ValueError):
-            rust.count_itemsets_simd(self._i([0, 2]), self._i([-1, -2]), 1, 2, [[0]])
+            rust.build_column_bitvecs_u64(self._i([0, 2]), self._i([-1, -2]), 1, 2)
 
     def test_an_unsorted_row_is_rejected_rather_than_undercounted(self):
         """The only hole that produced a WRONG NUMBER instead of a panic.
 
-        `count_itemsets_sparse_raw` binary-searches each row -- its own comment
-        says "the indices are sorted, so we can use binary search" -- and nothing
-        validated it. Three rows all equal to {0,1,2} with row 1 stored
-        descending gave sparse=2 against a truth of 3, a 33% undercount, while
-        the SIMD path returned 3. Which number a caller got was decided by
-        `hasattr(rust, "count_itemsets_simd")`, so Tier 2 of the mandated chain
-        disagreed with itself depending on how the wheel was built.
+        The sparse counter (`count_itemsets_sparse`, removed in 0.4.0)
+        binary-searched each row and nothing validated the order. Three rows
+        all equal to {0,1,2} with row 1 stored descending gave 2 against a
+        truth of 3, a 33% undercount. No remaining entry point searches a row,
+        but the rule stays, so a future one cannot reintroduce the undercount.
         """
         indptr = self._i([0, 3, 6, 9])
         indices = self._i([0, 1, 2, 2, 1, 0, 0, 1, 2])  # row 1 descending
-        for itemset in ([[0, 1]], [[1, 2]], [[0, 1, 2]]):
-            with pytest.raises(ValueError, match="strictly increasing"):
-                rust.count_itemsets_sparse(indptr, indices, 3, itemset)
+        with pytest.raises(ValueError, match="strictly increasing"):
+            rust.build_column_bitvecs_u64(indptr, indices, 3, 3)
+        with pytest.raises(ValueError, match="strictly increasing"):
+            rust.apriori_from_csr(indptr, indices, 3, 3, 0.5, 3)
+
+    @staticmethod
+    def _counts(indptr, indices, n_rows):
+        itemsets, counts = rust.apriori_from_csr(indptr, indices, n_rows, 2, 0.5, 3)
+        return dict(zip((tuple(x) for x in itemsets), counts))
 
     def test_a_valid_csr_is_unaffected(self):
         """The guard must not reject well-formed input; scipy CSR is monotonic
         and row-sorted by construction, which is why this was reachable only
         through direct FFI use."""
-        got = rust.count_itemsets_sparse(
-            self._i([0, 2, 4]), self._i([0, 1, 0, 1]), 2, [[0, 1]]
-        )
-        assert int(got[0]) == 2
+        assert self._counts(self._i([0, 2, 4]), self._i([0, 1, 0, 1]), 2)[(0, 1)] == 2
 
     def test_an_empty_row_is_allowed(self):
         """indptr[i] == indptr[i+1] is a legitimate empty transaction."""
-        got = rust.count_itemsets_sparse(
-            self._i([0, 2, 2, 4]), self._i([0, 1, 0, 1]), 3, [[0, 1]]
-        )
-        assert int(got[0]) == 2
+        assert self._counts(self._i([0, 2, 2, 4]), self._i([0, 1, 0, 1]), 3)[(0, 1)] == 2
 
 
 class TestDuplicateColumnsAreRejectedNotCounted:
     """Why the row check is STRICTLY increasing rather than non-decreasing.
 
-    Duplicates are harmless to `count_itemsets_sparse_raw`'s binary search and
-    idempotent in the bitvec path, so "non-decreasing" looks sufficient. It is
-    not: `find_frequent_1` counts CSC column-list ENTRIES rather than distinct
+    Duplicates are idempotent in the bitvec path, so "non-decreasing" looks
+    sufficient. It is not: `find_frequent_1` counts CSC column-list ENTRIES rather than distinct
     rows, so a duplicated column inflates the K=1 count past `n_rows`.
 
     These pin the strictness so a future relaxation cannot reintroduce it.

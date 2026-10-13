@@ -1,8 +1,7 @@
-"""Scipy/Rust sparse support counting, strategy selection, and MKL setup.
+"""Scipy sparse support counting, strategy selection, and MKL setup.
 
-Holds the sparse CSR counting paths (scipy matmul, threaded scipy, and the
-Rust SIMD/sparse fast paths), the polars-vs-sparse strategy chooser, and MKL
-setup.
+Holds the sparse CSR counting paths (scipy matmul and threaded scipy), the
+polars-vs-sparse strategy chooser, and MKL setup.
 
 Importing this module points sparse_dot_mkl at the pip-installed MKL
 (``MKL_RT``) and extends LD_LIBRARY_PATH for child processes, provided it is
@@ -25,7 +24,6 @@ import polars as pl
 from loguru import logger
 
 from et_miner._compat import HAS_TQDM, tqdm
-from et_miner.backends import RUST_INSTALLED, get_rust_ext
 from et_miner.core.matrix import _polars_to_sparse_csr
 from scipy.sparse import csr_matrix
 
@@ -355,14 +353,12 @@ def _count_support_sparse_k_gt_2(
     itemsets: list[tuple[str, ...]],
     show_progress: bool = False,
     n_jobs: int = 1,
-    use_rust: bool | None = None,
 ) -> dict[tuple[str, ...], int]:
     """Count support for k>2 itemsets using numpy, with optional parallelization.
 
-    Strategy selection (in order of preference):
-    1. Rust extension (if available and suitable) - 10-50x faster
-    2. Python parallel (ThreadPoolExecutor) - 3-5x faster with free-threading
-    3. Python sequential - baseline
+    Strategy selection:
+    1. Python parallel (ThreadPoolExecutor) - 3-5x faster with free-threading
+    2. Python sequential - baseline
 
     Uses column slicing and row sums: row_sum == k means all k items present.
 
@@ -381,10 +377,6 @@ def _count_support_sparse_k_gt_2(
             - -1: Use all available CPUs
             - 1: Sequential execution
             - >1: Use that many workers
-        use_rust: Override Rust extension usage.
-            - None: Auto-detect (use if available and suitable)
-            - True: Force Rust (raises if not available)
-            - False: Disable Rust, use Python
 
     Returns:
         Dictionary mapping itemsets to support counts.
@@ -392,16 +384,7 @@ def _count_support_sparse_k_gt_2(
     if not itemsets:
         return {}
 
-    n_items = csr.shape[1]
-
-    # Strategy 1: Try Rust extension (fastest path)
-    if use_rust is True:
-        return _count_support_sparse_k_gt_2_rust(csr, col_to_idx, itemsets, show_progress, n_jobs=n_jobs)
-    elif use_rust is None and _should_use_rust(len(itemsets), n_items):
-        logger.debug(f"[k>2] Using Rust extension ({len(itemsets)} itemsets, {n_items} items)")
-        return _count_support_sparse_k_gt_2_rust(csr, col_to_idx, itemsets, show_progress, n_jobs=n_jobs)
-
-    # Strategy 2/3: Python parallel or sequential
+    # Python parallel or sequential
     n_workers = _get_effective_workers(n_jobs)
     use_parallel = n_workers > 1 and len(itemsets) >= _PARALLEL_THRESHOLD
 
@@ -504,130 +487,6 @@ def _count_support_sparse_k_gt_2_parallel(
         _restore_mkl_threads()
 
     return results
-
-
-# =============================================================================
-# Rust Extension Accelerated Counting
-# =============================================================================
-
-
-def _call_with_budget(fn, args: tuple, n_threads: int):
-    """Call a Rust counting function with a thread budget, tolerating an old wheel.
-
-    ``n_threads`` was added to count_itemsets_simd / count_itemsets_sparse in
-    et_miner_rust 0.3.1. A wheel built before that raises TypeError on the extra
-    argument; falling back keeps the previous (unbudgeted) behaviour rather than
-    failing the count, which mirrors the stale-wheel handling in gpu/mining.py.
-    """
-    if n_threads == 0:
-        return fn(*args)
-    try:
-        return fn(*args, n_threads)
-    except TypeError:
-        logger.debug("Rust extension predates the n_threads parameter; using the global pool")
-        return fn(*args)
-
-
-def _count_support_sparse_k_gt_2_rust(
-    csr: "CSRMatrix",
-    col_to_idx: dict[str, int],
-    itemsets: list[tuple[str, ...]],
-    show_progress: bool = False,
-    use_simd: bool = True,
-    n_jobs: int = 1,
-) -> dict[tuple[str, ...], int]:
-    """Count support for k>2 itemsets using the Rust extension.
-
-    As of v0.3.0, uses SIMD-accelerated bitset intersection for ~400-800x
-    speedup over Python (5-8x faster than the previous Rust sparse method).
-
-    The new SIMD path:
-    1. Converts CSR to CSC format (one-time cost, amortized over itemsets)
-    2. Builds column bitvecs (1 bit per row = 312KB for 2.5M rows)
-    3. Uses SIMD-width bitwise AND for set intersection
-    4. Native popcount instruction for counting
-
-    Performance characteristics (SIMD, 2.5M rows, 12 threads):
-    - 500 itemsets: 0.19s (vs 0.99s sparse = 5.1x, vs Python = 400x)
-    - 5000 itemsets: 1.23s (vs 9.16s sparse = 7.4x, vs Python = 600x)
-
-    Args:
-        csr: Sparse CSR matrix (used directly, no conversion!).
-        col_to_idx: Column name to index mapping.
-        itemsets: List of k>2 itemsets to count.
-        show_progress: Ignored (Rust handles internally).
-        use_simd: Use SIMD bitvec implementation (default True).
-
-    Returns:
-        Dictionary mapping itemsets to support counts.
-    """
-    if not RUST_INSTALLED:
-        raise RuntimeError("Rust extension not available")
-    rust = get_rust_ext()
-
-    if not itemsets:
-        return {}
-
-    # Convert itemsets to column indices
-    itemsets_indices = [[col_to_idx[col] for col in itemset] for itemset in itemsets]
-
-    # Prepare CSR arrays for Rust (zero-copy views!)
-    # Rust extension expects i64 for trillion-scale support (>2.1B indices)
-    indptr = csr.indptr.astype(np.int64)
-    indices = csr.indices.astype(np.int64)
-    n_rows = csr.shape[0]
-    n_cols = csr.shape[1]
-
-    # Honour the caller's n_jobs on the Rust path. rayon otherwise takes every
-    # core regardless, so n_jobs=1 -- documented as "sequential execution" --
-    # silently oversubscribed a shared box. 0 means "no budget" (the global
-    # pool), which is what n_jobs=-1 asks for.
-    n_threads = 0 if n_jobs == -1 else max(1, n_jobs)
-
-    # Use SIMD bitvec implementation if available and requested
-    _use_simd = use_simd and hasattr(rust, "count_itemsets_simd")
-
-    if _use_simd:
-        logger.debug(
-            f"[k>2 RUST SIMD] {len(itemsets)} itemsets, "
-            f"{n_rows:,} transactions, "
-            f"{n_cols} items, "
-            f"n_jobs={n_jobs} -> thread budget {n_threads or 'unbounded'} "
-            f"(global pool has {rust.get_num_threads()})"
-        )
-        counts = _call_with_budget(
-            rust.count_itemsets_simd, (indptr, indices, n_rows, n_cols, itemsets_indices), n_threads
-        )
-    else:
-        logger.debug(
-            f"[k>2 RUST SPARSE] {len(itemsets)} itemsets, "
-            f"{n_rows:,} transactions, "
-            f"{n_cols} items, "
-            f"n_jobs={n_jobs} -> thread budget {n_threads or 'unbounded'} "
-            f"(global pool has {rust.get_num_threads()})"
-        )
-        counts = _call_with_budget(
-            rust.count_itemsets_sparse, (indptr, indices, n_rows, itemsets_indices), n_threads
-        )
-
-    # Build result dict
-    return {itemset: int(count) for itemset, count in zip(itemsets, counts)}
-
-
-def _should_use_rust(n_itemsets: int, n_items: int) -> bool:
-    """Take the Rust path whenever the extension is built.
-
-    Both arguments are deliberately unused: since v0.2.0 the Rust sparse CSR
-    path has zero conversion overhead and is faster at every size, so there is
-    no crossover to model. They are kept because the signature is the natural
-    place for one to reappear. (The `_RUST_MIN_ITEMSETS = 1` constant that used
-    to gate this was declared and never read; it is gone.)
-
-    Note this returns True before `n_jobs` is resolved into workers, which is
-    why the Rust path has to honour `n_jobs` itself -- see _call_with_budget.
-    """
-    del n_itemsets, n_items  # see docstring
-    return RUST_INSTALLED
 
 
 def _count_support_sparse_k2_batch(

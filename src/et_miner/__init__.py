@@ -1,6 +1,8 @@
 """ET-Miner: Efficient Transaction Miner.
 
-A blazing fast Apriori implementation with Python, Rust backend, and multi-GPU support.
+A blazing fast Apriori implementation for the CPU and multiple GPUs. The
+optional Rust extension speeds up the GPU route's host steps and provides the
+standalone all-Rust miner ``apriori_from_csr``.
 
 The top level exposes the mining API plus capability probes. GPU plumbing
 and ramdisk helpers live in their subpackages (``et_miner.gpu``,

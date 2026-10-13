@@ -1,8 +1,8 @@
 [package]
 name = "et_miner_rust"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
-description = "High-performance Rust extension for ET-Miner support counting."
+description = "Rust extension for ET-Miner: the GPU route's host steps and a standalone Apriori miner."
 license-file = "LICENSE"
 authors = ["E. Ahmic <etet1997@hotmail.com>"]
 
@@ -19,9 +19,6 @@ numpy = "0.27"
 
 # Rayon for work-stealing parallelism
 rayon = "1.10"
-
-# Bit vectors for row masks (64 rows per u64 operation)
-bitvec = "1.0"
 
 # Portable SIMD for stable Rust
 wide = "0.7"

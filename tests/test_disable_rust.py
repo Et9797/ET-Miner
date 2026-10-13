@@ -22,7 +22,6 @@ import polars as pl
 
 import et_miner
 from et_miner import backends, build_boolean_matrix, count_support_batched
-from et_miner.core import sparse
 from et_miner.gpu import bitvec
 from et_miner.gpu.kernels.k3plus import _build_k3plus_groups_numpy, build_k3plus_groups_from_flat
 
@@ -37,7 +36,7 @@ itemsets += [(a, b, c) for a in cols for b in cols for c in cols if a < b < c]
 counts = count_support_batched(matrix, itemsets, n, sparse=True, enable_length_filter=False)
 print(json.dumps({
     "backends": [backends.RUST_INSTALLED, backends.get_rust_ext() is None, backends.RUST_DISABLED],
-    "copies": [et_miner.HAS_RUST, sparse.RUST_INSTALLED, bitvec.RUST_INSTALLED],
+    "copies": [et_miner.HAS_RUST, bitvec.RUST_INSTALLED],
     "groups_equal": bool(np.array_equal(g.suffixes, ref.suffixes)
                          and np.array_equal(g.cumulative_pairs, ref.cumulative_pairs)),
     "counts": sorted((sorted(col_to_item[c] for c in k), int(v)) for k, v in counts.items()),
@@ -59,9 +58,9 @@ def test_the_switch_disables_every_detection_point_and_changes_no_result():
     on, _ = _probe(disable=False)
 
     assert off["backends"] == [False, True, True]
-    assert off["copies"] == [False, False, False]
+    assert off["copies"] == [False, False]
     assert on["backends"] == [True, False, False]
-    assert on["copies"] == [True, True, True]
+    assert on["copies"] == [True, True]
 
     assert off["groups_equal"] and on["groups_equal"]
     assert off["counts"] == on["counts"]

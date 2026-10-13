@@ -23,7 +23,6 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
-from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.core.matrix import _polars_to_sparse_csr
 from scipy.sparse import csr_matrix
 
@@ -280,212 +279,53 @@ def _get_effective_workers(n_jobs: int) -> int:
     return max(1, n_jobs)
 
 
-def _count_single_itemset(
-    csr: "CSRMatrix",
-    col_to_idx: dict[str, int],
-    itemset: tuple[str, ...],
-) -> tuple[tuple[str, ...], int]:
-    """Count support for a single k>2 itemset.
-
-    This function is designed to be called in parallel - it's a pure function
-    with no side effects, operating on read-only shared data (the CSR matrix).
-
-    Args:
-        csr: Sparse CSR matrix (read-only, shared across threads).
-        col_to_idx: Column name to index mapping (read-only).
-        itemset: Single itemset to count.
-
-    Returns:
-        Tuple of (itemset, count) for easy dict construction.
-    """
-    col_indices = [col_to_idx[col] for col in itemset]
-    # Row sum == k means all k items are present
-    subset = csr[:, col_indices]
-    row_sums = np.asarray(subset.sum(axis=1)).ravel()
-    return itemset, int((row_sums == len(col_indices)).sum())
-
-
-# Minimum itemsets to justify parallelization overhead
-# Lowered from 1000 to 100 for more aggressive parallelization on multi-core systems
-_PARALLEL_THRESHOLD = 100
-
-
-def _log_parallel_decision(
-    itemset_type: str,
-    count: int,
-    threshold: tuple[int, int] | int,
-    n_workers: int,
-    use_parallel: bool,
-) -> None:
-    """Log the parallel/sequential decision for support counting.
-
-    This is useful for diagnosing whether workloads trigger parallel code paths.
-    Enable with: logger.enable("et_miner") or LOGURU_LEVEL=DEBUG
-
-    Args:
-        itemset_type: "k=2" or "k>2" for itemset size category.
-        count: Number of itemsets being processed.
-        threshold: Threshold(s) for parallel decision (tuple for k=2, int for k>2).
-        n_workers: Number of worker threads configured.
-        use_parallel: Whether parallel execution was chosen.
-    """
-    strategy = "PARALLEL" if use_parallel else "SEQUENTIAL"
-    if isinstance(threshold, tuple):
-        threshold_str = f"threshold={threshold[0]}-{threshold[1]}"
-    else:
-        threshold_str = f"threshold>={threshold}"
-
-    # Report MKL status for sparse matrix operations
-    try:
-        from sparse_dot_mkl import mkl_get_max_threads
-
-        mkl_threads = mkl_get_max_threads()
-        mkl_status = f"MKL available ({mkl_threads} threads)"
-    except ImportError:
-        mkl_status = "MKL not available (scipy fallback)"
-
-    logger.debug(f"[{itemset_type}] {count} itemsets, {threshold_str}, workers={n_workers} → {strategy}, {mkl_status}")
-
-
 def _count_support_sparse_k_gt_2(
     csr: "CSRMatrix",
     col_to_idx: dict[str, int],
     itemsets: list[tuple[str, ...]],
-    show_progress: bool = False,
     n_jobs: int = 1,
 ) -> dict[tuple[str, ...], int]:
-    """Count support for k>2 itemsets using numpy, with optional parallelization.
+    """Counts of the itemsets that are not pairs (K=0, K=1, K>=3) on the CPU array miner's counter.
 
-    Strategy selection:
-    1. Python parallel (ThreadPoolExecutor) - 3-5x faster with free-threading
-    2. Python sequential - baseline
-
-    Uses column slicing and row sums: row_sum == k means all k items present.
-
-    When n_jobs > 1 and there are enough itemsets (>100), this function uses
-    ThreadPoolExecutor for parallel execution. On Python 3.13+/3.14+ with
-    free-threading (no GIL), this achieves true parallelism. On older Python
-    versions, parallelism still helps because scipy releases the GIL during
-    its C operations.
-
-    Args:
-        csr: Sparse CSR matrix (transactions × items).
-        col_to_idx: Mapping from column names to matrix indices.
-        itemsets: List of k>2 itemsets to count.
-        show_progress: If True, display progress bar (requires tqdm).
-        n_jobs: Number of parallel workers.
-            - -1: Use all available CPUs
-            - 1: Sequential execution
-            - >1: Use that many workers
-
-    Returns:
-        Dictionary mapping itemsets to support counts.
+    Each itemset becomes its distinct column ids, ascending, so a repeated item
+    counts once (as the row-sum test it replaces did). The itemsets are grouped
+    by that length, deduplicated and lexsorted (``np.unique``), and counted by
+    ``cpu_miner.count_itemsets``: a bincount at K=1, column bitvectors within
+    ``BITVEC_BUDGET_BYTES`` or a projection over prefix tidsets above it.
+    The empty itemset counts every row. With ``n_jobs != 1`` the bitvector
+    build and the heavy prefix groups run on a thread pool.
     """
     if not itemsets:
         return {}
+    from et_miner.core.cpu_miner import count_itemsets
 
-    # Python parallel or sequential
-    n_workers = _get_effective_workers(n_jobs)
-    use_parallel = n_workers > 1 and len(itemsets) >= _PARALLEL_THRESHOLD
+    if not csr.has_canonical_format:
+        csr = csr.copy()
+        csr.sum_duplicates()
+    n_rows, n_cols = csr.shape
+    ids = [np.unique([col_to_idx[c] for c in it]).astype(np.int32) for it in itemsets]
+    by_k: dict[int, list[int]] = {}
+    for i, row in enumerate(ids):
+        by_k.setdefault(len(row), []).append(i)
 
-    # Log the decision for diagnostics (enable with LOGURU_LEVEL=DEBUG)
-    _log_parallel_decision("k>2", len(itemsets), _PARALLEL_THRESHOLD, n_workers, use_parallel)
-
-    # Use sequential for small workloads or when n_jobs=1
-    if not use_parallel:
-        return _count_support_sparse_k_gt_2_sequential(csr, col_to_idx, itemsets, show_progress)
-
-    # Parallel execution
-    return _count_support_sparse_k_gt_2_parallel(csr, col_to_idx, itemsets, show_progress, n_workers)
-
-
-def _count_support_sparse_k_gt_2_sequential(
-    csr: "CSRMatrix",
-    col_to_idx: dict[str, int],
-    itemsets: list[tuple[str, ...]],
-    show_progress: bool = False,
-) -> dict[tuple[str, ...], int]:
-    """Sequential support counting for k>2 itemsets.
-
-    This is the original implementation, used when:
-    - n_jobs=1 is explicitly requested
-    - The workload is too small to benefit from parallelization
-    """
-    results: dict[tuple[str, ...], int] = {}
-
-    itemset_iter: list[tuple[str, ...]] | tqdm = itemsets
-    if show_progress and HAS_TQDM:
-        itemset_iter = tqdm(itemsets, desc="Counting support (k>2)", unit="itemset")
-
-    for itemset in itemset_iter:
-        col_indices = [col_to_idx[col] for col in itemset]
-        subset = csr[:, col_indices]
-        row_sums = np.asarray(subset.sum(axis=1)).ravel()
-        results[itemset] = int((row_sums == len(col_indices)).sum())
-
-    return results
-
-
-def _count_support_sparse_k_gt_2_parallel(
-    csr: "CSRMatrix",
-    col_to_idx: dict[str, int],
-    itemsets: list[tuple[str, ...]],
-    show_progress: bool = False,
-    n_workers: int = 4,
-) -> dict[tuple[str, ...], int]:
-    """Parallel support counting for k>2 itemsets using ThreadPoolExecutor.
-
-    Key insight: Each itemset count is completely independent, making this
-    embarrassingly parallel. The CSR matrix is read-only and shared safely
-    across all threads.
-
-    Performance characteristics:
-    - Python 3.13t/3.14t (no GIL): True parallelism, ~N× speedup
-    - Python 3.10-3.13 (GIL): Still benefits because scipy releases GIL
-      during C operations (sparse matrix slicing, sum)
-
-    Args:
-        csr: Sparse CSR matrix (shared read-only across threads).
-        col_to_idx: Column mapping (shared read-only).
-        itemsets: Itemsets to count.
-        show_progress: Display progress bar.
-        n_workers: Number of worker threads.
-
-    Returns:
-        Dictionary mapping itemsets to support counts.
-    """
-    results: dict[tuple[str, ...], int] = {}
-
-    # Coordinate MKL threads with ThreadPoolExecutor to avoid oversubscription
-    # e.g., 24 cores with 8 workers → 3 MKL threads each (8 × 3 = 24)
-    mkl_threads = _configure_mkl_for_parallel(n_workers)
-    logger.debug(f"[k>2] Configured MKL: {mkl_threads} threads/worker × {n_workers} workers")
-
+    results: dict[tuple[str, ...], int] = {itemsets[i]: n_rows for i in by_k.pop(0, [])}
+    if not by_k:
+        return results
+    cands: dict[int, np.ndarray] = {}
+    inverse: dict[int, np.ndarray] = {}
+    for k, members in by_k.items():
+        cands[k], inv = np.unique(np.stack([ids[i] for i in members]), axis=0, return_inverse=True)
+        inverse[k] = inv.ravel()
+    workers = _get_effective_workers(n_jobs)
+    pool = ThreadPoolExecutor(workers) if workers > 1 else None
     try:
-        with ThreadPoolExecutor(max_workers=n_workers) as executor:
-            # Submit all tasks
-            futures = {
-                executor.submit(_count_single_itemset, csr, col_to_idx, itemset): itemset for itemset in itemsets
-            }
-
-            # Process results as they complete
-            if show_progress and HAS_TQDM:
-                completed = tqdm(
-                    as_completed(futures),
-                    total=len(futures),
-                    desc=f"Counting support (k>2, {n_workers} threads)",
-                    unit="itemset",
-                )
-            else:
-                completed = as_completed(futures)
-
-            for future in completed:
-                itemset, count = future.result()
-                results[itemset] = count
+        counts = count_itemsets(csr.indptr, csr.indices, n_cols, cands, pool, workers)
     finally:
-        # Restore full MKL threading after parallel section
-        _restore_mkl_threads()
-
+        if pool is not None:
+            pool.shutdown()
+    for k, members in by_k.items():
+        for i, c in zip(members, counts[k][inverse[k]].tolist()):
+            results[itemsets[i]] = c
     return results
 
 
@@ -638,7 +478,6 @@ def _count_support_sparse_k2_parallel(
     return results
 
 
-
 def count_support_sparse(
     matrix: pl.DataFrame,
     itemsets: list[tuple[str, ...]],
@@ -652,14 +491,15 @@ def count_support_sparse(
     all itemsets using efficient sparse operations.
 
     For k=2 itemsets: Uses batch M.T @ M matrix multiplication (O(1) operation)
-    For k>2 itemsets: Checks row sums of subset columns == k (per-itemset),
-        with optional parallelization via ThreadPoolExecutor.
+    For the other itemsets (k=1, k>2): the CPU array miner's counter
+        (``_count_support_sparse_k_gt_2``), on a thread pool when n_jobs != 1.
 
     Args:
         matrix: Boolean DataFrame from build_boolean_matrix().
         itemsets: List of itemsets as tuples of column names.
-        show_progress: If True, display progress bar (requires tqdm).
-        n_jobs: Number of parallel workers for k>2 itemsets.
+        show_progress: Accepted for the caller's signature; the sparse path
+            shows no progress bar.
+        n_jobs: Number of parallel workers.
             - -1: Use all available CPUs
             - 1: Sequential execution
             - >1: Use that many workers
@@ -717,10 +557,8 @@ def count_support_sparse(
             k2_results = _count_support_sparse_k2_batch(csr, col_to_idx, k2_itemsets)
         results.update(k2_results)  # type: ignore[arg-type]
 
-    # k>2: Per-itemset counting (parallelized when n_jobs > 1)
     if other_itemsets:
-        k_gt_2_results = _count_support_sparse_k_gt_2(csr, col_to_idx, other_itemsets, show_progress, n_jobs)
-        results.update(k_gt_2_results)
+        results.update(_count_support_sparse_k_gt_2(csr, col_to_idx, other_itemsets, n_jobs))
 
     return results
 

@@ -384,86 +384,30 @@ def sample_transactions():
 class TestParallelSparseSupport:
     """Tests for parallel k>2 itemset support counting."""
 
-    def test_parallel_matches_sequential_small(self):
-        """Test parallel results match sequential for small datasets."""
-        from et_miner.core.matrix import _polars_to_sparse_csr
+    @pytest.mark.parametrize("n_jobs", [1, 2, -1])
+    def test_counts_match_a_brute_force_count(self, n_jobs):
+        """K=0, K=1, K=3..6, a repeated item, a repeated itemset and an empty row, against the rows themselves."""
+        from itertools import combinations
+
         from et_miner.core.sparse import _count_support_sparse_k_gt_2
 
-        # Create a dataset with multiple k>2 itemsets
-        df = pl.DataFrame({
-            "i_0": [True, True, False, True, True],
-            "i_1": [True, True, True, False, True],
-            "i_2": [True, False, True, True, True],
-            "i_3": [False, True, True, True, False],
-        })
-
+        rng = np.random.default_rng(42)
+        dense = rng.random((300, 9)) < 0.45
+        dense[0] = False
+        df = pl.DataFrame({f"i_{j}": dense[:, j] for j in range(dense.shape[1])})
         csr, col_to_idx = _polars_to_sparse_csr(df)
+        cols = list(col_to_idx)
+        itemsets = [(), *[(c,) for c in cols]]
+        for k in range(3, 7):
+            itemsets += list(combinations(cols, k))
+        itemsets += [("i_0", "i_0", "i_1"), ("i_4", "i_2", "i_3"), ("i_4", "i_2", "i_3")]
 
-        # Generate k=3 and k=4 itemsets
-        itemsets = [
-            ("i_0", "i_1", "i_2"),
-            ("i_0", "i_1", "i_3"),
-            ("i_0", "i_2", "i_3"),
-            ("i_1", "i_2", "i_3"),
-            ("i_0", "i_1", "i_2", "i_3"),
-        ]
+        got = _count_support_sparse_k_gt_2(csr, col_to_idx, itemsets, n_jobs=n_jobs)
 
-        # Sequential (n_jobs=1)
-        seq_results = _count_support_sparse_k_gt_2(
-            csr, col_to_idx, itemsets, show_progress=False, n_jobs=1
-        )
-
-        # Parallel (n_jobs=2)
-        par_results = _count_support_sparse_k_gt_2(
-            csr, col_to_idx, itemsets, show_progress=False, n_jobs=2
-        )
-
-        assert seq_results == par_results
-
-    def test_parallel_matches_sequential_large(self):
-        """Test parallel results match sequential for larger datasets with many itemsets."""
-        from et_miner.core.matrix import _polars_to_sparse_csr
-        from et_miner.core.sparse import (
-            _PARALLEL_THRESHOLD,
-            _count_support_sparse_k_gt_2,
-        )
-        import random
-
-        random.seed(42)
-
-        # Create a dataset with enough itemsets to trigger parallel processing
-        n_cols = 15
-        n_rows = 100
-
-        # Generate random boolean data
-        data = {
-            f"i_{i}": [random.random() < 0.4 for _ in range(n_rows)]
-            for i in range(n_cols)
-        }
-        df = pl.DataFrame(data)
-
-        csr, col_to_idx = _polars_to_sparse_csr(df)
-
-        # Generate enough k=3 itemsets to exceed threshold
-        from itertools import combinations
-        col_names = list(col_to_idx.keys())
-        itemsets = list(combinations(col_names, 3))
-
-        # If not enough itemsets, skip this test
-        if len(itemsets) < _PARALLEL_THRESHOLD:
-            pytest.skip(f"Not enough itemsets ({len(itemsets)}) to test parallel threshold")
-
-        # Sequential
-        seq_results = _count_support_sparse_k_gt_2(
-            csr, col_to_idx, itemsets, show_progress=False, n_jobs=1
-        )
-
-        # Parallel with auto workers
-        par_results = _count_support_sparse_k_gt_2(
-            csr, col_to_idx, itemsets, show_progress=False, n_jobs=-1
-        )
-
-        assert seq_results == par_results
+        assert set(got) == set(itemsets)
+        for itemset in itemsets:
+            idx = sorted({col_to_idx[c] for c in itemset})
+            assert got[itemset] == int(dense[:, idx].all(axis=1).sum()), itemset
 
     def test_n_jobs_api_parameter(self):
         """Test that n_jobs parameter flows through the full API."""

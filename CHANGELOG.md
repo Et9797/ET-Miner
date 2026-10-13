@@ -147,6 +147,17 @@ All notable changes to ET-Miner are recorded here. Versions follow
   0.08 s. Peak RSS 0.82–1.08×. 1.0 was slower on deep_sparse_large (11.7 →
   19.9 s at 1 thread: pass 2 maps every chunk to count 19 candidates) and
   0.8 on Online Retail II (7.95 → 60.3 s). The GPU passes were not measured.
+- **`count_support_batched`'s sparse path counts every non-pair itemset on
+  the array miner** (`core/sparse.py`). K=1 and K≥3 itemsets (and K=0) go to
+  `cpu_miner.count_itemsets`, as SON's pass 2 does, instead of one scipy
+  column slice and row sum per itemset; pairs keep the `M.T @ M` product. A
+  repeated item still counts once and the empty itemset still counts every
+  row. The per-itemset sequential and threaded functions, their MKL thread
+  juggling and `show_progress` on this path are gone. Counts are identical
+  on 66K itemsets over three synthetic matrices (3K × 14, 200K × 40,
+  500K × 120) at `n_jobs` 1 and 4; the same itemsets took 0.04–0.91 s
+  against 1.5–398 s on scipy and 0.01–8.4 s on the removed Rust counter
+  (`et_miner_rust` 0.3.0).
 - **The tier-equivalence chain's Tier 2 leg runs the all-Rust miner**
   (`apriori_from_csr`) on the smoke CSR, the oracle's own input. It ran
   `apriori(sparse=True)`, which now reaches the array miner, so the Rust miner

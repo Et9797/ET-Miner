@@ -1,7 +1,8 @@
 """Scipy sparse support counting, strategy selection, and MKL setup.
 
-Holds the sparse CSR counting paths (scipy matmul and threaded scipy), the
-polars-vs-sparse strategy chooser, and MKL setup.
+Holds the sparse CSR counting paths (pairs by an MKL/scipy matmul, every
+other itemset on the CPU array miner's counter), the polars-vs-sparse strategy
+chooser, and MKL setup.
 
 Importing this module points sparse_dot_mkl at the pip-installed MKL
 (``MKL_RT``) and extends LD_LIBRARY_PATH for child processes, provided it is
@@ -14,6 +15,7 @@ sections that need it, and restored afterwards.
 
 from __future__ import annotations
 
+import itertools
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -23,6 +25,7 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
+from et_miner.core.cpu_miner import _workers, count_itemsets
 from et_miner.core.matrix import _polars_to_sparse_csr
 from scipy.sparse import csr_matrix
 
@@ -206,18 +209,6 @@ def _restore_mkl_threads() -> int:
 # afterwards.
 
 
-# =============================================================================
-# Free-Threading (GIL) Detection
-# =============================================================================
-
-
-def _is_gil_disabled() -> bool:
-    """True on Python 3.13+ free-threading builds (enables real ThreadPoolExecutor parallelism)."""
-    if hasattr(sys, "_is_gil_enabled"):
-        return not sys._is_gil_enabled()
-    return False
-
-
 def _sparse_matmul(A: csr_matrix, B: csr_matrix) -> csr_matrix:
     """A @ B via MKL if available, else scipy.
 
@@ -254,32 +245,7 @@ def _sparse_matmul(A: csr_matrix, B: csr_matrix) -> csr_matrix:
         return A @ B
 
 
-def _get_adaptive_parallel_config(n_itemsets: int, n_workers: int) -> dict[str, int | bool]:
-    """Adaptive workers + chunk_size. GIL mode caps at 8 workers (lock contention); free-threading uses all cores."""
-    gil_disabled = _is_gil_disabled()
-
-    if gil_disabled:
-        effective_workers = n_workers
-        chunk_size = max(50, n_itemsets // (effective_workers * 4))
-    else:
-        effective_workers = min(n_workers, 8)
-        chunk_size = max(100, n_itemsets // effective_workers)
-
-    return {
-        "workers": effective_workers,
-        "chunk_size": chunk_size,
-        "gil_disabled": gil_disabled,
-    }
-
-
-def _get_effective_workers(n_jobs: int) -> int:
-    """n_jobs=-1 → all CPUs, else max(1, n_jobs)."""
-    if n_jobs == -1:
-        return os.cpu_count() or 1
-    return max(1, n_jobs)
-
-
-def _count_support_sparse_k_gt_2(
+def _count_support_sparse_non_pairs(
     csr: "CSRMatrix",
     col_to_idx: dict[str, int],
     itemsets: list[tuple[str, ...]],
@@ -288,8 +254,11 @@ def _count_support_sparse_k_gt_2(
     """Counts of the itemsets that are not pairs (K=0, K=1, K>=3) on the CPU array miner's counter.
 
     Each itemset becomes its distinct column ids, ascending, so a repeated item
-    counts once (as the row-sum test it replaces did). The itemsets are grouped
-    by that length, deduplicated and lexsorted (``np.unique``), and counted by
+    counts once. The CSR is narrowed to the columns the itemsets name, as SON's
+    pass 2 maps its chunks onto the candidate items, so the bitvectors scale
+    with those columns rather than the matrix width. A stored entry counts only
+    when it is nonzero, as in the pair product. Per length the itemsets are
+    deduplicated and lexsorted (``np.unique``) and counted by
     ``cpu_miner.count_itemsets``: a bincount at K=1, column bitvectors within
     ``BITVEC_BUDGET_BYTES`` or a projection over prefix tidsets above it.
     The empty itemset counts every row. With ``n_jobs != 1`` the bitvector
@@ -297,29 +266,31 @@ def _count_support_sparse_k_gt_2(
     """
     if not itemsets:
         return {}
-    from et_miner.core.cpu_miner import count_itemsets
-
-    if not csr.has_canonical_format:
-        csr = csr.copy()
-        csr.sum_duplicates()
-    n_rows, n_cols = csr.shape
-    ids = [np.unique([col_to_idx[c] for c in it]).astype(np.int32) for it in itemsets]
+    ids = [sorted({col_to_idx[c] for c in it}) for it in itemsets]
     by_k: dict[int, list[int]] = {}
     for i, row in enumerate(ids):
         by_k.setdefault(len(row), []).append(i)
 
-    results: dict[tuple[str, ...], int] = {itemsets[i]: n_rows for i in by_k.pop(0, [])}
+    results: dict[tuple[str, ...], int] = {itemsets[i]: csr.shape[0] for i in by_k.pop(0, [])}
     if not by_k:
         return results
+    used = np.unique(np.fromiter(itertools.chain.from_iterable(ids), dtype=np.int64))
+    m = csr[:, used] if len(used) < csr.shape[1] else csr
+    if not m.has_canonical_format or not m.data.all():
+        m = m.copy() if m is csr else m
+        m.sum_duplicates()
+        m.eliminate_zeros()
+
     cands: dict[int, np.ndarray] = {}
     inverse: dict[int, np.ndarray] = {}
     for k, members in by_k.items():
-        cands[k], inv = np.unique(np.stack([ids[i] for i in members]), axis=0, return_inverse=True)
+        local = np.searchsorted(used, np.array([ids[i] for i in members], dtype=np.int64)).astype(np.int32)
+        cands[k], inv = np.unique(local, axis=0, return_inverse=True)
         inverse[k] = inv.ravel()
-    workers = _get_effective_workers(n_jobs)
+    workers = _workers(n_jobs)
     pool = ThreadPoolExecutor(workers) if workers > 1 else None
     try:
-        counts = count_itemsets(csr.indptr, csr.indices, n_cols, cands, pool, workers)
+        counts = count_itemsets(m.indptr, m.indices, len(used), cands, pool, workers)
     finally:
         if pool is not None:
             pool.shutdown()
@@ -448,7 +419,7 @@ def _count_support_sparse_k2_parallel(
     if not itemsets_k2:
         return {}
 
-    n_workers = os.cpu_count() or 4 if n_jobs == -1 else n_jobs
+    n_workers = _workers(n_jobs)
     n_pairs = len(itemsets_k2)
 
     # Chunk size: balance between parallelism and per-chunk efficiency
@@ -492,7 +463,7 @@ def count_support_sparse(
 
     For k=2 itemsets: Uses batch M.T @ M matrix multiplication (O(1) operation)
     For the other itemsets (k=1, k>2): the CPU array miner's counter
-        (``_count_support_sparse_k_gt_2``), on a thread pool when n_jobs != 1.
+        (``_count_support_sparse_non_pairs``), on a thread pool when n_jobs != 1.
 
     Args:
         matrix: Boolean DataFrame from build_boolean_matrix().
@@ -517,7 +488,7 @@ def count_support_sparse(
     # Convert to sparse once (the expensive part)
     csr, col_to_idx = _polars_to_sparse_csr(matrix)
 
-    # Separate k=2 itemsets (batch-optimized) from k>2 (per-itemset)
+    # Pairs go to the M.T @ M product; every other length to the array miner's counter
     k2_itemsets: list[tuple[str, str]] = []
     other_itemsets: list[tuple[str, ...]] = []
 
@@ -538,7 +509,7 @@ def count_support_sparse(
         n_pairs = len(k2_itemsets)
         n_transactions = csr.shape[0]
         # Lowered thresholds from 500/50k to 100/10k for more aggressive parallelization
-        use_parallel = n_jobs != 1 and n_pairs > 100 and n_transactions > 10_000
+        use_parallel = _workers(n_jobs) > 1 and n_pairs > 100 and n_transactions > 10_000
 
         if use_parallel:
             logger.debug(
@@ -558,7 +529,7 @@ def count_support_sparse(
         results.update(k2_results)  # type: ignore[arg-type]
 
     if other_itemsets:
-        results.update(_count_support_sparse_k_gt_2(csr, col_to_idx, other_itemsets, n_jobs))
+        results.update(_count_support_sparse_non_pairs(csr, col_to_idx, other_itemsets, n_jobs))
 
     return results
 

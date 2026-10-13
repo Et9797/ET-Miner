@@ -381,33 +381,113 @@ def sample_transactions():
     })
 
 
-class TestParallelSparseSupport:
-    """Tests for parallel k>2 itemset support counting."""
+def _brute(dense: np.ndarray, col_to_idx: dict[str, int], itemset: tuple[str, ...]) -> int:
+    return int(dense[:, sorted({col_to_idx[c] for c in itemset})].all(axis=1).sum())
 
-    @pytest.mark.parametrize("n_jobs", [1, 2, -1])
-    def test_counts_match_a_brute_force_count(self, n_jobs):
-        """K=0, K=1, K=3..6, a repeated item, a repeated itemset and an empty row, against the rows themselves."""
+
+class TestSparseNonPairCounting:
+    """The non-pair itemsets of the sparse path (K=0, K=1, K>=3), counted on the CPU array miner's counter."""
+
+    @staticmethod
+    def _case(n_rows=300, n_cols=9, density=0.45):
         from itertools import combinations
 
-        from et_miner.core.sparse import _count_support_sparse_k_gt_2
-
         rng = np.random.default_rng(42)
-        dense = rng.random((300, 9)) < 0.45
+        dense = rng.random((n_rows, n_cols)) < density
         dense[0] = False
-        df = pl.DataFrame({f"i_{j}": dense[:, j] for j in range(dense.shape[1])})
+        df = pl.DataFrame({f"i_{j}": dense[:, j] for j in range(n_cols)})
         csr, col_to_idx = _polars_to_sparse_csr(df)
         cols = list(col_to_idx)
         itemsets = [(), *[(c,) for c in cols]]
         for k in range(3, 7):
             itemsets += list(combinations(cols, k))
         itemsets += [("i_0", "i_0", "i_1"), ("i_4", "i_2", "i_3"), ("i_4", "i_2", "i_3")]
+        return dense, csr, col_to_idx, itemsets
 
-        got = _count_support_sparse_k_gt_2(csr, col_to_idx, itemsets, n_jobs=n_jobs)
+    @pytest.mark.parametrize("n_jobs", [1, 2, -1])
+    def test_counts_match_a_brute_force_count(self, n_jobs):
+        """K=0, K=1, K=3..6, a repeated item, a repeated itemset and an empty row, against the rows themselves."""
+        from et_miner.core.sparse import _count_support_sparse_non_pairs
+
+        dense, csr, col_to_idx, itemsets = self._case()
+        got = _count_support_sparse_non_pairs(csr, col_to_idx, itemsets, n_jobs=n_jobs)
 
         assert set(got) == set(itemsets)
         for itemset in itemsets:
-            idx = sorted({col_to_idx[c] for c in itemset})
-            assert got[itemset] == int(dense[:, idx].all(axis=1).sum()), itemset
+            assert got[itemset] == _brute(dense, col_to_idx, itemset), itemset
+
+    @pytest.mark.parametrize(
+        "knobs",
+        [
+            {"BITVEC_BUDGET_BYTES": 0},
+            {"PER_CANDIDATE_MAX_WORDS": -1, "PER_CANDIDATE_MEAN_GROUP": 0},
+            {"PER_CANDIDATE_MAX_WORDS": -1, "PER_CANDIDATE_MEAN_GROUP": 0, "PROJ_MIN_SUFFIXES": ((float("inf"), 1),)},
+            {"GRAM_BITVEC_RATIO": -1.0, "COMPACT_RATIO": 1.0},
+        ],
+        ids=["projection", "prefix-groups", "group-projection", "k2-gram-compaction"],
+    )
+    @pytest.mark.parametrize("n_jobs", [1, 3])
+    def test_every_counter_branch_matches(self, monkeypatch, knobs, n_jobs):
+        """The counter's other branches (no bitvecs, prefix groups, the Gram for a collapsed pair, row compaction)."""
+        from et_miner.core import cpu_miner
+        from et_miner.core.sparse import _count_support_sparse_non_pairs
+
+        for name, value in knobs.items():
+            monkeypatch.setattr(cpu_miner, name, value)
+        dense, csr, col_to_idx, itemsets = self._case(n_rows=700)
+        got = _count_support_sparse_non_pairs(csr, col_to_idx, itemsets, n_jobs=n_jobs)
+
+        for itemset in itemsets:
+            assert got[itemset] == _brute(dense, col_to_idx, itemset), itemset
+
+    def test_only_the_named_columns_are_counted(self, monkeypatch):
+        """A wide matrix is narrowed to the itemsets' columns before the counter sees it."""
+        from et_miner.core import sparse
+
+        seen = {}
+        real = sparse.count_itemsets
+
+        def spy(indptr, indices, n_cols, cands, pool=None, n_workers=1):
+            seen["n_cols"] = n_cols
+            return real(indptr, indices, n_cols, cands, pool, n_workers)
+
+        monkeypatch.setattr(sparse, "count_itemsets", spy)
+        dense, csr, col_to_idx, _ = self._case(n_cols=40)
+        itemsets = [("i_3", "i_17", "i_29"), ("i_29", "i_3"), ("i_38",)]
+        got = sparse._count_support_sparse_non_pairs(csr, col_to_idx, itemsets)
+
+        assert seen["n_cols"] == 4
+        for itemset in itemsets:
+            assert got[itemset] == _brute(dense, col_to_idx, itemset), itemset
+
+    def test_a_non_canonical_csr_with_stored_zeros(self):
+        """Duplicate entries count once and stored zeros not at all; the caller's matrix is left as it was."""
+        from scipy.sparse import csr_matrix
+
+        from et_miner.core.sparse import _count_support_sparse_non_pairs
+
+        # rows: {0,1,2} with 1 stored twice, {0,2} with an explicit zero at 1, {2,1,0} unsorted
+        indptr = np.array([0, 4, 7, 10])
+        indices = np.array([0, 1, 1, 2, 0, 1, 2, 2, 1, 0])
+        data = np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1], dtype=np.int32)
+        csr = csr_matrix((data, indices, indptr), shape=(3, 3))
+        before = (csr.indptr.copy(), csr.indices.copy(), csr.data.copy())
+        col_to_idx = {"a": 0, "b": 1, "c": 2}
+
+        got = _count_support_sparse_non_pairs(csr, col_to_idx, [("a", "b", "c"), ("b",), ("a",)])
+
+        assert got == {("a", "b", "c"): 2, ("b",): 2, ("a",): 3}
+        assert all(np.array_equal(x, y) for x, y in zip(before, (csr.indptr, csr.indices, csr.data)))
+
+    @pytest.mark.parametrize("sparse", [True, False])
+    def test_a_repeated_item_is_held_by_a_row_of_its_distinct_items(self, sparse):
+        """The length filter keys on distinct items: ("a", "a", "b") is held by the 2-item row {a, b}."""
+        df = pl.DataFrame({"items": [["a", "b"], ["a", "b", "c"], ["a"]]})
+        matrix, col_to_item, n = build_boolean_matrix(df.lazy(), 0.01)
+        item_to_col = {v: k for k, v in col_to_item.items()}
+        itemset = (item_to_col["a"], item_to_col["a"], item_to_col["b"])
+
+        assert count_support_batched(matrix, [itemset], n, sparse=sparse) == {itemset: 2}
 
     def test_n_jobs_api_parameter(self):
         """Test that n_jobs parameter flows through the full API."""
@@ -432,34 +512,6 @@ class TestParallelSparseSupport:
         # Both should give identical results
         assert result_seq.shape == result_par.shape
         assert result_seq["support"].to_list() == result_par["support"].to_list()
-
-
-class TestGilDetection:
-    """Tests for GIL detection utilities."""
-
-    def test_is_gil_disabled_returns_bool(self):
-        """Test that _is_gil_disabled returns a boolean."""
-        from et_miner.core.sparse import _is_gil_disabled
-
-        result = _is_gil_disabled()
-        assert isinstance(result, bool)
-
-    def test_get_effective_workers(self):
-        """Test _get_effective_workers helper."""
-        from et_miner.core.sparse import _get_effective_workers
-        import os
-
-        # -1 should use all CPUs
-        assert _get_effective_workers(-1) == (os.cpu_count() or 1)
-
-        # Positive int should use that many
-        assert _get_effective_workers(4) == 4
-
-        # 1 should return 1
-        assert _get_effective_workers(1) == 1
-
-        # 0 should return 1 (minimum)
-        assert _get_effective_workers(0) == 1
 
 
 class TestSparseMkl:
@@ -529,69 +581,6 @@ class TestSparseMkl:
             expected.toarray(),
             rtol=1e-5,
         )
-
-
-class TestAdaptiveParallelConfig:
-    """Tests for adaptive parallel configuration."""
-
-    def test_returns_required_keys(self):
-        """Config dict contains workers, chunk_size, gil_disabled."""
-        from et_miner.core.sparse import _get_adaptive_parallel_config
-
-        config = _get_adaptive_parallel_config(n_itemsets=5000, n_workers=4)
-
-        assert 'workers' in config
-        assert 'chunk_size' in config
-        assert 'gil_disabled' in config
-        assert isinstance(config['workers'], int)
-        assert isinstance(config['chunk_size'], int)
-        assert isinstance(config['gil_disabled'], bool)
-
-    def test_workers_capped(self):
-        """Workers are capped at reasonable maximum."""
-        from et_miner.core.sparse import _get_adaptive_parallel_config
-
-        # With n_workers=100, should be capped at 8 (GIL) or 12 (no GIL)
-        config = _get_adaptive_parallel_config(n_itemsets=10000, n_workers=100)
-
-        # Workers should be capped at max 12 (free-threading cap)
-        assert config['workers'] <= 12
-
-        # With standard GIL Python, cap is 8
-        if not config['gil_disabled']:
-            assert config['workers'] <= 8
-
-    def test_chunk_size_minimum(self):
-        """Chunk size has minimum floor."""
-        from et_miner.core.sparse import _get_adaptive_parallel_config
-
-        # With small n_itemsets, chunk_size should still have a minimum
-        config = _get_adaptive_parallel_config(n_itemsets=10, n_workers=4)
-
-        # Minimum is 50 for free-threading, 100 for GIL Python
-        if config['gil_disabled']:
-            assert config['chunk_size'] >= 50
-        else:
-            assert config['chunk_size'] >= 100
-
-    def test_chunk_size_scales_with_itemsets(self):
-        """Chunk size scales appropriately with number of itemsets."""
-        from et_miner.core.sparse import _get_adaptive_parallel_config
-
-        config_small = _get_adaptive_parallel_config(n_itemsets=1000, n_workers=4)
-        config_large = _get_adaptive_parallel_config(n_itemsets=100000, n_workers=4)
-
-        # Larger itemset count should result in larger chunk size
-        assert config_large['chunk_size'] >= config_small['chunk_size']
-
-    def test_config_with_single_worker(self):
-        """Config still works with single worker."""
-        from et_miner.core.sparse import _get_adaptive_parallel_config
-
-        config = _get_adaptive_parallel_config(n_itemsets=5000, n_workers=1)
-
-        assert config['workers'] == 1
-        assert config['chunk_size'] >= 50  # Still has minimum
 
 
 # =============================================================================

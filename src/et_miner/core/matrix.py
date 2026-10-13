@@ -291,8 +291,9 @@ def count_support_batched(
     GPU mode: Uses custom CUDA kernels via count_support_gpu_bitvec() for
     maximum throughput (~130M+ rows/sec on H200).
     CPU mode: Batched processing to control memory, with optional sparse mode.
-    Sparse mode: Uses scipy CSR for extreme sparse workloads (auto-detected),
-        with optional parallelization for k>2 itemsets.
+    Sparse mode: Uses scipy CSR for extreme sparse workloads (auto-detected):
+        pairs by a sparse matmul, every other itemset on the CPU array miner's
+        counter, both threaded at n_jobs != 1.
 
     For extreme sparse workloads (>500 items, <10% density, or >1GB estimated size),
     the function automatically switches to scipy sparse matrices which can reduce
@@ -311,15 +312,15 @@ def count_support_batched(
             For backward compatibility, also accepts string values:
             - "gpu": equivalent to use_gpu=True
             - "streaming" or other: equivalent to use_gpu=False
-        show_progress: If True, display progress bar (requires tqdm).
+        show_progress: If True, display progress bar (requires tqdm). No effect
+            in sparse mode.
         sparse: If True, force scipy sparse. If False, force Polars.
             If None (default), auto-detect based on workload characteristics.
-        n_jobs: Number of parallel workers for sparse k>2 counting.
+        n_jobs: Number of parallel workers for sparse counting.
             - -1: Use all available CPUs
             - 1: Sequential execution
             - >1: Use that many workers
-            Only used in sparse mode. On Python 3.13t/3.14t (no GIL), achieves
-            true parallelism for significant speedups on large workloads.
+            Only used in sparse mode.
         min_transaction_length: Minimum transaction length filter (k).
             If provided, filters out transactions with fewer than k items
             before support counting. Auto-detected from itemsets if None.
@@ -362,9 +363,11 @@ def count_support_batched(
         # either, but it is a larger change to the batching structure; the
         # exact-and-simple version ships first. apriori() always passes a
         # uniform level, so its filtering is unchanged.
+        #
+        # Distinct items, not len(s): ("a", "a", "b") is held by a 2-item row.
         k = min_transaction_length
         if k is None:
-            k = min(len(s) for s in itemsets)
+            k = min(len(set(s)) for s in itemsets)
 
         filtered_matrix, n_filtered = _filter_transactions_by_length(matrix, k)
         actual_n_transactions = filtered_matrix.height

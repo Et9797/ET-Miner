@@ -151,8 +151,10 @@ sources of truth. Import-time copies: `src/et_miner/__init__.py:66-70`
 
 > **Superseded (et_miner_rust 0.4.0).** R1 (`count_itemsets_simd`,
 > `count_itemsets_sparse`) and R3 (`prune_groups_apriori`) are no longer in the
-> extension; route F's K>2 counting is scipy-only. This inventory stays as
-> recorded at `7221037`. See `CHANGELOG.md`, Unreleased → Removed.
+> extension. Route F's non-pair counting (rows 42 and 145: "scipy per itemset,
+> sequential or ThreadPool") now runs on `cpu_miner.count_itemsets`, the
+> counter SON's pass 2 uses. This inventory stays as recorded at `7221037`. See
+> `CHANGELOG.md`, Unreleased → Removed and → CPU route.
 
 `count_support_gpu_bitvec` (`gpu/bitvec.py:162`) additionally hard-requires
 `RUST_INSTALLED` although it uses no Rust unless the CUDA build fails.

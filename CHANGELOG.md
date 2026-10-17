@@ -234,6 +234,20 @@ All notable changes to ET-Miner are recorded here. Versions follow
   with count inference goes 5.83 → 3.65 s on one GPU and 4.83 → 3.33 s on
   two; no regime is slower by rule 2.
 
+### GPU route: lex row order and tile-occupancy skip
+
+- **The device input layer sorts each shard's rows by their most frequent
+  items before building the bitvectors**, and the per-candidate and group
+  kernels skip each 2,048-row tile that an item (a prefix item) does not
+  occupy. The skip reads per-column tile occupancy bits.
+- Counts are sums over rows and do not depend on the order. No mined output
+  changes. The host CSR and `bitvecs=` keep their order.
+  `ET_MINER_ROW_ORDER=keep|lex` pins it; unset, it is lex.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M5b.md`):
+  - dsl: 10.9 → 4.9 s on one GPU, 6.9 → 4.1 s on two;
+  - dsl with free sets: 5.3 → 3.8 s;
+  - no regime is slower by rule 2.
+
 ### Polars 2.0
 
 - **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0

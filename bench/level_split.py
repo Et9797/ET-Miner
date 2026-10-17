@@ -15,6 +15,7 @@ Usage (inside a bench child, after warm-up, before the timed call):
     finally:
         split.uninstall()
     split.levels  # {k: {phase: seconds, ...}}
+    split.span    # {phase: seconds} before K=1 and after the last level
 
 Phases:
     group_build    build_k3plus_groups_from_flat, select_k3plus_groups
@@ -44,6 +45,23 @@ Phases:
     materialize    materialize_survivors (an ESCO level's survivors' tidsets),
                    which runs after the level's callback: outside ``level``
                    and ``other``, added to the level it materializes
+
+Span phases (``span``, transactions input on the row-split route; the call
+starts at ``start()`` and ends at ``finish()``):
+    input_count    the transaction count (first Polars collect of
+                   core.matrix._build_csr_from_transactions)
+    input_k1       the host K=1: explode, group_by, threshold (second collect)
+    input_explode  explode and join onto the frequent items (third collect)
+    input_csr      the rest of _build_csr_from_transactions: COO to CSR
+    input_widen    the CSR's int64 copies in build_bitvecs_row_split
+    input_h2d      cupy.asarray of each shard's CSR in build_bitvecs_gpu
+    input_bitvec   the rest of build_bitvecs_gpu: allocation, kernel, sync
+    input_other    from the call to K=1's start, minus the input phases
+                   (argument checks, NCCL setup, dispatch)
+    input          from the call to K=1's start
+    frame          _build_deferred_frame and _as_item_dtype (the result frame)
+    tail_other     from the last level's callback to the return, minus frame
+    tail           from the last level's callback to the return
 """
 
 from __future__ import annotations
@@ -59,6 +77,12 @@ PHASES = (
 )
 #: Phases that run after the level's callback, credited to the level just closed.
 AFTER_LEVEL = ("materialize",)
+
+SPAN_PHASES = (
+    "input_count", "input_k1", "input_explode", "input_csr", "input_widen", "input_h2d", "input_bitvec",
+    "input_other", "input", "frame", "tail_other", "tail",
+)
+_COLLECTS = ("input_count", "input_k1", "input_explode")
 
 _MINER = "_apriori_row_split_multi_gpu"
 _ROWS_LAUNCH = "_k2_rows_on_gpu"
@@ -92,6 +116,11 @@ class LevelSplit:
         self._pending: dict[str, list[tuple[float, float]]] = defaultdict(list)
         self._saved: list[tuple[object, str, object]] = []
         self._closed: int | None = None
+        self.span: dict[str, float] = {}
+        self._span: dict[str, list[tuple[float, float]]] = defaultdict(list)
+        self._t_start: float | None = None
+        self._first_level_start: float | None = None
+        self._last_level_end: float | None = None
 
     def _record(self, phase: str, t0: float) -> None:
         self._pending[phase].append((t0, time.perf_counter()))
@@ -147,6 +176,79 @@ class LevelSplit:
 
         return wrapper
 
+    def _timed_span(self, phase: str, fn):
+        def wrapper(*args, **kwargs):
+            t0 = time.perf_counter()
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                self._span[phase].append((t0, time.perf_counter()))
+
+        return wrapper
+
+    def _timed_csr_build(self, fn):
+        """Times _build_csr_from_transactions and, inside it, each Polars collect in call order."""
+        import polars as pl
+
+        def wrapper(*args, **kwargs):
+            original = pl.LazyFrame.collect
+            calls = []
+
+            def collect(lf, *a, **kw):
+                phase = _COLLECTS[min(len(calls), len(_COLLECTS) - 1)]
+                calls.append(phase)
+                t0 = time.perf_counter()
+                try:
+                    return original(lf, *a, **kw)
+                finally:
+                    self._span[phase].append((t0, time.perf_counter()))
+
+            pl.LazyFrame.collect = collect
+            try:
+                return self._timed_span("_csr_build", fn)(*args, **kwargs)
+            finally:
+                pl.LazyFrame.collect = original
+
+        return wrapper
+
+    def _timed_bitvec_gpu(self, fn):
+        """Times build_bitvecs_gpu and, inside it, cupy.asarray (the host-to-device copies)."""
+        import cupy as cp
+
+        def wrapper(*args, **kwargs):
+            original = cp.asarray
+            cp.asarray = self._timed_span("input_h2d", original)
+            try:
+                return self._timed_span("_bitvec_gpu", fn)(*args, **kwargs)
+            finally:
+                cp.asarray = original
+
+        return wrapper
+
+    def start(self) -> None:
+        """Marks the start of the timed call."""
+        self._t_start = time.perf_counter()
+
+    def finish(self) -> None:
+        """Marks the end of the timed call and computes ``span``."""
+        t_end = time.perf_counter()
+        u = {p: _union_length(v) for p, v in self._span.items()}
+        span = {p: u.get(p, 0.0) for p in ("input_count", "input_k1", "input_explode", "input_h2d")}
+        span["input_csr"] = u.get("_csr_build", 0.0) - sum(u.get(p, 0.0) for p in _COLLECTS)
+        span["input_widen"] = u.get("_bitvec_split", 0.0) - u.get("_bitvec_arrays", 0.0)
+        span["input_bitvec"] = u.get("_bitvec_gpu", 0.0) - u.get("input_h2d", 0.0)
+        if self._t_start is not None and self._first_level_start is not None:
+            span["input"] = self._first_level_start - self._t_start
+            span["input_other"] = span["input"] - sum(
+                span[p] for p in ("input_count", "input_k1", "input_explode", "input_csr", "input_widen",
+                                  "input_h2d", "input_bitvec")
+            )
+        span["frame"] = u.get("frame", 0.0)
+        if self._last_level_end is not None:
+            span["tail"] = t_end - self._last_level_end
+            span["tail_other"] = span["tail"] - span["frame"]
+        self.span = {p: round(span[p], 6) for p in SPAN_PHASES if p in span}
+
     def _patch(self, owner, name: str, replacement) -> None:
         self._saved.append((owner, name, getattr(owner, name)))
         setattr(owner, name, replacement)
@@ -154,6 +256,10 @@ class LevelSplit:
     def install(self) -> None:
         import numpy as np
 
+        import importlib
+
+        import et_miner.core.matrix as matrix
+        import et_miner.gpu.csr_bitvec as csr_bitvec
         import et_miner.gpu.kernels as kernels
         import et_miner.gpu.kernels.filter as filter_mod
         import et_miner.gpu.nccl as nccl
@@ -189,6 +295,22 @@ class LevelSplit:
         self._patch(row_split, "_rows_sorted", self._timed("sort", row_split._rows_sorted))
         self._patch(row_split, "_prune_non_free_mask", self._timed("free_prune", row_split._prune_non_free_mask))
         self._patch(np, "lexsort", self._timed_lexsort(np.lexsort))
+        self._patch(
+            matrix, "_build_csr_from_transactions", self._timed_csr_build(matrix._build_csr_from_transactions)
+        )
+        self._patch(
+            csr_bitvec, "build_bitvecs_row_split", self._timed_span("_bitvec_split", csr_bitvec.build_bitvecs_row_split)
+        )
+        self._patch(
+            csr_bitvec,
+            "build_bitvecs_row_split_from_arrays",
+            self._timed_span("_bitvec_arrays", csr_bitvec.build_bitvecs_row_split_from_arrays),
+        )
+        self._patch(csr_bitvec, "build_bitvecs_gpu", self._timed_bitvec_gpu(csr_bitvec.build_bitvecs_gpu))
+        self._patch(row_split, "_build_deferred_frame", self._timed_span("frame", row_split._build_deferred_frame))
+        # et_miner.core re-exports the apriori function under the module's name.
+        apriori_mod = importlib.import_module("et_miner.core.apriori")
+        self._patch(apriori_mod, "_as_item_dtype", self._timed_span("frame", apriori_mod._as_item_dtype))
 
     def uninstall(self) -> None:
         while self._saved:
@@ -199,6 +321,10 @@ class LevelSplit:
         """A level_callback that closes the level's split, then calls ``level_cb``."""
 
         def cb(k, n_candidates, n_frequent, ms):
+            now = time.perf_counter()
+            if self._first_level_start is None:
+                self._first_level_start = now - ms / 1000.0
+            self._last_level_end = now
             phases = {p: round(_union_length(self._pending.get(p, [])), 6) for p in PHASES}
             level_s = ms / 1000.0
             phases["other"] = round(level_s - sum(phases.values()), 6)

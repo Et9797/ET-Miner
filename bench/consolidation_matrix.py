@@ -498,3 +498,39 @@ def build_o6_final(n_dev: int) -> list[dict]:
     """The phase C final check (`--mode o6-final`): one rep of every campaign regime with the knobs unset."""
     out = [_o6(w, label, "final", n, **kw) for w, label, n, kw in _o6_regimes(n_dev)]
     return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]
+
+
+#: Moonshots Phase 0 (bench/moonshots/PROTOCOL-0.md): every regime at the defaults, on one and two GPUs.
+MOONSHOT_REGIMES = (
+    *((w, "", {}) for w in ("smoke", "deepk", "skew", "or003", "or002")),
+    ("dsl", "", {}),
+    ("dsl", "infer-", {"use_generator_pruning": True}),
+    ("dsl", "free-", {"prune_equal_support": True}),
+    ("oom2ml3", "", {}),
+    ("sk2ml3", "", {}),
+)
+
+
+def build_moonshots_baseline(n_dev: int) -> list[dict]:
+    """The moonshots baseline (`--mode moonshots-baseline`): the defaults, 3 reps, rep-major.
+
+    Every regime on one GPU, then on two where the box has them. Each config
+    pins the box's logical CPU count as its thread pools, `NCCL_P2P_DISABLE=1`,
+    and records the level split with the span before K=1 and after the last
+    level. Rep 0 on one GPU dumps the lattice for the Phase 1 stakes.
+    """
+    import os
+
+    threads = str(len(os.sched_getaffinity(0)))
+    pools = {k: threads for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{label}base", w, "C", n_gpus=n, env={**pools, "NCCL_P2P_DISABLE": "1"}, level_split=True,
+             timeout_s=OPTIMIZATION_TIMEOUT_S, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, label, kw in MOONSHOT_REGIMES
+    ]
+    return [
+        {**c, "id": f"{c['base_id']}#r{rep}", "rep": rep, **({"dump_lattice": True} if rep == 0 and c["n_gpus"] == 1 else {})}
+        for rep in range(REPS)
+        for c in base
+    ]

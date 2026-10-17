@@ -29,6 +29,7 @@ from et_miner.gpu.density import validate_sparse_from_k
 
 from .profiling import ProfilingSession
 from .result import (
+    _INT64_ITEM_DTYPES,
     _WIDE_ITEM_DTYPES,
     _empty_result,
     _item_dtype,
@@ -720,6 +721,38 @@ def apriori(
                     "anchor_items store item ids in 64 bits on the GPU route. Map the ids to Int64, or mine "
                     "without those options."
                 )
+
+        if _env.input_layer() != "host" and item_dtype in _INT64_ITEM_DTYPES:
+            from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
+
+            column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
+            built = build_device_input(column, min_support, max(1, n_gpus), keep_rows=_env.k2_kernel() != "dense")
+            if built is None:
+                return (_empty_result(item_dtype), ProfilingSession()) if profile else _empty_result(item_dtype)
+            if built is not NOT_SERVED:
+                from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
+
+                return _apriori_row_split_multi_gpu(
+                    None,
+                    built.col_to_item,
+                    built.n_transactions,
+                    min_support,
+                    max_length,
+                    max(1, n_gpus),
+                    level_callback,
+                    output_dir=output_dir,
+                    resume_from_k=resume_from_k,
+                    prune_non_free=prune_equal_support,
+                    prune_apriori=prune_apriori,
+                    infer_counts=use_generator_pruning,
+                    sparse_from_k=sparse_from_k,
+                    anchor_items=anchor_items,
+                    profile=profile,
+                    max_ram_gb=max_ram_gb,
+                    max_vram_gb=max_vram_gb,
+                    device_input=built,
+                )
+            lf = column.to_frame().lazy()
 
         csr_result = _build_csr_from_transactions(lf, min_support, item_col, check_items=stores_ids)
         if csr_result is None:

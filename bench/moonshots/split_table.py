@@ -1,6 +1,6 @@
 """Wall split of a moonshots baseline run: where each regime's time goes.
 
-Reads the runner's raw.jsonl (``--mode moonshots-baseline``) and prints, per
+Reads the runner's raw.jsonl (``--mode moonshots-baseline`` or an idea's mode) and prints, per
 config, the median over its ok reps (with [min, max] for the wall) of: the
 wall, the input phases before K=1, the levels (K=1 and the K>=2 phases summed
 over levels), the result frame and the tail. Signatures must agree within a
@@ -17,7 +17,7 @@ import statistics
 from collections import defaultdict
 
 INPUT = ("input_count", "input_k1", "input_explode", "input_csr", "input_widen", "input_h2d", "input_bitvec",
-         "input_other")
+         "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_other")
 LEVEL = ("count_rows", "count_percand", "count_group", "count_tiled", "count_fused", "count_csr", "reduce",
          "compact", "filter", "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "decode", "sort",
          "free_prune", "transition", "materialize", "other")
@@ -79,14 +79,16 @@ def main() -> int:
         print(json.dumps({"signature_mismatch": bad, "configs": table}, indent=1))
         return 0
     print(f"signature mismatches: {bad or 'none'}\n")
-    print("| config | reps | wall [min, max] | input | count/k1/explode/csr | widen/h2d/bitvec | other | K=1 | K>=2 | frame | tail |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|")
+    print("| config | reps | wall [min, max] | input | count/k1/explode/csr | widen/h2d/bitvec "
+          "| device chunks/copy/k1/bitvec | other | K=1 | K>=2 | frame | tail |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for base, m in table.items():
         print(
             f"| {base} | {m['reps']} | {m['wall']:.2f} [{m['wall_min']:.2f}, {m['wall_max']:.2f}] | {m['input']:.2f} | "
             f"{m['input_count']:.2f}/{m['input_k1']:.2f}/{m['input_explode']:.2f}/{m['input_csr']:.2f} | "
-            f"{m['input_widen']:.2f}/{m['input_h2d']:.2f}/{m['input_bitvec']:.2f} | {m['input_other']:.2f} | "
-            f"{m['k1']:.2f} | {m['levels_k2plus']:.2f} | {m['frame']:.2f} | {m['tail']:.2f} |"
+            f"{m['input_widen']:.2f}/{m['input_h2d']:.2f}/{m['input_bitvec']:.2f} | "
+            f"{m['input_dev_chunks']:.2f}/{m['input_dev_copy']:.2f}/{m['input_dev_k1']:.2f}/{m['input_dev_bitvec']:.2f} | "
+            f"{m['input_other']:.2f} | {m['k1']:.2f} | {m['levels_k2plus']:.2f} | {m['frame']:.2f} | {m['tail']:.2f} |"
         )
     print()
     print("| config | count_rows | percand | group | tiled | fused | reduce | compact | filter | groups | other |")

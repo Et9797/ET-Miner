@@ -14,12 +14,16 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
            forced chunks)
         == row-split 1 GPU, row-wise K=2 (shared-memory / global atomics, plain / forced chunks;
            and selected by the r dispatch)
+        == row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
+           forced chunks)
         == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
         == row-split 2 GPUs, group kernel pinned (plain, forced chunks, count inference)
         == row-split 2 GPUs, count inference (plain and forced chunks)
         == row-split 2 GPUs, row-wise K=2 (plain and forced chunks)
+        == row-split 2 GPUs, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
+           forced chunks)
         == row-split 2 GPUs, compacted reduce (the default) and dense reduce pinned (plain
            and forced chunks, with and without count inference)
         == ESCO 2 GPUs, including count inference
@@ -35,8 +39,10 @@ ET_MINER_MAX_CHUNK_CANDS forces chunking (on one GPU the pair space and every
 larger group then go to the fused tiled kernel; on two, to per-candidate
 sub-chunks; a row-wise K=2 counts every chunk from the rows),
 ET_MINER_K2_KERNEL=rows pins the row-wise K=2 kernel (the r dispatch picks it on smoke only
-with its crossover raised), ET_MINER_REDUCE=dense pins the whole-array multi-GPU reduce, and a
-chunk_size below the row count forces SON to four chunks.
+with its crossover raised), ET_MINER_REDUCE=dense pins the whole-array multi-GPU reduce,
+ET_MINER_INPUT_LAYER pins the host CSR or the device input layer (unset, smoke's integer ids take
+the device layer, so every unpinned leg runs on it), and a chunk_size below the row count forces
+SON to four chunks.
 Every row-split leg also asserts which previous-level index its K>=3 levels
 were given: the subset test by default, none with ``prune_apriori=False``, and
 the inferring index, written by exactly one device per level, with
@@ -465,6 +471,49 @@ def test_row_split_one_gpu_row_wise_k2_matches_oracle(smoke_dataset, oracle_set,
 def test_row_split_one_gpu_row_wise_k2_by_dispatch_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
     _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, row-wise K=2 by the r dispatch",
                      atomics="shared", chunked=False, dispatch=True)
+
+
+def _input_layer_leg(smoke_dataset, oracle_set, monkeypatch, layer, k2, n_gpus):
+    """A leg with the input layer pinned; asserts which layer built the bitvectors."""
+    from et_miner.core import matrix
+    from et_miner.gpu import input_layer
+
+    built = []
+    for module, name, tag in ((matrix, "_build_csr_from_transactions", "host"),
+                              (input_layer, "build_device_input", "device")):
+        def spy(*a, _real=getattr(module, name), _tag=tag, **k):
+            built.append(_tag)
+            return _real(*a, **k)
+
+        monkeypatch.setattr(module, name, spy)
+    monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
+    label = f"row-split {n_gpus} GPU(s), {layer} input layer, K=2 {k2}"
+    if k2 == "dispatch":
+        _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, {}, n_gpus=n_gpus)
+    else:
+        _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, atomics="shared",
+                         chunked=k2 == "rows, forced chunks", n_gpus=n_gpus)
+    assert built == [layer], f"{label}: the bitvectors came from {built}"
+
+
+_INPUT_K2 = ["dispatch", "rows", "rows, forced chunks"]
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("k2", _INPUT_K2)
+@pytest.mark.parametrize("layer", ["host", "device"])
+def test_row_split_one_gpu_input_layer_matches_oracle(smoke_dataset, oracle_set, monkeypatch, layer, k2):
+    _input_layer_leg(smoke_dataset, oracle_set, monkeypatch, layer, k2, 1)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize("k2", _INPUT_K2)
+@pytest.mark.parametrize("layer", ["host", "device"])
+def test_row_split_two_gpus_input_layer_matches_oracle(smoke_dataset, oracle_set, monkeypatch, layer, k2):
+    """Each GPU's shard is built from its own rows' entries, on that GPU."""
+    _needs_two_gpus()
+    _input_layer_leg(smoke_dataset, oracle_set, monkeypatch, layer, k2, 2)
 
 
 @pytest.mark.gpu

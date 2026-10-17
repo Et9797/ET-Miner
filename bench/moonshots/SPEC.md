@@ -130,6 +130,21 @@ and RSS recorded (the int64 host CSR and its copies go away). Tier legs with the
 device path pinned, on 1 and 2 GPUs (the shards cut the device entries by rows),
 plus row-wise K=2 on and off.
 
+**Amendment (as built, `gpu/input_layer.py`).** Three departures from the
+proposal; the exactness argument above is unchanged:
+- *No explode.* Each Polars chunk's Arrow buffers are read in place (row
+  offsets and values). Only a chunk with null items, or with a null list that
+  holds entries, goes through Polars' explode, its nulls becoming the null id
+  `span`, which the lookup table maps to no column.
+- *Unsorted rows and repeated items.* `ids_to_bitvec` flags a shard whose row
+  columns do not strictly ascend; its K=2 rows are then sorted and
+  deduplicated on the device (`_canonicalize`), as the host CSR's
+  `sum_duplicates` does.
+- *VRAM.* The entries stay on the device for K=2 only when 24 B per entry
+  (`KEEP_ROWS_BYTES`) fit beside the bitvectors; otherwise they are dropped
+  and K=2 counts from the bitvectors. Today's path never needs that choice;
+  it is logged.
+
 ## M2 — Row-wise counting beyond K=2
 
 **Evidence** (`k3rows-*.json`). The K=3 level is enumerated exactly from each

@@ -21,9 +21,10 @@ Phases:
     group_build    build_k3plus_groups_from_flat, select_k3plus_groups
     group_upload   upload_k3plus_groups (host-to-device group arrays)
     budget         compute_chunk_budget (VRAM probe)
-    k2_dispatch    _k2_row_pairs (the K=2 dispatch's r from the host CSR)
+    k2_dispatch    _k2_row_pairs (the K=2 dispatch's r from the host CSR),
+                   or DeviceRows.pairs (from the device entries)
     k2_input       the row-wise K=2 kernel's input: host CSR of frequent
-                   positions per shard, and its upload
+                   positions per shard, and its upload; or DeviceRows.upload
     count_rows     row-wise K=2 kernel launches (dense chunks)
     count_percand  per-candidate kernel launches (dense chunks)
     count_group    group kernel launches (dense chunks)
@@ -56,8 +57,17 @@ starts at ``start()`` and ends at ``finish()``):
     input_widen    the CSR's int64 copies in build_bitvecs_row_split
     input_h2d      cupy.asarray of each shard's CSR in build_bitvecs_gpu
     input_bitvec   the rest of build_bitvecs_gpu: allocation, kernel, sync
+    input_dev_chunks  the device input layer's chunk entries
+                   (input_layer._chunk_entries: Arrow views, or Polars'
+                   explode for a chunk with nulls)
+    input_dev_copy the device layer's ids into pinned buffers and onto the
+                   devices (_Uploader.copy and .finish)
+    input_dev_k1   the device layer's occurrence bincount (_occurrences)
+    input_dev_bitvec  the device layer's lookup upload, bitvector
+                   allocation and ids_to_bitvec (_scatter_bitvecs)
     input_other    from the call to K=1's start, minus the input phases
-                   (argument checks, NCCL setup, dispatch)
+                   (argument checks, the column's collect, NCCL setup,
+                   dispatch)
     input          from the call to K=1's start
     frame          _build_deferred_frame and _as_item_dtype (the result frame)
     tail_other     from the last level's callback to the return, minus frame
@@ -80,8 +90,10 @@ AFTER_LEVEL = ("materialize",)
 
 SPAN_PHASES = (
     "input_count", "input_k1", "input_explode", "input_csr", "input_widen", "input_h2d", "input_bitvec",
+    "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec",
     "input_other", "input", "frame", "tail_other", "tail",
 )
+_DEVICE_SPANS = ("input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec")
 _COLLECTS = ("input_count", "input_k1", "input_explode")
 
 _MINER = "_apriori_row_split_multi_gpu"
@@ -233,7 +245,7 @@ class LevelSplit:
         """Marks the end of the timed call and computes ``span``."""
         t_end = time.perf_counter()
         u = {p: _union_length(v) for p, v in self._span.items()}
-        span = {p: u.get(p, 0.0) for p in ("input_count", "input_k1", "input_explode", "input_h2d")}
+        span = {p: u.get(p, 0.0) for p in ("input_count", "input_k1", "input_explode", "input_h2d", *_DEVICE_SPANS)}
         span["input_csr"] = u.get("_csr_build", 0.0) - sum(u.get(p, 0.0) for p in _COLLECTS)
         span["input_widen"] = u.get("_bitvec_split", 0.0) - u.get("_bitvec_arrays", 0.0)
         span["input_bitvec"] = u.get("_bitvec_gpu", 0.0) - u.get("input_h2d", 0.0)
@@ -241,7 +253,7 @@ class LevelSplit:
             span["input"] = self._first_level_start - self._t_start
             span["input_other"] = span["input"] - sum(
                 span[p] for p in ("input_count", "input_k1", "input_explode", "input_csr", "input_widen",
-                                  "input_h2d", "input_bitvec")
+                                  "input_h2d", "input_bitvec", *_DEVICE_SPANS)
             )
         span["frame"] = u.get("frame", 0.0)
         if self._last_level_end is not None:
@@ -260,6 +272,7 @@ class LevelSplit:
 
         import et_miner.core.matrix as matrix
         import et_miner.gpu.csr_bitvec as csr_bitvec
+        import et_miner.gpu.input_layer as input_layer
         import et_miner.gpu.kernels as kernels
         import et_miner.gpu.kernels.filter as filter_mod
         import et_miner.gpu.nccl as nccl
@@ -307,6 +320,13 @@ class LevelSplit:
             self._timed_span("_bitvec_arrays", csr_bitvec.build_bitvecs_row_split_from_arrays),
         )
         self._patch(csr_bitvec, "build_bitvecs_gpu", self._timed_bitvec_gpu(csr_bitvec.build_bitvecs_gpu))
+        self._patch(input_layer, "_chunk_entries", self._timed_span("input_dev_chunks", input_layer._chunk_entries))
+        for name in ("copy", "finish"):
+            self._patch(input_layer._Uploader, name, self._timed_span("input_dev_copy", getattr(input_layer._Uploader, name)))
+        self._patch(input_layer, "_occurrences", self._timed_span("input_dev_k1", input_layer._occurrences))
+        self._patch(input_layer, "_scatter_bitvecs", self._timed_span("input_dev_bitvec", input_layer._scatter_bitvecs))
+        self._patch(input_layer.DeviceRows, "pairs", self._timed("k2_dispatch", input_layer.DeviceRows.pairs))
+        self._patch(input_layer.DeviceRows, "upload", self._timed("k2_input", input_layer.DeviceRows.upload))
         self._patch(row_split, "_build_deferred_frame", self._timed_span("frame", row_split._build_deferred_frame))
         # et_miner.core re-exports the apriori function under the module's name.
         apriori_mod = importlib.import_module("et_miner.core.apriori")

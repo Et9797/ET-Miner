@@ -147,6 +147,14 @@ def build_matrix(mode: str, n_dev: int, rows: list[dict] | None = None) -> list[
         from consolidation_matrix import build_moonshots_baseline
 
         return build_moonshots_baseline(n_dev)
+    if mode == "moonshots-m1":
+        from consolidation_matrix import build_moonshots_m1
+
+        return build_moonshots_m1(n_dev)
+    if mode == "moonshots-m1-final":
+        from consolidation_matrix import build_moonshots_m1_final
+
+        return build_moonshots_m1_final(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -487,7 +495,7 @@ def main() -> int:
     ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail",
                                          "waste", "pruning", "optimizations-calibration", "optimizations",
                                          "optimizations-final", "o5-calibration", "o6", "o6-final",
-                                         "moonshots-baseline", "cpu-baseline"], required=True)
+                                         "moonshots-baseline", "moonshots-m1", "moonshots-m1-final", "cpu-baseline"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,

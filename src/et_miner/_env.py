@@ -89,6 +89,16 @@ Variables:
                                        without an index, ESCO levels and
                                        one GPU reduce dense whatever the
                                        pin. Unset: compact
+    ET_MINER_INPUT_LAYER               "host" or "device": the row-split
+                                       route's input layer. "device" copies
+                                       the item ids to the GPUs and builds
+                                       the K=1 counts, the bitvectors and
+                                       the row-wise K=2 rows there
+                                       (et_miner.gpu.input_layer); it
+                                       serves integer ids spanning at most
+                                       2**22 values, and any other column
+                                       takes the host CSR whatever the pin.
+                                       Unset: device where it serves
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -240,6 +250,18 @@ def reduce_mode() -> str | None:
         return None
     if v not in REDUCE_MODES:
         raise ValueError(f"ET_MINER_REDUCE must be one of {REDUCE_MODES}, got {v!r}")
+    return v
+
+
+INPUT_LAYERS = ("host", "device")
+
+
+def input_layer() -> str | None:
+    v = os.environ.get("ET_MINER_INPUT_LAYER", "").strip().lower()
+    if not v:
+        return None
+    if v not in INPUT_LAYERS:
+        raise ValueError(f"ET_MINER_INPUT_LAYER must be one of {INPUT_LAYERS}, got {v!r}")
     return v
 
 

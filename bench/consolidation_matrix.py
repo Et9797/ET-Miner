@@ -534,3 +534,39 @@ def build_moonshots_baseline(n_dev: int) -> list[dict]:
         for rep in range(REPS)
         for c in base
     ]
+
+
+#: Thread pools of the moonshot idea campaigns on the 2x RTX 3060 / EPYC 7282 box: its physical core count.
+MOONSHOT_THREADS = "16"
+
+
+def build_moonshots_m1(n_dev: int) -> list[dict]:
+    """M1's campaign (`--mode moonshots-m1`, bench/moonshots/PROTOCOL-M1.md): host and device input layer.
+
+    Every moonshot regime on one GPU, then on two where the box has them; both
+    arms pin `ET_MINER_INPUT_LAYER`, the thread pools and `NCCL_P2P_DISABLE=1`,
+    and record the level split with the input span. 3 reps, rep-major.
+    """
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{label}{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1", "ET_MINER_INPUT_LAYER": arm}, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, label, kw in MOONSHOT_REGIMES
+        for arm in ("host", "device")
+    ]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_moonshots_m1_final(n_dev: int) -> list[dict]:
+    """M1's final check (`--mode moonshots-m1-final`): one rep of every M1 regime with the input layer unset."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    return [
+        {**c, "id": f"{c['base_id']}#r0", "rep": 0}
+        for c in (
+            _cfg(f"C{n}-{label}final", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+                 env={**pools, "NCCL_P2P_DISABLE": "1"}, **kw)
+            for n in (1, 2) if n <= max(1, n_dev)
+            for w, label, kw in MOONSHOT_REGIMES
+        )
+    ]

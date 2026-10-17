@@ -213,6 +213,17 @@ def _smoke_launch(cp) -> None:
     )
     assert extracted.tolist() == [0, 2, 1, 2, 0, 2]
     launched.add("bitvec_extract_tids")
+    # ids_to_bitvec: csr_to_bitvec's rows as ids 5..7 minus 5, the third row unsorted with 5 twice;
+    # id 3 is the null id
+    id_bv = cp.zeros((3, 1), dtype=cp.uint64)
+    noncanonical = cp.zeros(1, dtype=cp.int32)
+    get_cuda_kernel("ids_to_bitvec")(
+        (1,), (256,),
+        (cp.array([0, 2, 3, 8, 8], dtype=cp.int64), cp.array([0, 2, 1, 2, 0, 1, 0, 3], dtype=cp.int32),
+         cp.array([0, 1, 2, -1], dtype=cp.int32), id_bv, noncanonical, np.int64(4), np.int64(1)),
+    )
+    assert id_bv[:, 0].get().tolist() == [0b0101, 0b0110, 0b0101] and noncanonical.get().tolist() == [1]
+    launched.add("ids_to_bitvec")
     missing = set(_KERNEL_FILES) - launched
     assert not missing, f"registered kernels this selfcheck never launches: {sorted(missing)}"
 

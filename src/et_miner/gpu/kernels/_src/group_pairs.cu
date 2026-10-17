@@ -47,7 +47,9 @@ void count_group_pairs(
     const unsigned char* __restrict__ index_free,
     const int index_mode,                         // 0: count every candidate
     const int write_inferred                      // this device writes inferred counts
-    SUBSET_DEEP_PARAMS
+    SUBSET_DEEP_PARAMS,
+    const unsigned long long* __restrict__ occ,   // per column, a bit per GP_TILE_W-word tile holding a row of it
+    const long long occ_words                     // occ words per column; 0: no occupancy, count every tile
 ) {
     const long long g = group_start + (long long)blockIdx.y * (long long)gridDim.x + (long long)blockIdx.x;
     if (g >= group_end) return;
@@ -140,6 +142,13 @@ void count_group_pairs(
     __syncthreads();
 
     for (long long word_base = 0; word_base < n_u64s; word_base += GP_TILE_W) {
+        // The tile's prefix AND is zero when a prefix item has no row in it: every pair counts 0 there.
+        if (occ_words > 0) {
+            const long long t = word_base / GP_TILE_W;
+            int empty = 0;
+            for (int p = 0; p < prefix_len && !empty; p++) empty = !((occ[(long long)s_pref[p] * occ_words + t / 64] >> (t % 64)) & 1ULL);
+            if (empty) continue;  // block-uniform
+        }
         const int total = (1 + n_used) * GP_TILE_W;
         for (int idx = tid; idx < total; idx += blockDim.x) {
             const int row = idx / GP_TILE_W;

@@ -18,7 +18,9 @@ Steps:
    asynchronously to the shard's device, after the shard's row offsets.
 3. K=1: an occurrence bincount over the id range on every device, summed on
    the host; the ids reaching min_count are the columns.
-4. A lookup table maps ids to columns and ``ids_to_bitvec`` sets the bits.
+4. A lookup table maps ids to columns and ``ids_to_bitvec`` sets the bits,
+   each row at its own position or, with the lex row order, at its rank in
+   its shard's rows sorted by their most frequent items (``_row_order``).
 
 With ``keep_rows`` each shard's entries stay on its device (``DeviceRows``)
 when they fit, and the row-wise K=2 and K=3 kernels' rows are cut from them
@@ -33,6 +35,7 @@ Usage:
 
 Options:
     ET_MINER_INPUT_LAYER  "host" | "device" pins the input layer (``_env``)
+    ET_MINER_ROW_ORDER    "keep" | "lex" pins the row order (``_env``)
     CHUNK_ENTRIES         entries per pinned buffer
     KEEP_ROWS_BYTES       device bytes per entry that cutting the row-wise
                           kernels' rows may take; the entries are kept only
@@ -157,6 +160,7 @@ class DeviceInput:
     col_to_item: dict[int, int]
     n_transactions: int
     rows: DeviceRows | None
+    row_order: str = "keep"
 
 
 def _canonicalize(sh: _Shard, n_cols: int) -> None:
@@ -292,36 +296,74 @@ def _occurrences(shards: list[_Shard], span: int) -> np.ndarray:
     return counts
 
 
-def _scatter_bitvecs(shards: list[_Shard], lut: np.ndarray, n_cols: int) -> list:
-    """Each shard's bitvectors from its ids through ``lut``; records whether its rows are canonical."""
+def _row_order(shards: list[_Shard], lut: np.ndarray, rank_of_col: np.ndarray) -> list:
+    """Each shard's lex row order: the bit position of every row (CuPy int32), rows sorted by ``row_order_keys``."""
+    import cupy as cp
+
+    from .kernels import get_cuda_kernel
+
+    orders = []
+    for sh in shards:
+        with cp.cuda.Device(sh.device):
+            key_hi = cp.empty(sh.n_rows, dtype=cp.uint64)
+            key_lo = cp.empty(sh.n_rows, dtype=cp.uint64)
+            get_cuda_kernel("row_order_keys")(
+                ((sh.n_rows + 255) // 256,),
+                (256,),
+                (sh.row_ptr, sh.keys, cp.asarray(lut), cp.asarray(rank_of_col), key_hi, key_lo, np.int64(sh.n_rows)),
+            )
+            order = cp.lexsort(cp.stack([key_lo, key_hi]))
+            del key_hi, key_lo
+            new_pos = cp.empty(sh.n_rows, dtype=cp.int32)
+            new_pos[order] = cp.arange(sh.n_rows, dtype=cp.int32)
+            orders.append(new_pos)
+    return orders
+
+
+def _scatter_bitvecs(shards: list[_Shard], lut: np.ndarray, n_cols: int, new_pos: list | None = None) -> list:
+    """Each shard's bitvectors from its ids through ``lut`` (each row at ``new_pos`` when given); records whether
+    its rows are canonical."""
     import cupy as cp
 
     from .kernels import get_cuda_kernel
 
     bitvecs_list = []
-    for sh in shards:
+    for s, sh in enumerate(shards):
         with cp.cuda.Device(sh.device):
             sh.key_to_col = cp.asarray(lut)
             n_u64s = (sh.n_rows + 63) // 64
             bitvecs = cp.zeros((n_cols, n_u64s), dtype=cp.uint64)
             noncanonical = cp.zeros(1, dtype=cp.int32)
+            positions = new_pos[s] if new_pos is not None else cp.zeros(1, dtype=cp.int32)
             get_cuda_kernel("ids_to_bitvec")(
                 ((sh.n_rows + 255) // 256,),
                 (256,),
-                (sh.row_ptr, sh.keys, sh.key_to_col, bitvecs, noncanonical, np.int64(sh.n_rows), np.int64(n_u64s)),
+                (
+                    sh.row_ptr,
+                    sh.keys,
+                    sh.key_to_col,
+                    bitvecs,
+                    noncanonical,
+                    np.int64(sh.n_rows),
+                    np.int64(n_u64s),
+                    positions,
+                    np.int32(new_pos is not None),
+                ),
             )
             sh.canonical = not int(noncanonical.get()[0])
             bitvecs_list.append((bitvecs, sh.device, sh.n_rows))
     return bitvecs_list
 
 
-def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, keep_rows: bool):
+def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, keep_rows: bool, row_order: str = "keep"):
     """Row-split bitvectors of ``column`` built on the GPUs: a ``DeviceInput``, None or ``NOT_SERVED``.
 
     None when no item reaches min_count. ``NOT_SERVED`` for a column the
     layer does not serve (see the module docstring) and for more than 2³¹ - 1
     rows, which the row-split miner rejects. ``keep_rows`` keeps the entries
-    for the row-wise kernels when they fit (``KEEP_ROWS_BYTES``).
+    for the row-wise kernels when they fit (``KEEP_ROWS_BYTES``). With
+    ``row_order="lex"`` each shard's rows take the lex row order
+    (``_row_order``) in the bitvectors; counts do not depend on it.
     """
     import cupy as cp
 
@@ -334,7 +376,8 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
     min_count = _min_count(min_support, n_rows)
     cuts = _row_split_cuts(n_rows, min(n_gpus, cp.cuda.runtime.getDeviceCount()))
     shards = _upload_shards(column, ids, cuts)
-    freq = np.flatnonzero(_occurrences(shards, ids.span) >= min_count)
+    occurrences = _occurrences(shards, ids.span)
+    freq = np.flatnonzero(occurrences >= min_count)
     logger.info(
         f"Device input: {n_rows:,} transactions, min_count={min_count}, {len(freq)} frequent items, "
         f"{sum(len(sh.keys) for sh in shards):,} entries on {len(shards)} GPU(s)"
@@ -344,7 +387,13 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
 
     lut = np.full(ids.span + 1, -1, dtype=np.int32)
     lut[freq] = np.arange(len(freq), dtype=np.int32)
-    bitvecs_list = _scatter_bitvecs(shards, lut, len(freq))
+    new_pos = None
+    if row_order == "lex":
+        rank_of_col = np.empty(len(freq), dtype=np.int32)
+        rank_of_col[np.argsort(-occurrences[freq], kind="stable")] = np.arange(len(freq), dtype=np.int32)
+        new_pos = _row_order(shards, lut, rank_of_col)
+    bitvecs_list = _scatter_bitvecs(shards, lut, len(freq), new_pos)
+    del new_pos
 
     rows = None
     if keep_rows:
@@ -357,4 +406,4 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
             with cp.cuda.Device(sh.device):
                 sh.keys = sh.key_to_col = sh.row_ptr = None
                 cp.get_default_memory_pool().free_all_blocks()
-    return DeviceInput(bitvecs_list, dict(enumerate((freq + ids.lo).tolist())), n_rows, rows)
+    return DeviceInput(bitvecs_list, dict(enumerate((freq + ids.lo).tolist())), n_rows, rows, row_order)

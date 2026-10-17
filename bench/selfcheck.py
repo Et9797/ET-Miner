@@ -217,13 +217,32 @@ def _smoke_launch(cp) -> None:
     # id 3 is the null id
     id_bv = cp.zeros((3, 1), dtype=cp.uint64)
     noncanonical = cp.zeros(1, dtype=cp.int32)
+    id_ptr = cp.array([0, 2, 3, 8, 8], dtype=cp.int64)
+    id_ids = cp.array([0, 2, 1, 2, 0, 1, 0, 3], dtype=cp.int32)
+    id_lut = cp.array([0, 1, 2, -1], dtype=cp.int32)
     get_cuda_kernel("ids_to_bitvec")(
         (1,), (256,),
-        (cp.array([0, 2, 3, 8, 8], dtype=cp.int64), cp.array([0, 2, 1, 2, 0, 1, 0, 3], dtype=cp.int32),
-         cp.array([0, 1, 2, -1], dtype=cp.int32), id_bv, noncanonical, np.int64(4), np.int64(1)),
+        (id_ptr, id_ids, id_lut, id_bv, noncanonical, np.int64(4), np.int64(1), cp.zeros(1, cp.int32), np.int32(0)),
     )
     assert id_bv[:, 0].get().tolist() == [0b0101, 0b0110, 0b0101] and noncanonical.get().tolist() == [1]
+    # the same rows at positions 3, 2, 1, 0: the bit order reverses
+    id_bv[:] = 0
+    get_cuda_kernel("ids_to_bitvec")(
+        (1,), (256,),
+        (id_ptr, id_ids, id_lut, id_bv, noncanonical, np.int64(4), np.int64(1), cp.array([3, 2, 1, 0], cp.int32),
+         np.int32(1)),
+    )
+    assert id_bv[:, 0].get().tolist() == [0b1010, 0b0110, 0b1010]
     launched.add("ids_to_bitvec")
+    # row_order_keys: ranks 2, 1, 0 for columns 0, 1, 2 -> row {0, 2} sets bits 61 and 63 of key_hi
+    key_hi = cp.zeros(4, dtype=cp.uint64)
+    key_lo = cp.zeros(4, dtype=cp.uint64)
+    get_cuda_kernel("row_order_keys")(
+        (1,), (256,), (id_ptr, id_ids, id_lut, cp.array([2, 1, 0], cp.int32), key_hi, key_lo, np.int64(4)),
+    )
+    assert key_hi.get().tolist() == [(1 << 63) | (1 << 61), 1 << 62, (1 << 63) | (1 << 62) | (1 << 61), 0]
+    assert key_lo.get().tolist() == [0, 0, 0, 0]
+    launched.add("row_order_keys")
     # count_k3_rows: pairs (0,1), (0,2), (1,2), (1,3) are frequent; rows {0,1,2}, {0,1,2,3}, {1,2,3} hold the
     # triangle (0,1,2) twice; slot (0,1,3) has (0,3) infrequent and stays 0. Bitmap and search paths alike.
     from et_miner.gpu.kernels import build_k3_graph, count_k3_rows, k3_layout

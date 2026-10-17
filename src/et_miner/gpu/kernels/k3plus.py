@@ -152,7 +152,8 @@ def upload_k3plus_groups(groups_info, device_id, *, with_src_rows: bool = False)
 
 
 def count_k3plus_per_candidate(
-    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None, untouched=0
+    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None, untouched=0,
+    occ=None,
 ):
     """Dense K>=3 counting, one thread per candidate: support counts for a range.
 
@@ -189,10 +190,14 @@ def count_k3plus_per_candidate(
         untouched: Fill of the entries the kernel does not write. 0 sums
             correctly across devices; a negative marker (``filter.UNTOUCHED``)
             lets the compacted reduce find the written ones.
+        occ: The bitvecs' tile occupancy (``occupancy.tile_occupancy``) on
+            this device: a warp skips its 32 words when an item holds no row
+            there. None counts every word.
 
     Returns:
         CuPy int32 array of shape (chunk_size,) with counts — stays in VRAM.
     """
+    from .occupancy import occupancy_args
     from .shared_tiled import _assert_k_cap
     from .subset_index import kernel_args
 
@@ -233,6 +238,7 @@ def count_k3plus_per_candidate(
                 result_counts,
                 np.int64(chunk_start),
                 *kernel_args(index, device_id),
+                *occupancy_args(occ, device_id),
             ),
         )
         cp.cuda.Stream.null.synchronize()

@@ -327,6 +327,7 @@ def _apriori_row_split_multi_gpu(
         count_k3_rows,
         decode_k3_slots,
         k3_layout,
+        tile_occupancy,
         count_shared_tiled_allcounts,
         count_tiled_fused,
         k2_groups,
@@ -374,6 +375,11 @@ def _apriori_row_split_multi_gpu(
     else:
         _k2_src = None
         logger.info(f"  Pre-built bitvecs: {len(bitvecs_list)} GPUs")
+    # Under the lex row order the deep itemsets' rows gather, and the per-candidate and group kernels skip the
+    # tiles where an item holds no row.
+    _occ = {}
+    if device_input is not None and device_input.row_order == "lex":
+        _occ = {did: tile_occupancy(bv) for bv, did, _ in bitvecs_list}
 
     n_cols = max(col_to_item.keys()) + 1 if col_to_item else 0
     effective_max_length = min(
@@ -634,6 +640,7 @@ def _apriori_row_split_multi_gpu(
                     groups_gpu=groups_gpu[device_id],
                     index=None if index_gpu is None else index_gpu[device_id],
                     untouched=untouched,
+                    **({"occ": _occ.get(device_id)} if chunk.per_candidate or chunk.group else {}),
                 )
 
         # try/finally, because this is ~40 GB on a wide level and

@@ -67,6 +67,9 @@ starts at ``start()`` and ends at ``finish()``):
     input_dev_k1   the device layer's occurrence bincount (_occurrences)
     input_dev_bitvec  the device layer's lookup upload, bitvector
                    allocation and ids_to_bitvec (_scatter_bitvecs)
+    input_dev_order   the device layer's lex row order (_row_order: the
+                   keys, the sort, the positions)
+    input_occupancy   the bitvecs' tile occupancy (tile_occupancy)
     input_other    from the call to K=1's start, minus the input phases
                    (argument checks, the column's collect, NCCL setup,
                    dispatch)
@@ -92,10 +95,12 @@ AFTER_LEVEL = ("materialize",)
 
 SPAN_PHASES = (
     "input_count", "input_k1", "input_explode", "input_csr", "input_widen", "input_h2d", "input_bitvec",
-    "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec",
+    "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_dev_order", "input_occupancy",
     "input_other", "input", "frame", "tail_other", "tail",
 )
-_DEVICE_SPANS = ("input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec")
+_DEVICE_SPANS = (
+    "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_dev_order", "input_occupancy",
+)
 _COLLECTS = ("input_count", "input_k1", "input_explode")
 
 _MINER = "_apriori_row_split_multi_gpu"
@@ -328,6 +333,8 @@ class LevelSplit:
             self._patch(input_layer._Uploader, name, self._timed_span("input_dev_copy", getattr(input_layer._Uploader, name)))
         self._patch(input_layer, "_occurrences", self._timed_span("input_dev_k1", input_layer._occurrences))
         self._patch(input_layer, "_scatter_bitvecs", self._timed_span("input_dev_bitvec", input_layer._scatter_bitvecs))
+        self._patch(input_layer, "_row_order", self._timed_span("input_dev_order", input_layer._row_order))
+        self._patch(kernels, "tile_occupancy", self._timed_span("input_occupancy", kernels.tile_occupancy))
         self._patch(input_layer.DeviceRows, "pairs", self._timed("k2_dispatch", input_layer.DeviceRows.pairs))
         self._patch(input_layer.DeviceRows, "upload", self._timed("k2_input", input_layer.DeviceRows.upload))
         self._patch(row_split, "_build_deferred_frame", self._timed_span("frame", row_split._build_deferred_frame))

@@ -726,7 +726,13 @@ def apriori(
             from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
 
             column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
-            built = build_device_input(column, min_support, max(1, n_gpus), keep_rows=_env.k2_kernel() != "dense")
+            built = build_device_input(
+                column,
+                min_support,
+                max(1, n_gpus),
+                keep_rows=_env.k2_kernel() != "dense",
+                row_order=_env.row_order() or "lex",
+            )
             if built is None:
                 return (_empty_result(item_dtype), ProfilingSession()) if profile else _empty_result(item_dtype)
             if built is not NOT_SERVED:

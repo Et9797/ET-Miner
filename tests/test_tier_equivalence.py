@@ -18,6 +18,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
            forced chunks)
         == row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; and selected by
            the r3 dispatch)
+        == row-split 1 GPU, row order keep / lex pinned (plain / forced chunks / count inference)
         == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
@@ -28,6 +29,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 2 GPUs, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
            forced chunks)
         == row-split 2 GPUs, row-wise K=3 (plain / forced chunks / count inference)
+        == row-split 2 GPUs, row order keep / lex pinned (plain / forced chunks / count inference)
         == row-split 2 GPUs, compacted reduce (the default) and dense reduce pinned (plain
            and forced chunks, with and without count inference)
         == ESCO 2 GPUs, including count inference
@@ -529,6 +531,40 @@ def _row_wise_k3_leg(smoke_dataset, oracle_set, monkeypatch, variant, n_gpus):
         kwargs = {"index_mode": "infer", "use_generator_pruning": True}
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split {n_gpus} GPU(s), row-wise K=3 ({variant})", env,
              runs=("count_k3_rows",), n_gpus=n_gpus, **kwargs)
+
+
+def _row_order_leg(smoke_dataset, oracle_set, monkeypatch, order, variant, n_gpus):
+    """A leg with the device input layer's row order pinned; "lex" must build the tile occupancy, "keep" not."""
+    from et_miner.gpu import kernels
+
+    built = []
+    monkeypatch.setattr(kernels, "tile_occupancy", lambda bv, _real=kernels.tile_occupancy: built.append(1) or _real(bv))
+    env = {"ET_MINER_ROW_ORDER": order, "ET_MINER_INPUT_LAYER": "device"}
+    kwargs = {}
+    if variant == "forced chunks":
+        env |= {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}
+    elif variant == "count inference":
+        kwargs = {"index_mode": "infer", "use_generator_pruning": True}
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split {n_gpus} GPU(s), row order {order} ({variant})",
+             env, n_gpus=n_gpus, **kwargs)
+    assert bool(built) == (order == "lex"), f"row order {order}: tile occupancy built {len(built)} time(s)"
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference"])
+@pytest.mark.parametrize("order", ["keep", "lex"])
+def test_row_split_one_gpu_row_order_matches_oracle(smoke_dataset, oracle_set, monkeypatch, order, variant):
+    _row_order_leg(smoke_dataset, oracle_set, monkeypatch, order, variant, 1)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference"])
+@pytest.mark.parametrize("order", ["keep", "lex"])
+def test_row_split_two_gpus_row_order_matches_oracle(smoke_dataset, oracle_set, monkeypatch, order, variant):
+    """Each GPU orders its own shard's rows; counts sum the same."""
+    _needs_two_gpus()
+    _row_order_leg(smoke_dataset, oracle_set, monkeypatch, order, variant, 2)
 
 
 @pytest.mark.gpu

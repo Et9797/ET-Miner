@@ -18,6 +18,7 @@ from .shared_tiled import (
 )
 from .group_pairs import GROUP_MAX_SUFFIXES, count_group_pairs
 from .k2 import K2_ROWS_SHARED_PAIRS, K2Rows, count_pairs_k2_per_candidate, count_pairs_k2_rows, upload_k2_rows
+from .occupancy import Occupancy, tile_occupancy
 from .k3_rows import K3_ROWS_MAX_LEN, K3Graph, K3Layout, build_k3_graph, count_k3_rows, decode_k3_slots, k3_layout
 from .k3plus import (
     K3PlusGroups,
@@ -53,6 +54,8 @@ __all__ = [
     "K3_ROWS_MAX_LEN",
     "K3Graph",
     "K3Layout",
+    "Occupancy",
+    "tile_occupancy",
     "k3_layout",
     "build_k3_graph",
     "count_k3_rows",

@@ -627,3 +627,14 @@ def build_moonshots_m7(n_dev: int) -> list[dict]:
     reps = [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base
             if not c["base_id"].endswith("-final")]
     return reps + [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in base if c["base_id"].endswith("-final")]
+
+
+def build_moonshots_m5b(n_dev: int) -> list[dict]:
+    """M5b's campaign (`--mode moonshots-m5b`, bench/moonshots/PROTOCOL-M5b.md): the device input layer's row order
+    kept against lex (with the tile-occupancy skip), 3 reps rep-major, then one final-check rep with it unset."""
+    arms = {"keep": {"ET_MINER_ROW_ORDER": "keep"}, "lex": {"ET_MINER_ROW_ORDER": "lex"}}
+    base = _moonshot_arms(arms, n_dev)
+    final = _moonshot_arms({"final": {}}, n_dev)
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base] + [
+        {**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in final
+    ]

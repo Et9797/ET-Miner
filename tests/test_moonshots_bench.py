@@ -17,6 +17,7 @@ from consolidation_matrix import (
     build_moonshots_m1_final,
     build_moonshots_m2,
     build_moonshots_m2_final,
+    build_moonshots_m5b,
     build_moonshots_m7,
     build_moonshots_x0,
 )
@@ -98,6 +99,17 @@ def test_m7_matrix_runs_inference_with_the_bounds_pinned_then_the_final_check():
     assert build_matrix("moonshots-m7", 2, []) == m
 
 
+def test_m5b_matrix_pins_the_row_order_then_runs_the_final_check():
+    m = build_moonshots_m5b(2)
+    n = len(MOONSHOT_REGIMES) * 2 * 2 * 3
+    reps, final = m[:n], m[n:]
+    assert len(final) == len(MOONSHOT_REGIMES) * 2
+    assert all(c["rep"] == 0 and "ET_MINER_ROW_ORDER" not in c["env"] for c in final)
+    for c in reps:
+        assert c["env"]["ET_MINER_ROW_ORDER"] == c["base_id"].rsplit("-", 1)[1]
+    assert build_matrix("moonshots-m5b", 2, []) == m
+
+
 def _row(id_, wall, sig=("n", 1, "h"), fallbacks=(), status="ok", free=False):
     return {
         "id": id_,
@@ -175,7 +187,14 @@ def test_level_split_times_the_device_input_layer(monkeypatch):
         split.finish()
     finally:
         split.uninstall()
-    for phase in ("input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec"):
+    for phase in (
+        "input_dev_chunks",
+        "input_dev_copy",
+        "input_dev_k1",
+        "input_dev_bitvec",
+        "input_dev_order",
+        "input_occupancy",
+    ):
         assert split.span[phase] > 0, phase
     assert split.span["input_explode"] == 0 and split.span["input_csr"] == 0
     assert split.levels[2]["k2_dispatch"] > 0 and split.levels[2]["k2_input"] > 0

@@ -1,6 +1,6 @@
-"""Mine the proposed ``deep_k20`` preset (M4's target regime) on the CPU and dump its lattice.
+"""Mine the ``deep_k20`` preset (M4's target regime) on the CPU and dump its lattice.
 
-The spec is generated in memory (it is a proposal, not in ``PRESETS``), mined
+The spec is generated in memory, mined
 with ``apriori(use_gpu=False)``, and written as ``<OUT>.lattice.parquet`` with
 its sidecar, the input of ``component_stakes.py``. Prints the mining time and
 the itemsets per level as one JSON line.
@@ -18,19 +18,14 @@ import numpy as np
 import polars as pl
 
 from et_miner import apriori
-from et_miner.synthetic import SynthSpec, generate_transactions
-
-DEEP_K20 = SynthSpec(
-    name="deep_k20", n_rows=1_000_000, vocab_size=4_000, zipf_a=1.1, row_len_mean=10, row_len_max=48,
-    motif_count=2, motif_size=20, motif_penetration=0.011, min_support=0.01, seed=2020,
-)
+from et_miner.synthetic import PRESETS, generate_transactions
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("out")
     args = ap.parse_args()
-    spec = DEEP_K20
+    spec = PRESETS["deep_k20"]
     df, _ = generate_transactions(spec)
     t0 = time.perf_counter()
     res = apriori(df, min_support=spec.min_support, use_gpu=False)

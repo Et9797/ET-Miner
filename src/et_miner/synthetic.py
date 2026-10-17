@@ -242,6 +242,21 @@ def check_preset_purpose(spec: SynthSpec) -> None:
             )
         if spec.n_rows > 500_000:
             raise AssertionError(f"wide_vocab must stay small enough for the CPU tiers: {spec.n_rows:,} rows")
+    if spec.name == "deep_k20":
+        if spec.motif_size < 18:
+            raise AssertionError(f"deep_k20 must mine to K>=18; motif_size is {spec.motif_size}")
+        weights = _item_weights(spec)
+        mean_len = float(np.clip(spec.row_len_mean, spec.row_len_min, spec.row_len_max))
+        top_frequency = 1.0 - (1.0 - float(weights.max())) ** mean_len
+        if spec.motif_penetration * top_frequency >= spec.min_support:
+            raise AssertionError(
+                f"deep_k20: the top background item (~{top_frequency:.1%} of rows) can join a motif's deep "
+                f"itemsets ({spec.motif_penetration} x {top_frequency:.3f} >= {spec.min_support})"
+            )
+        if spec.motif_count * 2**spec.motif_size > 4_000_000:
+            raise AssertionError(
+                f"deep_k20's lattice must stay bounded: {spec.motif_count} x 2^{spec.motif_size} itemsets"
+            )
     if spec.motif_count > 0:
         planted_count = int(round(spec.motif_penetration * spec.n_rows))
         if planted_count < spec.min_count:
@@ -269,6 +284,9 @@ def check_preset_purpose(spec: SynthSpec) -> None:
 # falls below the n/32 crossover around K=5-6, and mining to K=16.
 # wide_vocab has >1,000 frequent items, so the CPU tier's auto strategy picks
 # sparse counting, and is small enough for the CPU tiers to finish in minutes.
+# deep_k20 plants two 20-item motifs that no background item joins, so the
+# lattice reaches K=20 as two components of 20 items each from K=6
+# (2,097,793 itemsets): the AlphaFold base-vocab regime of long motifs.
 
 PRESETS: dict[str, SynthSpec] = {
     "smoke": SynthSpec(
@@ -355,6 +373,19 @@ PRESETS: dict[str, SynthSpec] = {
         row_len_max=80,
         min_support=0.004,
         seed=31,
+    ),
+    "deep_k20": SynthSpec(
+        name="deep_k20",
+        n_rows=1_000_000,
+        vocab_size=4_000,
+        zipf_a=1.1,
+        row_len_mean=10,
+        row_len_max=48,
+        motif_count=2,
+        motif_size=20,
+        motif_penetration=0.011,
+        min_support=0.01,
+        seed=2020,
     ),
 }
 

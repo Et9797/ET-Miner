@@ -744,6 +744,10 @@ sentence with a check wherever one is possible.
   defect is live and zero once fixed, so the same file is evidence and gate.
 - `tests/fixtures/min_count_cases.json` — shared ground truth for the min-count
   rule, read by the Python and Rust test suites alike.
+- `deep_k20` synthetic preset: 1M rows with two 20-item motifs that no
+  background item joins, so the lattice reaches K=20 (2,097,793 itemsets, two
+  20-item components from K=6). Its purpose check guards the depth, that no
+  background item can join a motif, and the lattice's size.
 
 ### Removed
 

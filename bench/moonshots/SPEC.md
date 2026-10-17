@@ -297,8 +297,8 @@ matrix has a stake. Re-open with the proposed preset below, or with AlphaFold.
 
 **Target regime and proposed preset.** M4's case is the AlphaFold base-vocab
 regime (~1,000 items, K up to 22), which no preset reproduces: there the deep
-itemsets are long motifs that no hub item joins. Proposed preset `deep_k20`
-(not added; the owner decides):
+itemsets are long motifs that no hub item joins. Preset `deep_k20`
+(added to `PRESETS` on the owner's word, 2026-10-17):
 
 ```python
 "deep_k20": SynthSpec(

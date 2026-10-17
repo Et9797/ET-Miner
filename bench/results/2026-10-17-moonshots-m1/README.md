@@ -27,7 +27,8 @@
 ## Files
 
 - `raw.jsonl`: 120 campaign rows (3 reps, rep-major) and 20 final-check rows
-  (`*-final#r0`, the layer unset); `*.result.json` per row.
+  (`*-final#r0`, the layer unset). The per-row `*.result.json` and `*.log`
+  files are not committed (`.gitignore`); `raw.jsonl` holds the same rows.
 - `decision.md`: `decide.py --arms host device` (rule 2 per regime; must-fix: none).
 - `split.md`: the wall split per config, the device phases included.
 - `env.txt`: the environment capture of both invocations.

@@ -1,0 +1,1 @@
+{"dataset": "deep_sparse_large", "n_rows": 20000000, "nnz": 246852619, "lengths": 0.0663928841240704, "explode_int32": 1.747099295957014, "explode_int32_chunked": 1.5735380412079394, "bincount_k1": 0.6979196229949594, "polars_k1_group_by": 2.2943432410247624, "polars_explode_join": 6.469337732065469}

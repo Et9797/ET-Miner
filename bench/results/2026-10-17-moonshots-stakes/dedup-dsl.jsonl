@@ -1,0 +1,17 @@
+{"level": "frequent", "n_rows": 20000000, "rows": 19972584, "distinct": 3319730, "ratio": 6.016327833890106, "max_weight": 168722, "planes": 18, "ratio_per_plane": 0.334240435216117}
+{"level": 2, "active_items": 85, "rows": 19663199, "distinct": 3319645, "ratio": 5.923283664367726, "max_weight": 166032, "planes": 18, "ratio_per_plane": 0.3290713146870959}
+{"level": 3, "active_items": 80, "rows": 18762060, "distinct": 2782077, "ratio": 6.743903925017173, "max_weight": 91701, "planes": 17, "ratio_per_plane": 0.3967002308833631}
+{"level": 4, "active_items": 66, "rows": 17047957, "distinct": 1114395, "ratio": 15.297948214053365, "max_weight": 75163, "planes": 17, "ratio_per_plane": 0.8998793067090215}
+{"level": 5, "active_items": 63, "rows": 15906893, "distinct": 768861, "ratio": 20.68890605714167, "max_weight": 85350, "planes": 17, "ratio_per_plane": 1.21699447394951}
+{"level": 6, "active_items": 63, "rows": 15395407, "distinct": 749771, "ratio": 20.53347888888741, "max_weight": 85350, "planes": 17, "ratio_per_plane": 1.2078516993463182}
+{"level": 7, "active_items": 63, "rows": 14676411, "distinct": 732114, "ratio": 20.04661978872143, "max_weight": 84710, "planes": 17, "ratio_per_plane": 1.1792129287483193}
+{"level": 8, "active_items": 60, "rows": 13071834, "distinct": 455761, "ratio": 28.68133517347908, "max_weight": 50898, "planes": 16, "ratio_per_plane": 1.7925834483424425}
+{"level": 9, "active_items": 55, "rows": 10759971, "distinct": 151002, "ratio": 71.2571422895061, "max_weight": 70497, "planes": 17, "ratio_per_plane": 4.191596605265065}
+{"level": 10, "active_items": 54, "rows": 9516965, "distinct": 107645, "ratio": 88.41065539504854, "max_weight": 80446, "planes": 17, "ratio_per_plane": 5.2006267879440315}
+{"level": 11, "active_items": 53, "rows": 8312168, "distinct": 74102, "ratio": 112.17197916385523, "max_weight": 60321, "planes": 16, "ratio_per_plane": 7.010748697740952}
+{"level": 12, "active_items": 53, "rows": 7163405, "distinct": 71041, "ratio": 100.83479962275305, "max_weight": 59967, "planes": 16, "ratio_per_plane": 6.302174976422066}
+{"level": 13, "active_items": 52, "rows": 5885856, "distinct": 46428, "ratio": 126.77384337037995, "max_weight": 37621, "planes": 16, "ratio_per_plane": 7.923365210648747}
+{"level": 14, "active_items": 34, "rows": 4606923, "distinct": 5090, "ratio": 905.0929273084479, "max_weight": 81503, "planes": 17, "ratio_per_plane": 53.2407604299087}
+{"level": 15, "active_items": 34, "rows": 3412443, "distinct": 4471, "ratio": 763.2393200626258, "max_weight": 81140, "planes": 17, "ratio_per_plane": 44.89643059191916}
+{"level": 16, "active_items": 21, "rows": 1441613, "distinct": 81, "ratio": 17797.69135802469, "max_weight": 316025, "planes": 19, "ratio_per_plane": 936.7205977907732}
+{"level": 17, "active_items": 21, "rows": 180314, "distinct": 57, "ratio": 3163.40350877193, "max_weight": 137778, "planes": 18, "ratio_per_plane": 175.74463937621832}

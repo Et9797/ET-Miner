@@ -7,7 +7,9 @@ of its group; a suffix row's tile that is zero adds nothing to its pairs.
 
 ``deep``: per K>=3 level, the share of a group's 32-word tiles whose prefix
 AND is zero, weighted by the group's generated pairs, over a uniform sample of
-the level's prefix groups, for each row order:
+the level's prefix groups; and the share a kernel finds from the per-item tile
+occupancy alone (the AND of the prefix items' occupancy bits, a superset of the
+non-zero prefix tiles); for each row order:
     orig     the dataset's order
     lex      rows sorted by their frequent items in descending-support order
              (lexicographic on the item indicator vector)
@@ -97,6 +99,7 @@ def deep(lat, indptr, pos, n_groups: int, seed: int) -> None:
         words = bv.shape[1]
         n_tiles = -(-words // TILE_W)
         pad = n_tiles * TILE_W - words
+        item_tiles = np.pad(bv, ((0, 0), (0, pad))).reshape(lat.n_cols, n_tiles, TILE_W).any(axis=2)
         rng = np.random.default_rng(seed)
         for k in range(3, max(lat.items) + 2):
             if len(lat.items.get(k - 1, [])) < 2:
@@ -109,15 +112,20 @@ def deep(lat, indptr, pos, n_groups: int, seed: int) -> None:
             live = np.nonzero(pairs > 0)[0]
             pick = live if len(live) <= n_groups else np.sort(rng.choice(live, n_groups, replace=False))
             zero = np.zeros(len(pick))
+            zero_occ = np.zeros(len(pick))
             for x, g in enumerate(pick):
                 acc = bv[prefix[g, 0]].copy()
+                occ = item_tiles[prefix[g, 0]].copy()
                 for c in range(1, k - 2):
                     acc &= bv[prefix[g, c]]
+                    occ &= item_tiles[prefix[g, c]]
                 tiles = np.pad(acc, (0, pad)).reshape(n_tiles, TILE_W).any(axis=1)
                 zero[x] = 1.0 - tiles.mean()
+                zero_occ[x] = 1.0 - occ.mean()
             w = pairs[pick].astype(np.float64)
             print(json.dumps({"mode": "deep", "order": order, "k": k, "groups": int(len(live)),
                               "sampled": int(len(pick)), "zero_prefix_tile_share": float((zero * w).sum() / w.sum()),
+                              "zero_by_item_occupancy": float((zero_occ * w).sum() / w.sum()),
                               "unweighted": float(zero.mean()), "elapsed_s": round(time.perf_counter() - t0, 1)}),
                   flush=True)
         del bv

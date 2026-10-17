@@ -9,6 +9,14 @@ of size >= K0 the finisher would emit (checked to lie inside one component),
 and with ``--dataset`` the rows with at least K0 items of some component (the
 histogram's input).
 
+The per-family variant: the frequent (K0-1)-itemsets grouped by their
+(K0-2)-prefix P, with E(P) the items that extend P. Every frequent itemset of
+size >= K0-1 whose first K0-2 items are P lies inside P with E(P), since each
+of its items x outside P makes P+x a frequent (K0-1)-subset. Per K0 the
+script reports the families, the largest E(P), the largest table 2^|E(P)| and
+the sum over families of count(P) x |E(P)| (the rows a conditional histogram
+reads).
+
 Usage: uv run python bench/moonshots/component_stakes.py LATTICE [--dataset NAME] > OUT.jsonl
 """
 
@@ -72,6 +80,16 @@ def main() -> int:
             "zeta_adds": int(sum(int(s) * 2 ** int(s) for s in sizes[big])),
             "itemsets_from_k0": emitted,
         }
+        fam = lat.items[k0 - 1]
+        if k0 >= 3 and len(fam):
+            prefix_rows = lat.lookup(np.ascontiguousarray(fam[:, :-1])) if k0 > 2 else np.zeros(len(fam), np.int64)
+            pid, ext = np.unique(prefix_rows, return_counts=True)
+            prefix_counts = lat.counts[k0 - 2][pid]
+            out["families"] = int(len(pid))
+            out["family_max_ext"] = int(ext.max())
+            out["family_max_table_bytes"] = int(4 * 2 ** int(ext.max()))
+            out["family_tables_bytes"] = int(sum(4 * 2 ** int(e) for e in ext))
+            out["family_rows_x_ext"] = int((prefix_counts * ext).sum())
         if rows is not None:
             comp_of_pos = label[rows[1]]
             in_big = np.isin(comp_of_pos, big)

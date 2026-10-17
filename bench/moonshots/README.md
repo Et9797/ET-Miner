@@ -45,3 +45,11 @@ Each script reads a lattice dump of Phase 0 (and the dataset where it says
 | `component_stakes.py` | M4 (item components per starting level) |
 | `tile_stakes.py` | M5b and M12 (all-zero word tiles per row order) |
 | `dedup_stakes.py` | M11 (distinct projected rows) |
+| `input_floor.py` | M1's host floor (explode, row lengths) |
+| `relabel_lattice.py` | M10's relabelled lattice for the replays |
+| `preset_check.py` | M4's proposed `deep_k20` preset, mined on the CPU |
+| `stakes.py` | every idea's upper bound from the outputs above |
+
+The outcome is `SPEC.md` (one section per idea) and `STAKES.md` (the ranked
+table); the outputs and their commands are in
+`../results/2026-10-17-moonshots-stakes/README.md`.

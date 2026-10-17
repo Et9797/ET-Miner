@@ -26,7 +26,7 @@ Both regimes are reported: complete lattice (every non-prunable candidate
 counted) and count inference (the inferable ones taken from their subsets).
 
 Usage: uv run python bench/moonshots/replay_stakes.py LATTICE [--dataset NAME] [--no-ndi]
-       [--ndi-sample F] [--max-k K] > OUT.jsonl
+       [--ndi-sample F] [--ndi-depth 1|2|3] [--max-k K] > OUT.jsonl
 """
 
 from __future__ import annotations
@@ -62,18 +62,18 @@ def _subset_counts(lat, sets: np.ndarray, drop: tuple[int, ...]) -> np.ndarray:
     return lat.counts[len(keep)][idx]
 
 
-def ndi_bounds(lat, sets: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """(lower, upper) support bounds from the deduction rules of depth 1 to 3 (Calders & Goethals 2002)."""
+def ndi_bounds(lat, sets: np.ndarray, depth: int = 3) -> tuple[np.ndarray, np.ndarray]:
+    """(lower, upper) support bounds from the deduction rules of depth 1 to ``depth`` <= 3 (Calders & Goethals 2002)."""
     k = sets.shape[1]
     s1 = {(a,): _subset_counts(lat, sets, (a,)) for a in range(k)}
     upper = np.minimum.reduce(list(s1.values()))
     lower = np.zeros(len(sets), dtype=np.int64)
     s2 = {}
-    if k >= 2:
+    if k >= 2 and depth >= 2:
         for a, b in combinations(range(k), 2):
             s2[(a, b)] = _subset_counts(lat, sets, (a, b))
             lower = np.maximum(lower, s1[(a,)] + s1[(b,)] - s2[(a, b)])
-    if k >= 3:
+    if k >= 3 and depth >= 3:
         for a, b, c in combinations(range(k), 3):
             s3 = _subset_counts(lat, sets, (a, b, c))
             bound = s1[(a,)] + s1[(b,)] + s1[(c,)] - s2[(a, b)] - s2[(a, c)] - s2[(b, c)] + s3
@@ -81,7 +81,7 @@ def ndi_bounds(lat, sets: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return lower, upper
 
 
-def replay_level(lat, k: int, *, ndi: bool, ndi_sample: float, rng) -> dict:
+def replay_level(lat, k: int, *, ndi: bool, ndi_sample: float, rng, ndi_depth: int = 3) -> dict:
     from et_miner.gpu.kernels.k3plus import build_k3plus_groups_from_flat
     from et_miner.gpu.row_split_chunks import group_kernels
 
@@ -163,7 +163,7 @@ def replay_level(lat, k: int, *, ndi: bool, ndi_sample: float, rng) -> dict:
             for s in range(0, len(sel), NDI_BATCH):
                 part = sel[s : s + NDI_BATCH]
                 sets = np.concatenate([prefix[g[part]], s_i[part, None], s_j[part, None]], axis=1).astype(np.int32)
-                lo, up = ndi_bounds(lat, sets)
+                lo, up = ndi_bounds(lat, sets, ndi_depth)
                 skip = up < lat.min_count
                 exact = ~skip & (lo == up)
                 fr = freq[part]
@@ -197,7 +197,7 @@ def replay_level(lat, k: int, *, ndi: bool, ndi_sample: float, rng) -> dict:
         work["tiled_staged_rows"] = work["tiled_counted_tilepairs"] * ((k - 2) + 2 * TILE)
         row[r] = {**acc[r], **work}
     if ndi:
-        row["ndi"] = {**ndi_acc, "sample": ndi_sample}
+        row["ndi"] = {**ndi_acc, "sample": ndi_sample, "depth": ndi_depth}
     row["elapsed_s"] = round(time.perf_counter() - t0, 1)
     return row
 
@@ -219,6 +219,7 @@ def main() -> int:
     ap.add_argument("--dataset", default=None)
     ap.add_argument("--no-ndi", action="store_true")
     ap.add_argument("--ndi-sample", type=float, default=1.0)
+    ap.add_argument("--ndi-depth", type=int, default=3, choices=(1, 2, 3))
     ap.add_argument("--max-k", type=int, default=None)
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
@@ -228,12 +229,15 @@ def main() -> int:
     if args.dataset:
         rows = frequent_rows(args.dataset, lat.col_to_item)
     top = max(lat.items)
+    max_length = lat.meta.get("max_length")
+    if max_length:
+        top = min(top, max_length - 1)
     if args.max_k:
         top = min(top, args.max_k - 1)
     for k in range(3, top + 2):
         if len(lat.items.get(k - 1, [])) < 2:
             break
-        out = replay_level(lat, k, ndi=not args.no_ndi, ndi_sample=args.ndi_sample, rng=rng)
+        out = replay_level(lat, k, ndi=not args.no_ndi, ndi_sample=args.ndi_sample, rng=rng, ndi_depth=args.ndi_depth)
         if rows is not None:
             out["rows"] = row_stats(lat, rows[0], rows[1], k)
         print(json.dumps(out), flush=True)

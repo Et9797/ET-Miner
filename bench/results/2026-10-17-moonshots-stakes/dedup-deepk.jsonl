@@ -1,0 +1,12 @@
+{"level": "frequent", "n_rows": 1000000, "rows": 999914, "distinct": 780699, "ratio": 1.2807932378547942, "max_weight": 1408, "planes": 11, "ratio_per_plane": 0.11643574889589038}
+{"level": 2, "active_items": 112, "rows": 998413, "distinct": 780624, "ratio": 1.2789934718891554, "max_weight": 1408, "planes": 11, "ratio_per_plane": 0.11627213380810503}
+{"level": 3, "active_items": 105, "rows": 987362, "distinct": 743121, "ratio": 1.3286692207594726, "max_weight": 1622, "planes": 11, "ratio_per_plane": 0.12078811097813387}
+{"level": 4, "active_items": 84, "rows": 924560, "distinct": 558756, "ratio": 1.654675743974114, "max_weight": 1800, "planes": 11, "ratio_per_plane": 0.15042506763401037}
+{"level": 5, "active_items": 62, "rows": 657109, "distinct": 174479, "ratio": 3.7661208512199176, "max_weight": 2533, "planes": 12, "ratio_per_plane": 0.31384340426832646}
+{"level": 6, "active_items": 48, "rows": 164566, "distinct": 7001, "ratio": 23.50607056134838, "max_weight": 4939, "planes": 13, "ratio_per_plane": 1.8081592739498755}
+{"level": 7, "active_items": 41, "rows": 114648, "distinct": 363, "ratio": 315.8347107438017, "max_weight": 23735, "planes": 15, "ratio_per_plane": 21.05564738292011}
+{"level": 8, "active_items": 41, "rows": 114648, "distinct": 363, "ratio": 315.8347107438017, "max_weight": 23735, "planes": 15, "ratio_per_plane": 21.05564738292011}
+{"level": 9, "active_items": 41, "rows": 114648, "distinct": 363, "ratio": 315.8347107438017, "max_weight": 23735, "planes": 15, "ratio_per_plane": 21.05564738292011}
+{"level": 10, "active_items": 41, "rows": 114648, "distinct": 363, "ratio": 315.8347107438017, "max_weight": 23735, "planes": 15, "ratio_per_plane": 21.05564738292011}
+{"level": 11, "active_items": 41, "rows": 103368, "distinct": 359, "ratio": 287.933147632312, "max_weight": 23735, "planes": 15, "ratio_per_plane": 19.195543175487465}
+{"level": 12, "active_items": 41, "rows": 8205, "distinct": 253, "ratio": 32.430830039525695, "max_weight": 788, "planes": 10, "ratio_per_plane": 3.2430830039525693}

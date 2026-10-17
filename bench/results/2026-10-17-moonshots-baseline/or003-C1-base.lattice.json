@@ -1,0 +1,8 @@
+{
+  "dataset": "online_retail",
+  "min_support": 0.003,
+  "max_length": null,
+  "prune_equal_support": false,
+  "n_rows": 36422,
+  "min_count": 110
+}

@@ -1,0 +1,8 @@
+{
+  "dataset": "stress_k2",
+  "min_support": 1.5e-05,
+  "max_length": 3,
+  "prune_equal_support": false,
+  "n_rows": 2000000,
+  "min_count": 30
+}

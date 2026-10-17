@@ -1,0 +1,8 @@
+{
+  "dataset": "oom_regression",
+  "min_support": 3e-05,
+  "max_length": 3,
+  "prune_equal_support": false,
+  "n_rows": 500000,
+  "min_count": 15
+}

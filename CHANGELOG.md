@@ -177,6 +177,32 @@ All notable changes to ET-Miner are recorded here. Versions follow
 - `bench/cpu/`: the CPU-tier campaign (protocol, matrix, timed child, per-level
   split, stakes, crossover measurements, report and compare scripts).
 
+### GPU route: device input layer
+
+- **Integer item columns reach the GPU without the host CSR**
+  (`gpu/input_layer.py`). It serves Int8–Int64 and UInt8–UInt32 ids that span
+  at most 2²² values:
+  - each Polars chunk's Arrow buffers are read in place;
+  - the ids go to the shard devices as int32 through pinned asynchronous
+    copies;
+  - K=1 is a device bincount, and the new `ids_to_bitvec` kernel sets the
+    bits;
+  - the row-wise K=2 kernel's rows are cut from the same device entries.
+- The bitvectors are byte-identical to the host path's (tested on every
+  preset, on null, repeated and unsorted rows, and on 1 and 2 GPUs). Other
+  dtypes, wider spans and `bitvecs=` keep the host CSR.
+  `ET_MINER_INPUT_LAYER=host|device` pins the layer. No mined output changes.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M1.md`), wall
+  per run:
+  - dsl: 29.5 → 10.6 s on one GPU (input 20.7 → 1.9 s), 26.4 → 6.9 s on two;
+  - dsl with count inference: 24.8 → 5.7 s;
+  - sk2ml3: 27.5 → 22.9 s;
+  - no regime slower by rule 2.
+  - dsl's peak host RSS falls from 10.3 to 3.5 GB.
+- `bench/moonshots/`: `PROTOCOL-M1.md`, `REPORT-M1.md`, `decide.py`;
+  `bench/runner.py --mode moonshots-m1|moonshots-m1-final`. The level split
+  times the device phases.
+
 ### Polars 2.0
 
 - **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0

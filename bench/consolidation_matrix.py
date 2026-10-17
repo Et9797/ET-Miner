@@ -610,3 +610,20 @@ def build_moonshots_x0(n_dev: int) -> list[dict]:
         for arm in ("plain", "infer")
     ]
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_moonshots_m7(n_dev: int) -> list[dict]:
+    """M7's campaign (`--mode moonshots-m7`, bench/moonshots/PROTOCOL-M7.md): count inference with the deduction
+    bounds off and on, every complete-lattice regime, 3 reps."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1", **({"ET_MINER_DEDUCTION": pin} if pin else {})},
+             use_generator_pruning=True, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, _, kw in X0_REGIMES
+        for arm, pin in (("pascal", "0"), ("bounds", "1"), ("final", None))
+    ]
+    reps = [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base
+            if not c["base_id"].endswith("-final")]
+    return reps + [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in base if c["base_id"].endswith("-final")]

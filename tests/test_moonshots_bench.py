@@ -17,6 +17,7 @@ from consolidation_matrix import (
     build_moonshots_m1_final,
     build_moonshots_m2,
     build_moonshots_m2_final,
+    build_moonshots_m7,
     build_moonshots_x0,
 )
 from decide import decide
@@ -83,6 +84,18 @@ def test_x0_matrix_differs_only_in_inference():
         assert c["use_generator_pruning"] == (arm == "infer") and not c.get("prune_equal_support")
         assert not {k for k in c["env"] if k.startswith("ET_MINER_")} - {"ET_MINER_DISABLE_NCCL"}
     assert build_matrix("moonshots-x0", 2, []) == m
+
+
+def test_m7_matrix_runs_inference_with_the_bounds_pinned_then_the_final_check():
+    m = build_moonshots_m7(2)
+    reps, final = m[: 8 * 2 * 2 * 3], m[8 * 2 * 2 * 3 :]
+    assert len(final) == 8 * 2 and all(c["rep"] == 0 and "ET_MINER_DEDUCTION" not in c["env"] for c in final)
+    assert [c["rep"] for c in reps] == sorted(c["rep"] for c in reps)
+    for c in reps:
+        arm = c["base_id"].rsplit("-", 1)[1]
+        assert c["env"]["ET_MINER_DEDUCTION"] == {"pascal": "0", "bounds": "1"}[arm]
+    assert all(c["use_generator_pruning"] for c in m)
+    assert build_matrix("moonshots-m7", 2, []) == m
 
 
 def _row(id_, wall, sig=("n", 1, "h"), fallbacks=(), status="ok", free=False):

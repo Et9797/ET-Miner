@@ -18,6 +18,7 @@ void count_k3plus_dense(
     const unsigned char* __restrict__ index_free,
     const int index_mode,                         // 0: count every candidate
     const int write_inferred                      // this device writes inferred counts
+    SUBSET_DEEP_PARAMS
 ) {
     long long cand_idx = (long long)blockIdx.y * (long long)gridDim.x
                        + (long long)blockIdx.x + candidate_offset;
@@ -57,7 +58,7 @@ void count_k3plus_dense(
         if (threadIdx.x == 0) {
             int inferred = 0;
             s_status = _classify_candidate(index_rows, index_n, index_counts, index_free, index_mode,
-                                           s_items, prefix_len, suffix_i, suffix_j, &inferred);
+                                           s_items, prefix_len, suffix_i, suffix_j, &inferred SUBSET_DEEP_ARGS);
             s_inferred = inferred;
         }
         __syncthreads();

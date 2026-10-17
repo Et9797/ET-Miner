@@ -92,6 +92,15 @@ Variables:
                                        rows of at most 64 active items, and
                                        counts from the bitvectors otherwise.
                                        Unset: dense
+    ET_MINER_DEDUCTION                 "0" or "1": with count inference, the
+                                       K>=3 counting kernels settle a
+                                       candidate inference leaves by the
+                                       deduction bounds of depth <= 3
+                                       (levels k-1, k-2, k-3 with counts):
+                                       an upper bound below min_count skips
+                                       it, equal bounds give its count.
+                                       Unset: on wherever the three levels
+                                       are complete and their index fits
     ET_MINER_REDUCE                    "dense" or "compact": the row-split
                                        miner's multi-GPU reduce of a K>=3
                                        level with a subset index. "compact"
@@ -261,6 +270,15 @@ def k3_kernel() -> str | None:
         return None
     if v not in K3_KERNELS:
         raise ValueError(f"ET_MINER_K3_KERNEL must be one of {K3_KERNELS}, got {v!r}")
+    return v
+
+
+def deduction() -> str | None:
+    v = os.environ.get("ET_MINER_DEDUCTION", "").strip()
+    if not v:
+        return None
+    if v not in ("0", "1"):
+        raise ValueError(f"ET_MINER_DEDUCTION must be 0 or 1, got {v!r}")
     return v
 
 

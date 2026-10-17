@@ -610,6 +610,23 @@ complete-lattice only).
 21.54 s, below rule 2's 10 %. No other regime has a stake. After M1 it is
 about 34 % of the wall. Re-open then; the design above stands.
 
+**Amendment (re-opened after M1, as built).** dsl with count inference is
+5.8 s on this tree, so M7 is re-opened (`PROTOCOL-M7.md`).
+- `_classify_candidate` keeps the k counts of the (k−1)-subsets. When
+  inference leaves a candidate of at most 24 items, it calls `_deduce`
+  (`__noinline__`, so the counting kernels' registers stay as they were).
+- `_deduce` reads levels k−2 and k−3 from the index (`deep2_*`,
+  `deep3_*`) and the row count for the empty set at K=3. It computes the
+  lower bound from every pair and the upper bound from every triple, and
+  stops early once the bounds meet or the upper bound falls below
+  min_count.
+- `row_split` keeps the complete levels of the last three K
+  (`_complete_levels`) in complete-lattice runs with inference.
+- `ET_MINER_DEDUCTION=0|1` pins it; unset, it is on wherever the levels
+  exist and the three indexes fit the cap.
+- The kernels' parameter lists grow by the deep levels through two macros
+  (`SUBSET_DEEP_PARAMS` / `SUBSET_DEEP_ARGS`).
+
 **Acceptance.** Identical signatures. Tier legs with count inference and the
 bounds pinned (`ET_MINER_DEDUCTION=0|1`), on 1 and 2 GPUs (plain, forced
 chunks, each kernel pinned). A property test against brute force: ties at

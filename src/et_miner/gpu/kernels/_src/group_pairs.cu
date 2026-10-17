@@ -47,6 +47,7 @@ void count_group_pairs(
     const unsigned char* __restrict__ index_free,
     const int index_mode,                         // 0: count every candidate
     const int write_inferred                      // this device writes inferred counts
+    SUBSET_DEEP_PARAMS
 ) {
     const long long g = group_start + (long long)blockIdx.y * (long long)gridDim.x + (long long)blockIdx.x;
     if (g >= group_end) return;
@@ -88,7 +89,7 @@ void count_group_pairs(
         if (index_mode != 0) {
             status = _classify_candidate(index_rows, index_n, index_counts, index_free, index_mode, s_pref,
                                          prefix_len, group_suffixes[suf_start + i], group_suffixes[suf_start + j],
-                                         &inferred);
+                                         &inferred SUBSET_DEEP_ARGS);
         }
         if (status == CAND_INFER) {
             result_counts[cand_base + p] = write_inferred ? inferred : 0;

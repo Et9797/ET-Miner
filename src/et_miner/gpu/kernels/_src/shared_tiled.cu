@@ -161,7 +161,7 @@ extern "C" __device__ __forceinline__ void _stage_tiles(
             if (*count_tile) { pair_status[q] = CAND_COUNT; continue; }                           \
             pair_status[q] = _classify_candidate(index_rows, index_n, index_counts, index_free,   \
                 index_mode, s_pref, prefix_len, group_suffixes[suf_start + iq],                   \
-                group_suffixes[suf_start + jq], &pair_inferred[q]);                               \
+                group_suffixes[suf_start + jq], &pair_inferred[q] SUBSET_DEEP_ARGS);                               \
             if (pair_status[q] == CAND_COUNT) *count_tile = 1;                                    \
         }                                                                                         \
         __syncthreads();                                                                          \
@@ -235,6 +235,7 @@ void count_shared_tiled_dense(
     const unsigned char* __restrict__ index_free,
     const int index_mode,                         // 0: count every candidate
     const int write_inferred                      // this device writes inferred counts
+    SUBSET_DEEP_PARAMS
 ) {
     // Each candidate is written by exactly one block (its tile-pair) — no
     // atomics; bit-identical layout to count_k3plus_dense for the chunk.
@@ -267,6 +268,7 @@ void count_shared_tiled_fused(
     const unsigned char* __restrict__ index_free,
     const int index_mode,
     const int write_inferred
+    SUBSET_DEEP_PARAMS
 ) {
     #define EMIT_FUSED(cand, count)                                                              \
         if ((int)(count) >= min_count) {                                                         \

@@ -310,6 +310,7 @@ def _apriori_row_split_multi_gpu(
 
     from et_miner.gpu.csr_bitvec import build_bitvecs_row_split
     from et_miner.gpu.kernels import (
+        SUBSET_BOUNDS,
         SUBSET_INFER,
         SUBSET_PRUNE,
         UNTOUCHED,
@@ -493,6 +494,8 @@ def _apriori_row_split_multi_gpu(
 
     # ── RESUME: skip K=1..resume_from_k, load prev_frequent from parquet ──
     _resume_active = bool(resume_from_k and resume_from_k >= 2 and output_dir)
+    # Complete levels (rows, counts) by K: the deduction bounds read levels k-2 and k-3.
+    _complete_levels: dict[int, tuple] = {}
 
     if _resume_active:
         from et_miner.io.gcs import clear_resolve_cache, resolve_k_parquet
@@ -579,12 +582,19 @@ def _apriori_row_split_multi_gpu(
             rows, counts = prev_frequent_flat, prev_counts_flat
         else:
             rows, counts = prev_full_flat, prev_full_counts
-        mode, free = SUBSET_PRUNE, None
+        mode, free, deep = SUBSET_PRUNE, None, None
         if infer_counts and not prune_non_free and prev_full_free is not None and counts is not None:
             mode, free = SUBSET_PRUNE | SUBSET_INFER, prev_full_free
+            older = [_complete_levels.get(k_level - 2), _complete_levels.get(k_level - 3)]
+            if k_level == 3:
+                older[1] = (np.zeros((0, 0), dtype=np.int32), np.zeros(0, dtype=np.int64))
+            if _env.deduction() != "0" and all(lv is not None for lv in older):
+                mode, deep = mode | SUBSET_BOUNDS, older
         if counts is None:
             counts = np.zeros(len(rows), dtype=np.int64)
         need = index_nbytes(len(rows), rows.shape[1])
+        if deep is not None:
+            need += sum(index_nbytes(len(r), max(1, r.shape[1])) for r, _ in deep)
         free_vram = min(_device_available_bytes(did)[0] for did in device_ids)
         if need > free_vram // 4:
             logger.info(
@@ -594,7 +604,10 @@ def _apriori_row_split_multi_gpu(
             return None
         first = device_ids[0]
         return {
-            did: upload_subset_index(rows, counts, free, mode=mode, device_id=did, write_inferred=did == first)
+            did: upload_subset_index(
+                rows, counts, free, mode=mode, device_id=did, write_inferred=did == first, deep=deep,
+                n_total=n_transactions, min_count=min_count_threshold,
+            )
             for did in device_ids
         }
 
@@ -748,6 +761,7 @@ def _apriori_row_split_multi_gpu(
         prev_frequent_flat = prev_full_flat
         prev_counts_flat = prev_full_counts
         prev_full_free = prev_full_counts < n_transactions
+        _complete_levels[1] = (prev_full_flat, prev_full_counts)
         if prune_non_free:
             _k1_free = prev_full_free
             if not _k1_free.all():
@@ -1147,6 +1161,9 @@ def _apriori_row_split_multi_gpu(
             else:
                 prev_full_flat, prev_full_counts = full_flat, full_counts
             prev_full_free = full_free
+            if infer_counts and not prune_non_free:
+                _complete_levels[k] = (full_flat, full_counts)
+                _complete_levels.pop(k - 3, None)
             _index_gpu = None
             k += 1
     finally:

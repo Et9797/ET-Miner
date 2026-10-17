@@ -239,6 +239,19 @@ def _smoke_launch(cp) -> None:
     finally:
         k3_mod.PAIR_BITS_MAX_BYTES = bits_max
     launched.add("count_k3_rows")
+    # The deduction bounds: rows {0,1}, {0,2}, {0,1,2}, {1,2}. Every pair counts 2, every item 3, N = 4, so
+    # l = 2 + 2 - 3 = 1 and u = 2 + 2 + 2 - 3 - 3 - 3 + 4 = 1: (0,1,2) is inferred as 1 without counting (on
+    # zeroed bitvecs), and skipped at min_count 2.
+    from et_miner.gpu.kernels import SUBSET_BOUNDS
+
+    pairs3 = np.array([[0, 1], [0, 2], [1, 2]], np.int32)
+    deep = [(np.array([[0], [1], [2]], np.int32), [3, 3, 3]), (np.zeros((0, 0), np.int32), [])]
+    tri = build_k3plus_groups_from_flat(pairs3)
+    zero = cp.zeros((3, 1), dtype=cp.uint64)
+    for min_count, want in ((1, [1]), (2, [0])):
+        bounds = upload_subset_index(pairs3, [2, 2, 2], [True] * 3, mode=SUBSET_PRUNE | SUBSET_INFER | SUBSET_BOUNDS,
+                                     device_id=dev, write_inferred=True, deep=deep, n_total=4, min_count=min_count)
+        assert count_k3plus_per_candidate(zero, tri, 1, index=bounds).tolist() == want
     missing = set(_KERNEL_FILES) - launched
     assert not missing, f"registered kernels this selfcheck never launches: {sorted(missing)}"
 

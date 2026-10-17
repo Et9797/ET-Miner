@@ -105,9 +105,10 @@ and a dense count (2.32).
 
 ## Dumps
 
-Rep 0 of every one-GPU config wrote `<config>.lattice.parquet` (gitignored,
-regenerable with this command) and its `.lattice.json` sidecar: the input of
-the Phase 1 stake scripts. The per-shard counts M9 needs are computed exactly
+Rep 0 of every one-GPU config wrote `<config>.lattice.parquet` and its
+`.lattice.json` sidecar: the input of the Phase 1 stake scripts. They are
+committed (15 MB): `!bench/results/**` in `.gitignore` overrides `*.parquet`,
+which earlier campaigns kept out by hand. The per-shard counts M9 needs are computed exactly
 on the CPU from the dataset and the miner's row cuts
 (`bench/moonshots/k3_rows_stake.py`), so no 2-GPU dump is needed for them.
 

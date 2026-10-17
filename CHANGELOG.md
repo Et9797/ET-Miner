@@ -220,6 +220,20 @@ All notable changes to ET-Miner are recorded here. Versions follow
   - oom2ml3: 1.62 → 0.38 s, with its peak VRAM 7.9 → 2.0 GB;
   - the dispatch leaves every other regime on the dense kernels.
 
+### GPU route: deduction bounds under count inference
+
+- **With `use_generator_pruning=True`, the K≥3 subset test also settles
+  candidates by the deduction bounds of depth ≤ 3** (Calders & Goethals 2002)
+  from levels k−1, k−2 and k−3 with counts:
+  - an upper bound below min_count skips a candidate;
+  - equal bounds give its count without counting it.
+- Exact by inclusion–exclusion. No mined output changes.
+- `ET_MINER_DEDUCTION=0|1` pins it; unset, it is on wherever the three levels
+  are complete and their indexes fit.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M7.md`): dsl
+  with count inference goes 5.83 → 3.65 s on one GPU and 4.83 → 3.33 s on
+  two; no regime is slower by rule 2.
+
 ### Polars 2.0
 
 - **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0

@@ -17,6 +17,7 @@ from consolidation_matrix import (
     build_moonshots_m1_final,
     build_moonshots_m2,
     build_moonshots_m2_final,
+    build_moonshots_x0,
 )
 from decide import decide
 from level_split import LevelSplit
@@ -71,6 +72,17 @@ def test_m2_matrix_pins_the_k3_kernel_per_arm_rep_major(n_dev):
     assert len(final) == len(MOONSHOT_REGIMES) * n_dev
     assert all(c["rep"] == 0 and "ET_MINER_K3_KERNEL" not in c["env"] for c in final)
     assert build_matrix("moonshots-m2", n_dev, []) == m and build_matrix("moonshots-m2-final", n_dev, []) == final
+
+
+def test_x0_matrix_differs_only_in_inference():
+    m = build_moonshots_x0(2)
+    assert len(m) == 8 * 2 * 2 * 3
+    assert [c["rep"] for c in m] == sorted(c["rep"] for c in m)
+    for c in m:
+        arm = c["base_id"].rsplit("-", 1)[1]
+        assert c["use_generator_pruning"] == (arm == "infer") and not c.get("prune_equal_support")
+        assert not {k for k in c["env"] if k.startswith("ET_MINER_")} - {"ET_MINER_DISABLE_NCCL"}
+    assert build_matrix("moonshots-x0", 2, []) == m
 
 
 def _row(id_, wall, sig=("n", 1, "h"), fallbacks=(), status="ok", free=False):

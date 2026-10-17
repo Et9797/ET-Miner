@@ -593,3 +593,20 @@ def build_moonshots_m2(n_dev: int) -> list[dict]:
 def build_moonshots_m2_final(n_dev: int) -> list[dict]:
     """M2's final check (`--mode moonshots-m2-final`): one rep of every regime with the K=3 kernel unset."""
     return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in _moonshot_arms({"final": {}}, n_dev)]
+
+
+#: X0's regimes: the moonshot regimes that mine the complete lattice (inference does not apply to free sets).
+X0_REGIMES = tuple((w, "", {}) for w in ("smoke", "deepk", "skew", "or003", "or002", "dsl", "oom2ml3", "sk2ml3"))
+
+
+def build_moonshots_x0(n_dev: int) -> list[dict]:
+    """X0's table (`--mode moonshots-x0`, bench/moonshots/PROTOCOL-X0.md): count inference off and on, 3 reps."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1"}, use_generator_pruning=arm == "infer", **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, _, kw in X0_REGIMES
+        for arm in ("plain", "infer")
+    ]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]

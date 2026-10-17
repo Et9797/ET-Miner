@@ -203,6 +203,23 @@ All notable changes to ET-Miner are recorded here. Versions follow
   `bench/runner.py --mode moonshots-m1|moonshots-m1-final`. The level split
   times the device phases.
 
+### GPU route: row-wise K=3
+
+- **K=3 can be counted from each shard's rows** (`gpu/kernels/k3_rows.py`):
+  - every row adds 1 to each candidate it holds whose three pairs are
+    frequent, into one slot per pair and partner;
+  - the slot is found through a frequent-pair bitmap built on the device;
+  - the dispatch picks it when r3 = Σ_rows C(len, 2) / (generated candidates
+    × words) is below 2.5e-4 (measured by `bench/moonshots/k3_crossover.py`)
+    and its slots fit one chunk;
+  - `ET_MINER_K3_KERNEL=dense|rows` pins it.
+- Rows of more than 64 active items, `prune_apriori=False`, `bitvecs=` and
+  ESCO levels count from the bitvectors. No mined output changes.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M2.md`):
+  - sk2ml3: 22.7 → 1.8 s on one GPU (K=3 21.6 → 0.6 s), 15.4 → 1.9 s on two;
+  - oom2ml3: 1.62 → 0.38 s, with its peak VRAM 7.9 → 2.0 GB;
+  - the dispatch leaves every other regime on the dense kernels.
+
 ### Polars 2.0
 
 - **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0

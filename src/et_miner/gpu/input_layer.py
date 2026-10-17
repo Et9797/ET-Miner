@@ -21,7 +21,8 @@ Steps:
 4. A lookup table maps ids to columns and ``ids_to_bitvec`` sets the bits.
 
 With ``keep_rows`` each shard's entries stay on its device (``DeviceRows``)
-when they fit, and the row-wise K=2 kernel's rows are cut from them there.
+when they fit, and the row-wise K=2 and K=3 kernels' rows are cut from them
+there.
 
 Usage:
     from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
@@ -33,9 +34,10 @@ Usage:
 Options:
     ET_MINER_INPUT_LAYER  "host" | "device" pins the input layer (``_env``)
     CHUNK_ENTRIES         entries per pinned buffer
-    KEEP_ROWS_BYTES       device bytes per entry that cutting K=2's rows may
-                          take; the entries are kept only when that fits the
-                          available VRAM once the bitvectors are built
+    KEEP_ROWS_BYTES       device bytes per entry that cutting the row-wise
+                          kernels' rows may take; the entries are kept only
+                          when that fits the available VRAM once the
+                          bitvectors are built
 """
 
 from __future__ import annotations
@@ -54,7 +56,7 @@ from .csr_bitvec import _row_split_cuts
 from .row_split_chunks import _device_available_bytes
 
 CHUNK_ENTRIES = 1 << 24
-KEEP_ROWS_BYTES = 24
+KEEP_ROWS_BYTES = 28
 
 #: ``build_device_input``'s answer for a column it does not serve.
 NOT_SERVED = object()
@@ -79,57 +81,72 @@ class _Shard:
 
 
 class DeviceRows:
-    """The shards' entries kept on their devices for the row-wise K=2 kernel.
+    """The shards' entries kept on their devices for the row-wise K=2 and K=3 kernels.
 
-    ``pairs`` gives the dispatch's row pairs, ``upload`` each shard's rows as
-    positions (``K2Rows``); both read the same positions, computed once.
+    ``pairs`` gives the K=2 dispatch's row pairs and ``upload`` each shard's
+    rows as positions among a column set (``K2Rows``); both read the same
+    positions, computed once per column set. With ``keep`` the entries stay
+    for another column set (K=3's active columns); otherwise they are
+    released once the positions exist.
     """
 
     def __init__(self, shards: list[_Shard], n_cols: int):
         self._shards = shards
         self._n_cols = n_cols
-        self._positions: list[tuple[Any, Any]] | None = None
+        self._cols: np.ndarray | None = None
+        self._positions: list[tuple[Any, Any]] = []
 
-    def pairs(self, freq_cols) -> int:
-        """Σ C(len, 2) over the rows, ``len`` being a row's distinct columns among ``freq_cols``."""
+    def _position(self, cols: np.ndarray, keep: bool) -> None:
         import cupy as cp
 
+        if self._cols is not None and np.array_equal(self._cols, cols):
+            return
         pos_of_col = np.full(self._n_cols + 1, -1, dtype=np.int32)
-        pos_of_col[np.asarray(freq_cols, dtype=np.int64) + 1] = np.arange(len(freq_cols), dtype=np.int32)
-        self._positions, total = [], 0
+        pos_of_col[cols + 1] = np.arange(len(cols), dtype=np.int32)
+        self._cols, self._positions = cols, []
         for sh in self._shards:
             with cp.cuda.Device(sh.device):
                 if not sh.canonical:
                     _canonicalize(sh, self._n_cols)
                 pos = cp.asarray(pos_of_col)[sh.key_to_col + 1][sh.keys]
-                sh.keys = sh.key_to_col = None
+                if not keep:
+                    sh.keys = sh.key_to_col = None
                 kept = cp.zeros(len(pos) + 1, dtype=cp.int64)
                 cp.cumsum(pos >= 0, dtype=cp.int64, out=kept[1:])
-                row_ptr = kept[sh.row_ptr]
+                self._positions.append((kept[sh.row_ptr], pos))
                 del kept
+
+    def pairs(self, freq_cols, keep: bool = False) -> int:
+        """Σ C(len, 2) over the rows, ``len`` being a row's distinct columns among ``freq_cols``."""
+        import cupy as cp
+
+        self._position(np.asarray(freq_cols, dtype=np.int64), keep)
+        total = 0
+        for sh, (row_ptr, _) in zip(self._shards, self._positions):
+            with cp.cuda.Device(sh.device):
                 lens = cp.diff(row_ptr)
                 total += int((lens * (lens - 1) // 2).sum())
-                self._positions.append((row_ptr, pos))
         return total
 
-    def upload(self, freq_cols) -> dict:
-        """Each shard's rows as positions in ``freq_cols``, keyed by device; the entries are released."""
+    def upload(self, cols, keep: bool = False) -> dict:
+        """Each shard's rows as positions in ``cols``, keyed by device; without ``keep`` the entries are released."""
         import cupy as cp
 
         from .kernels import K2Rows
 
-        if self._positions is None:
-            self.pairs(freq_cols)
+        self._position(np.asarray(cols, dtype=np.int64), keep)
         out = {}
-        for sh, (row_ptr, pos) in zip(self._shards, self._positions or []):
+        for sh, (row_ptr, pos) in zip(self._shards, self._positions):
             with cp.cuda.Device(sh.device):
                 out[sh.device] = K2Rows(row_ptr, pos[pos >= 0], sh.n_rows)
-        self.release()
+        self._cols, self._positions = None, []
+        if not keep:
+            self.release()
         return out
 
     def release(self) -> None:
         """Drop every shard's entries."""
-        self._shards, self._positions = [], None
+        self._shards, self._cols, self._positions = [], None, []
 
 
 @dataclass
@@ -304,7 +321,7 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
     None when no item reaches min_count. ``NOT_SERVED`` for a column the
     layer does not serve (see the module docstring) and for more than 2³¹ - 1
     rows, which the row-split miner rejects. ``keep_rows`` keeps the entries
-    for the row-wise K=2 kernel when they fit (``KEEP_ROWS_BYTES``).
+    for the row-wise kernels when they fit (``KEEP_ROWS_BYTES``).
     """
     import cupy as cp
 

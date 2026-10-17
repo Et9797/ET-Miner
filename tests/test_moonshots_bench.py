@@ -61,8 +61,13 @@ def _row(id_, wall, sig=("n", 1, "h"), fallbacks=(), status="ok", free=False):
         "itemset_hash": sig[2],
         "fallbacks": list(fallbacks),
         "timings": {"span": {"input": wall / 2}},
-        "config": {"dataset": id_.split("-")[0], "min_support": 0.01, "max_length": None,
-                   "prune_equal_support": free, "allow_fallback": ["NCCL unavailable"]},
+        "config": {
+            "dataset": id_.split("-")[0],
+            "min_support": 0.01,
+            "max_length": None,
+            "prune_equal_support": free,
+            "allow_fallback": ["NCCL unavailable"],
+        },
     }
 
 
@@ -127,3 +132,25 @@ def test_level_split_times_the_device_input_layer(monkeypatch):
         assert split.span[phase] > 0, phase
     assert split.span["input_explode"] == 0 and split.span["input_csr"] == 0
     assert split.levels[2]["k2_dispatch"] > 0 and split.levels[2]["k2_input"] > 0
+
+
+@pytest.mark.gpu
+def test_level_split_times_the_row_wise_k3(monkeypatch):
+    from et_miner import apriori
+
+    monkeypatch.setenv("ET_MINER_K3_KERNEL", "rows")
+    rng = np.random.default_rng(5)
+    rows = [sorted(set(rng.integers(0, 25, size=int(rng.integers(2, 9))).tolist())) for _ in range(6_000)]
+    split = LevelSplit()
+    split.install()
+    try:
+        split.start()
+        apriori(
+            pl.DataFrame({"items": rows}), min_support=0.01, max_length=3, use_gpu=True, level_callback=split.callback()
+        )
+        split.finish()
+    finally:
+        split.uninstall()
+    for phase in ("k2_dispatch", "k2_input", "k3_graph", "count_rows", "decode"):
+        assert split.levels[3][phase] > 0, phase
+    assert split.levels[3]["count_tiled"] == split.levels[3]["count_group"] == 0

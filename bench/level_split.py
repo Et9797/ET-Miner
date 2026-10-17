@@ -25,7 +25,9 @@ Phases:
                    or DeviceRows.pairs (from the device entries)
     k2_input       the row-wise K=2 kernel's input: host CSR of frequent
                    positions per shard, and its upload; or DeviceRows.upload
-    count_rows     row-wise K=2 kernel launches (dense chunks)
+    k3_graph       build_k3_graph (row-wise K=3's pair graph and bitmap on
+                   each device)
+    count_rows     row-wise K=2 and K=3 kernel launches (dense chunks)
     count_percand  per-candidate kernel launches (dense chunks)
     count_group    group kernel launches (dense chunks)
     count_tiled    tiled kernel launches (dense chunks)
@@ -38,7 +40,7 @@ Phases:
     reduce         reduce_sum_to_gpu0 (no-op on one GPU)
     filter         threshold_filter, threshold_filter_compacted (survivors
                    to the host)
-    decode         decode_k2_pairs_flat, decode_k3plus_flat
+    decode         decode_k2_pairs_flat, decode_k3plus_flat, decode_k3_slots
     sort           _rows_sorted and the level-end lexsort
     free_prune     _prune_non_free_mask
     other          the level's time minus every phase above
@@ -81,7 +83,7 @@ import time
 from collections import defaultdict
 
 PHASES = (
-    "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "count_rows", "count_percand", "count_group", "count_tiled",
+    "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "k3_graph", "count_rows", "count_percand", "count_group", "count_tiled",
     "count_fused",
     "transition", "count_csr", "compact", "reduce", "filter", "decode", "sort", "free_prune",
 )
@@ -97,7 +99,7 @@ _DEVICE_SPANS = ("input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_de
 _COLLECTS = ("input_count", "input_k1", "input_explode")
 
 _MINER = "_apriori_row_split_multi_gpu"
-_ROWS_LAUNCH = "_k2_rows_on_gpu"
+_ROWS_LAUNCHES = ("_k2_rows_on_gpu", "_k3_rows_on_gpu")
 
 
 def _union_length(intervals: list[tuple[float, float]]) -> float:
@@ -163,7 +165,7 @@ class LevelSplit:
         """Times each chunk launch inside run_chunked_dense_level, by kernel (or all as ``phase``)."""
 
         def wrapper(bitvecs_list, chunks, launch_chunk, *args, **kwargs):
-            rows = launch_chunk.__name__ == _ROWS_LAUNCH
+            rows = launch_chunk.__name__ in _ROWS_LAUNCHES
 
             def timed_launch(bitvec_gpu, device_id, chunk):
                 t0 = time.perf_counter()
@@ -283,7 +285,8 @@ class LevelSplit:
             self._patch(kernels, name, self._timed("group_build", getattr(kernels, name)))
         self._patch(kernels, "upload_k3plus_groups", self._timed("group_upload", kernels.upload_k3plus_groups))
         self._patch(kernels, "count_tiled_fused", self._timed("count_fused", kernels.count_tiled_fused))
-        for name in ("decode_k2_pairs_flat", "decode_k3plus_flat"):
+        self._patch(kernels, "build_k3_graph", self._timed("k3_graph", kernels.build_k3_graph))
+        for name in ("decode_k2_pairs_flat", "decode_k3plus_flat", "decode_k3_slots"):
             self._patch(kernels, name, self._timed("decode", getattr(kernels, name)))
         self._patch(filter_mod, "threshold_filter", self._timed("filter", filter_mod.threshold_filter))
         self._patch(

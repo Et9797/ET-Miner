@@ -47,6 +47,7 @@ from et_miner.gpu.row_split_chunks import (
     compute_chunk_budget,
     group_kernels,
     k2_counts_rows,
+    k3_counts_rows,
     plan_candidate_chunks,
     plan_group_chunks,
     run_chunked_dense_level,
@@ -142,22 +143,22 @@ def _upload_k2_rows(shards, bitvecs_list) -> dict:
 
 
 class _HostRows:
-    """The host CSR's rows for the row-wise K=2 kernel; ``input_layer.DeviceRows`` keeps them on the devices."""
+    """The host CSR's rows for the row-wise kernels; ``input_layer.DeviceRows`` keeps them on the devices."""
 
     def __init__(self, csr, bitvecs_list):
         self._csr = csr
         self._bitvecs_list = bitvecs_list
 
-    def pairs(self, freq_cols) -> int:
+    def pairs(self, freq_cols, keep: bool = False) -> int:
         import numpy as np
 
         return _k2_row_pairs(self._csr, np.asarray(freq_cols, dtype=np.int64))
 
-    def upload(self, freq_cols) -> dict:
+    def upload(self, cols, keep: bool = False) -> dict:
         import numpy as np
 
         shard_rows = [n for _, _, n in self._bitvecs_list]
-        shards = _k2_row_shards(self._csr, np.asarray(freq_cols, dtype=np.int64), shard_rows)
+        shards = _k2_row_shards(self._csr, np.asarray(cols, dtype=np.int64), shard_rows)
         return _upload_k2_rows(shards, self._bitvecs_list)
 
     def release(self) -> None:
@@ -320,6 +321,11 @@ def _apriori_row_split_multi_gpu(
         count_pairs_k2_per_candidate,
         count_pairs_k2_rows,
         count_pairs_k2_shared,
+        K3_ROWS_MAX_LEN,
+        build_k3_graph,
+        count_k3_rows,
+        decode_k3_slots,
+        k3_layout,
         count_shared_tiled_allcounts,
         count_tiled_fused,
         k2_groups,
@@ -373,6 +379,9 @@ def _apriori_row_split_multi_gpu(
         max_length if max_length else float("inf"),
         n_cols,
     )
+    # Row-wise K=3 counts the candidates the subset test admits, from the rows
+    # row-wise K=2 reads, so they are kept past K=2 when it may run.
+    _k3_rows = _env.k3_kernel() != "dense" and prune_apriori and effective_max_length >= 3
 
     # int32 vocab IDs (V5=149, AlphaFold=35K) halve items_flat in the parquet
     # flush; ids beyond int32 keep int64.
@@ -630,7 +639,7 @@ def _apriori_row_split_multi_gpu(
 
     def _count_k2_rows(freq_cols, row_pairs, n_pairs):
         """K=2 counted from each shard's rows: (pair indices, counts) of the frequent pairs."""
-        rows_gpu = _k2_src.upload(freq_cols)
+        rows_gpu = _k2_src.upload(freq_cols, keep=_k3_rows)
         try:
             budget = compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
             chunks = plan_candidate_chunks(n_pairs, budget)
@@ -650,6 +659,59 @@ def _apriori_row_split_multi_gpu(
             for did in list(rows_gpu):
                 with cp.cuda.Device(did):
                     del rows_gpu[did]
+                    cp.get_default_memory_pool().free_all_blocks()
+
+    def _count_k3_rows():
+        """K=3 counted from each shard's rows into the slot layout of the K=2 level.
+
+        Returns (itemsets, counts, generated candidates), or None when the
+        dispatch (``k3_counts_rows``) or a row of more than ``K3_ROWS_MAX_LEN``
+        active items leaves the level to the bitvecs.
+        """
+        layout = k3_layout(prev_frequent_flat)
+        generated = layout.n_generated
+        row_pairs = _k2_src.pairs(layout.active_cols, keep=True)
+        budget = compute_chunk_budget(device_ids, group_data_bytes=layout.device_bytes, use_nccl=_use_nccl)
+        r3 = row_pairs / (generated * -(-n_transactions // 64)) if generated else float("inf")
+        if not k3_counts_rows(row_pairs, generated, layout.n_slots, budget, n_transactions):
+            logger.info(
+                f"  K=3: r3 = {r3:.3g} over {layout.n_slots:,} slots (one chunk: {budget:,}); "
+                "counted from the bitvecs"
+            )
+            return None
+        rows_gpu = _k2_src.upload(layout.active_cols, keep=False)
+        graphs = {}
+        try:
+            longest = 0
+            for did, rows in rows_gpu.items():
+                with cp.cuda.Device(did):
+                    if rows.n_rows:
+                        longest = max(longest, int(cp.diff(rows.row_ptr).max()))
+            if longest > K3_ROWS_MAX_LEN:
+                logger.info(f"  K=3: a row holds {longest} active items (> {K3_ROWS_MAX_LEN}); counted from the bitvecs")
+                return None
+            for did in device_ids:
+                graphs[did] = build_k3_graph(layout, did)
+            chunks = plan_group_chunks(
+                layout.slot_off, compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
+            )
+            logger.info(
+                f"  K=3: {generated:,} total candidates, row-wise over {row_pairs:,} row pairs (r3 = {r3:.3g}) "
+                f"into {layout.n_slots:,} slots, {len(chunks)} chunk(s)"
+            )
+
+            def _k3_rows_on_gpu(bitvec_gpu, device_id, chunk):
+                return count_k3_rows(rows_gpu[device_id], graphs[device_id], chunk.start, chunk.size)
+
+            slots, counts = run_chunked_dense_level(
+                bitvecs_list, chunks, _k3_rows_on_gpu, min_count_threshold, nccl_comms, _use_nccl, level_label="K=3"
+            )
+            return decode_k3_slots(slots, layout), counts, generated
+        finally:
+            for did in set(rows_gpu) | set(graphs):
+                with cp.cuda.Device(did):
+                    rows_gpu.pop(did, None)
+                    graphs.pop(did, None)
                     cp.get_default_memory_pool().free_all_blocks()
 
     # ── K=1: parallel popcount across GPUs, sum ────────────────────────
@@ -807,7 +869,7 @@ def _apriori_row_split_multi_gpu(
                 # one chunk is counted fused (survivors only).
                 _k2_rows = False
                 if _k2_src is not None and len(set(device_ids)) == len(device_ids) and _env.k2_kernel() != "dense":
-                    _k2_pairs = _k2_src.pairs(freq_cols)
+                    _k2_pairs = _k2_src.pairs(freq_cols, keep=_k3_rows)
                     _k2_rows = k2_counts_rows(_k2_pairs, n_pairs, n_transactions)
                     if not _k2_rows and n_pairs:
                         logger.info(
@@ -859,9 +921,6 @@ def _apriori_row_split_multi_gpu(
                         level_label="K=2",
                     )
 
-                if _k2_src is not None:
-                    _k2_src.release()
-                    _k2_src = None
                 n_freq = len(freq_pair_indices)
                 if n_freq > 0:
                     current_flat = decode_k2_pairs_flat(freq_pair_indices, freq_cols)
@@ -872,6 +931,11 @@ def _apriori_row_split_multi_gpu(
                 else:
                     current_flat = np.empty((0, 2), dtype=np.int32)
                     current_counts_raw = np.empty(0, dtype=np.int64)
+
+            # Row-wise K=3 when its rows are kept (``_k3_rows``); None falls through to the bitvecs.
+            elif k == 3 and _k2_src is not None and (_k3 := _count_k3_rows()) is not None:
+                current_flat, current_counts_raw, _n_cands_cb = _k3
+                n_freq = len(current_flat)
 
             else:
                 # K>=3: build groups from flat array — no Python tuple grouping
@@ -960,6 +1024,10 @@ def _apriori_row_split_multi_gpu(
                         current_counts_raw = np.concatenate([cnt for _, _, cnt in parts])
                         n_freq = len(current_flat)
 
+
+            if _k2_src is not None and (k >= 3 or not _k3_rows):
+                _k2_src.release()
+                _k2_src = None
 
             # ── Level end: sort, split the two populations, emit ─────────
             # The lexsort runs BEFORE the free-set prune so that the COMPLETE

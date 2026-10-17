@@ -19,7 +19,8 @@ from collections import defaultdict
 INPUT = ("input_count", "input_k1", "input_explode", "input_csr", "input_widen", "input_h2d", "input_bitvec",
          "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_other")
 LEVEL = ("count_rows", "count_percand", "count_group", "count_tiled", "count_fused", "count_csr", "reduce",
-         "compact", "filter", "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "decode", "sort",
+         "compact", "filter", "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "k3_graph", "decode",
+         "sort",
          "free_prune", "transition", "materialize", "other")
 
 

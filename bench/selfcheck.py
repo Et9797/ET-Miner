@@ -224,6 +224,21 @@ def _smoke_launch(cp) -> None:
     )
     assert id_bv[:, 0].get().tolist() == [0b0101, 0b0110, 0b0101] and noncanonical.get().tolist() == [1]
     launched.add("ids_to_bitvec")
+    # count_k3_rows: pairs (0,1), (0,2), (1,2), (1,3) are frequent; rows {0,1,2}, {0,1,2,3}, {1,2,3} hold the
+    # triangle (0,1,2) twice; slot (0,1,3) has (0,3) infrequent and stays 0. Bitmap and search paths alike.
+    from et_miner.gpu.kernels import build_k3_graph, count_k3_rows, k3_layout
+    from et_miner.gpu.kernels import k3_rows as k3_mod
+
+    layout = k3_layout(np.array([[0, 1], [0, 2], [1, 2], [1, 3]], np.int32))
+    k3_rows = upload_k2_rows(np.array([0, 3, 7, 10]), np.array([0, 1, 2, 0, 1, 2, 3, 1, 2, 3]), cp.cuda.Device().id)
+    assert count_k3_rows(k3_rows, build_k3_graph(layout, cp.cuda.Device().id), 0, layout.n_slots).tolist() == [2, 0]
+    bits_max, k3_mod.PAIR_BITS_MAX_BYTES = k3_mod.PAIR_BITS_MAX_BYTES, 0
+    try:
+        searched = build_k3_graph(layout, cp.cuda.Device().id)
+        assert count_k3_rows(k3_rows, searched, 0, layout.n_slots).tolist() == [2, 0]
+    finally:
+        k3_mod.PAIR_BITS_MAX_BYTES = bits_max
+    launched.add("count_k3_rows")
     missing = set(_KERNEL_FILES) - launched
     assert not missing, f"registered kernels this selfcheck never launches: {sorted(missing)}"
 

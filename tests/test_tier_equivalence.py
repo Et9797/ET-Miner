@@ -16,6 +16,8 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
            and selected by the r dispatch)
         == row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
            forced chunks)
+        == row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; and selected by
+           the r3 dispatch)
         == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
@@ -24,6 +26,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 2 GPUs, row-wise K=2 (plain and forced chunks)
         == row-split 2 GPUs, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
            forced chunks)
+        == row-split 2 GPUs, row-wise K=3 (plain / forced chunks / count inference)
         == row-split 2 GPUs, compacted reduce (the default) and dense reduce pinned (plain
            and forced chunks, with and without count inference)
         == ESCO 2 GPUs, including count inference
@@ -40,7 +43,8 @@ larger group then go to the fused tiled kernel; on two, to per-candidate
 sub-chunks; a row-wise K=2 counts every chunk from the rows),
 ET_MINER_K2_KERNEL=rows pins the row-wise K=2 kernel (the r dispatch picks it on smoke only
 with its crossover raised), ET_MINER_REDUCE=dense pins the whole-array multi-GPU reduce,
-ET_MINER_INPUT_LAYER pins the host CSR or the device input layer (unset, smoke's integer ids take
+ET_MINER_K3_KERNEL=rows pins the row-wise K=3 kernel (the r3 dispatch picks it on smoke only with
+its crossover raised), ET_MINER_INPUT_LAYER pins the host CSR or the device input layer (unset, smoke's integer ids take
 the device layer, so every unpinned leg runs on it), and a chunk_size below the row count forces
 SON to four chunks.
 Every row-split leg also asserts which previous-level index its K>=3 levels
@@ -289,6 +293,7 @@ _WRAPPERS = (
     "count_pairs_k2_shared",
     "count_pairs_k2_per_candidate",
     "count_pairs_k2_rows",
+    "count_k3_rows",
     "count_shared_tiled_allcounts",
     "count_k3plus_per_candidate",
     "count_group_pairs",
@@ -497,6 +502,39 @@ def _input_layer_leg(smoke_dataset, oracle_set, monkeypatch, layer, k2, n_gpus):
 
 
 _INPUT_K2 = ["dispatch", "rows", "rows, forced chunks"]
+
+
+def _row_wise_k3_leg(smoke_dataset, oracle_set, monkeypatch, variant, n_gpus):
+    """A leg with K=3 on the row-wise kernel, pinned by ET_MINER_K3_KERNEL, or with "dispatch" picked by the
+    r3 dispatch with its crossover raised above smoke's r3 (0.81)."""
+    from et_miner.gpu import row_split_chunks
+
+    env, kwargs = {"ET_MINER_K3_KERNEL": "rows"}, {}
+    if variant == "dispatch":
+        monkeypatch.delenv("ET_MINER_K3_KERNEL", raising=False)
+        monkeypatch.setattr(row_split_chunks, "K3_ROWS_MAX_R", 10.0)
+        env = {}
+    elif variant == "forced chunks":
+        env["ET_MINER_MAX_CHUNK_CANDS"] = _TINY_CHUNK
+    elif variant == "count inference":
+        kwargs = {"index_mode": "infer", "use_generator_pruning": True}
+    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split {n_gpus} GPU(s), row-wise K=3 ({variant})", env,
+             runs=("count_k3_rows",), n_gpus=n_gpus, **kwargs)
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference", "dispatch"])
+def test_row_split_one_gpu_row_wise_k3_matches_oracle(smoke_dataset, oracle_set, monkeypatch, variant):
+    _row_wise_k3_leg(smoke_dataset, oracle_set, monkeypatch, variant, 1)
+
+
+@pytest.mark.gpu
+@pytest.mark.multigpu
+@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference"])
+def test_row_split_two_gpus_row_wise_k3_matches_oracle(smoke_dataset, oracle_set, monkeypatch, variant):
+    """Each GPU counts its own rows into the same slots; the per-chunk reduce sums them."""
+    _needs_two_gpus()
+    _row_wise_k3_leg(smoke_dataset, oracle_set, monkeypatch, variant, 2)
 
 
 @pytest.mark.gpu

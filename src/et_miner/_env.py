@@ -81,6 +81,17 @@ Variables:
                                        (pairs × words), dense at and above
                                        it (et_miner.gpu.row_split_chunks.
                                        K2_ROWS_MAX_R)
+    ET_MINER_K3_KERNEL                 "dense" or "rows": the row-split
+                                       miner's K=3 counting. "rows" counts
+                                       each shard's rows into one slot per
+                                       candidate the subset test admits
+                                       (the triangles of the frequent-pair
+                                       graph; et_miner.gpu.kernels.k3_rows);
+                                       it needs the transactions input,
+                                       prune_apriori, a dense level and
+                                       rows of at most 64 active items, and
+                                       counts from the bitvectors otherwise.
+                                       Unset: dense
     ET_MINER_REDUCE                    "dense" or "compact": the row-split
                                        miner's multi-GPU reduce of a K>=3
                                        level with a subset index. "compact"
@@ -238,6 +249,18 @@ def k2_kernel() -> str | None:
         return None
     if v not in K2_KERNELS:
         raise ValueError(f"ET_MINER_K2_KERNEL must be one of {K2_KERNELS}, got {v!r}")
+    return v
+
+
+K3_KERNELS = ("dense", "rows")
+
+
+def k3_kernel() -> str | None:
+    v = os.environ.get("ET_MINER_K3_KERNEL", "").strip().lower()
+    if not v:
+        return None
+    if v not in K3_KERNELS:
+        raise ValueError(f"ET_MINER_K3_KERNEL must be one of {K3_KERNELS}, got {v!r}")
     return v
 
 

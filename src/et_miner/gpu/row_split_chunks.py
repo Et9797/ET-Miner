@@ -141,6 +141,21 @@ def k2_counts_rows(row_pairs: int, n_pairs: int, n_transactions: int) -> bool:
     return n_pairs > 0 and row_pairs < K2_ROWS_MAX_R * n_pairs * words
 
 
+#: Row-wise K=3 runs below this r3 = Σ_rows C(len, 2) / (generated K=3 candidates × words), when its slots fit
+#: one chunk; measured by bench/moonshots/k3_crossover.py (bench/moonshots/REPORT-M2.md).
+K3_ROWS_MAX_R = 1e-3
+
+
+def k3_counts_rows(row_pairs: int, n_generated: int, n_slots: int, budget: int, n_transactions: int) -> bool:
+    """Whether K=3 is counted row-wise: ``ET_MINER_K3_KERNEL`` pins it; unset, r3 below ``K3_ROWS_MAX_R``
+    with every slot in one chunk of ``budget``."""
+    pinned = _env.k3_kernel()
+    if pinned is not None:
+        return pinned == "rows"
+    words = -(-n_transactions // 64)
+    return n_generated > 0 and n_slots <= budget and row_pairs < K3_ROWS_MAX_R * n_generated * words
+
+
 #: Floor/fraction for the safety margin: max(1 GiB, 4% of device VRAM).
 #: Replaces the old hardcoded 6 GiB, which was 25% of an RTX 3090.
 MARGIN_FLOOR_BYTES = 1 << 30

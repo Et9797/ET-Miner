@@ -214,7 +214,29 @@ counts every generated candidate and keeps the dense kernels; so does
 
 **Acceptance.** Identical signatures. Tier legs with row-wise K=3 pinned
 (`ET_MINER_K3_KERNEL=rows`), on 1 and 2 GPUs (plain, forced chunks, count
-inference, free sets). A property test against brute force: duplicate items,
+inference, free sets).
+
+**Amendment (as built, `gpu/kernels/k3_rows.py`).**
+- *Slots by pair, not by triangle.* Pair p = (u, v) owns one slot per frequent
+  partner w > v of v, at `slot_off[p]` + the rank of w among v's partners. That
+  rank, like the pair's own index, is one word of a frequent-pair bitmap plus
+  a per-word rank table, so no lookup searches a triangle list. On sk2ml3 the
+  layout holds 151.1 M slots against 145.0 M counted candidates; slots whose
+  (u, w) is not frequent stay 0. The triangle list measured 1.1 s of binary
+  searches on sk2ml3; the slot rank removes them (kernel 1.56 → 0.39 s).
+- *Work split.* The row's frequent pairs (i, j), not its positions, are
+  spread over the warp's lanes.
+- *Bitmap.* Built on the device, m × ⌈m/64⌉ words and an int32 rank per word
+  (12 B per 64 pairs of active items), up to 512 MB; above that the kernel
+  searches the neighbour lists.
+- *Dispatch.* Rows when `r3 = Σ_rows C(L, 2) / (generated × words)` is below
+  `K3_ROWS_MAX_R` and the slots fit one chunk. The active rows' pairs come from
+  the row source (`DeviceRows.pairs` or `_HostRows.pairs`) before the level
+  runs, and the crossover is swept by `k3_crossover.py`. In a dense
+  frequent-pair graph the slot count approaches the generated candidates, so
+  a chunked slot space would re-read every row per chunk.
+- Rows of more than 64 active items, `prune_apriori=False`, `bitvecs=` input,
+  an ESCO level and `resume_from_k` at K=3 count from the bitvecs. A property test against brute force: duplicate items,
 empty rows, ties at min_count, rows of 64 frequent items, one GPU and two.
 
 ## M3 — Binary tensor cores for the tiled family

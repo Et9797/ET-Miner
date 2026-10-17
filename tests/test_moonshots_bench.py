@@ -11,7 +11,13 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bench"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bench" / "moonshots"))
 
-from consolidation_matrix import MOONSHOT_REGIMES, build_moonshots_m1, build_moonshots_m1_final
+from consolidation_matrix import (
+    MOONSHOT_REGIMES,
+    build_moonshots_m1,
+    build_moonshots_m1_final,
+    build_moonshots_m2,
+    build_moonshots_m2_final,
+)
 from decide import decide
 from level_split import LevelSplit
 from runner import build_matrix
@@ -49,6 +55,22 @@ def test_m1_final_runs_every_regime_once_with_the_layer_unset():
     assert len(m) == len(MOONSHOT_REGIMES) * 2
     assert all(c["rep"] == 0 and "ET_MINER_INPUT_LAYER" not in c["env"] for c in m)
     assert build_matrix("moonshots-m1-final", 2, []) == m
+
+
+@pytest.mark.parametrize("n_dev", [1, 2])
+def test_m2_matrix_pins_the_k3_kernel_per_arm_rep_major(n_dev):
+    m = build_moonshots_m2(n_dev)
+    assert len(m) == len(MOONSHOT_REGIMES) * 2 * n_dev * 3
+    assert [c["rep"] for c in m] == sorted(c["rep"] for c in m)
+    for c in m:
+        arm = c["base_id"].rsplit("-", 1)[1]
+        assert c["env"]["ET_MINER_K3_KERNEL"] == arm and arm in ("dense", "rows")
+        assert all(c["env"][t] == "16" for t in THREADS) and c["level_split"]
+        assert "ET_MINER_INPUT_LAYER" not in c["env"]
+    final = build_moonshots_m2_final(n_dev)
+    assert len(final) == len(MOONSHOT_REGIMES) * n_dev
+    assert all(c["rep"] == 0 and "ET_MINER_K3_KERNEL" not in c["env"] for c in final)
+    assert build_matrix("moonshots-m2", n_dev, []) == m and build_matrix("moonshots-m2-final", n_dev, []) == final
 
 
 def _row(id_, wall, sig=("n", 1, "h"), fallbacks=(), status="ok", free=False):

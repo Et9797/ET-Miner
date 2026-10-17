@@ -142,8 +142,10 @@ def k2_counts_rows(row_pairs: int, n_pairs: int, n_transactions: int) -> bool:
 
 
 #: Row-wise K=3 runs below this r3 = Σ_rows C(len, 2) / (generated K=3 candidates × words), when its slots fit
-#: one chunk; measured by bench/moonshots/k3_crossover.py (bench/moonshots/REPORT-M2.md).
-K3_ROWS_MAX_R = 1e-3
+#: one chunk. Measured by bench/moonshots/k3_crossover.py (bench/results/2026-10-17-moonshots-m2/): the lowest
+#: crossing, between r3 = 1.69e-4 (rows 0.11x dense) and 3.73e-4 (1.05x). r3 alone does not order the kernels
+#: above it (long dense rows cost their row triples), so the rule keeps every row-wise level it admits a win.
+K3_ROWS_MAX_R = 2.5e-4
 
 
 def k3_counts_rows(row_pairs: int, n_generated: int, n_slots: int, budget: int, n_transactions: int) -> bool:

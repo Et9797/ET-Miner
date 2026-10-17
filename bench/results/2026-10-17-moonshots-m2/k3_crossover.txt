@@ -1,0 +1,84 @@
+→ uniform-N1M-F50-L8
+   ok ratio=1.8780188293082276
+→ uniform-N1M-F100-L8
+   ok ratio=0.9362845561779842
+→ uniform-N1M-F200-L8
+   ok ratio=0.27436732961284443
+→ uniform-N1M-F400-L8
+   ok ratio=0.11170105242687643
+→ uniform-N1M-F800-L8
+   ok ratio=0.025696033842043067
+→ uniform-N1M-F1600-L8
+   ok ratio=0.0066707247744514095
+→ uniform-N1M-F50-L16
+   ok ratio=7.167311411992263
+→ uniform-N1M-F100-L16
+   ok ratio=2.9730602454100934
+→ uniform-N1M-F200-L16
+   ok ratio=1.9796813186813187
+→ uniform-N1M-F400-L16
+   ok ratio=0.7935181741201794
+→ uniform-N1M-F800-L16
+   ok ratio=0.1618219523492418
+→ uniform-N1M-F1600-L16
+   ok ratio=0.029381106338923175
+→ uniform-N1M-F50-L32
+   ok ratio=42.34878122178755
+→ uniform-N1M-F100-L32
+   ok ratio=19.920514761544286
+→ uniform-N1M-F200-L32
+   ok ratio=16.094747166753734
+→ uniform-N1M-F400-L32
+   ok ratio=6.034686208324269
+→ uniform-N1M-F800-L32
+   ok ratio=1.0531006100030023
+→ uniform-N1M-F1600-L32
+   ok ratio=0.18667618032898503
+GPU-hours this invocation: 0.141
+  uniform-N1M-F1600-L8   r3=2.63e-06   dense=   16856.8 ms rows=     112.4 ms  ratio=0.007
+  uniform-N1M-F1600-L16  r3=1.13e-05   dense=   18081.6 ms rows=     531.3 ms  ratio=0.029
+  uniform-N1M-F800-L8    r3=2.11e-05   dense=    2384.7 ms rows=      61.3 ms  ratio=0.026
+  uniform-N1M-F1600-L32  r3=4.66e-05   dense=   21737.2 ms rows=    4057.8 ms  ratio=0.187
+  uniform-N1M-F800-L16   r3=9.03e-05   dense=    2841.2 ms rows=     459.8 ms  ratio=0.162
+  uniform-N1M-F400-L8    r3=0.000169   dense=     390.8 ms rows=      43.7 ms  ratio=0.112
+  uniform-N1M-F800-L32   r3=0.000373   dense=    3667.4 ms rows=    3862.1 ms  ratio=1.053
+  uniform-N1M-F400-L16   r3=0.000725   dense=     505.4 ms rows=     401.1 ms  ratio=0.794
+  uniform-N1M-F200-L8    r3=0.00136    dense=      80.1 ms rows=      22.0 ms  ratio=0.274
+  uniform-N1M-F400-L32   r3=0.003      dense=     570.0 ms rows=    3439.7 ms  ratio=6.035
+  uniform-N1M-F200-L16   r3=0.00585    dense=      91.0 ms rows=     180.2 ms  ratio=1.980
+  uniform-N1M-F100-L8    r3=0.0111     dense=      22.0 ms rows=      20.6 ms  ratio=0.936
+  uniform-N1M-F200-L32   r3=0.0242     dense=      93.8 ms rows=    1509.6 ms  ratio=16.095
+  uniform-N1M-F100-L16   r3=0.0475     dense=      21.7 ms rows=      64.5 ms  ratio=2.973
+  uniform-N1M-F50-L8     r3=0.0914     dense=       7.3 ms rows=      13.8 ms  ratio=1.878
+  uniform-N1M-F100-L32   r3=0.196      dense=      21.1 ms rows=     421.0 ms  ratio=19.921
+  uniform-N1M-F50-L16    r3=0.392      dense=       9.3 ms rows=      66.7 ms  ratio=7.167
+  uniform-N1M-F50-L32    r3=1.62       dense=      10.0 ms rows=     422.2 ms  ratio=42.349
+{
+ "r3_star": 0.00025107170290576355,
+ "up": [
+  [
+   "uniform-N1M-F400-L8",
+   "uniform-N1M-F800-L32"
+  ],
+  [
+   "uniform-N1M-F200-L8",
+   "uniform-N1M-F400-L32"
+  ],
+  [
+   "uniform-N1M-F100-L8",
+   "uniform-N1M-F200-L32"
+  ]
+ ],
+ "down": [
+  [
+   "uniform-N1M-F800-L32",
+   "uniform-N1M-F400-L16"
+  ],
+  [
+   "uniform-N1M-F200-L16",
+   "uniform-N1M-F100-L8"
+  ]
+ ],
+ "monotone": false
+}
+sweep exit=0

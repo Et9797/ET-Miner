@@ -570,3 +570,26 @@ def build_moonshots_m1_final(n_dev: int) -> list[dict]:
             for w, label, kw in MOONSHOT_REGIMES
         )
     ]
+
+
+def _moonshot_arms(arms: dict[str, dict], n_dev: int) -> list[dict]:
+    """Every moonshot regime on one GPU, then on two where the box has them, once per arm."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    return [
+        _cfg(f"C{n}-{label}{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1", **pins}, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, label, kw in MOONSHOT_REGIMES
+        for arm, pins in arms.items()
+    ]
+
+
+def build_moonshots_m2(n_dev: int) -> list[dict]:
+    """M2's campaign (`--mode moonshots-m2`, bench/moonshots/PROTOCOL-M2.md): dense against row-wise K=3, 3 reps."""
+    base = _moonshot_arms({"dense": {"ET_MINER_K3_KERNEL": "dense"}, "rows": {"ET_MINER_K3_KERNEL": "rows"}}, n_dev)
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_moonshots_m2_final(n_dev: int) -> list[dict]:
+    """M2's final check (`--mode moonshots-m2-final`): one rep of every regime with the K=3 kernel unset."""
+    return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in _moonshot_arms({"final": {}}, n_dev)]

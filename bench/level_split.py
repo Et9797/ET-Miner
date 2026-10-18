@@ -22,7 +22,8 @@ Phases:
     group_upload   upload_k3plus_groups (host-to-device group arrays)
     budget         compute_chunk_budget (VRAM probe)
     k2_dispatch    _k2_row_pairs (the K=2 dispatch's r from the host CSR),
-                   or DeviceRows.pairs (from the device entries)
+                   _HostRows.pairs_triples (K=3's), or DeviceRows.pairs /
+                   pairs_triples (from the device entries)
     k2_input       the row-wise K=2 kernel's input: host CSR of frequent
                    positions per shard, and its upload; or DeviceRows.upload
     k3_graph       build_k3_graph (row-wise K=3's pair graph and bitmap on
@@ -362,6 +363,10 @@ class LevelSplit:
         self._patch(nccl, "reduce_sum_to_gpu0", self._timed("reduce", nccl.reduce_sum_to_gpu0))
         self._patch(row_split, "compute_chunk_budget", self._timed("budget", row_split.compute_chunk_budget))
         self._patch(row_split, "_k2_row_pairs", self._timed("k2_dispatch", row_split._k2_row_pairs))
+        if hasattr(row_split._HostRows, "pairs_triples"):
+            self._patch(
+                row_split._HostRows, "pairs_triples", self._timed("k2_dispatch", row_split._HostRows.pairs_triples)
+            )
         self._patch(row_split, "_k2_row_shards", self._timed("k2_input", row_split._k2_row_shards))
         self._patch(row_split, "_upload_k2_rows", self._timed("k2_input", row_split._upload_k2_rows))
         self._patch(row_split, "convert_shards_to_csr", self._timed("transition", row_split.convert_shards_to_csr))
@@ -400,7 +405,9 @@ class LevelSplit:
         if hasattr(kernels, "tile_occupancy"):
             self._patch(kernels, "tile_occupancy", self._timed("occupancy", kernels.tile_occupancy))
         if input_layer is not None:
-            self._patch(input_layer.DeviceRows, "pairs", self._timed("k2_dispatch", input_layer.DeviceRows.pairs))
+            # pairs delegates to pairs_triples where it exists; timing both would count it twice.
+            name = "pairs_triples" if hasattr(input_layer.DeviceRows, "pairs_triples") else "pairs"
+            self._patch(input_layer.DeviceRows, name, self._timed("k2_dispatch", getattr(input_layer.DeviceRows, name)))
             self._patch(input_layer.DeviceRows, "upload", self._timed("k2_input", input_layer.DeviceRows.upload))
         self._patch(row_split, "_build_deferred_frame", self._timed_span("frame", row_split._build_deferred_frame))
         self._patch(row_split, "_init_nccl", self._timed_nccl(row_split._init_nccl))

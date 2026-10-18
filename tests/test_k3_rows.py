@@ -139,6 +139,18 @@ def test_shards_sum_to_the_global_counts():
     np.testing.assert_array_equal(total, _expected(rows, layout))
 
 
+def test_statistic_adds_the_estimated_increments_to_the_row_pairs():
+    from et_miner.gpu import row_split_chunks as rsc
+
+    words = -(-640_000 // 64)
+    s = rsc.k3_rows_statistic
+    assert s(1_000, 4_000, 1_000, 50, 640_000) == pytest.approx(5_000 / (50 * words)), "every row pair frequent"
+    assert s(1_000, 4_000, 500, 50, 640_000) == pytest.approx(2_000 / (50 * words)), "rho = 1/2: a quarter"
+    assert s(1_000, 4_000, 3_000, 50, 640_000) == pytest.approx(5_000 / (50 * words)), "rho capped at 1"
+    assert s(1_000, 4_000, 1_000, 0, 640_000) == float("inf"), "no candidates"
+    assert s(0, 0, 0, 50, 640_000) == float("inf"), "no row pairs"
+
+
 def test_dispatch_follows_the_pin_then_r3_and_one_chunk(monkeypatch):
     from et_miner.gpu import row_split_chunks as rsc
 

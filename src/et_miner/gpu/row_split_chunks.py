@@ -148,6 +148,24 @@ def k2_counts_rows(row_pairs: int, n_pairs: int, n_transactions: int) -> bool:
 K3_ROWS_MAX_R = 2.5e-4
 
 
+def k3_rows_statistic(
+    row_pairs: int, row_triples: float, pair_support: int, n_generated: int, n_transactions: int
+) -> float:
+    """s = (R2 + ρ² T3) / (generated × words): the row-wise K=3's work over the dense level's.
+
+    R2 and T3 are Σ_rows C(len, 2) and C(len, 3) over the active columns, and
+    ρ = P2 / R2 the share of those row pairs that are frequent pairs (P2, the
+    K=2 level's summed counts). ρ² T3 estimates the kernel's increments, which
+    r3 leaves out (bench/moonshots/REPORT-M2.md, finding 1). Infinite without
+    candidates.
+    """
+    if n_generated <= 0 or row_pairs <= 0:
+        return float("inf")
+    rho = min(1.0, pair_support / row_pairs)
+    words = -(-n_transactions // 64)
+    return (row_pairs + rho * rho * row_triples) / (n_generated * words)
+
+
 def k3_counts_rows(row_pairs: int, n_generated: int, n_slots: int, budget: int, n_transactions: int) -> bool:
     """Whether K=3 is counted row-wise: ``ET_MINER_K3_KERNEL`` pins it; unset, r3 below ``K3_ROWS_MAX_R``
     with every slot in one chunk of ``budget``."""

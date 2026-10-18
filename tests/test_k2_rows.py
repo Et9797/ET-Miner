@@ -175,6 +175,21 @@ def test_row_pairs_count_the_frequent_columns_of_each_row():
         assert sum(int((n * (n - 1) // 2).sum()) for n in shard_lens) == want
 
 
+def test_row_triples_count_the_frequent_columns_of_each_row():
+    """K=3's dispatch reads Σ C(len, 2) and Σ C(len, 3) over the same restricted rows."""
+    from scipy.sparse import csr_matrix
+
+    from et_miner.gpu.row_split import _HostRows
+
+    rows = [[0, 2, 3], [1], [0, 1, 2, 3], [], [3, 2]]
+    indptr = np.cumsum([0] + [len(r) for r in rows])
+    csr = csr_matrix((np.ones(indptr[-1]), np.concatenate([np.array(r, dtype=np.int64) for r in rows]), indptr),
+                     shape=(5, 4))
+    host_rows = _HostRows(csr, [])
+    assert host_rows.pairs_triples(np.array([0, 2, 3])) == (3 + 0 + 3 + 0 + 1, 1 + 0 + 1 + 0 + 0)
+    assert host_rows.pairs_triples(np.arange(4)) == (3 + 0 + 6 + 0 + 1, 1 + 0 + 4 + 0 + 0)
+
+
 def test_dispatch_counts_rows_strictly_below_the_crossover(monkeypatch):
     from et_miner.gpu import row_split_chunks
     from et_miner.gpu.row_split_chunks import k2_counts_rows

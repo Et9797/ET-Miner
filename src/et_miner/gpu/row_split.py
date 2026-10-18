@@ -48,6 +48,7 @@ from et_miner.gpu.row_split_chunks import (
     group_kernels,
     k2_counts_rows,
     k3_counts_rows,
+    k3_rows_statistic,
     plan_candidate_chunks,
     plan_group_chunks,
     run_chunked_dense_level,
@@ -115,8 +116,8 @@ def _k2_row_shards(csr, freq_cols, shard_rows) -> list[tuple["np.ndarray", "np.n
     return shards
 
 
-def _k2_row_pairs(csr, freq_cols) -> int:
-    """Σ C(len, 2) over the CSR's rows restricted to ``freq_cols``: the pair increments a row-wise K=2 makes.
+def _k2_row_lens(csr, freq_cols):
+    """Each CSR row's length restricted to ``freq_cols`` (int64).
 
     Read from the row pointers alone when every column is frequent; a column
     repeated within a row (a CSR that is not canonical) only raises it.
@@ -125,13 +126,17 @@ def _k2_row_pairs(csr, freq_cols) -> int:
 
     indptr = csr.indptr.astype(np.int64, copy=False)
     if len(freq_cols) == csr.shape[1]:
-        lens = np.diff(indptr)
-    else:
-        keep = np.zeros(csr.shape[1], dtype=np.int64)
-        keep[freq_cols] = 1
-        kept = np.zeros(len(csr.indices) + 1, dtype=np.int64)
-        np.cumsum(keep[csr.indices], out=kept[1:])
-        lens = np.diff(kept[indptr])
+        return np.diff(indptr)
+    keep = np.zeros(csr.shape[1], dtype=np.int64)
+    keep[freq_cols] = 1
+    kept = np.zeros(len(csr.indices) + 1, dtype=np.int64)
+    np.cumsum(keep[csr.indices], out=kept[1:])
+    return np.diff(kept[indptr])
+
+
+def _k2_row_pairs(csr, freq_cols) -> int:
+    """Σ C(len, 2) over the CSR's rows restricted to ``freq_cols``: the pair increments a row-wise K=2 makes."""
+    lens = _k2_row_lens(csr, freq_cols)
     return int((lens * (lens - 1) // 2).sum())
 
 
@@ -157,6 +162,14 @@ class _HostRows:
         import numpy as np
 
         return _k2_row_pairs(self._csr, np.asarray(freq_cols, dtype=np.int64))
+
+    def pairs_triples(self, cols, keep: bool = False) -> tuple[int, float]:
+        """(Σ C(len, 2), Σ C(len, 3)) over the rows restricted to ``cols``; the triples in float64."""
+        import numpy as np
+
+        lens = _k2_row_lens(self._csr, np.asarray(cols, dtype=np.int64))
+        n = lens.astype(np.float64)
+        return int((lens * (lens - 1) // 2).sum()), float((n * (n - 1) * (n - 2)).sum() / 6)
 
     def upload(self, cols, keep: bool = False) -> dict | None:
         import cupy as cp
@@ -747,16 +760,20 @@ def _apriori_row_split_multi_gpu(
         """
         layout = k3_layout(prev_frequent_flat)
         generated = layout.n_generated
-        row_pairs = _rows_src.pairs(layout.active_cols, keep=True)
-        if row_pairs is None:
+        sums = _rows_src.pairs_triples(layout.active_cols, keep=True)
+        if sums is None:
             _drop_rows()
             return None
+        row_pairs, row_triples = sums
+        pair_support = row_pairs if prev_counts_flat is None else int(prev_counts_flat.sum())
         budget = compute_chunk_budget(device_ids, group_data_bytes=layout.device_bytes, use_nccl=_use_nccl)
         r3 = row_pairs / (generated * -(-n_transactions // 64)) if generated else float("inf")
+        s = k3_rows_statistic(row_pairs, row_triples, pair_support, generated, n_transactions)
+        stats = f"r3 = {r3:.3g}, s = {s:.3g}, rho = {pair_support / row_pairs if row_pairs else 0.0:.4g}"
         if not k3_counts_rows(row_pairs, generated, layout.n_slots, budget, n_transactions):
             logger.info(
-                f"  K=3: r3 = {r3:.3g} over {layout.n_slots:,} slots (one chunk: {budget:,}); "
-                "counted from the bitvecs"
+                f"  K=3: {stats} over {row_pairs:,} row pairs and {row_triples:.6g} row triples, "
+                f"{layout.n_slots:,} slots (one chunk: {budget:,}); counted from the bitvecs"
             )
             _drop_rows()
             return None
@@ -780,8 +797,8 @@ def _apriori_row_split_multi_gpu(
                 layout.slot_off, compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
             )
             logger.info(
-                f"  K=3: {generated:,} total candidates, row-wise over {row_pairs:,} row pairs (r3 = {r3:.3g}) "
-                f"into {layout.n_slots:,} slots, {len(chunks)} chunk(s)"
+                f"  K=3: {generated:,} total candidates, row-wise over {row_pairs:,} row pairs and "
+                f"{row_triples:.6g} row triples ({stats}) into {layout.n_slots:,} slots, {len(chunks)} chunk(s)"
             )
 
             def _k3_rows_on_gpu(bitvec_gpu, device_id, chunk):

@@ -160,6 +160,7 @@ def _assert_same_input(column: pl.Series, min_support: float, n_gpus: int, cols:
     freq_cols = _freq_cols(bitvecs_list, _min_count(min_support, n), cols)
     host_rows = _HostRows(csr, bitvecs_list)
     want_pairs = host_rows.pairs(freq_cols)
+    want_sums = host_rows.pairs_triples(freq_cols)
     want_rows = {d: (k.row_ptr.get(), k.pos.get(), k.n_rows) for d, k in host_rows.upload(freq_cols).items()}
     del host, csr, bitvecs_list, host_rows
     _free_pools()
@@ -180,6 +181,7 @@ def _assert_same_input(column: pl.Series, min_support: float, n_gpus: int, cols:
 
     assert dev.rows is not None
     assert dev.rows.pairs(freq_cols) == want_pairs
+    assert dev.rows.pairs_triples(freq_cols) == want_sums
     got_rows = dev.rows.upload(freq_cols)
     assert list(got_rows) == list(want_rows)
     for did, (row_ptr, pos, n_rows) in want_rows.items():

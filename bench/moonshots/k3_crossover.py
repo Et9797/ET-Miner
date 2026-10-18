@@ -1,4 +1,5 @@
-"""M2's K=3 crossover sweep (bench/moonshots/PROTOCOL-M2.md, "Crossover sweep").
+"""M2's K=3 crossover sweep (bench/moonshots/PROTOCOL-M2.md, "Crossover sweep"), and the dispatch
+statistic's sweep (``--grid dispatch``, bench/moonshots/PROTOCOL-K3-DISPATCH.md).
 
 Synthetic problems on one GPU: N rows of L distinct items each, drawn uniformly
 from F items, mined with ``max_length=3`` at ``min_count`` = a third of the
@@ -21,7 +22,22 @@ Rows append to <out> (default: ``k3_crossover.jsonl`` in the runner's
 per-revision campaign directory, stamped with the revision); a point with an ok
 row at this revision is skipped, so the sweep resumes.
 
-Usage: uv run python bench/moonshots/k3_crossover.py [--out FILE] [--max-gpu-hours H] [--analyze]
+``--grid dispatch`` runs PROTOCOL-K3-DISPATCH.md's 43 points instead: M2's 18,
+long rows, short rows over 4M rows, uniform rows with ``min_count`` at the mean
+pair count (rho about 1/2) and Zipf rows. Its points differ from M2's procedure
+in three ways:
+- ``min_count`` is ``c`` times the mean pair count (``c`` = 1/3 unless the id
+  ends in ``-c<c>``);
+- the warm-up runs each kernel on the point's first ``WARMUP_ROWS`` rows;
+- a point whose rho is below 1 adds an untimed rows run that sums the kernel's
+  slot counts: the increments, which equal the row triples when rho is 1.
+
+Each row records the miner's K=3 statistics (generated candidates, slots, row
+pairs and triples, rho, r3 and s). ``--analyze`` then prints each statistic's
+regret: the K=3 milliseconds lost against the faster kernel when it picks rows
+below a threshold (``regret``).
+
+Usage: uv run python bench/moonshots/k3_crossover.py [--grid m2|dispatch] [--out FILE] [--max-gpu-hours H] [--analyze]
 """
 
 from __future__ import annotations
@@ -30,6 +46,7 @@ import argparse
 import json
 import math
 import os
+import re
 import statistics
 import subprocess
 import sys
@@ -58,6 +75,12 @@ ENV = {
     "OMP_NUM_THREADS": "16",
 }
 ROWS_LOG = "row-wise over"
+WARMUP_ROWS = 20_000
+#: The miner's row-wise K=3 log line (``row_split._count_k3_rows``).
+STATS_RE = re.compile(
+    r"K=3: ([\d,]+) total candidates, row-wise over ([\d,]+) row pairs and ([\d.e+]+) row triples "
+    r"\(r3 = ([\d.e+-]+|inf), s = ([\d.e+-]+|inf), rho = ([\d.e+-]+)\) into ([\d,]+) slots"
+)
 
 
 def grid() -> list[dict]:
@@ -67,6 +90,50 @@ def grid() -> list[dict]:
         for f in ITEMS
         if n <= f
     ]
+
+
+def _point(dist: str, n_rows: int, f: int, length: int, c: float | None = None) -> dict:
+    pid = f"{dist}-N{n_rows // 1_000_000}M-F{f}-L{length}" + ("" if c is None else f"-c{c:g}")
+    return {"id": pid, "dist": dist, "n_rows": n_rows, "n_items": f, "row_len": length, "c": c,
+            "warmup_rows": WARMUP_ROWS}
+
+
+def grid_dispatch() -> list[dict]:
+    """PROTOCOL-K3-DISPATCH.md's points: M2's, then long rows, short rows, rho about 1/2, Zipf."""
+    pts = [{**p, "dist": "uniform", "c": None, "warmup_rows": WARMUP_ROWS} for p in grid()]
+    pts += [_point("uniform", N_ROWS, f, n) for f, n in ((800, 24), (1_200, 32), (1_200, 40), (1_200, 48),
+                                                         (1_600, 40), (1_600, 48), (1_600, 56), (1_600, 64))]
+    pts += [_point("uniform", 4 * N_ROWS, f, n) for f, n in ((200, 8), (250, 8), (300, 8), (400, 8),
+                                                             (450, 12), (600, 12))]
+    pts += [_point("uniform", N_ROWS, f, n, 1.0) for f, n in ((800, 32), (1_600, 32), (1_600, 48), (1_600, 64))]
+    pts += [_point("zipf", N_ROWS, f, n) for f, n in ((800, 16), (800, 32), (1_600, 16), (1_600, 24),
+                                                      (1_600, 32), (1_600, 48), (2_400, 32))]
+    return pts
+
+
+GRIDS = {"m2": grid, "dispatch": grid_dispatch}
+
+
+def regret(rows: list[dict], key: str, at: float | None = None) -> dict:
+    """The K=3 milliseconds lost against the faster kernel when rows run below a threshold of ``key``.
+
+    With ``at`` the threshold is given; otherwise it is the one of least regret
+    among the geometric means of adjacent points sorted by ``key`` (plus none
+    and all), the lowest on a tie.
+    """
+    pts = sorted((r for r in rows if r.get("status") == "ok"), key=lambda r: r[key])
+    best = sum(min(r["median_dense_ms"], r["median_rows_ms"]) for r in pts)
+
+    def lost(theta: float) -> float:
+        return sum(r["median_rows_ms"] if r[key] < theta else r["median_dense_ms"] for r in pts) - best
+
+    if at is not None:
+        return {"key": key, "threshold": at, "regret_ms": lost(at)}
+    cuts = [0.0] + [math.sqrt(a[key] * b[key]) for a, b in zip(pts, pts[1:]) if a[key] < b[key]] + [math.inf]
+    scored = [(lost(t), t) for t in cuts]
+    least = min(scored)
+    near = [t for v, t in scored if v <= least[0] * 1.05 + 1e-9]
+    return {"key": key, "threshold": least[1], "regret_ms": least[0], "within_5pct": [min(near), max(near)]}
 
 
 def crossover(rows: list[dict]) -> dict:
@@ -97,16 +164,19 @@ def _child(pt: dict) -> dict:
     from et_miner.core.apriori import apriori
     from et_miner.core.result import _min_count
 
+    from et_miner.gpu import kernels
+
     t0 = time.perf_counter()
     n_rows, f, length = pt["n_rows"], pt["n_items"], pt["row_len"]
-    rows = generate_rows("uniform", n_rows, f, length, zlib.crc32(pt["id"].encode()))
+    rows = generate_rows(pt.get("dist", "uniform"), n_rows, f, length, zlib.crc32(pt["id"].encode()))
     offsets = np.arange(0, rows.size + 1, length, dtype=np.int64)
     df = pl.DataFrame(
         {"items": pl.Series("items", pa.LargeListArray.from_arrays(offsets, rows.ravel().astype(np.int64)))}
     )
     del rows
     mean_pair = n_rows * math.comb(length, 2) / math.comb(f, 2)
-    min_count = max(1, int(mean_pair / 3))
+    c = pt.get("c")
+    min_count = max(1, int(mean_pair / 3 if c is None else mean_pair * c))
     min_support = (min_count - 0.5) / n_rows
     if _min_count(min_support, n_rows) != min_count:
         raise RuntimeError(f"min_support {min_support!r} does not give min_count {min_count}")
@@ -115,12 +185,12 @@ def _child(pt: dict) -> dict:
     logged: list[str] = []
     logger.add(lambda m: logged.append(m.record["message"]), level="DEBUG")
 
-    def run(kernel: str) -> tuple[float, tuple, str]:
+    def run(kernel: str, frame=df) -> tuple[float, tuple, str]:
         os.environ["ET_MINER_K3_KERNEL"] = kernel
         logged.clear()
         levels: dict[int, float] = {}
         res = apriori(
-            df,
+            frame,
             use_gpu=True,
             n_gpus=1,
             min_support=min_support,
@@ -133,10 +203,11 @@ def _child(pt: dict) -> dict:
         k3_log = [m for m in logged if m.startswith("  K=3:") and ROWS_LOG in m]
         if (kernel == "rows") != bool(k3_log):
             raise RuntimeError(f"K3 kernel {kernel!r} pinned, but the miner's K=3 log says otherwise")
-        return levels.get(3, 0.0), tuple(result_signatures(res, n_rows).values()), (k3_log or [""])[0]
+        return levels.get(3, 0.0), tuple(result_signatures(res, frame.height).values()), (k3_log or [""])[0]
 
+    warmup = df if pt.get("warmup_rows") is None else df.head(pt["warmup_rows"])
     for k in KERNELS:
-        run(k)
+        run(k, warmup)
     times: dict[str, list[float]] = {k: [] for k in KERNELS}
     sigs, rows_log = set(), ""
     for _ in range(REPS):
@@ -148,13 +219,42 @@ def _child(pt: dict) -> dict:
     if len(sigs) != 1:
         raise RuntimeError(f"the kernels disagree on the result: {sorted(sigs)}")
     n_itemsets, sum_counts, itemset_hash = sigs.pop()
-    # The miner's own r3 (row pairs over the active items), read from its log line.
-    r3 = float(rows_log.split("(r3 = ", 1)[1].split(")", 1)[0])
     med = {k: statistics.median(v) for k, v in times.items()}
+    stats = {}
+    if pt.get("warmup_rows") is None:
+        # M2's rows: the miner's own r3 (row pairs over the active items), read from its log line.
+        stats["r3"] = float(rows_log.split("(r3 = ", 1)[1].split(",", 1)[0].split(")", 1)[0])
+    else:
+        m = STATS_RE.search(rows_log)
+        if m is None:
+            raise RuntimeError(f"no K=3 statistics in the rows log: {rows_log[:300]}")
+        gen, r2, t3, r3, s, rho, slots = m.groups()
+        stats = {"generated": int(gen.replace(",", "")), "row_pairs": int(r2.replace(",", "")),
+                 "row_triples": float(t3), "r3": float(r3), "s": float(s), "rho": float(rho),
+                 "slots": int(slots.replace(",", ""))}
+        words = -(-n_rows // 64)
+        stats["s_slots"] = stats["s"] * stats["generated"] / stats["slots"] if stats["slots"] else math.inf
+        if stats["rho"] >= 0.99995:
+            stats["increments"] = stats["row_triples"]
+        else:
+            real, total = kernels.count_k3_rows, [0]
+
+            def spy(*a, **k):
+                out = real(*a, **k)
+                total[0] += int(out.sum(dtype="int64"))
+                return out
+
+            kernels.count_k3_rows = spy
+            try:
+                run("rows")
+            finally:
+                kernels.count_k3_rows = real
+            stats["increments"] = total[0]
+        stats["s_true"] = (stats["row_pairs"] + stats["increments"]) / (stats["generated"] * words)
     return {
         **pt,
         "status": "ok",
-        "r3": r3,
+        **stats,
         "min_count": min_count,
         "n_itemsets": n_itemsets,
         "sum_counts": sum_counts,
@@ -191,19 +291,29 @@ def _run_point(pt: dict, rev: str) -> dict:
 
 
 def _report(rows: list[dict]) -> None:
-    for r in sorted(rows, key=lambda r: r.get("r3", 0)):
+    key = "s" if any("s" in r for r in rows) else "r3"
+    for r in sorted(rows, key=lambda r: r.get(key, 0)):
         if r.get("status") == "ok":
+            extra = "" if key == "r3" else f" s={r['s']:<10.3g} rho={r['rho']:<6.3g}"
             print(
-                f"  {r['id']:<22} r3={r['r3']:<10.3g} dense={r['median_dense_ms']:>10.1f} ms "
+                f"  {r['id']:<28} r3={r['r3']:<10.3g}{extra} dense={r['median_dense_ms']:>10.1f} ms "
                 f"rows={r['median_rows_ms']:>10.1f} ms  ratio={r['ratio']:.3f}"
             )
         else:
-            print(f"  {r['id']:<22} {r.get('status')}")
+            print(f"  {r['id']:<28} {r.get('status')}")
     print(json.dumps(crossover(rows), indent=1))
+    if key == "s":
+        from et_miner.gpu.row_split_chunks import K3_ROWS_MAX_R
+
+        ok = [r for r in rows if r.get("status") == "ok"]
+        table = [regret(ok, "r3", K3_ROWS_MAX_R), regret(ok, "r3"), regret(ok, "s"), regret(ok, "s_slots"),
+                 regret(ok, "s_true")]
+        print(json.dumps({"points": len(ok), "regret": table}, indent=1))
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--grid", choices=sorted(GRIDS), default="m2")
     ap.add_argument("--out", default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None)
     ap.add_argument("--analyze", action="store_true", help="only print the analysis of the rows in --out")
@@ -224,7 +334,7 @@ def main() -> int:
     rows = [json.loads(line) for line in out.read_text().splitlines()] if out.exists() else []
     if not args.analyze:
         gpu_s = 0.0
-        for pt in grid():
+        for pt in GRIDS[args.grid]():
             if any(r["id"] == pt["id"] and r.get("status") == "ok" and r.get("rev") == here for r in rows):
                 continue
             if args.max_gpu_hours is not None and gpu_s > args.max_gpu_hours * 3600:

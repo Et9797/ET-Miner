@@ -131,20 +131,29 @@ class DeviceRows:
     def pairs(self, freq_cols, keep: bool = False) -> int | None:
         """Σ C(len, 2) over the rows, ``len`` being a row's distinct columns among ``freq_cols``; None out of
         device memory."""
+        sums = self.pairs_triples(freq_cols, keep)
+        return None if sums is None else sums[0]
+
+    def pairs_triples(self, cols, keep: bool = False) -> tuple[int, float] | None:
+        """(Σ C(len, 2), Σ C(len, 3)) over the rows as in ``pairs``, the triples in float64; None out of device
+        memory."""
         import cupy as cp
 
         try:
-            self._position(np.asarray(freq_cols, dtype=np.int64), keep)
-            total = 0
+            self._position(np.asarray(cols, dtype=np.int64), keep)
+            pairs, triples = 0, 0.0
             for sh, (row_ptr, _) in zip(self._shards, self._positions):
                 with cp.cuda.Device(sh.device):
                     lens = cp.diff(row_ptr)
-                    total += int((lens * (lens - 1) // 2).sum())
+                    pairs += int((lens * (lens - 1) // 2).sum())
+                    n = lens.astype(cp.float64)
+                    triples += float((n * (n - 1) * (n - 2)).sum() / 6)
+            sums = pairs, triples
         except cp.cuda.memory.OutOfMemoryError:
-            total = None
-        if total is None:
+            sums = None
+        if sums is None:
             self._out_of_memory()
-        return total
+        return sums
 
     def upload(self, cols, keep: bool = False) -> dict | None:
         """Each shard's rows as positions in ``cols``, keyed by device; without ``keep`` the entries are released.

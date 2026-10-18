@@ -647,6 +647,13 @@ def build_moonshots_polish(n_dev: int) -> list[dict]:
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
 
 
+def build_moonshots_teardown(n_dev: int) -> list[dict]:
+    """The 2-GPU tail's split (`--mode moonshots-teardown`, bench/moonshots/PROTOCOL-TEARDOWN.md): every moonshot
+    regime on two GPUs with every knob unset and the level split's NCCL destroy, 3 reps rep-major."""
+    base = [c for c in _moonshot_arms({"teardown": {}}, n_dev) if c["n_gpus"] == 2]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
 def build_moonshots_phase3(n_dev: int) -> list[dict]:
     """Phase 3's reduced matrix (`--mode moonshots-phase3`, bench/moonshots/PROTOCOL-PHASE3.md): every moonshot
     regime with every knob unset, 3 reps rep-major; run once on the final tree and once on the baseline's src/."""

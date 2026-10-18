@@ -53,3 +53,12 @@ Each script reads a lattice dump of Phase 0 (and the dataset where it says
 The outcome is `SPEC.md` (one section per idea) and `STAKES.md` (the ranked
 table); the outputs and their commands are in
 `../results/2026-10-17-moonshots-stakes/README.md`.
+
+## Follow-ups after the merge
+
+One branch off `main` per item of `REPORT.md`, with its own protocol before
+any timed run.
+
+| protocol | question | summary script |
+|---|---|---|
+| `PROTOCOL-TEARDOWN.md` | where the 2-GPU tail goes (Findings 2) | `tail_table.py` |

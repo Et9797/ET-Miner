@@ -19,6 +19,7 @@ from consolidation_matrix import (
     build_moonshots_m2_final,
     build_moonshots_m5b,
     build_moonshots_m7,
+    build_moonshots_teardown,
     build_moonshots_x0,
 )
 from decide import decide
@@ -74,6 +75,18 @@ def test_m2_matrix_pins_the_k3_kernel_per_arm_rep_major(n_dev):
     assert len(final) == len(MOONSHOT_REGIMES) * n_dev
     assert all(c["rep"] == 0 and "ET_MINER_K3_KERNEL" not in c["env"] for c in final)
     assert build_matrix("moonshots-m2", n_dev, []) == m and build_matrix("moonshots-m2-final", n_dev, []) == final
+
+
+@pytest.mark.parametrize("n_dev", [1, 2])
+def test_teardown_matrix_runs_every_regime_on_two_gpus_with_no_knob(n_dev):
+    m = build_moonshots_teardown(n_dev)
+    assert len(m) == (len(MOONSHOT_REGIMES) * 3 if n_dev == 2 else 0)
+    assert [c["rep"] for c in m] == sorted(c["rep"] for c in m)
+    for c in m:
+        assert c["n_gpus"] == 2 and c["level_split"]
+        assert all(c["env"][t] == "16" for t in THREADS) and c["env"]["NCCL_P2P_DISABLE"] == "1"
+        assert not [k for k in c["env"] if k.startswith("ET_MINER_")], c["id"]
+    assert build_matrix("moonshots-teardown", n_dev, []) == m
 
 
 def test_x0_matrix_differs_only_in_inference():
@@ -241,3 +254,35 @@ def test_occupancy_is_built_at_the_first_level_that_reads_it(monkeypatch):
         split.uninstall()
     built = [k for k, phases in split.levels.items() if phases["occupancy"] > 0]
     assert built == [3], f"occupancy built at levels {built}"
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("n_gpus", [1, pytest.param(2, marks=pytest.mark.multigpu)])
+def test_level_split_times_the_nccl_destroy(n_gpus):
+    """Two GPUs destroy their communicators in the tail; one GPU builds none. The wrapper leaves the result as is."""
+    import cupy as cp
+
+    from et_miner import apriori
+
+    if cp.cuda.runtime.getDeviceCount() < n_gpus:
+        pytest.skip(f"needs {n_gpus} CUDA devices")
+    rng = np.random.default_rng(7)
+    rows = [sorted(set(rng.integers(0, 25, size=int(rng.integers(2, 9))).tolist())) for _ in range(6_000)]
+    df = pl.DataFrame({"items": rows})
+
+    def mined(res):
+        return {(tuple(s), round(sup, 9)) for s, sup in zip(res["itemset"].to_list(), res["support"].to_list())}
+
+    plain = mined(apriori(df, min_support=0.01, use_gpu=True, n_gpus=n_gpus))
+    split = LevelSplit()
+    split.install()
+    try:
+        split.start()
+        timed = mined(apriori(df, min_support=0.01, use_gpu=True, n_gpus=n_gpus, level_callback=split.callback()))
+        split.finish()
+    finally:
+        split.uninstall()
+    assert timed == plain and len(plain) > 0
+    span = split.span
+    assert (span["tail_nccl"] > 0) == (n_gpus > 1)
+    assert span["tail_other"] == pytest.approx(span["tail"] - span["frame"] - span["tail_nccl"], abs=1e-5)

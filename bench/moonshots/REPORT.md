@@ -276,4 +276,7 @@ Follow-ups on the open findings, one branch off `main` each.
    `REPORT-TEARDOWN.md`). It is the NCCL communicators' destroy at the miner's
    return, which waits up to 0.5 s for NCCL's proxy thread: 0.319 s at the
    median of 30 two-GPU rows. Everything else in the tail is at most 0.007 s.
-   Moving the destroy off the call's path is open.
+   **The destroy now runs on a thread of its own** (owner, 2026-10-18;
+   `09d08fd`): every 2-GPU regime got faster by about that wait (smoke
+   0.57 → 0.20 s, dsl 3.23 → 3.02 s, dsl-infer 2.72 → 2.33 s). Two GPUs now
+   beat one on dsl and dsl-free.

@@ -67,3 +67,46 @@ Medians with [min, max] over 3 reps, two GPUs, every knob unset.
    waited 0.03 s and two waited 0.49–0.51 s. Its levels are the same.
 5. **(nice)** The dsl rows ran under the SW power cap (0x4) on all three
    reps, as in M1. It is recorded, not controlled.
+
+## Amendment 1: the destroy off the call's path
+
+Change: the miner destroys its communicators on a thread of its own once its
+levels are done (`09d08fd`, `PROTOCOL-TEARDOWN.md` Amendment 1). Run:
+`../results/2026-10-18-moonshots-teardown-after/` (`decision.md`, `tail.md`),
+30 rows at `09d08fd`, every row ok, no fallback, every signature equal to
+Phase 3's, 0.118 GPU-hours.
+
+**Every 2-GPU regime got faster, by about the destroy it no longer waits
+for.** The decision rules hold:
+- signatures match and no row logged a fallback;
+- `tail_nccl` is 0 in every row, and `tail_other` is at most 0.007 s;
+- no regime loses.
+
+Rule 2 calls every regime a tie, because it asks for 1 s saved.
+
+| regime | before s | after s | after / before | before `tail_nccl` s | 1 GPU (Phase 3) s |
+|---|---|---|---|---|---|
+| smoke | 0.57 [0.55, 0.57] | 0.20 [0.20, 0.22] | 0.36 | 0.36 | 0.06 [0.06, 0.07] |
+| deepk | 0.63 [0.63, 0.65] | 0.37 [0.35, 0.39] | 0.58 | 0.24 | 0.15 [0.15, 0.17] |
+| skew | 0.63 [0.63, 0.65] | 0.37 [0.35, 0.39] | 0.58 | 0.28 | 0.17 [0.16, 0.18] |
+| or003 | 0.58 [0.57, 0.58] | 0.32 [0.32, 0.35] | 0.55 | 0.25 | 0.11 [0.10, 0.12] |
+| or002 | 1.07 [0.56, 1.08] | 0.55 [0.51, 0.59] | 0.52 | 0.49 | 0.27 [0.27, 0.27] |
+| dsl | 3.23 [3.23, 3.24] | 3.02 [2.98, 3.09] | 0.93 | 0.25 | 3.86 [3.85, 3.90] |
+| dsl-infer | 2.72 [2.72, 2.72] | 2.33 [2.29, 2.39] | 0.86 | 0.39 | 2.40 [2.35, 2.50] |
+| dsl-free | 2.72 [2.72, 2.75] | 2.40 [2.38, 2.43] | 0.88 | 0.36 | 2.76 [2.73, 2.77] |
+| oom2ml3 | 1.12 [1.12, 1.13] | 0.69 [0.69, 0.70] | 0.62 | 0.44 | 0.38 [0.37, 0.39] |
+| sk2ml3 | 1.82 [1.81, 2.32] | 1.79 [1.78, 1.82] | 0.98 | 0.08 | 1.77 [1.74, 1.78] |
+
+### Findings
+
+1. **(should)** *The change stays.* Two GPUs now beat one on dsl (3.02
+   against 3.86 s) and dsl-free (2.40 against 2.76 s) with disjoint ranges.
+   They tie on dsl-infer (2.33 against 2.40 s, overlapping ranges) and sk2ml3
+   (1.79 against 1.77 s). The small regimes stay slower on two GPUs (0.20–0.69
+   against 0.06–0.38 s): the reduce of finding 3 above and the levels' fixed
+   costs remain.
+2. **(nice)** *The 2-GPU walls no longer depend on chance.* or002's range was
+   0.56–1.08 s; it is 0.51–0.59 s now. sk2ml3's 2.32 s outlier is gone.
+3. **(nice)** The two runs are about two hours apart on a shared host. Each
+   wall moved by about the before rows' `tail_nccl`, between 0.21 and 0.52 s.
+   Two of the three dsl rows ran under the SW power cap (0x4), as before.

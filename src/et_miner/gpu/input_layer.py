@@ -97,7 +97,9 @@ class DeviceRows:
     rows as positions among a column set (``K2Rows``); both read the same
     positions, computed once per column set. With ``keep`` the entries stay
     for another column set (K=3's active columns); otherwise they are
-    released once the positions exist.
+    released once the positions exist. When a device runs out of memory for
+    them, both return None and the rows are released: the row-wise kernels
+    only speed K=2 and K=3 up, and the bitvectors count those levels too.
     """
 
     def __init__(self, shards: list[_Shard], n_cols: int):
@@ -126,33 +128,57 @@ class DeviceRows:
                 self._positions.append((kept[sh.row_ptr], pos))
                 del kept
 
-    def pairs(self, freq_cols, keep: bool = False) -> int:
-        """Σ C(len, 2) over the rows, ``len`` being a row's distinct columns among ``freq_cols``."""
+    def pairs(self, freq_cols, keep: bool = False) -> int | None:
+        """Σ C(len, 2) over the rows, ``len`` being a row's distinct columns among ``freq_cols``; None out of
+        device memory."""
         import cupy as cp
 
-        self._position(np.asarray(freq_cols, dtype=np.int64), keep)
-        total = 0
-        for sh, (row_ptr, _) in zip(self._shards, self._positions):
-            with cp.cuda.Device(sh.device):
-                lens = cp.diff(row_ptr)
-                total += int((lens * (lens - 1) // 2).sum())
+        try:
+            self._position(np.asarray(freq_cols, dtype=np.int64), keep)
+            total = 0
+            for sh, (row_ptr, _) in zip(self._shards, self._positions):
+                with cp.cuda.Device(sh.device):
+                    lens = cp.diff(row_ptr)
+                    total += int((lens * (lens - 1) // 2).sum())
+        except cp.cuda.memory.OutOfMemoryError:
+            total = None
+        if total is None:
+            self._out_of_memory()
         return total
 
-    def upload(self, cols, keep: bool = False) -> dict:
-        """Each shard's rows as positions in ``cols``, keyed by device; without ``keep`` the entries are released."""
+    def upload(self, cols, keep: bool = False) -> dict | None:
+        """Each shard's rows as positions in ``cols``, keyed by device; without ``keep`` the entries are released.
+        None out of device memory."""
         import cupy as cp
 
         from .kernels import K2Rows
 
-        self._position(np.asarray(cols, dtype=np.int64), keep)
-        out = {}
-        for sh, (row_ptr, pos) in zip(self._shards, self._positions):
-            with cp.cuda.Device(sh.device):
-                out[sh.device] = K2Rows(row_ptr, pos[pos >= 0], sh.n_rows)
+        try:
+            self._position(np.asarray(cols, dtype=np.int64), keep)
+            out = {}
+            for sh, (row_ptr, pos) in zip(self._shards, self._positions):
+                with cp.cuda.Device(sh.device):
+                    out[sh.device] = K2Rows(row_ptr, pos[pos >= 0], sh.n_rows)
+        except cp.cuda.memory.OutOfMemoryError:
+            out = None
+        if out is None:
+            self._out_of_memory()
+            return None
         self.drop_positions()
         if not keep:
             self.release()
         return out
+
+    def _out_of_memory(self) -> None:
+        """Releases the rows once the OutOfMemoryError (and the arrays its traceback held) is gone."""
+        import cupy as cp
+
+        devices = sorted({sh.device for sh in self._shards})
+        self.release()
+        for device in devices:
+            with cp.cuda.Device(device):
+                cp.get_default_memory_pool().free_all_blocks()
+        logger.info("Device rows: out of device memory; K=2 and K=3 count from the bitvectors")
 
     def drop_positions(self) -> None:
         """Drop the last column set's positions; the entries stay if ``keep`` kept them."""
@@ -206,11 +232,21 @@ def _canonicalize(sh: _Shard, n_cols: int) -> None:
 
 
 def _keep_bytes(sh: _Shard) -> int:
-    """Device bytes that cutting the row-wise kernels' rows from a shard may take, ``_canonicalize`` included."""
+    """Device bytes that cutting the row-wise kernels' rows from a shard may take, ``_canonicalize`` included.
+
+    A block starts at the row holding its first entry and ends at the row
+    holding the next block's, so it holds at most ``CANON_BLOCK_ENTRIES`` plus
+    the longest row less one entries.
+    """
+    import cupy as cp
+
     n_entries = len(sh.keys)
     if sh.canonical:
         return KEEP_ROWS_BYTES * n_entries
-    return KEEP_ROWS_BYTES * n_entries + CANON_ENTRY_BYTES * min(n_entries, CANON_BLOCK_ENTRIES) + 8 * (sh.n_rows + 1)
+    with cp.cuda.Device(sh.device):
+        longest = int(cp.diff(sh.row_ptr).max()) if sh.n_rows else 0
+    block = min(n_entries, CANON_BLOCK_ENTRIES + max(longest - 1, 0))
+    return KEEP_ROWS_BYTES * n_entries + CANON_ENTRY_BYTES * block + 8 * (sh.n_rows + 1)
 
 
 @dataclass

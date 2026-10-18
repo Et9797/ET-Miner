@@ -241,6 +241,83 @@ def test_without_room_for_the_older_levels_only_the_bounds_go(monkeypatch):
     assert mined_counts(tight, len(rows)) == mined_counts(roomy, len(rows)) == want
 
 
+def _bounds_frame(seed: int = 10):
+    rows = [list(r) + [99] for r in _dense_rows(seed, 1_000 + 37 * seed)]
+    counts = sorted(Counter(p for r in rows for p in itertools.combinations(sorted(r), 3)).values())
+    c = counts[len(counts) // 2]
+    s = c / len(rows)
+    while _min_count(s, len(rows)) > c:
+        s = np.nextafter(s, 0.0)
+    return rows, float(s), pl.DataFrame({"items": pl.Series(rows, dtype=pl.List(pl.Int64))})
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("bounds", ["0", "1"])
+def test_older_levels_are_kept_only_where_the_bounds_may_run(monkeypatch, bounds):
+    """The miner's complete levels, read at each level's callback: none without the bounds, at most three with."""
+    import sys
+
+    from et_miner import apriori
+
+    rows, s, df = _bounds_frame()
+    held = []
+    monkeypatch.setenv("ET_MINER_DEDUCTION", bounds)
+    res = apriori(
+        df,
+        min_support=s,
+        use_gpu=True,
+        use_generator_pruning=True,
+        level_callback=lambda k, *_: held.append(sorted(sys._getframe(1).f_locals["_complete_levels"])),
+    )
+    assert len(held) >= 3
+    if bounds == "0":
+        assert all(not levels for levels in held), held
+    else:
+        assert all(1 <= len(levels) <= 3 for levels in held), held
+    assert mined_counts(res, len(rows)) == ea_counts(rows, s)
+
+
+@pytest.mark.gpu
+def test_the_memory_guard_drops_the_older_levels_before_it_trips(monkeypatch):
+    """Over max_ram_gb once, after K=1: the guard drops the bounds' levels, measures again and mines on."""
+    import sys
+
+    import psutil
+
+    from et_miner import apriori
+    from et_miner.gpu import kernels
+
+    rows, s, df = _bounds_frame()
+    uploads = {}
+    real_upload = kernels.upload_subset_index
+
+    def spy(index_rows, *a, **k):
+        uploads[index_rows.shape[1] + 1] = k.get("deep") is not None
+        return real_upload(index_rows, *a, **k)
+
+    monkeypatch.setattr(kernels, "upload_subset_index", spy)
+    monkeypatch.setenv("ET_MINER_DEDUCTION", "1")
+    roomy = apriori(df, min_support=s, use_gpu=True, use_generator_pruning=True, max_ram_gb=1e6)
+    assert uploads and all(uploads.values())
+
+    real_info = psutil.Process.memory_info
+    over = []
+
+    def memory_info(self):
+        info = real_info(self)
+        if not over and sys._getframe(1).f_code.co_name == "_memory_gb":
+            over.append(1)
+            return info._replace(rss=1 << 60)
+        return info
+
+    monkeypatch.setattr(psutil.Process, "memory_info", memory_info)
+    uploads.clear()
+    tight = apriori(df, min_support=s, use_gpu=True, use_generator_pruning=True, max_ram_gb=1e6)
+    assert over, "the guard never measured"
+    assert uploads and not any(uploads.values()), "a level kept the bounds the guard dropped"
+    assert mined_counts(tight, len(rows)) == mined_counts(roomy, len(rows)) == ea_counts(rows, s)
+
+
 def test_deduction_knob_is_validated(monkeypatch):
     from et_miner import _env
 

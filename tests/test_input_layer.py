@@ -389,6 +389,79 @@ def test_unsorted_rows_are_cut_within_the_keep_decision(monkeypatch):
 
 
 @pytest.mark.gpu
+def test_a_row_longer_than_a_block_is_cut_within_the_keep_decision(monkeypatch):
+    """One unsorted row much longer than a sorting block: the keep decision budgets the block it makes."""
+    import cupy as cp
+
+    from et_miner.gpu import input_layer
+
+    monkeypatch.setattr(input_layer, "CANON_BLOCK_ENTRIES", 1 << 12)
+    rng = np.random.default_rng(3)
+    rows = [rng.integers(0, 30, size=3).tolist() for _ in range(2_000)]
+    rows.insert(700, rng.integers(0, 30, size=200_000).tolist())
+    column = pl.Series("items", rows, dtype=pl.List(pl.Int64))
+    built = input_layer.build_device_input(column, 0.01, 1, keep_rows=True)
+    pool = cp.get_default_memory_pool()
+    held = pool.used_bytes()
+    (shard,) = built.rows._shards
+    assert not shard.canonical
+    need = input_layer._keep_bytes(shard)
+    del built, shard
+    _free_pools()
+    pool.set_limit(size=held + need + (1 << 20))
+    try:
+        built = input_layer.build_device_input(column, 0.01, 1, keep_rows=True)
+        assert built.rows is not None
+        cols = list(range(len(built.col_to_item)))
+        assert built.rows.pairs(cols, keep=True) is not None, "the rows ran out of the memory the decision gave them"
+    finally:
+        pool.set_limit(size=0)
+        _free_pools()
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize(
+    "layer, where", [("device", "canonicalize"), ("device", "upload"), ("host", "upload")]
+)
+def test_rows_out_of_device_memory_give_way_to_the_bitvectors(monkeypatch, layer, where):
+    """An OutOfMemoryError while the rows are cut or uploaded drops them; K=2 and K=3 count from the bitvectors."""
+    import cupy as cp
+
+    from et_miner import apriori
+    from et_miner.gpu import input_layer, kernels, row_split
+
+    def no_room(*a, **k):
+        raise cp.cuda.memory.OutOfMemoryError(1 << 40, 0)
+
+    launches = []
+    for name in ("count_pairs_k2_rows", "count_k3_rows"):
+        real = getattr(kernels, name)
+        monkeypatch.setattr(kernels, name, lambda *a, _real=real, **k: launches.append(1) or _real(*a, **k))
+    monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
+    monkeypatch.setenv("ET_MINER_K2_KERNEL", "rows")
+    monkeypatch.setenv("ET_MINER_K3_KERNEL", "rows")
+    column = _random_column(
+        41, 1_777, pl.Int64, np.arange(0, 25, dtype=np.int64), nulls=True, repeats=True, unsorted=True
+    )
+    s = _tie_support(column)
+    want = ea_counts(column.to_list(), s)
+    res = apriori(column.to_frame(), min_support=s, use_gpu=True)
+    assert launches, "the row-wise kernels did not run without the fault: the test would be vacuous"
+    assert mined_counts(res, len(column)) == want
+
+    if where == "canonicalize":
+        monkeypatch.setattr(input_layer, "_canonicalize", no_room)
+    elif layer == "device":
+        monkeypatch.setattr(kernels, "K2Rows", no_room)
+    else:
+        monkeypatch.setattr(row_split, "_upload_k2_rows", no_room)
+    launches.clear()
+    res = apriori(column.to_frame(), min_support=s, use_gpu=True)
+    assert not launches
+    assert mined_counts(res, len(column)) == want
+
+
+@pytest.mark.gpu
 def test_the_vram_guard_drops_the_kept_rows_before_it_trips(monkeypatch):
     """The kept entries only speed up K=2 and K=3: a max_vram_gb the bitvectors fit passes as on the host layer."""
     from et_miner import apriori

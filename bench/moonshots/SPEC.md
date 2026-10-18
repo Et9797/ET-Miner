@@ -146,8 +146,13 @@ proposal; the exactness argument above is unchanged:
   it is logged.
   - A shard with unsorted rows or repeated items is sorted in blocks of
     `CANON_BLOCK_ENTRIES` entries, and the decision adds one block at
-    `CANON_ENTRY_BYTES` per entry. Sorting every entry at once took about
-    42 B per entry (the adversarial review's must-fix, `REPORT.md`).
+    `CANON_ENTRY_BYTES` per entry. A block runs from row start to row start,
+    so it holds up to `CANON_BLOCK_ENTRIES` plus the longest row less one
+    entries. Sorting every entry at once took about 42 B per entry (the
+    adversarial review's must-fix, `REPORT.md`).
+  - An OutOfMemoryError while the rows are cut or uploaded drops them, and
+    K=2 and K=3 count from the bitvectors (`DeviceRows`; `_HostRows` on the
+    host path).
   - The memory guards drop the kept entries before they compare, so a limit
     the bitvectors fit passes as on the host path.
 

@@ -217,6 +217,11 @@ All notable changes to ET-Miner are recorded here. Versions follow
     reads.
 - At `min_support=0.0` the device layer's columns are the ids that occur, as
   on the host layer; it made a column of every id in the span before.
+- When a device runs out of memory while the rows are cut or uploaded, the
+  rows are dropped and K=2 and K=3 count from the bitvectors, on either input
+  layer. The keep decision also budgets a row longer than a sorting block:
+  one unsorted row of 20M items ran a 12 GB card out of memory under an
+  820 MiB pool limit, where the host layer runs.
 
 ### GPU route: row-wise K=3
 
@@ -249,7 +254,9 @@ All notable changes to ET-Miner are recorded here. Versions follow
 - `ET_MINER_DEDUCTION=0|1` pins it; unset, it is on wherever the three levels
   are complete and their indexes fit. When the K−1 index fits but the older
   levels' do not, the subset test and count inference run without the bounds
-  (the council review found the whole subset test switched off there).
+  (the council review found the whole subset test switched off there). The
+  older levels stay in host RAM only where the bounds may run, and the memory
+  guards drop them before they trip.
 - Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M7.md`): dsl
   with count inference goes 5.83 → 3.65 s on one GPU and 4.83 → 3.33 s on
   two; no regime is slower by rule 2.

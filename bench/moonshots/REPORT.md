@@ -193,19 +193,33 @@ the last round ended three BLOCK, one APPROVE with that must-fix flagged.
    - Test: `test_min_support_zero_makes_no_column_of_an_absent_id`.
 3. **(should, fixed)** `_env.py` said `ET_MINER_K3_KERNEL` unset means dense; it
    means the r3 dispatch.
-4. **(should, open)** *A row longer than `CANON_BLOCK_ENTRIES` is one sorting
-   block,* and the keep decision budgets 4M entries. A block holds up to
+4. **(should, fixed)** *A row longer than `CANON_BLOCK_ENTRIES` is one sorting
+   block,* and the keep decision budgeted 4M entries. A block holds up to
    `CANON_BLOCK_ENTRIES + longest row − 1` entries. The correctness reviewer
    ran one row of 20M repeated items out of memory under 820–850 MiB pool
-   limits, where the host layer runs. The reviewers prefer an
-   OutOfMemoryError fallback inside `DeviceRows` (release the rows, count from
-   the bitvectors) over a second estimate.
-5. **(should, open)** *The kept rows have no single owner:* the keep decision
-   is in `input_layer.py`, the releases at about six places in
+   limits, where the host layer runs.
+   - The keep decision now budgets that block, and an OutOfMemoryError while
+     the rows are cut or uploaded drops them on either layer (`DeviceRows`,
+     `_HostRows`): `pairs` and `upload` return None, and K=2 and K=3 count
+     from the bitvectors.
+   - The reviewer's probe now runs at 820, 835 and 850 MiB.
+   - Tests: `test_a_row_longer_than_a_block_is_cut_within_the_keep_decision`,
+     `test_rows_out_of_device_memory_give_way_to_the_bitvectors` (cutting and
+     upload on the device layer, upload on the host layer).
+5. **(should, fixed)** *The kept rows had no single owner:* the keep decision
+   is in `input_layer.py`, and the releases were at about six places in
    `row_split.py`. All five memory findings of the adversarial review came
    from that bookkeeping.
-6. **(should, open)** `_complete_levels` holds levels k−1 and k−2 in host RAM
-   under `ET_MINER_DEDUCTION=0` too, and the memory guards do not drop them.
+   - Every release now goes through one helper, `_drop_rows`, and the
+     out-of-memory contract above is shared by both row sources.
+   - `_k2_src` is renamed `_rows_src`: it carries the K=3 rows too.
+6. **(should, fixed)** `_complete_levels` held levels k−1 and k−2 in host RAM
+   under `ET_MINER_DEDUCTION=0` too, and the memory guards did not drop them.
+   - They are now kept only where the bounds may run, and a guard that would
+     trip drops them first. The bounds return once three complete levels
+     follow.
+   - Tests: `test_older_levels_are_kept_only_where_the_bounds_may_run`,
+     `test_the_memory_guard_drops_the_older_levels_before_it_trips`.
 7. **(nice, open)**
    - The deep parameters give every K≥3 counting kernel 1408 B of local
      memory per thread, and the tiled kernels go from 46 to 66 registers;
@@ -223,7 +237,9 @@ the last round ended three BLOCK, one APPROVE with that must-fix flagged.
    - lex is on unconditionally, where SPEC § M5 (b) planned a dispatch, on
      evidence from dsl only.
 
-Speed on the moonshot regimes is unchanged by 1–3. The older levels' indexes
+Speed on the moonshot regimes is unchanged by 1–6. The rows' paths are the
+same where nothing runs out of memory, and the levels are kept as before
+under the bounds. The older levels' indexes
 exist only under count inference, and on dsl with count inference, the one
 such regime in Phase 3, every level still uploads the bounds (a spy on the
 index uploads, 1 GPU). No regime runs at `min_support=0`.
@@ -233,13 +249,14 @@ index uploads, 1 GPU). No regime runs at `min_support=0`.
 | check | result |
 |---|---|
 | `uv run pytest tests/test_tier_equivalence.py -q` | 91 passed |
-| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1608 passed |
+| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1615 passed |
+| the same without CuPy importable, as on the CPU-only CI runner (`-m "not slow"`) | 894 passed, 557 skipped |
 | `uv run pytest -q -m "gpu and slow" -k "not test_support_00"` | 17 passed |
 | `uv run python bench/selfcheck.py` | READY: 16 kernels on 2 devices |
 | `uv run ruff check src tests bench` | clean |
 
-These ran after the council's fixes (the adversarial review's gave 1605
-passed). Before the adversarial review's fixes, the not-slow suite gave
+These ran after the council's fixes, items 1–6 (the adversarial review's
+gave 1605 passed). Before the adversarial review's fixes, the not-slow suite gave
 1586 passed and 1 failed (`test_every_bitvec_wrapper_runs_the_guard`, fixed
 below).
 

@@ -243,6 +243,21 @@ All notable changes to ET-Miner are recorded here. Versions follow
   positions (at K=3 the rows too) are freed before the dense level. A dense
   K=3 level held about 8 B per entry plus 16 B per row of them before.
 
+### GPU route: K=3 dispatch by its work
+
+- **Row-wise K=3 now runs where s = (Σ_rows C(len, 2) + ρ² Σ_rows C(len, 3)) /
+  (slots × words) is below 1.0e-2** (`gpu/row_split_chunks.py`,
+  `k3_rows_statistic`, `K3_ROWS_MAX_S`). ρ is the share of the rows' pairs
+  that are frequent pairs. ρ² Σ C(len, 3) estimates the kernel's increments,
+  which the old r3 < 2.5e-4 left out.
+- The one-chunk condition and `ET_MINER_K3_KERNEL=dense|rows` stay. No mined
+  output changes.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-K3-DISPATCH.md`):
+  - the K=3 time lost against the faster kernel over 42 synthetic points falls
+    from 16.2 s to 5 ms; on held-out Zipf points it is 0 s;
+  - the largest single gain is 8.6 → 2.2 s;
+  - no regime of the moonshot matrix changes kernel.
+
 ### GPU route: deduction bounds under count inference
 
 - **With `use_generator_pruning=True`, the K≥3 subset test also settles

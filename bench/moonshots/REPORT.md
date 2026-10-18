@@ -295,3 +295,15 @@ below names a finding above, it supersedes that finding's status.
    `09d08fd`): every 2-GPU regime got faster by about that wait (smoke
    0.57 → 0.20 s, dsl 3.23 → 3.02 s, dsl-infer 2.72 → 2.33 s). Two GPUs are
    now faster than one on dsl and dsl-free, a tie under rule 2's 1 s floor.
+2. **(should)** *Findings 4: the K=3 dispatch reads s* (`perf/m2-dispatch-stat`,
+   `REPORT-K3-DISPATCH.md`). Row-wise K=3 runs where
+   s = (R2 + ρ² T3) / (slots × words) < 1.0e-2. That replaces
+   r3 < 2.5e-4.
+   - On 42 swept points the K=3 time lost against the faster kernel falls
+     from 16.2 s to 5 ms.
+   - On held-out Zipf points it falls to 0 s, where s over the generated
+     candidates, the protocol's first choice, lost 3.95 s.
+   - No matrix regime changes kernel; the final check matched Phase 3's
+     signatures.
+   - The held-out decision rests on 4 of 8 points (the cap), and why the
+     dense level follows the slots is unmeasured.

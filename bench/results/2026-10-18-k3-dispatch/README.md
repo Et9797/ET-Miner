@@ -27,6 +27,18 @@ shared host. The sweep ran on device 0 alone, NCCL off, thread pools at 16.
 - The sweep stopped at its cap (`--max-gpu-hours 0.7`) after 0.724 GPU-hours,
   before the last point, `zipf-N1M-F2400-L32`, ran. None errored or timed out.
 
+## Held-out points (Amendment 1)
+
+- At `16d9d7b` (`2bd575f`, the amendment, plus the environment capture in
+  `env.txt`); every row of `k3_heldout.jsonl` is stamped `16d9d7b`.
+- 4 of the 8 points ran, all valid, all four from the disagreeing six. The run
+  stopped at its cap (`--max-gpu-hours 0.15`) after 0.183 GPU-hours.
+  - Not run: `zipf-N4M-F600-L16`, `zipf-N2M-F1000-L32` (disagreeing),
+    `zipfrev-N1M-F1600-L32`, `zipf-N4M-F800-L16` (agreeing).
+- A first start at `2bd575f` was stopped within its first point, about 20 s
+  of GPU time, without a row. The environment capture had appended to the
+  tracked `env.txt`, which would have stamped every row dirty.
+
 ## Files
 
 - `k3_crossover.jsonl`: one row per point (statistics, the K=3 times of every
@@ -34,7 +46,11 @@ shared host. The sweep ran on device 0 alone, NCCL off, thread pools at 16.
 - `k3_crossover.txt`: `--analyze` at `76c0aac` (the points by s, r3's
   crossings, and the regret table).
 - `sweep.log` (not committed; `*.log` is ignored): the sweep's progress lines.
-- `env.txt`: the environment capture.
+- `k3_heldout.jsonl` / `k3_heldout.txt`: the held-out points and their
+  `--analyze` at the frozen thresholds.
+- `heldout.log` (not committed): the held-out run's progress lines.
+- `env.txt`: the environment captures (before the sweep and before the
+  held-out points).
 
 ## Commands
 
@@ -42,4 +58,6 @@ shared host. The sweep ran on device 0 alone, NCCL off, thread pools at 16.
 OUT=bench/results/2026-10-18-k3-dispatch
 uv run python bench/moonshots/k3_crossover.py --grid dispatch --out $OUT/k3_crossover.jsonl --max-gpu-hours 0.7
 uv run python bench/moonshots/k3_crossover.py --grid dispatch --out $OUT/k3_crossover.jsonl --analyze > $OUT/k3_crossover.txt
+uv run python bench/moonshots/k3_crossover.py --grid heldout --out $OUT/k3_heldout.jsonl --max-gpu-hours 0.15
+uv run python bench/moonshots/k3_crossover.py --grid heldout --out $OUT/k3_heldout.jsonl --analyze > $OUT/k3_heldout.txt
 ```

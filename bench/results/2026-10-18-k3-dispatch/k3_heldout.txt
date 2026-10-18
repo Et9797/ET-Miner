@@ -1,0 +1,30 @@
+  zipf-N1M-F1600-L40           r3=0.000217   s=0.00251    rho=0.914  dense=    5060.6 ms rows=    5211.8 ms  ratio=1.030
+  zipf-N1M-F1600-L44           r3=0.000256   s=0.00324    rho=0.913  dense=    5369.0 ms rows=    6982.3 ms  ratio=1.300
+  zipf-N1M-F1000-L32           r3=0.000523   s=0.00487    rho=0.912  dense=    1425.6 ms rows=    1920.8 ms  ratio=1.347
+  zipf-N1M-F1200-L40           r3=0.000472   s=0.00544    rho=0.912  dense=    2665.1 ms rows=    4358.1 ms  ratio=1.635
+{
+ "r3_star": null,
+ "up": [],
+ "down": [],
+ "monotone": false
+}
+{
+ "points": 4,
+ "regret": [
+  {
+   "key": "r3",
+   "threshold": 0.00025,
+   "regret_ms": 151.21399999999994
+  },
+  {
+   "key": "s",
+   "threshold": 0.0068,
+   "regret_ms": 3952.6049999999996
+  },
+  {
+   "key": "s_slots",
+   "threshold": 0.01,
+   "regret_ms": 0.0
+  }
+ ]
+}

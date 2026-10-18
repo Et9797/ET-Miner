@@ -79,3 +79,58 @@ uv run python bench/moonshots/tail_table.py $OUT/raw.jsonl \
   --reference bench/results/2026-10-18-moonshots-phase3/final.jsonl > $OUT/tail.md
 uv run python bench/moonshots/split_table.py $OUT/raw.jsonl > $OUT/split.md
 ```
+
+## Amendment 1: the destroy off the call's path (owner, 2026-10-18)
+
+Fixed after the run above (`REPORT-TEARDOWN.md`) and before the after-run.
+
+### Change
+
+Once its levels are done, `row_split._apriori_row_split_multi_gpu` hands its
+communicators to `nccl._destroy_nccl`. That function destroys them on a
+thread of its own (`et-miner-nccl-destroy`), while the call builds its
+result frame and returns. The thread is not a daemon: the interpreter waits
+for it at exit, before CUDA's exit handlers run. After an error the miner
+starts no thread, and the communicators go with its frame as before. No
+knob, no result change. `tests/test_nccl_teardown.py` covers:
+- the hand-off;
+- three calls in a row, each init overlapping the previous destroy;
+- the error path;
+- a process that exits right after a call.
+
+The level split now counts as `tail_nccl` only a destroy on the call's own
+thread. A destroy on another thread is outside the call.
+
+### Measurement
+
+- The "before" rows are the run above: `raw.jsonl` at `8d7d317`, the arm
+  renamed `before`.
+- The "after" rows are the same configs (`--mode moonshots-teardown-after`,
+  arm `after`), 3 reps rep-major at the change's revision, with
+  `--max-gpu-hours 0.2`.
+- Same box, same pins, fresh process per config. The two runs are hours
+  apart, so the shared host's load may differ; it is recorded.
+
+### Decision (rules 1 and 2, `decide.py --arms before after` over both files)
+
+1. Every after row carries its regime's signature, and no row logs a
+   fallback.
+2. Every after row has `tail_nccl` = 0 and `tail_other` at most 0.027 s.
+3. The change stays unless some regime loses by rule 2 (≥ 10 % slower,
+   disjoint ranges, ≥ 1 s). It removes a wait, so a loss would point to a
+   defect, for example the destroy thread competing with the result frame's
+   build. Rule 2's 1 s cannot be met by a wait of at most 0.5 s. The per-regime
+   change of the median wall is reported as measured, against the before
+   rows' `tail_nccl`.
+
+### Commands
+
+```bash
+OUT=bench/results/2026-10-18-moonshots-teardown-after
+uv run python bench/runner.py --mode moonshots-teardown-after --out $OUT --max-gpu-hours 0.2
+python3 -c "import json; [print(json.dumps({**r, 'id': r['id'].replace('-teardown#', '-before#')})) for r in map(json.loads, open('bench/results/2026-10-18-moonshots-teardown/raw.jsonl'))]" > $OUT/before.jsonl
+cat $OUT/before.jsonl $OUT/raw.jsonl > $OUT/compare.jsonl
+uv run python bench/moonshots/decide.py $OUT/compare.jsonl --arms before after > $OUT/decision.md
+uv run python bench/moonshots/tail_table.py $OUT/raw.jsonl \
+  --reference bench/results/2026-10-18-moonshots-phase3/final.jsonl > $OUT/tail.md
+```

@@ -76,9 +76,11 @@ starts at ``start()`` and ends at ``finish()``):
                    dispatch)
     input          from the call to K=1's start
     frame          _build_deferred_frame and _as_item_dtype (the result frame)
-    tail_nccl      the NCCL communicators' destroy when the miner drops them
+    tail_nccl      the NCCL communicators' destroy on the call's own thread
                    (two GPUs and more; timed by a wrapper around each
-                   communicator that _init_nccl returns)
+                   communicator that _init_nccl returns). A destroy on
+                   another thread is outside the call and lands in
+                   ``nccl_destroys`` only
     tail_other     from the last level's callback to the return, minus frame
                    and tail_nccl
     tail           from the last level's callback to the return
@@ -87,6 +89,7 @@ starts at ``start()`` and ends at ``finish()``):
 from __future__ import annotations
 
 import sys
+import threading
 import time
 from collections import defaultdict
 
@@ -131,24 +134,37 @@ def _kernel_phase(chunk, rows: bool) -> str:
 
 
 class _TimedComm:
-    """An NCCL communicator that records its destroy into ``spans`` when it is dropped.
+    """An NCCL communicator that times its destroy, explicit or when it is dropped.
 
     The miner calls only methods on its communicators, so attribute access
-    passes through. The destroy runs where the communicator's own would: when
-    the miner's last reference goes, at its return.
+    passes through. Each destroy goes into ``destroys`` as (seconds, on the
+    call's thread); one on the call's thread also goes into ``spans``.
     """
 
-    def __init__(self, comm, spans: list[tuple[float, float]]) -> None:
+    def __init__(self, comm, spans: list[tuple[float, float]], destroys: list[tuple[float, bool]]) -> None:
         self._comm = comm
         self._spans = spans
+        self._destroys = destroys
+        self._thread = threading.get_ident()
+        self._destroyed = False
 
     def __getattr__(self, name: str):
         return getattr(self._comm, name)
 
-    def __del__(self) -> None:
+    def destroy(self) -> None:
+        if self._destroyed:
+            return
+        self._destroyed = True
         t0 = time.perf_counter()
         self._comm.destroy()
-        self._spans.append((t0, time.perf_counter()))
+        t1 = time.perf_counter()
+        here = threading.get_ident() == self._thread
+        self._destroys.append((t1 - t0, here))
+        if here:
+            self._spans.append((t0, t1))
+
+    def __del__(self) -> None:
+        self.destroy()
 
 
 class LevelSplit:
@@ -161,6 +177,8 @@ class LevelSplit:
         self._closed: int | None = None
         self.span: dict[str, float] = {}
         self._span: dict[str, list[tuple[float, float]]] = defaultdict(list)
+        #: Every communicator destroy: (seconds, on the call's thread).
+        self.nccl_destroys: list[tuple[float, bool]] = []
         self._t_start: float | None = None
         self._first_level_start: float | None = None
         self._last_level_end: float | None = None
@@ -275,7 +293,7 @@ class LevelSplit:
 
         def wrapper(*args, **kwargs):
             comms, ok = fn(*args, **kwargs)
-            return ([_TimedComm(c, spans) for c in comms] if comms else comms), ok
+            return ([_TimedComm(c, spans, self.nccl_destroys) for c in comms] if comms else comms), ok
 
         return wrapper
 

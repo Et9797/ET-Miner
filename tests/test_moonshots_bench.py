@@ -2,6 +2,7 @@
 rules 1 and 2 mechanically, and the level split times the device input layer's phases."""
 
 import sys
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -87,6 +88,9 @@ def test_teardown_matrix_runs_every_regime_on_two_gpus_with_no_knob(n_dev):
         assert all(c["env"][t] == "16" for t in THREADS) and c["env"]["NCCL_P2P_DISABLE"] == "1"
         assert not [k for k in c["env"] if k.startswith("ET_MINER_")], c["id"]
     assert build_matrix("moonshots-teardown", n_dev, []) == m
+    after = build_matrix("moonshots-teardown-after", n_dev, [])
+    assert [c["id"].replace("-after#", "-teardown#") for c in after] == [c["id"] for c in m]
+    assert [{**c, "id": None, "base_id": None} for c in after] == [{**c, "id": None, "base_id": None} for c in m]
 
 
 def test_x0_matrix_differs_only_in_inference():
@@ -259,7 +263,8 @@ def test_occupancy_is_built_at_the_first_level_that_reads_it(monkeypatch):
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, pytest.param(2, marks=pytest.mark.multigpu)])
 def test_level_split_times_the_nccl_destroy(n_gpus):
-    """Two GPUs destroy their communicators in the tail; one GPU builds none. The wrapper leaves the result as is."""
+    """Two GPUs destroy their communicators off the call's thread; one GPU builds none. The wrapper leaves the
+    result as is."""
     import cupy as cp
 
     from et_miner import apriori
@@ -282,7 +287,13 @@ def test_level_split_times_the_nccl_destroy(n_gpus):
         split.finish()
     finally:
         split.uninstall()
+    for thread in threading.enumerate():
+        if thread.name == "et-miner-nccl-destroy":
+            thread.join(timeout=30)
     assert timed == plain and len(plain) > 0
     span = split.span
-    assert (span["tail_nccl"] > 0) == (n_gpus > 1)
+    # The miner destroys its communicators off the call's thread: none is timed inside the call.
+    assert span["tail_nccl"] == 0
+    assert len(split.nccl_destroys) == (n_gpus if n_gpus > 1 else 0)
+    assert not any(here for _, here in split.nccl_destroys)
     assert span["tail_other"] == pytest.approx(span["tail"] - span["frame"] - span["tail_nccl"], abs=1e-5)

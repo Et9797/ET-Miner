@@ -647,10 +647,11 @@ def build_moonshots_polish(n_dev: int) -> list[dict]:
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
 
 
-def build_moonshots_teardown(n_dev: int) -> list[dict]:
+def build_moonshots_teardown(n_dev: int, arm: str = "teardown") -> list[dict]:
     """The 2-GPU tail's split (`--mode moonshots-teardown`, bench/moonshots/PROTOCOL-TEARDOWN.md): every moonshot
-    regime on two GPUs with every knob unset and the level split's NCCL destroy, 3 reps rep-major."""
-    base = [c for c in _moonshot_arms({"teardown": {}}, n_dev) if c["n_gpus"] == 2]
+    regime on two GPUs with every knob unset and the level split's NCCL destroy, 3 reps rep-major. Amendment 1's
+    after-run (`--mode moonshots-teardown-after`) is the same configs as arm `after`."""
+    base = [c for c in _moonshot_arms({arm: {}}, n_dev) if c["n_gpus"] == 2]
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
 
 

@@ -267,3 +267,13 @@ The `tile_occupancy` guard: `tests/test_kernel_guard_claims.py` requires every
 wrapper that takes `bitvecs_gpu` to run `_assert_bitvecs`. M5b's
 `tile_occupancy` did not. The fix sits on `perf/moonshot-polish`, so
 `perf/moonshot-m5b` alone still fails that test.
+
+## After the merge
+
+Follow-ups on the open findings, one branch off `main` each.
+
+1. **(should)** *Findings 2's tail is named* (`perf/two-gpu-teardown`,
+   `REPORT-TEARDOWN.md`). It is the NCCL communicators' destroy at the miner's
+   return, which waits up to 0.5 s for NCCL's proxy thread: 0.319 s at the
+   median of 30 two-GPU rows. Everything else in the tail is at most 0.007 s.
+   Moving the destroy off the call's path is open.

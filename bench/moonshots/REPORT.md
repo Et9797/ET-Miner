@@ -63,7 +63,7 @@ Exactness carried every step:
 1. **(should)** *X0: the owner's decision.* `use_generator_pruning=True` takes
    dsl from 3.86 to 2.40 s on the final tree (one GPU) and costs nothing
    measurable elsewhere (`REPORT-X0.md`). The output is identical by
-   construction. The default stays `False` until the owner decides.
+   construction. **Closed (owner, 2026-10-18): the default stays `False`.**
 2. **(should)** *Two GPUs rarely pay on this box after the stack.* dsl is 3.23 s
    on two GPUs against 3.86 on one, but sk2ml3 is 2.33 against 1.77, and every
    small regime is slower on two. Fixed costs dominate the short walls:
@@ -73,13 +73,20 @@ Exactness carried every step:
      unexplained).
 
    Naming the tail (span phases for the NCCL destroy, the uploader drain, the
-   pools) comes first. A one-GPU dispatch for small work would change
-   `n_gpus`' meaning, which is the owner's call.
+   pools) comes first. **The owner decided against a one-GPU dispatch for
+   small work (2026-10-18): `n_gpus` stays the exact device count.**
 3. **(should)** *CuPy's pool fragments across calls in one process*
    (`REPORT-M2.md` finding 3, predates the campaign). A second
    `apriori(stress_k2, max_length=2)` on one 12 GB GPU raises
-   OutOfMemoryError on either input layer. Freeing the pool's cached blocks
-   at the start of a run would fix it.
+   OutOfMemoryError on either input layer. **Fixed after the merge
+   (`fix/pool-fragmentation`):** each row-split run releases the cached
+   blocks on its devices before its first allocation
+   (`core/apriori.py`, `_release_cached_blocks`). Calls in a row (three on
+   the device layer, two on the host layer) now mine the same 1,695,332
+   itemsets on stress_k2.
+   `tests/test_row_split_e2e.py::TestPoolReuse` fails without the release.
+   SON's GPU routes (`streaming=True`) do not release first; whether they
+   hit the same is unverified.
 4. **(should)** *M2's dispatch leaves wins on the table.* r3 alone does not
    order the swept points. Adding the increments estimate gives
    (R2 + ρ² T3) / (slots × words); ρ² T3 predicts sk2ml3's and oom2ml3's
@@ -105,6 +112,13 @@ Exactness carried every step:
 11. **(nice)** *Under the lex order the build holds each row's new position*
     (4 B per row) beside the bitvectors. Under a 560–580 MiB pool limit that
     tips the review's probe into OutOfMemoryError where `keep` runs.
+12. **(nice)** *The fused tiled K=2 fallback sizes its output without the
+    budget* (found while writing `TestPoolReuse`). `row_split.py` takes it
+    when the pairs exceed one dense chunk, yet `count_tiled_fused` allocates
+    min(2²⁴, candidates) × 12 B of output first (up to 192 MiB). With 50 MB
+    of pool headroom beside 100 MB of bitvectors, its 64 MB index array is
+    what fails. Sizing the first capacity from the budget would fix it; the
+    buffer already grows on overflow.
 
 ## Adversarial review
 

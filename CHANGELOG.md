@@ -414,6 +414,19 @@ One change moves the result's dtype, not its values:
 
 ### Fixed
 
+- **A second GPU-route call in one process no longer runs out of memory on
+  the first call's cached pool blocks** (`core/apriori.py`,
+  `_release_cached_blocks`). A call leaves its blocks cached in CuPy's pool.
+  The next call's first small allocations split them, a split block cannot be
+  released, and that call's bitvectors then needed a second block of the same
+  size: a second `apriori(stress_k2, max_length=2)` on one 12 GB RTX 3060
+  raised `OutOfMemoryError` on both input layers (8.75 GB asked, 3.4 GB
+  free). Each row-split run (`use_gpu=True` or `bitvecs=`) now releases the
+  cached blocks on its devices before its first allocation. Calls in a row
+  (three on the device layer, two on the host layer) now mine the same
+  1,695,332 itemsets. `mine_two_phase` calls
+  `apriori()` twice in one process and gains the same. Covered by
+  `tests/test_row_split_e2e.py::TestPoolReuse` on both input layers.
 - **#47 — a `local_support_factor` outside (0, 1] raises `ValueError`**
   (`apriori_streaming`, `apriori_streaming_multi_gpu`). Above 1, SON's pass 1
   mined every chunk above the global threshold, so an itemset frequent overall

@@ -74,8 +74,7 @@ Exactness carried every step:
 
    Naming the tail (span phases for the NCCL destroy, the uploader drain, the
    pools) comes first. **The owner decided against a one-GPU dispatch for
-   small work (2026-10-18): `n_gpus` stays the exact device count.** Naming
-   the tail stays open.
+   small work (2026-10-18): `n_gpus` stays the exact device count.**
 3. **(should)** *CuPy's pool fragments across calls in one process*
    (`REPORT-M2.md` finding 3, predates the campaign). A second
    `apriori(stress_k2, max_length=2)` on one 12 GB GPU raises

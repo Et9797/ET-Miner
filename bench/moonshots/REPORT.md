@@ -105,9 +105,9 @@ Exactness carried every step:
 | check | result |
 |---|---|
 | `uv run pytest tests/test_tier_equivalence.py -q` | 91 passed |
-| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1587 passed (1 failed before the `tile_occupancy` guard fix in this commit; it passes after it) |
+| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1586 passed, 1 failed: `test_every_bitvec_wrapper_runs_the_guard` (`tile_occupancy`). After the guard fix that test and `tests/test_row_order.py` pass (38 passed); the whole suite was not rerun. |
 | `uv run pytest -q -m "gpu and slow" -k "not test_support_00"` | 17 passed |
-| `uv run python bench/selfcheck.py` | READY: 17 kernels on 2 devices |
+| `uv run python bench/selfcheck.py` | READY: 16 kernels on 2 devices |
 | `uv run ruff check src tests bench` | clean |
 
 `-k "not test_support_00"` deselects the Online Retail support tests, as in

@@ -62,3 +62,4 @@ any timed run.
 | protocol | question | summary script |
 |---|---|---|
 | `PROTOCOL-TEARDOWN.md` | where the 2-GPU tail goes (Findings 2) | `tail_table.py` |
+| `PROTOCOL-K3-DISPATCH.md` | whether s = (R2 + ρ² T3) / (generated × words) picks the K=3 kernel better than r3 (Findings 4) | `k3_crossover.py --grid dispatch --analyze` |

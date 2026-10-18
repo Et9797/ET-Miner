@@ -146,7 +146,8 @@ def _destroy_nccl(comms):
     """Destroys ``comms`` on a background thread, which it returns; None for no communicators.
 
     NCCL's destroy waits for its proxy thread, which wakes every 500 ms when
-    idle, so a caller would wait 0-0.5 s (bench/moonshots/REPORT-TEARDOWN.md).
+    idle, so a caller would wait up to about 0.5 s
+    (bench/moonshots/REPORT-TEARDOWN.md).
     The thread is not a daemon: the interpreter waits for it at exit, before
     CUDA's own exit handlers run.
     """

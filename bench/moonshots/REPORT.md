@@ -270,13 +270,14 @@ wrapper that takes `bitvecs_gpu` to run `_assert_bitvecs`. M5b's
 
 ## After the merge
 
-Follow-ups on the open findings, one branch off `main` each.
+Follow-ups on the open findings, one branch off `main` each. Where an item
+below names a finding above, it supersedes that finding's status.
 
 1. **(should)** *Findings 2's tail is named* (`perf/two-gpu-teardown`,
    `REPORT-TEARDOWN.md`). It is the NCCL communicators' destroy at the miner's
-   return, which waits up to 0.5 s for NCCL's proxy thread: 0.319 s at the
+   return, which waits up to about 0.5 s for NCCL's proxy thread: 0.319 s at the
    median of 30 two-GPU rows. Everything else in the tail is at most 0.007 s.
    **The destroy now runs on a thread of its own** (owner, 2026-10-18;
    `09d08fd`): every 2-GPU regime got faster by about that wait (smoke
-   0.57 → 0.20 s, dsl 3.23 → 3.02 s, dsl-infer 2.72 → 2.33 s). Two GPUs now
-   beat one on dsl and dsl-free.
+   0.57 → 0.20 s, dsl 3.23 → 3.02 s, dsl-infer 2.72 → 2.33 s). Two GPUs are
+   now faster than one on dsl and dsl-free, a tie under rule 2's 1 s floor.

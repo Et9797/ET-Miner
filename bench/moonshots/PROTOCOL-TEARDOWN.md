@@ -12,6 +12,13 @@ timed run, on `perf/two-gpu-teardown`.
   EPYC 7282 rows only, 554 per GPU count). `tail − frame` has a median of 0.001 s
   on one GPU (max 0.027) and 0.302 s on two (quartiles 0.26 and 0.39, range
   0.033–0.541).
+
+  *Erratum (council review, 2026-10-18, after both runs):* 150 of those 554
+  rows per GPU count are copies of other files' rows (`phase3/compare.jsonl`,
+  `polish/compare.jsonl`, `polish/before.jsonl`). The 404 unique rows give a
+  median of 0.300 s on two GPUs (quartiles 0.256 and 0.394, range
+  0.033–0.541) and 0.001 s on one (max 0.027). Rule 2's threshold below,
+  0.027 s, is unchanged.
 - **What exists only on two GPUs** is the pair of NCCL communicators.
   `row_split._apriori_row_split_multi_gpu` never destroys them itself: they go
   when its last reference does, at the return, inside the tail.
@@ -54,7 +61,7 @@ checks that the result is unchanged on one GPU and on two.
 
 - Every `MOONSHOT_REGIMES` regime on two GPUs, every knob unset
   (`--mode moonshots-teardown`, arm `teardown`). One GPU is left out: it builds
-  no communicator, and its tail is the 554 rows above.
+  no communicator, and its tail is the rows above.
 - 3 reps rep-major, a fresh process per config, warm-up as before.
 - The level split, peak memory, throttle reasons, logged fallbacks and
   signatures are recorded. No tracked-file edits or commits during the run.

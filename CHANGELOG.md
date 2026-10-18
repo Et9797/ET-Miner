@@ -286,8 +286,8 @@ All notable changes to ET-Miner are recorded here. Versions follow
 - **A multi-GPU call no longer waits for NCCL's teardown**
   (`gpu/nccl.py::_destroy_nccl`, `gpu/row_split.py`). Destroying the
   communicators waits for NCCL's proxy thread, which wakes every 500 ms when
-  idle. Every 2-GPU call therefore ended 0–0.5 s after its work, 0.32 s at
-  the median. Once its levels are done the row-split miner now hands the
+  idle. Every 2-GPU call therefore ended up to about 0.5 s after its work
+  (0.52 s at most measured), 0.32 s at the median. Once its levels are done the row-split miner now hands the
   communicators to a thread of its own (`et-miner-nccl-destroy`, not a
   daemon, so the interpreter waits for it at exit) and returns. After an
   error they go with the miner's frame, as before. Measured on 2× RTX 3060,

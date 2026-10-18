@@ -6,9 +6,9 @@ fallback, every signature equal to Phase 3's 2-GPU rows, 0.126 GPU-hours.
 
 **The tail is the NCCL communicators' destroy.** On two GPUs the miner drops
 its two communicators at its return. NCCL 2.31 then waits for its proxy
-thread, which wakes every 500 ms when idle. So the call ends 0–0.5 s later
-than its work, by chance: the wait is 500 ms minus the time since the last
-NCCL call, modulo 500 ms.
+thread, which wakes every 500 ms when idle. So the call ends up to about
+0.5 s later than its work (0.52 s at most measured), by chance: the wait is
+500 ms minus the time since the last NCCL call, modulo 500 ms.
 
 | config | wall s | tail s | tail_nccl s | tail_other s | destroy / wall |
 |---|---|---|---|---|---|
@@ -99,14 +99,18 @@ Rule 2 calls every regime a tie, because it asks for 1 s saved.
 
 ### Findings
 
-1. **(should)** *The change stays.* Two GPUs now beat one on dsl (3.02
-   against 3.86 s) and dsl-free (2.40 against 2.76 s) with disjoint ranges.
+1. **(should)** *The change stays.* Two GPUs are now faster than one on dsl
+   (3.02 against 3.86 s) and dsl-free (2.40 against 2.76 s), with disjoint
+   ranges. Under rule 2 both are ties: they save 0.84 and 0.36 s, under its
+   1 s floor, and the one-GPU rows come from another run (Phase 3).
    They tie on dsl-infer (2.33 against 2.40 s, overlapping ranges) and sk2ml3
    (1.79 against 1.77 s). The small regimes stay slower on two GPUs (0.20–0.69
    against 0.06–0.38 s): the reduce of finding 3 above and the levels' fixed
    costs remain.
 2. **(nice)** *The 2-GPU walls no longer depend on chance.* or002's range was
    0.56–1.08 s; it is 0.51–0.59 s now. sk2ml3's 2.32 s outlier is gone.
-3. **(nice)** The two runs are about two hours apart on a shared host. Each
-   wall moved by about the before rows' `tail_nccl`, between 0.21 and 0.52 s.
+3. **(nice)** The two runs are about two hours apart on a shared host.
+   Every regime but sk2ml3 moved by 0.22–0.52 s, about its before rows'
+   `tail_nccl`. sk2ml3 moved 0.03 s; its before `tail_nccl` was 0.075 s at
+   the median.
    Two of the three dsl rows ran under the SW power cap (0x4), as before.

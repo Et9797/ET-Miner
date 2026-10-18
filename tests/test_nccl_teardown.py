@@ -1,7 +1,8 @@
 """The row-split miner destroys its NCCL communicators on a background thread.
 
 NCCL's destroy waits for its proxy thread, which wakes every 500 ms when idle,
-so a call ended 0-0.5 s after its work (bench/moonshots/REPORT-TEARDOWN.md).
+so a call ended up to about 0.5 s after its work
+(bench/moonshots/REPORT-TEARDOWN.md).
 The miner now hands the communicators to `nccl._destroy_nccl` once its levels
 are done, and returns without waiting.
 """
@@ -16,11 +17,16 @@ import numpy as np
 import polars as pl
 import pytest
 
-cp = pytest.importorskip("cupy", reason="cupy not installed")
+def _gpu_count() -> int:
+    try:
+        import cupy
 
-pytestmark = [pytest.mark.gpu, pytest.mark.multigpu]
+        return cupy.cuda.runtime.getDeviceCount()
+    except Exception:
+        return 0
 
-needs_two = pytest.mark.skipif(cp.cuda.runtime.getDeviceCount() < 2, reason="needs 2 CUDA devices")
+
+needs_two = pytest.mark.skipif(_gpu_count() < 2, reason="needs 2 CUDA devices")
 
 THREAD = "et-miner-nccl-destroy"
 
@@ -48,6 +54,8 @@ def test_no_communicators_start_no_thread():
     assert _destroy_nccl(None) is None and _destroy_nccl([]) is None
 
 
+@pytest.mark.gpu
+@pytest.mark.multigpu
 @needs_two
 def test_destroy_runs_on_its_own_thread():
     from et_miner.gpu.nccl import _destroy_nccl, _init_nccl
@@ -60,6 +68,8 @@ def test_destroy_runs_on_its_own_thread():
     assert [c.comm for c in comms] == [0, 0]
 
 
+@pytest.mark.gpu
+@pytest.mark.multigpu
 @needs_two
 def test_the_miner_hands_its_communicators_off(monkeypatch):
     """Every communicator the miner built is destroyed once its thread ends, and the result is the one-GPU result."""
@@ -90,6 +100,8 @@ def test_the_miner_hands_its_communicators_off(monkeypatch):
     assert two == _mined(apriori(df, min_support=0.01, use_gpu=True, n_gpus=1)) and len(two) > 0
 
 
+@pytest.mark.gpu
+@pytest.mark.multigpu
 @needs_two
 def test_calls_in_a_row_while_the_last_destroy_runs():
     """A call's init may overlap the previous call's destroy: NCCL serves distinct communicators on distinct threads."""
@@ -101,6 +113,8 @@ def test_calls_in_a_row_while_the_last_destroy_runs():
     assert results[0] == results[1] == results[2] and len(results[0]) > 0
 
 
+@pytest.mark.gpu
+@pytest.mark.multigpu
 @needs_two
 def test_an_error_leaves_the_communicators_to_the_frame(monkeypatch):
     """After an error the miner starts no destroy thread: the communicators go with its frame, as before."""
@@ -119,6 +133,8 @@ def test_an_error_leaves_the_communicators_to_the_frame(monkeypatch):
     assert started == []
 
 
+@pytest.mark.gpu
+@pytest.mark.multigpu
 @needs_two
 def test_a_process_exits_cleanly_right_after_a_call():
     """The interpreter waits for the destroy thread before CUDA's exit handlers run."""

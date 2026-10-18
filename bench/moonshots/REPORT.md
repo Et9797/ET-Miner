@@ -181,7 +181,7 @@ the last round ended three BLOCK, one APPROVE with that must-fix flagged.
    the bounds. `main` turned the index off only when the K−1 index did not
    fit. On the descending side of a lattice the older levels are the larger
    ones: on C(20, k)-shaped levels at K=15 the test dropped wherever the K−1
-   index took between about 1/22.6 and 1/4 of the free VRAM.
+   index took between about 1/23 and 1/4 of the free VRAM.
    - The fix sizes the K−1 index alone first, as `main` does, then drops only
      the bounds (and logs that) when the older levels do not fit beside it.
    - Test: `test_without_room_for_the_older_levels_only_the_bounds_go`.

@@ -36,6 +36,9 @@ def tile_occupancy(bitvecs_gpu) -> Occupancy:
     """The tile occupancy of (n_cols, n_u64s) bitvectors, on their device."""
     import cupy as cp
 
+    from .loader import _assert_bitvecs
+
+    _assert_bitvecs("tile_occupancy", bitvecs_gpu)
     n_cols, n_u64s = bitvecs_gpu.shape
     n_tiles = -(-n_u64s // OCC_TILE_WORDS)
     words = max(1, -(-n_tiles // 64))

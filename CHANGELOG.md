@@ -199,6 +199,9 @@ All notable changes to ET-Miner are recorded here. Versions follow
   - sk2ml3: 27.5 → 22.9 s;
   - no regime slower by rule 2.
   - dsl's peak host RSS falls from 10.3 to 3.5 GB.
+- The span check reads the chunks' entries (the items' minimum and maximum,
+  nulls aside) instead of Polars' per-row `list.min` / `list.max`: dsl's input
+  falls by about 0.75 s (`bench/moonshots/REPORT-POLISH.md`).
 - `bench/moonshots/`: `PROTOCOL-M1.md`, `REPORT-M1.md`, `decide.py`;
   `bench/runner.py --mode moonshots-m1|moonshots-m1-final`. The level split
   times the device phases.
@@ -247,6 +250,9 @@ All notable changes to ET-Miner are recorded here. Versions follow
   - dsl: 10.9 → 4.9 s on one GPU, 6.9 → 4.1 s on two;
   - dsl with free sets: 5.3 → 3.8 s;
   - no regime is slower by rule 2.
+- The order is two stable radix argsorts, and each device builds its tile
+  occupancy at its first per-candidate or group launch, so a run that never
+  reads it (sk2ml3's row-wise K=3) pays nothing.
 
 ### Polars 2.0
 

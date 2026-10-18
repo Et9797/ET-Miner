@@ -185,7 +185,7 @@ threshold moves a regime to the other kernel.
 
 **Held-out points** (`k3_crossover.py --grid heldout`, the sweep's procedure):
 - six Zipf points where the two statistics disagree at their frozen
-  thresholds (s < 6.8e-3 ≤ … and `s_slots` ≥ 1.0e-2, by the CPU plan):
+  thresholds (s < 6.8e-3 and `s_slots` ≥ 1.0e-2, by the CPU plan):
   - N1M: F1000-L32, F1200-L40, F1600-L40, F1600-L44;
   - N4M: F600-L16;
   - N2M: F1000-L32.

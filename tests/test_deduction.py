@@ -200,6 +200,47 @@ def test_mining_with_the_bounds_matches_the_oracle(monkeypatch, pin, n_gpus, see
     assert results["1"] == results["0"] == ea_counts(rows, float(s))
 
 
+@pytest.mark.gpu
+def test_without_room_for_the_older_levels_only_the_bounds_go(monkeypatch):
+    """Room for every K-1 index but not for the older levels' beside it: the subset test and inference stay."""
+    from et_miner import apriori
+    from et_miner.gpu import kernels, row_split
+
+    rows = [list(r) + [99] for r in _dense_rows(10, 1_370)]
+    counts = sorted(Counter(p for r in rows for p in itertools.combinations(sorted(r), 3)).values())
+    c = counts[len(counts) // 2]
+    s = c / len(rows)
+    while _min_count(s, len(rows)) > c:
+        s = np.nextafter(s, 0.0)
+    df = pl.DataFrame({"items": pl.Series(rows, dtype=pl.List(pl.Int64))})
+    uploads = {}
+    real_upload = kernels.upload_subset_index
+
+    def spy(index_rows, *a, **k):
+        uploads[index_rows.shape[1] + 1] = (k["mode"], k.get("deep") is not None, kernels.index_nbytes(*index_rows.shape))
+        return real_upload(index_rows, *a, **k)
+
+    monkeypatch.setattr(kernels, "upload_subset_index", spy)
+    monkeypatch.setenv("ET_MINER_DEDUCTION", "1")
+    roomy = apriori(df, min_support=float(s), use_gpu=True, use_generator_pruning=True)
+    every = dict(uploads)
+    assert all(mode & kernels.SUBSET_BOUNDS for mode, _, _ in every.values())
+
+    widest = max(nbytes for _, _, nbytes in every.values())
+    real_free = row_split._device_available_bytes
+    monkeypatch.setattr(row_split, "_device_available_bytes", lambda did: (4 * widest, real_free(did)[1]))
+    uploads.clear()
+    tight = apriori(df, min_support=float(s), use_gpu=True, use_generator_pruning=True)
+    assert set(uploads) == set(every), "a level lost its subset test"
+    dropped = [k for k, (mode, deep, _) in uploads.items() if not mode & kernels.SUBSET_BOUNDS]
+    assert dropped, "every level kept its bounds: the test is vacuous"
+    for k in dropped:
+        mode, deep, _ = uploads[k]
+        assert mode == kernels.SUBSET_PRUNE | kernels.SUBSET_INFER and not deep, k
+    want = ea_counts(rows, float(s))
+    assert mined_counts(tight, len(rows)) == mined_counts(roomy, len(rows)) == want
+
+
 def test_deduction_knob_is_validated(monkeypatch):
     from et_miner import _env
 

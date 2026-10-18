@@ -215,6 +215,8 @@ All notable changes to ET-Miner are recorded here. Versions follow
     so a limit the bitvectors fit passes as on the host path;
   - `ET_MINER_K2_KERNEL=dense` no longer drops the rows that row-wise K=3
     reads.
+- At `min_support=0.0` the device layer's columns are the ids that occur, as
+  on the host layer; it made a column of every id in the span before.
 
 ### GPU route: row-wise K=3
 
@@ -245,7 +247,9 @@ All notable changes to ET-Miner are recorded here. Versions follow
   - equal bounds give its count without counting it.
 - Exact by inclusion–exclusion. No mined output changes.
 - `ET_MINER_DEDUCTION=0|1` pins it; unset, it is on wherever the three levels
-  are complete and their indexes fit.
+  are complete and their indexes fit. When the K−1 index fits but the older
+  levels' do not, the subset test and count inference run without the bounds
+  (the council review found the whole subset test switched off there).
 - Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M7.md`): dsl
   with count inference goes 5.83 → 3.65 s on one GPU and 4.83 → 3.33 s on
   two; no regime is slower by rule 2.

@@ -417,6 +417,22 @@ def test_the_vram_guard_drops_the_kept_rows_before_it_trips(monkeypatch):
 
 
 @pytest.mark.gpu
+@pytest.mark.parametrize("max_length", [1, 2])
+def test_min_support_zero_makes_no_column_of_an_absent_id(monkeypatch, max_length):
+    """At min_count 0 the columns are the ids that occur, as on the host layer, not every id of the span."""
+    from et_miner import apriori
+
+    frame = pl.DataFrame({"items": pl.Series([[1, 5], [5], [1, 5, 9]], dtype=pl.List(pl.Int64))})
+    results = {}
+    for layer in ("host", "device"):
+        monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
+        res = apriori(frame, min_support=0.0, use_gpu=True, max_length=max_length)
+        results[layer] = sorted(zip(map(tuple, res["itemset"].to_list()), res["support"].to_list()))
+    assert results["device"] == results["host"]
+    assert {i for itemset, _ in results["device"] for i in itemset} == {1, 5, 9}
+
+
+@pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", _n_gpus_params())
 @pytest.mark.parametrize("k2", ["rows", "dense"])
 @pytest.mark.parametrize("seed", [0, 1, 2])

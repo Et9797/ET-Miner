@@ -449,7 +449,7 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
     shards = _upload_shards(pieces, ids, cuts)
     del pieces
     occurrences = _occurrences(shards, ids.span)
-    freq = np.flatnonzero(occurrences >= min_count)
+    freq = np.flatnonzero((occurrences >= min_count) & (occurrences > 0))
     logger.info(
         f"Device input: {n_rows:,} transactions, min_count={min_count}, {len(freq)} frequent items, "
         f"{sum(len(sh.keys) for sh in shards):,} entries on {len(shards)} GPU(s)"

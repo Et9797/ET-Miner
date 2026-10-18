@@ -91,7 +91,12 @@ Variables:
                                        prune_apriori, a dense level and
                                        rows of at most 64 active items, and
                                        counts from the bitvectors otherwise.
-                                       Unset: dense
+                                       Unset: rows below the measured
+                                       crossover in r3 = Σ_rows C(len, 2) /
+                                       (generated candidates × words) when
+                                       its slots fit one chunk, dense
+                                       otherwise (et_miner.gpu.
+                                       row_split_chunks.K3_ROWS_MAX_R)
     ET_MINER_DEDUCTION                 "0" or "1": with count inference, the
                                        K>=3 counting kernels settle a
                                        candidate inference leaves by the

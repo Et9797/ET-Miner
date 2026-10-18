@@ -166,17 +166,80 @@ reused K=2's positions at K=3. A spy on every `DeviceRows.pairs` call, run on
 `f103fdc` and on the fix, recorded the same column sets and no reuse on
 either. Every regime also returned the same itemset count on both trees.
 
+## Council review of PR #35
+
+Four reviewers (architecture, numerics, alternatives, correctness) judged the
+PR's 20 `src/` files over three rounds. None found a wrong result, and the
+numerics reviewer re-derived the deduction bounds over 3,000 random datasets
+(no violation). All four named the same defect as a must-fix before merge;
+the last round ended three BLOCK, one APPROVE with that must-fix flagged.
+
+1. **(must-fix, fixed)** *A misfit of the deduction bounds' older levels
+   switched off the whole subset test.* `_subset_index` sized the K−1 index
+   and the K−2 and K−3 indexes as one, so when they did not fit a quarter of
+   the free VRAM together, the apriori prune and count inference went with
+   the bounds. `main` turned the index off only when the K−1 index did not
+   fit. On the descending side of a lattice the older levels are the larger
+   ones: on C(20, k)-shaped levels at K=15 the test dropped wherever the K−1
+   index took between about 1/22.6 and 1/4 of the free VRAM.
+   - The fix sizes the K−1 index alone first, as `main` does, then drops only
+     the bounds (and logs that) when the older levels do not fit beside it.
+   - Test: `test_without_room_for_the_older_levels_only_the_bounds_go`.
+2. **(should, fixed)** *At `min_support=0.0` the device layer made a column of
+   every id in the span*, ids that never occur included: on
+   `[[1,5],[5],[1,5,9]]` it gave 9 and 45 itemsets at `max_length` 1 and 2
+   where the host layer gives 3 and 6. It now keeps the ids that occur, as the
+   host layer does. Finding 10 (count-0 itemsets of real items) stays open.
+   - Test: `test_min_support_zero_makes_no_column_of_an_absent_id`.
+3. **(should, fixed)** `_env.py` said `ET_MINER_K3_KERNEL` unset means dense; it
+   means the r3 dispatch.
+4. **(should, open)** *A row longer than `CANON_BLOCK_ENTRIES` is one sorting
+   block,* and the keep decision budgets 4M entries. A block holds up to
+   `CANON_BLOCK_ENTRIES + longest row − 1` entries. The correctness reviewer
+   ran one row of 20M repeated items out of memory under 820–850 MiB pool
+   limits, where the host layer runs. The reviewers prefer an
+   OutOfMemoryError fallback inside `DeviceRows` (release the rows, count from
+   the bitvectors) over a second estimate.
+5. **(should, open)** *The kept rows have no single owner:* the keep decision
+   is in `input_layer.py`, the releases at about six places in
+   `row_split.py`. All five memory findings of the adversarial review came
+   from that bookkeeping.
+6. **(should, open)** `_complete_levels` holds levels k−1 and k−2 in host RAM
+   under `ET_MINER_DEDUCTION=0` too, and the memory guards do not drop them.
+7. **(nice, open)**
+   - The deep parameters give every K≥3 counting kernel 1408 B of local
+     memory per thread, and the tiled kernels go from 46 to 66 registers;
+     the effect on speed is unmeasured.
+   - A column the device layer does not serve is collected in memory before
+     the host CSR build.
+   - `apriori.py` repeats the miner call's keyword arguments for the two
+     input layers.
+   - `build_device_input` defaults to `row_order="keep"`, the route to lex.
+8. **(nice, open)** *Alternatives:*
+   - the host fallback could use `cpu_miner.build_transaction_csr`;
+   - M1's host arm was the slow `_build_csr_from_transactions`, so its stated
+     lead over the best existing builder is overstated (a fast-CSR
+     prototype measured 4.3 s against the device path's 1.9 s on dsl);
+   - lex is on unconditionally, where SPEC § M5 (b) planned a dispatch, on
+     evidence from dsl only.
+
+Speed on the moonshot regimes is unchanged by 1–3. The older levels' indexes
+exist only under count inference, and on dsl with count inference, the one
+such regime in Phase 3, every level still uploads the bounds (a spy on the
+index uploads, 1 GPU). No regime runs at `min_support=0`.
+
 ## Gates on the final tree (`perf/moonshot-polish`)
 
 | check | result |
 |---|---|
 | `uv run pytest tests/test_tier_equivalence.py -q` | 91 passed |
-| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1605 passed |
+| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1608 passed |
 | `uv run pytest -q -m "gpu and slow" -k "not test_support_00"` | 17 passed |
 | `uv run python bench/selfcheck.py` | READY: 16 kernels on 2 devices |
 | `uv run ruff check src tests bench` | clean |
 
-These ran after the review's fixes. Before them, the not-slow suite gave
+These ran after the council's fixes (the adversarial review's gave 1605
+passed). Before the adversarial review's fixes, the not-slow suite gave
 1586 passed and 1 failed (`test_every_bitvec_wrapper_runs_the_guard`, fixed
 below).
 

@@ -621,8 +621,6 @@ def _apriori_row_split_multi_gpu(
         if counts is None:
             counts = np.zeros(len(rows), dtype=np.int64)
         need = index_nbytes(len(rows), rows.shape[1])
-        if deep is not None:
-            need += sum(index_nbytes(len(r), max(1, r.shape[1])) for r, _ in deep)
         free_vram = min(_device_available_bytes(did)[0] for did in device_ids)
         if need > free_vram // 4:
             logger.info(
@@ -630,6 +628,16 @@ def _apriori_row_split_multi_gpu(
                 f"more than a quarter of the {free_vram / (1 << 30):.2f} GB free; every candidate is counted"
             )
             return None
+        # The bounds are optional: without room for the older levels' indexes the subset test runs without them.
+        if deep is not None:
+            deep_need = sum(index_nbytes(len(r), max(1, r.shape[1])) for r, _ in deep)
+            if need + deep_need > free_vram // 4:
+                logger.info(
+                    f"  K={k_level}: deduction bounds off: the older levels' indexes need "
+                    f"{deep_need / (1 << 30):.2f} GB beside the K={k_level - 1} index's {need / (1 << 30):.2f} GB, "
+                    f"more than a quarter of the {free_vram / (1 << 30):.2f} GB free"
+                )
+                mode, deep = mode & ~SUBSET_BOUNDS, None
         first = device_ids[0]
         return {
             did: upload_subset_index(

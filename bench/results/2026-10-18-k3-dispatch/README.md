@@ -33,7 +33,7 @@ shared host. The sweep ran on device 0 alone, NCCL off, thread pools at 16.
   rep, signatures).
 - `k3_crossover.txt`: `--analyze` at `76c0aac` (the points by s, r3's
   crossings, and the regret table).
-- `sweep.log`: the sweep's progress lines.
+- `sweep.log` (not committed; `*.log` is ignored): the sweep's progress lines.
 - `env.txt`: the environment capture.
 
 ## Commands

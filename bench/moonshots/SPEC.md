@@ -308,6 +308,11 @@ the MMA tile product against `__popcll` on ragged random tiles. `selfcheck.py`
 launches both paths. sm_90 stays an open risk until a Hopper box runs the
 selfcheck.
 
+**Amendment: dropped after M2 (Phase 3).** The tiled family it would speed up
+spends at most 0.12 s in any regime of the matrix after M2 (dsl, one GPU; M5b's
+`lex` arm): sk2ml3's and oom2ml3's K=3 count row-wise. No stake, so no kernel
+enters `_src` and the CLAUDE.md intrinsic rule stays as it is.
+
 ## M4 — Lattice finisher: a zeta transform per item component
 
 **Evidence** (`components-*.jsonl`).
@@ -545,6 +550,18 @@ balance per range.
 **Acceptance.** Identical signatures. 2-GPU tier legs (plain, forced chunks,
 count inference, free sets, row-wise K=2). Measurable on a 2-GPU box only.
 
+**Amendment: dropped after M2 (Phase 3).** M6 split the tiled K=3 level of
+sk2ml3 and oom2ml3 across GPUs. After M2 that level counts row-wise (sk2ml3's
+K=3 is 0.6 s on one GPU). The stake is now the 2-GPU K≥2 levels minus half
+of the 1-GPU ones, from M5b's `lex` arm (`../results/2026-10-17-moonshots-m5b/`):
+- sk2ml3 1.40 − 1.39 / 2 = 0.70 s;
+- dsl 1.74 − 2.54 / 2 = 0.47 s;
+- oom2ml3 0.53 − 0.25 / 2 = 0.40 s;
+- under 0.15 s elsewhere.
+
+No regime reaches rule 2's 1 s, and replication would add a second full
+bitvector build. Not built.
+
 ## M7 — Deduction rules as count inference
 
 **Evidence** (`replay-dsl.jsonl`, every countable candidate of every level).
@@ -711,6 +728,15 @@ only data too large to replicate.
 **Acceptance.** Identical signatures. 2-GPU tier legs (plain, forced chunks,
 count inference). A property test of the pigeonhole filter against the dense
 reduce on random shard counts with ties at the bound.
+
+**Amendment: dropped after M2 (Phase 3).** The compacted reduce it shrinks
+was sk2ml3's and oom2ml3's dense K=3 level. After M2 the largest 2-GPU reduce
+plus compact in the matrix (M5b's `lex` arm) is:
+- sk2ml3 0.37 + 0.00 s (the row-wise K=2 and K=3 slot arrays);
+- oom2ml3 0.27 s;
+- dsl 0.09 + 0.02 s.
+
+That stake is below 1 s everywhere, so M9 is not built.
 
 ## M10 — Item order for generation
 

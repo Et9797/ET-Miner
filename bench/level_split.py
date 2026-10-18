@@ -278,7 +278,11 @@ class LevelSplit:
 
         import et_miner.core.matrix as matrix
         import et_miner.gpu.csr_bitvec as csr_bitvec
-        import et_miner.gpu.input_layer as input_layer
+        # An older src/ (the Phase 3 baseline) lacks the newer modules and kernels: their phases stay 0.
+        try:
+            import et_miner.gpu.input_layer as input_layer
+        except ImportError:
+            input_layer = None
         import et_miner.gpu.kernels as kernels
         import et_miner.gpu.kernels.filter as filter_mod
         import et_miner.gpu.nccl as nccl
@@ -289,8 +293,11 @@ class LevelSplit:
             self._patch(kernels, name, self._timed("group_build", getattr(kernels, name)))
         self._patch(kernels, "upload_k3plus_groups", self._timed("group_upload", kernels.upload_k3plus_groups))
         self._patch(kernels, "count_tiled_fused", self._timed("count_fused", kernels.count_tiled_fused))
-        self._patch(kernels, "build_k3_graph", self._timed("k3_graph", kernels.build_k3_graph))
+        if hasattr(kernels, "build_k3_graph"):
+            self._patch(kernels, "build_k3_graph", self._timed("k3_graph", kernels.build_k3_graph))
         for name in ("decode_k2_pairs_flat", "decode_k3plus_flat", "decode_k3_slots"):
+            if not hasattr(kernels, name):
+                continue
             self._patch(kernels, name, self._timed("decode", getattr(kernels, name)))
         self._patch(filter_mod, "threshold_filter", self._timed("filter", filter_mod.threshold_filter))
         self._patch(
@@ -327,15 +334,19 @@ class LevelSplit:
             self._timed_span("_bitvec_arrays", csr_bitvec.build_bitvecs_row_split_from_arrays),
         )
         self._patch(csr_bitvec, "build_bitvecs_gpu", self._timed_bitvec_gpu(csr_bitvec.build_bitvecs_gpu))
-        self._patch(input_layer, "_chunk_entries", self._timed_span("input_dev_chunks", input_layer._chunk_entries))
-        for name in ("copy", "finish"):
-            self._patch(input_layer._Uploader, name, self._timed_span("input_dev_copy", getattr(input_layer._Uploader, name)))
-        self._patch(input_layer, "_occurrences", self._timed_span("input_dev_k1", input_layer._occurrences))
-        self._patch(input_layer, "_scatter_bitvecs", self._timed_span("input_dev_bitvec", input_layer._scatter_bitvecs))
-        self._patch(input_layer, "_row_order", self._timed_span("input_dev_order", input_layer._row_order))
-        self._patch(kernels, "tile_occupancy", self._timed("occupancy", kernels.tile_occupancy))
-        self._patch(input_layer.DeviceRows, "pairs", self._timed("k2_dispatch", input_layer.DeviceRows.pairs))
-        self._patch(input_layer.DeviceRows, "upload", self._timed("k2_input", input_layer.DeviceRows.upload))
+        if input_layer is not None:
+            self._patch(input_layer, "_chunk_entries", self._timed_span("input_dev_chunks", input_layer._chunk_entries))
+            for name in ("copy", "finish"):
+                self._patch(input_layer._Uploader, name, self._timed_span("input_dev_copy", getattr(input_layer._Uploader, name)))
+            self._patch(input_layer, "_occurrences", self._timed_span("input_dev_k1", input_layer._occurrences))
+            self._patch(input_layer, "_scatter_bitvecs", self._timed_span("input_dev_bitvec", input_layer._scatter_bitvecs))
+            if hasattr(input_layer, "_row_order"):
+                self._patch(input_layer, "_row_order", self._timed_span("input_dev_order", input_layer._row_order))
+        if hasattr(kernels, "tile_occupancy"):
+            self._patch(kernels, "tile_occupancy", self._timed("occupancy", kernels.tile_occupancy))
+        if input_layer is not None:
+            self._patch(input_layer.DeviceRows, "pairs", self._timed("k2_dispatch", input_layer.DeviceRows.pairs))
+            self._patch(input_layer.DeviceRows, "upload", self._timed("k2_input", input_layer.DeviceRows.upload))
         self._patch(row_split, "_build_deferred_frame", self._timed_span("frame", row_split._build_deferred_frame))
         # et_miner.core re-exports the apriori function under the module's name.
         apriori_mod = importlib.import_module("et_miner.core.apriori")

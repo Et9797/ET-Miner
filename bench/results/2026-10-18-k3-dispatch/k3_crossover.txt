@@ -1,0 +1,126 @@
+  uniform-N1M-F1600-L8         r3=2.63e-06   s=7.89e-06   rho=1      dense=   21673.4 ms rows=     127.1 ms  ratio=0.006
+  uniform-N1M-F800-L8          r3=2.11e-05   s=6.32e-05   rho=1      dense=    2946.3 ms rows=      69.6 ms  ratio=0.024
+  uniform-N1M-F1600-L16        r3=1.13e-05   s=6.39e-05   rho=1      dense=   22949.1 ms rows=     549.1 ms  ratio=0.024
+  zipf-N1M-F1600-L16           r3=4.16e-05   s=0.000206   rho=0.922  dense=    3094.8 ms rows=     444.4 ms  ratio=0.144
+  uniform-N1M-F400-L8          r3=0.000169   s=0.000508   rho=1      dense=     445.9 ms rows=      48.8 ms  ratio=0.109
+  uniform-N4M-F400-L8          r3=0.000169   s=0.000508   rho=1      dense=    1789.4 ms rows=     176.0 ms  ratio=0.098
+  uniform-N4M-F600-L12         r3=0.000118   s=0.000511   rho=1      dense=    5945.5 ms rows=     700.7 ms  ratio=0.118
+  uniform-N1M-F800-L16         r3=9.03e-05   s=0.000512   rho=1      dense=    3442.3 ms rows=     468.7 ms  ratio=0.136
+  uniform-N1M-F1600-L32        r3=4.66e-05   s=0.000512   rho=1      dense=   26821.1 ms rows=    4075.6 ms  ratio=0.152
+  zipf-N1M-F1600-L24           r3=8.68e-05   s=0.000624   rho=0.918  dense=    3602.4 ms rows=    1169.0 ms  ratio=0.325
+  uniform-N1M-F1600-L32-c1     r3=0.000169   s=0.000665   rho=0.542  dense=    7709.3 ms rows=     727.1 ms  ratio=0.094
+  uniform-N1M-F1600-L40        r3=7.33e-05   s=0.001      rho=1      dense=   28987.1 ms rows=    7965.2 ms  ratio=0.275
+  uniform-N4M-F300-L8          r3=0.000402   s=0.00121    rho=1      dense=     851.5 ms rows=     137.6 ms  ratio=0.162
+  uniform-N4M-F450-L12         r3=0.00028    s=0.00121    rho=1      dense=    2771.8 ms rows=     649.4 ms  ratio=0.234
+  uniform-N1M-F1200-L32        r3=0.00011    s=0.00122    rho=1      dense=   12551.1 ms rows=    3974.3 ms  ratio=0.317
+  zipf-N1M-F800-L16            r3=0.000279   s=0.00137    rho=0.915  dense=     531.9 ms rows=     217.5 ms  ratio=0.409
+  zipf-N1M-F1600-L32           r3=0.000146   s=0.00137    rho=0.915  dense=    4208.0 ms rows=    2687.0 ms  ratio=0.639
+  uniform-N1M-F800-L24         r3=0.000208   s=0.00173    rho=1      dense=    3908.6 ms rows=    1612.7 ms  ratio=0.413
+  uniform-N1M-F1600-L48        r3=0.000106   s=0.00173    rho=1      dense=   30703.8 ms rows=   13785.6 ms  ratio=0.449
+  uniform-N1M-F1600-L48-c1     r3=0.000394   s=0.00208    rho=0.528  dense=    8596.0 ms rows=    2245.6 ms  ratio=0.261
+  uniform-N4M-F250-L8          r3=0.000696   s=0.00209    rho=1      dense=     550.0 ms rows=     119.1 ms  ratio=0.216
+  uniform-N1M-F1200-L40        r3=0.000174   s=0.00237    rho=1      dense=   13492.0 ms rows=    7801.6 ms  ratio=0.578
+  uniform-N1M-F1600-L56        r3=0.000145   s=0.00275    rho=1      dense=   32290.3 ms rows=   21949.0 ms  ratio=0.680
+  uniform-N1M-F200-L8          r3=0.00136    s=0.00409    rho=1      dense=      88.3 ms rows=      26.4 ms  ratio=0.300
+  uniform-N4M-F200-L8          r3=0.00136    s=0.00409    rho=1      dense=     308.5 ms rows=      93.4 ms  ratio=0.303
+  zipf-N1M-F1600-L48           r3=0.000297   s=0.00409    rho=0.912  dense=    5893.1 ms rows=    9325.5 ms  ratio=1.582
+  uniform-N1M-F1200-L48        r3=0.000251   s=0.0041     rho=1      dense=   14214.8 ms rows=   13521.6 ms  ratio=0.951
+  uniform-N1M-F1600-L64        r3=0.000189   s=0.0041     rho=1      dense=   33445.7 ms rows=   32756.1 ms  ratio=0.979
+  uniform-N1M-F400-L16         r3=0.000725   s=0.00411    rho=1      dense=     566.2 ms rows=     404.6 ms  ratio=0.715
+  uniform-N1M-F800-L32         r3=0.000373   s=0.00411    rho=1      dense=    4307.8 ms rows=    3880.4 ms  ratio=0.901
+  uniform-N1M-F1600-L64-c1     r3=0.000702   s=0.00468    rho=0.523  dense=    9319.9 ms rows=    5204.1 ms  ratio=0.558
+  uniform-N1M-F800-L32-c1      r3=0.0014     s=0.00521    rho=0.522  dense=    1228.3 ms rows=     598.4 ms  ratio=0.487
+  zipf-N1M-F800-L32            r3=0.000954   s=0.00886    rho=0.91   dense=     878.9 ms rows=    1608.4 ms  ratio=1.830
+  uniform-N1M-F400-L32         r3=0.003      s=0.033      rho=1      dense=     645.7 ms rows=    3452.5 ms  ratio=5.346
+  uniform-N1M-F200-L16         r3=0.00585    s=0.0331     rho=1      dense=      99.7 ms rows=     183.0 ms  ratio=1.836
+  uniform-N1M-F100-L8          r3=0.0111     s=0.0332     rho=1      dense=      21.3 ms rows=      16.8 ms  ratio=0.788
+  uniform-N1M-F200-L32         r3=0.0242     s=0.266      rho=1      dense=     104.6 ms rows=    1520.4 ms  ratio=14.535
+  uniform-N1M-F100-L16         r3=0.0475     s=0.269      rho=1      dense=      21.2 ms rows=      71.4 ms  ratio=3.370
+  uniform-N1M-F50-L8           r3=0.0914     s=0.274      rho=1      dense=       7.1 ms rows=      16.5 ms  ratio=2.331
+  uniform-N1M-F100-L32         r3=0.196      s=2.16       rho=1      dense=      24.5 ms rows=     431.1 ms  ratio=17.597
+  uniform-N1M-F50-L16          r3=0.392      s=2.22       rho=1      dense=       7.0 ms rows=      70.7 ms  ratio=10.043
+  uniform-N1M-F50-L32          r3=1.62       s=17.8       rho=1      dense=       9.6 ms rows=     437.0 ms  ratio=45.457
+{
+ "r3_star": 0.00028837475617675,
+ "up": [
+  [
+   "uniform-N4M-F450-L12",
+   "zipf-N1M-F1600-L48"
+  ],
+  [
+   "uniform-N1M-F400-L16",
+   "zipf-N1M-F800-L32"
+  ],
+  [
+   "uniform-N1M-F800-L32-c1",
+   "uniform-N1M-F400-L32"
+  ],
+  [
+   "uniform-N1M-F100-L8",
+   "uniform-N1M-F200-L32"
+  ]
+ ],
+ "down": [
+  [
+   "zipf-N1M-F1600-L48",
+   "uniform-N1M-F800-L32"
+  ],
+  [
+   "zipf-N1M-F800-L32",
+   "uniform-N1M-F200-L8"
+  ],
+  [
+   "uniform-N1M-F200-L16",
+   "uniform-N1M-F100-L8"
+  ]
+ ],
+ "monotone": false
+}
+2026-10-18 19:23:49.735 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /root/projects/ET-Miner/.venv/lib/libmkl_rt.so.3
+2026-10-18 19:23:49.736 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /root/projects/ET-Miner/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+{
+ "points": 42,
+ "regret": [
+  {
+   "key": "r3",
+   "threshold": 0.00025,
+   "regret_ms": 16241.354999999952
+  },
+  {
+   "key": "r3",
+   "threshold": 0.00204939015319192,
+   "regret_ms": 4166.455999999947,
+   "within_5pct": [
+    0.0008316549765377466,
+    0.00204939015319192
+   ]
+  },
+  {
+   "key": "s",
+   "threshold": 0.006794159256302431,
+   "regret_ms": 3436.902999999991,
+   "within_5pct": [
+    0.006794159256302431,
+    0.006794159256302431
+   ]
+  },
+  {
+   "key": "s_slots",
+   "threshold": 0.010003473171827593,
+   "regret_ms": 4.510999999998603,
+   "within_5pct": [
+    0.010003473171827593,
+    0.010003473171827593
+   ]
+  },
+  {
+   "key": "s_true",
+   "threshold": 0.003698527796677882,
+   "regret_ms": 2253.225000000035,
+   "within_5pct": [
+    0.003698527796677882,
+    0.003698527796677882
+   ]
+  }
+ ]
+}

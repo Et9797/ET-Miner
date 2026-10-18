@@ -42,6 +42,10 @@ Options:
                           kernels' rows may take; the entries are kept only
                           when that fits the available VRAM once the
                           bitvectors are built
+    CANON_BLOCK_ENTRIES   entries ``_canonicalize`` sorts at once
+    CANON_ENTRY_BYTES     device bytes per entry of such a block, which a
+                          shard with unsorted rows or repeated items adds to
+                          the keep decision
 """
 
 from __future__ import annotations
@@ -61,6 +65,8 @@ from .row_split_chunks import _device_available_bytes
 
 CHUNK_ENTRIES = 1 << 24
 KEEP_ROWS_BYTES = 28
+CANON_BLOCK_ENTRIES = 1 << 22
+CANON_ENTRY_BYTES = 48
 
 #: ``build_device_input``'s answer for a column it does not serve.
 NOT_SERVED = object()
@@ -143,10 +149,14 @@ class DeviceRows:
         for sh, (row_ptr, pos) in zip(self._shards, self._positions):
             with cp.cuda.Device(sh.device):
                 out[sh.device] = K2Rows(row_ptr, pos[pos >= 0], sh.n_rows)
-        self._cols, self._positions = None, []
+        self.drop_positions()
         if not keep:
             self.release()
         return out
+
+    def drop_positions(self) -> None:
+        """Drop the last column set's positions; the entries stay if ``keep`` kept them."""
+        self._cols, self._positions = None, []
 
     def release(self) -> None:
         """Drop every shard's entries."""
@@ -165,18 +175,42 @@ class DeviceInput:
 
 
 def _canonicalize(sh: _Shard, n_cols: int) -> None:
-    """Sort a shard's columns within each row and drop repeats (an unsorted row or a repeated item)."""
+    """Sort a shard's columns within each row and drop repeats (an unsorted row or a repeated item).
+
+    Rows go in blocks of about ``CANON_BLOCK_ENTRIES`` entries, which bounds
+    the sort's temporaries. Each block's columns are written back into
+    ``keys`` in place: a block never yields more entries than it read, so its
+    output ends before the next block's input starts.
+    """
     import cupy as cp
 
-    rows = cp.searchsorted(sh.row_ptr[1:], cp.arange(len(sh.keys), dtype=cp.int64), side="right")
-    cols = sh.key_to_col[sh.keys]
-    valid = cols >= 0
-    key = cp.unique(rows[valid] * n_cols + cols[valid])
-    del rows, cols, valid
-    sh.row_ptr = cp.searchsorted(key // n_cols, cp.arange(sh.n_rows + 1, dtype=cp.int64), side="left")
-    sh.keys = (key % n_cols).astype(cp.int32)
+    n_entries = len(sh.keys)
+    starts = cp.arange(0, n_entries, CANON_BLOCK_ENTRIES, dtype=cp.int64)
+    cuts = sorted({0, sh.n_rows} | set((cp.searchsorted(sh.row_ptr, starts, side="right") - 1).get().tolist()))
+    bounds = sh.row_ptr[cp.asarray(cuts)].get().tolist()
+    row_ptr = cp.empty(sh.n_rows + 1, dtype=cp.int64)
+    out = 0
+    for r0, r1, e0, e1 in zip(cuts, cuts[1:], bounds, bounds[1:]):
+        rows = cp.searchsorted(sh.row_ptr[r0 + 1 : r1 + 1], cp.arange(e0, e1, dtype=cp.int64), side="right")
+        cols = sh.key_to_col[sh.keys[e0:e1]]
+        valid = cols >= 0
+        key = cp.unique(rows[valid] * n_cols + cols[valid])
+        del rows, cols, valid
+        row_ptr[r0:r1] = cp.searchsorted(key // n_cols, cp.arange(r1 - r0, dtype=cp.int64), side="left") + out
+        sh.keys[out : out + len(key)] = key % n_cols
+        out += len(key)
+    row_ptr[sh.n_rows] = out
+    sh.row_ptr, sh.keys = row_ptr, sh.keys[:out]
     sh.key_to_col = cp.arange(n_cols, dtype=cp.int32)
     sh.canonical = True
+
+
+def _keep_bytes(sh: _Shard) -> int:
+    """Device bytes that cutting the row-wise kernels' rows from a shard may take, ``_canonicalize`` included."""
+    n_entries = len(sh.keys)
+    if sh.canonical:
+        return KEEP_ROWS_BYTES * n_entries
+    return KEEP_ROWS_BYTES * n_entries + CANON_ENTRY_BYTES * min(n_entries, CANON_BLOCK_ENTRIES) + 8 * (sh.n_rows + 1)
 
 
 @dataclass
@@ -435,7 +469,7 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
 
     rows = None
     if keep_rows:
-        if all(KEEP_ROWS_BYTES * len(sh.keys) <= _device_available_bytes(sh.device)[0] for sh in shards):
+        if all(_keep_bytes(sh) <= _device_available_bytes(sh.device)[0] for sh in shards):
             rows = DeviceRows(shards, len(freq))
         else:
             logger.info("Device input: the entries do not fit beside the bitvectors; K=2 counts from the bitvectors")

@@ -20,8 +20,10 @@ import numpy as np
 
 #: Words per occupancy tile: one warp's words in the per-candidate kernel, ``GP_TILE_W`` in the group kernel.
 OCC_TILE_WORDS = 32
-#: Columns whose occupancy is computed at once (bounds the boolean temporary).
+#: Columns whose occupancy is computed at once, at most.
 OCC_BLOCK_COLS = 1024
+#: Bytes of a block's boolean temporary (one per padded word), at most: a block holds fewer columns when they are long.
+OCC_BLOCK_BYTES = 1 << 26
 
 _NONE: dict[int, tuple] = {}
 
@@ -45,10 +47,12 @@ def tile_occupancy(bitvecs_gpu) -> Occupancy:
     with cp.cuda.Device(bitvecs_gpu.device.id):
         bits = cp.zeros((n_cols, words), dtype=cp.uint64)
         shifts = cp.arange(64, dtype=cp.uint64)
-        for c0 in range(0, n_cols, OCC_BLOCK_COLS):
-            c1 = min(n_cols, c0 + OCC_BLOCK_COLS)
-            nonzero = cp.zeros((c1 - c0, words * 64 * OCC_TILE_WORDS), dtype=cp.bool_)
-            nonzero[:, :n_u64s] = bitvecs_gpu[c0:c1] != 0
+        padded = words * 64 * OCC_TILE_WORDS
+        block = max(1, min(OCC_BLOCK_COLS, OCC_BLOCK_BYTES // padded))
+        for c0 in range(0, n_cols, block):
+            c1 = min(n_cols, c0 + block)
+            nonzero = cp.zeros((c1 - c0, padded), dtype=cp.bool_)
+            cp.not_equal(bitvecs_gpu[c0:c1], 0, out=nonzero[:, :n_u64s])
             tiles = nonzero.reshape(c1 - c0, words * 64, OCC_TILE_WORDS).any(axis=2)
             bits[c0:c1] = (tiles.reshape(c1 - c0, words, 64).astype(cp.uint64) << shifts).sum(axis=2, dtype=cp.uint64)
         return Occupancy(bits, words, int(bitvecs_gpu.device.id))

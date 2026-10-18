@@ -730,7 +730,7 @@ def apriori(
                 column,
                 min_support,
                 max(1, n_gpus),
-                keep_rows=_env.k2_kernel() != "dense",
+                keep_rows=_env.k2_kernel() != "dense" or _env.k3_kernel() != "dense",
                 row_order=_env.row_order() or "lex",
             )
             if built is None:

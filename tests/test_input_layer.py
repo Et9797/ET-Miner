@@ -337,6 +337,82 @@ def test_rows_are_not_kept_when_they_do_not_fit(monkeypatch):
     assert input_layer.build_device_input(column, 0.05, 1, keep_rows=False).rows is None
 
 
+@pytest.mark.gpu
+@pytest.mark.parametrize("n_gpus", _n_gpus_params())
+@pytest.mark.parametrize("block", [1, 5, 64])
+def test_unsorted_rows_canonicalize_in_blocks(monkeypatch, block, n_gpus):
+    """Blocks of a few entries: rows longer than a block, blocks that end inside a row, empty and null rows."""
+    _needs(n_gpus)
+    from et_miner.gpu import input_layer
+
+    monkeypatch.setattr(input_layer, "CANON_BLOCK_ENTRIES", block)
+    column = _random_column(
+        17, 1_501, pl.Int64, np.arange(-3, 30, dtype=np.int64), nulls=True, repeats=True, unsorted=True
+    )
+    _assert_same_input(column, _tie_support(column), n_gpus, "every")
+
+
+@pytest.mark.gpu
+def test_unsorted_rows_are_cut_within_the_keep_decision(monkeypatch):
+    """A card with just the room the keep decision asks for: canonicalizing and cutting unsorted rows fit it.
+
+    The shard holds many blocks, so the room is about ``KEEP_ROWS_BYTES`` per
+    entry, below what sorting every entry at once takes.
+    """
+    import cupy as cp
+
+    from et_miner.gpu import input_layer
+
+    monkeypatch.setattr(input_layer, "CANON_BLOCK_ENTRIES", 1 << 16)
+    rng = np.random.default_rng(0)
+    n_rows, width = 200_000, 15
+    column = pl.Series("items", rng.integers(0, 60, size=n_rows * width)).reshape((n_rows, width))
+    column = column.cast(pl.List(pl.Int64))
+    built = input_layer.build_device_input(column, 0.01, 1, keep_rows=True)
+    pool = cp.get_default_memory_pool()
+    held = pool.used_bytes()
+    (shard,) = built.rows._shards
+    assert not shard.canonical
+    need = input_layer._keep_bytes(shard)
+    del built, shard
+    _free_pools()
+    pool.set_limit(size=held + need + (1 << 20))
+    try:
+        built = input_layer.build_device_input(column, 0.01, 1, keep_rows=True)
+        assert built.rows is not None
+        cols = list(range(len(built.col_to_item)))
+        assert built.rows.pairs(cols, keep=True) > 0
+        assert built.rows.upload(cols)[0].n_rows == n_rows
+    finally:
+        pool.set_limit(size=0)
+        _free_pools()
+
+
+@pytest.mark.gpu
+def test_the_vram_guard_drops_the_kept_rows_before_it_trips(monkeypatch):
+    """The kept entries only speed up K=2 and K=3: a max_vram_gb the bitvectors fit passes as on the host layer."""
+    from et_miner import apriori
+    from et_miner.gpu import input_layer
+
+    kept = []
+    real = input_layer.build_device_input
+    monkeypatch.setattr(
+        input_layer, "build_device_input", lambda *a, **k: kept.append((built := real(*a, **k)).rows is not None) or built
+    )
+    rng = np.random.default_rng(1)
+    n_rows, width = 1_000_000, 12
+    column = pl.Series("items", rng.integers(0, 20, size=n_rows * width)).reshape((n_rows, width))
+    frame = column.cast(pl.List(pl.Int64)).to_frame()
+    results = {}
+    for layer in ("host", "device"):
+        monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
+        res = apriori(frame, min_support=0.05, use_gpu=True, max_length=3, max_vram_gb=0.02)
+        results[layer] = sorted(zip(map(tuple, res["itemset"].to_list()), res["support"].to_list()))
+        _free_pools()
+    assert kept == [True], "the device layer did not keep its rows"
+    assert results["device"] == results["host"] and results["host"]
+
+
 # ── end to end: apriori through the device input layer ──────────────────────
 
 

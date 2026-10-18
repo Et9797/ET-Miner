@@ -53,12 +53,14 @@ def _clustered_bitvecs(seed: int, n_cols: int, n_rows: int) -> np.ndarray:
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_rows", [64, 2_047, 2_048, 2_049, 131_072 + 999])
-def test_tile_occupancy_matches_numpy(monkeypatch, n_rows):
+@pytest.mark.parametrize("block", ["cols", "bytes"])
+def test_tile_occupancy_matches_numpy(monkeypatch, block, n_rows):
+    """Blocks of three columns, or of one column when the byte bound allows no more."""
     import cupy as cp
 
     from et_miner.gpu.kernels import occupancy
 
-    monkeypatch.setattr(occupancy, "OCC_BLOCK_COLS", 3)
+    monkeypatch.setattr(occupancy, "OCC_BLOCK_COLS" if block == "cols" else "OCC_BLOCK_BYTES", 3 if block == "cols" else 1)
     bv = _clustered_bitvecs(n_rows, 7, n_rows)
     occ = occupancy.tile_occupancy(cp.asarray(bv))
     n_tiles = -(-bv.shape[1] // 32)
@@ -189,6 +191,30 @@ def test_mining_under_the_lex_order_matches_keep_and_the_oracle(monkeypatch, opt
             )
             == got
         )
+
+
+@pytest.mark.gpu
+def test_without_room_for_the_occupancy_every_tile_is_counted(monkeypatch):
+    import cupy as cp
+
+    from et_miner import apriori
+    from et_miner.gpu import kernels
+
+    tried = []
+
+    def no_room(bitvecs_gpu):
+        tried.append(1)
+        raise cp.cuda.memory.OutOfMemoryError(1 << 40, 0)
+
+    monkeypatch.setattr(kernels, "tile_occupancy", no_room)
+    for name, value in _PINS["per-candidate"].items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setenv("ET_MINER_ROW_ORDER", "lex")
+    column = _random_column(11, 4_099, repeats=True)
+    s = _tie_support(column)
+    res = apriori(column.to_frame(), min_support=s, use_gpu=True)
+    assert tried, "no launch asked for the occupancy"
+    assert mined_counts(res, len(column)) == ea_counts(column.to_list(), s)
 
 
 def test_row_order_knob_is_validated(monkeypatch):

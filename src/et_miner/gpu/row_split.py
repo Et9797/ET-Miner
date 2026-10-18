@@ -161,6 +161,9 @@ class _HostRows:
         shards = _k2_row_shards(self._csr, np.asarray(cols, dtype=np.int64), shard_rows)
         return _upload_k2_rows(shards, self._bitvecs_list)
 
+    def drop_positions(self) -> None:
+        pass
+
     def release(self) -> None:
         self._csr = None
 
@@ -384,7 +387,13 @@ def _apriori_row_split_multi_gpu(
         if not _lex:
             return None
         if device_id not in _occ:
-            _occ[device_id] = tile_occupancy(bitvec_gpu)
+            # The skip is optional: without the room for it every tile is counted.
+            try:
+                _occ[device_id] = tile_occupancy(bitvec_gpu)
+            except cp.cuda.memory.OutOfMemoryError:
+                cp.get_default_memory_pool().free_all_blocks()
+                logger.info(f"  Tile occupancy does not fit on GPU {device_id}; every tile is counted")
+                _occ[device_id] = None
         return _occ[device_id]
 
     n_cols = max(col_to_item.keys()) + 1 if col_to_item else 0
@@ -440,9 +449,16 @@ def _apriori_row_split_multi_gpu(
         return psutil.Process(os.getpid()).memory_info().rss / (1 << 30), vram
 
     def _check_memory_guard(k_level: int) -> None:
+        nonlocal _k2_src
         if max_ram_gb is None and max_vram_gb is None:
             return
         ram_gb, vram_gb = _memory_gb()
+        over = (max_ram_gb is not None and ram_gb > max_ram_gb) or (max_vram_gb is not None and vram_gb > max_vram_gb)
+        if over and _k2_src is not None:
+            # The kept rows only speed up K=2 and K=3: the guard drops them before it trips on them.
+            _k2_src.release()
+            _k2_src = None
+            ram_gb, vram_gb = _memory_gb()
         for used, limit, what, remedy in (
             (ram_gb, max_ram_gb, "RAM", "pass output_dir so each level is flushed as it completes"),
             (vram_gb, max_vram_gb, "VRAM", "mine on more GPUs (n_gpus) to split the bitvectors"),
@@ -704,6 +720,7 @@ def _apriori_row_split_multi_gpu(
                 f"  K=3: r3 = {r3:.3g} over {layout.n_slots:,} slots (one chunk: {budget:,}); "
                 "counted from the bitvecs"
             )
+            _k2_src.release()
             return None
         rows_gpu = _k2_src.upload(layout.active_cols, keep=False)
         graphs = {}
@@ -867,6 +884,9 @@ def _apriori_row_split_multi_gpu(
                     )
 
             if _sparse_mode:
+                if _k2_src is not None:
+                    _k2_src.release()
+                    _k2_src = None
                 groups_info = build_k3plus_groups_from_flat(prev_frequent_flat, with_src_rows=True)
                 n_freq = 0
                 current_flat = np.empty((0, k), dtype=np.int32)
@@ -903,6 +923,12 @@ def _apriori_row_split_multi_gpu(
                             f"  K=2: r = {_k2_pairs / (n_pairs * -(-n_transactions // 64)):.3g} is not below "
                             f"the row-wise crossover {K2_ROWS_MAX_R:.3g}; dense"
                         )
+                    # Dense K=2 reads no rows: the positions go, and the entries too unless K=3 may read them.
+                    if not _k2_rows and _k3_rows:
+                        _k2_src.drop_positions()
+                    elif not _k2_rows:
+                        _k2_src.release()
+                        _k2_src = None
                 _k2_budget = 0 if _k2_rows else compute_chunk_budget(device_ids, group_data_bytes=0, use_nccl=_use_nccl)
                 if _k2_rows:
                     freq_pair_indices, freq_pair_counts = _count_k2_rows(freq_cols, _k2_pairs, n_pairs)

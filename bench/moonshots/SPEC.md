@@ -140,10 +140,16 @@ proposal; the exactness argument above is unchanged:
   columns do not strictly ascend; its K=2 rows are then sorted and
   deduplicated on the device (`_canonicalize`), as the host CSR's
   `sum_duplicates` does.
-- *VRAM.* The entries stay on the device for K=2 only when 24 B per entry
+- *VRAM.* The entries stay on the device for K=2 only when 28 B per entry
   (`KEEP_ROWS_BYTES`) fit beside the bitvectors; otherwise they are dropped
   and K=2 counts from the bitvectors. Today's path never needs that choice;
   it is logged.
+  - A shard with unsorted rows or repeated items is sorted in blocks of
+    `CANON_BLOCK_ENTRIES` entries, and the decision adds one block at
+    `CANON_ENTRY_BYTES` per entry. Sorting every entry at once took about
+    42 B per entry (the adversarial review's must-fix, `REPORT.md`).
+  - The memory guards drop the kept entries before they compare, so a limit
+    the bitvectors fit passes as on the host path.
 
 ## M2 — Row-wise counting beyond K=2
 

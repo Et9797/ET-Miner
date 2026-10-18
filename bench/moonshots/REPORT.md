@@ -99,16 +99,86 @@ Exactness carried every step:
    (`REPORT-M2.md` finding 5).
 9. **(nice)** `uv run ty check` is not available in this project's
    environment. Lint (`ruff`) and the tests are the static gates used.
+10. **(nice)** *`min_support=0.0` makes the GPU route emit itemsets of count
+    0* (found by the adversarial review). The CPU route does not. The
+    baseline `c0f0fd2` does the same, so it predates the campaign.
+11. **(nice)** *Under the lex order the build holds each row's new position*
+    (4 B per row) beside the bitvectors. Under a 560–580 MiB pool limit that
+    tips the review's probe into OutOfMemoryError where `keep` runs.
+
+## Adversarial review
+
+An adversarial verifier tried to break the stack (`c0f0fd2..f103fdc`) with
+about 700 randomized datasets, under every pin combination, on 1 and 2 GPUs.
+It found **no wrong result**: itemsets, absolute counts, item dtypes and
+emission order matched efficient-apriori, the CPU route and the host input
+layer everywhere. It did find memory failures on the default path. Each one
+is fixed with a regression test, and each test fails on `f103fdc`:
+
+1. **(must-fix, fixed)** *Unsorted rows ran the card out of memory.* Sorting
+   a shard's entries within their rows (`_canonicalize`) took about 42 B per
+   entry at once, but the decision to keep the entries allowed 28. dsl with
+   each row reversed (the same transactions) raised OutOfMemoryError on one
+   GPU.
+   - The fix sorts in blocks of `CANON_BLOCK_ENTRIES` (4M) entries, written
+     back in place, and the keep decision counts one block.
+   - Peak over 30M unsorted entries: 41.7 → 12.6 B per entry.
+   - dsl reversed now mines, on one GPU and on two, with dsl's signature
+     (`6d0579224b429733`, 577,550 itemsets), in about 6 s (one untimed run
+     each).
+   - 247.5M unsorted entries now run (pool peak 1.65 GiB).
+   - Tests: `test_unsorted_rows_are_cut_within_the_keep_decision`,
+     `test_unsorted_rows_canonicalize_in_blocks`.
+2. **(should, fixed)** *The tile occupancy's temporaries took a quarter of the
+   bitvectors' size* and were allocated after the level's chunk budget.
+   - The fix bounds them at 64 MiB per block of columns (`OCC_BLOCK_BYTES`).
+     dsl's 85 columns still fit one block.
+   - A device without room for the occupancy now counts every tile.
+   - The review's probe under a 600 MiB pool limit now runs under `lex` as
+     under `keep`.
+   - Tests: `test_tile_occupancy_matches_numpy[bytes-*]`,
+     `test_without_room_for_the_occupancy_every_tile_is_counted`.
+3. **(should, fixed)** *A dense K=3 level ran beside the kept rows and their
+   positions.* When the r3 dispatch declines, the rows are now released.
+   When the K=2 dispatch declines, the positions are dropped (and the rows
+   too, unless K=3 may read them), and an ESCO level releases them.
+   - VRAM held at the K=3 launches in the review's probe: 456 → 29 MiB, as on
+     the host layer.
+   - Test: `test_dense_k2_and_k3_levels_run_without_the_rows`.
+4. **(should, fixed)** *`max_vram_gb` tripped on the kept entries* where the
+   host layer passed. The guards now drop the kept rows before they compare;
+   K=2 and K=3 then count from the bitvectors.
+   - The review's probe: `max_vram_gb=0.3` now passes on the device layer as
+     on the host.
+   - Test: `test_the_vram_guard_drops_the_kept_rows_before_it_trips`.
+5. **(nice, fixed)** *`ET_MINER_K3_KERNEL=rows` was ignored on the device
+   layer under `ET_MINER_K2_KERNEL=dense`*, since the layer kept no rows. It
+   now keeps them unless both levels are pinned dense.
+   - Test: `test_row_wise_k3_pin_holds_with_the_dense_k2_pin`.
+6. **(nice, fixed)** `SPEC.md`'s M1 amendment said 24 B per entry; the code
+   says 28. The amendment now says 28 and describes the blocks.
+7. **(nice, open)** Findings 10 and 11 above.
+
+**Speed is unchanged on the moonshot regimes, without a timed run.** The
+defaults run the same kernels on the same work: the regimes' rows are sorted
+(no canonicalization), dsl's occupancy is one block either way, and no regime
+reused K=2's positions at K=3. A spy on every `DeviceRows.pairs` call, run on
+`f103fdc` and on the fix, recorded the same column sets and no reuse on
+either. Every regime also returned the same itemset count on both trees.
 
 ## Gates on the final tree (`perf/moonshot-polish`)
 
 | check | result |
 |---|---|
 | `uv run pytest tests/test_tier_equivalence.py -q` | 91 passed |
-| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1586 passed, 1 failed: `test_every_bitvec_wrapper_runs_the_guard` (`tile_occupancy`). After the guard fix that test and `tests/test_row_order.py` pass (38 passed); the whole suite was not rerun. |
+| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1605 passed |
 | `uv run pytest -q -m "gpu and slow" -k "not test_support_00"` | 17 passed |
 | `uv run python bench/selfcheck.py` | READY: 16 kernels on 2 devices |
 | `uv run ruff check src tests bench` | clean |
+
+These ran after the review's fixes. Before them, the not-slow suite gave
+1586 passed and 1 failed (`test_every_bitvec_wrapper_runs_the_guard`, fixed
+below).
 
 `-k "not test_support_00"` deselects the Online Retail support tests, as in
 every earlier gate. They do not finish with Online Retail present.

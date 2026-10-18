@@ -205,6 +205,16 @@ All notable changes to ET-Miner are recorded here. Versions follow
 - `bench/moonshots/`: `PROTOCOL-M1.md`, `REPORT-M1.md`, `decide.py`;
   `bench/runner.py --mode moonshots-m1|moonshots-m1-final`. The level split
   times the device phases.
+- Memory, from the stack's adversarial review (`bench/moonshots/REPORT.md`):
+  - unsorted rows and repeated items are sorted in blocks of 4M entries, and
+    the decision to keep the entries counts that block. Sorting all entries at
+    once took about 42 B per entry where the decision allowed 28: dsl with
+    each row reversed ran out of memory on one 12 GB GPU, and now mines
+    dsl's exact result;
+  - `max_vram_gb` and `max_ram_gb` drop the kept entries before they compare,
+    so a limit the bitvectors fit passes as on the host path;
+  - `ET_MINER_K2_KERNEL=dense` no longer drops the rows that row-wise K=3
+    reads.
 
 ### GPU route: row-wise K=3
 
@@ -222,6 +232,9 @@ All notable changes to ET-Miner are recorded here. Versions follow
   - sk2ml3: 22.7 → 1.8 s on one GPU (K=3 21.6 → 0.6 s), 15.4 → 1.9 s on two;
   - oom2ml3: 1.62 → 0.38 s, with its peak VRAM 7.9 → 2.0 GB;
   - the dispatch leaves every other regime on the dense kernels.
+- When the dispatch leaves K=2 or K=3 to the dense kernels, the rows'
+  positions (at K=3 the rows too) are freed before the dense level. A dense
+  K=3 level held about 8 B per entry plus 16 B per row of them before.
 
 ### GPU route: deduction bounds under count inference
 
@@ -253,6 +266,9 @@ All notable changes to ET-Miner are recorded here. Versions follow
 - The order is two stable radix argsorts, and each device builds its tile
   occupancy at its first per-candidate or group launch, so a run that never
   reads it (sk2ml3's row-wise K=3) pays nothing.
+- The occupancy's temporaries take at most 64 MiB per block of columns (they
+  took a quarter of the bitvectors' size), and a device without room for them
+  counts every tile.
 
 ### Polars 2.0
 

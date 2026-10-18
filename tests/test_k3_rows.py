@@ -213,6 +213,51 @@ def test_row_wise_k3_matches_the_oracle(monkeypatch, seed, layer, n_gpus):
 
 
 @pytest.mark.gpu
+@pytest.mark.parametrize("layer", ["host", "device"])
+def test_row_wise_k3_pin_holds_with_the_dense_k2_pin(monkeypatch, layer):
+    from et_miner import apriori
+
+    calls = _spy(monkeypatch)
+    monkeypatch.setenv("ET_MINER_K3_KERNEL", "rows")
+    monkeypatch.setenv("ET_MINER_K2_KERNEL", "dense")
+    monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
+    df = _frame(1, 1_257, repeats=True)
+    s = _tie_support(df)
+    res = apriori(df, min_support=s, max_length=4, use_gpu=True)
+    assert calls, "row-wise K=3 did not run"
+    assert mined_counts(res, df.height) == ea_counts(df["items"].to_list(), s, max_length=4)
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("layer", ["host", "device"])
+def test_dense_k2_and_k3_levels_run_without_the_rows(monkeypatch, layer):
+    """When the dispatch leaves K=2 and K=3 dense, their positions and rows go before the dense levels."""
+    from et_miner import apriori
+    from et_miner.gpu import input_layer, kernels, row_split, row_split_chunks
+
+    events = []
+    for cls in (input_layer.DeviceRows, row_split._HostRows):
+        for name in ("drop_positions", "release"):
+            real = getattr(cls, name)
+            monkeypatch.setattr(cls, name, lambda self, _real=real, _name=name: events.append(_name) or _real(self))
+    real_groups = kernels.build_k3plus_groups_from_flat
+    monkeypatch.setattr(
+        kernels,
+        "build_k3plus_groups_from_flat",
+        lambda flat, *a, **k: events.append(f"K={flat.shape[1] + 1}") or real_groups(flat, *a, **k),
+    )
+    monkeypatch.setattr(row_split_chunks, "K2_ROWS_MAX_R", 0.0)
+    monkeypatch.setattr(row_split_chunks, "K3_ROWS_MAX_R", 0.0)
+    monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
+    df = _frame(2, 1_514, repeats=True)
+    s = _tie_support(df)
+    res = apriori(df, min_support=s, max_length=4, use_gpu=True)
+    assert "drop_positions" in events and "K=3" in events
+    assert events.index("drop_positions") < events.index("release") < events.index("K=3")
+    assert mined_counts(res, df.height) == ea_counts(df["items"].to_list(), s, max_length=4)
+
+
+@pytest.mark.gpu
 def test_a_row_beyond_64_active_items_counts_from_the_bitvecs(monkeypatch):
     from et_miner import apriori
 

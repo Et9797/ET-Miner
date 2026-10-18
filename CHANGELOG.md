@@ -281,6 +281,20 @@ All notable changes to ET-Miner are recorded here. Versions follow
   took a quarter of the bitvectors' size), and a device without room for them
   counts every tile.
 
+### GPU route: NCCL destroy off the call's path
+
+- **A multi-GPU call no longer waits for NCCL's teardown**
+  (`gpu/nccl.py::_destroy_nccl`, `gpu/row_split.py`). Destroying the
+  communicators waits for NCCL's proxy thread, which wakes every 500 ms when
+  idle. Every 2-GPU call therefore ended up to about 0.5 s after its work
+  (0.52 s at most measured), 0.32 s at the median. Once its levels are done the row-split miner now hands the
+  communicators to a thread of its own (`et-miner-nccl-destroy`, not a
+  daemon, so the interpreter waits for it at exit) and returns. After an
+  error they go with the miner's frame, as before. Measured on 2× RTX 3060,
+  median of 3 (`bench/moonshots/REPORT-TEARDOWN.md`): smoke 0.57 → 0.20 s,
+  oom2ml3 1.12 → 0.69 s, dsl 3.23 → 3.02 s, dsl-infer 2.72 → 2.33 s. Results
+  are unchanged.
+
 ### Polars 2.0
 
 - **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0

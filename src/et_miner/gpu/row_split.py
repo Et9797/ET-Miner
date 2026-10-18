@@ -30,7 +30,7 @@ from et_miner.gpu.mining import (
     _prune_non_free_mask,
     _rows_sorted,
 )
-from et_miner.gpu.nccl import _init_nccl
+from et_miner.gpu.nccl import _destroy_nccl, _init_nccl
 from et_miner.gpu.sparse_csr import (
     SparseMiningState,
     TidsetFitError,
@@ -1256,6 +1256,10 @@ def _apriori_row_split_multi_gpu(
             uploader.close(wait=False)
         except Exception:
             pass
+    # The levels are done with the communicators. Their destroy runs beside the
+    # result frame; after an error they go with this frame, as before.
+    _destroy_nccl(nccl_comms)
+    nccl_comms = None
 
     # When output_dir is set, results are already flushed to Parquet per K level.
     # Return empty DataFrame — caller reads from output_dir instead.

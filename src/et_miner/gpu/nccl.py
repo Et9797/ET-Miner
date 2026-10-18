@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import threading
 
 from loguru import logger
 
@@ -139,6 +140,30 @@ def _init_nccl(device_ids):
     except Exception as e:
         logger.warning(f"NCCL init failed: {e}")
         return None, False
+
+
+def _destroy_nccl(comms):
+    """Destroys ``comms`` on a background thread, which it returns; None for no communicators.
+
+    NCCL's destroy waits for its proxy thread, which wakes every 500 ms when
+    idle, so a caller would wait up to about 0.5 s
+    (bench/moonshots/REPORT-TEARDOWN.md).
+    The thread is not a daemon: the interpreter waits for it at exit, before
+    CUDA's own exit handlers run.
+    """
+    if not comms:
+        return None
+
+    def destroy():
+        for comm in comms:
+            try:
+                comm.destroy()
+            except Exception as e:  # noqa: BLE001
+                logger.warning(f"NCCL destroy failed: {e}")
+
+    thread = threading.Thread(target=destroy, name="et-miner-nccl-destroy")
+    thread.start()
+    return thread
 
 
 def _nccl_allreduce_sum(gpu_arrays, comms, device_ids):

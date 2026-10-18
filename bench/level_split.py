@@ -76,13 +76,20 @@ starts at ``start()`` and ends at ``finish()``):
                    dispatch)
     input          from the call to K=1's start
     frame          _build_deferred_frame and _as_item_dtype (the result frame)
+    tail_nccl      the NCCL communicators' destroy on the call's own thread
+                   (two GPUs and more; timed by a wrapper around each
+                   communicator that _init_nccl returns). A destroy on
+                   another thread is outside the call and lands in
+                   ``nccl_destroys`` only
     tail_other     from the last level's callback to the return, minus frame
+                   and tail_nccl
     tail           from the last level's callback to the return
 """
 
 from __future__ import annotations
 
 import sys
+import threading
 import time
 from collections import defaultdict
 
@@ -97,7 +104,7 @@ AFTER_LEVEL = ("materialize",)
 SPAN_PHASES = (
     "input_count", "input_k1", "input_explode", "input_csr", "input_widen", "input_h2d", "input_bitvec",
     "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_dev_order",
-    "input_other", "input", "frame", "tail_other", "tail",
+    "input_other", "input", "frame", "tail_nccl", "tail_other", "tail",
 )
 _DEVICE_SPANS = ("input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_dev_order")
 _COLLECTS = ("input_count", "input_k1", "input_explode")
@@ -126,6 +133,40 @@ def _kernel_phase(chunk, rows: bool) -> str:
     return "count_group" if chunk.group else "count_tiled"
 
 
+class _TimedComm:
+    """An NCCL communicator that times its destroy, explicit or when it is dropped.
+
+    The miner calls only methods on its communicators, so attribute access
+    passes through. Each destroy goes into ``destroys`` as (seconds, on the
+    call's thread); one on the call's thread also goes into ``spans``.
+    """
+
+    def __init__(self, comm, spans: list[tuple[float, float]], destroys: list[tuple[float, bool]]) -> None:
+        self._comm = comm
+        self._spans = spans
+        self._destroys = destroys
+        self._thread = threading.get_ident()
+        self._destroyed = False
+
+    def __getattr__(self, name: str):
+        return getattr(self._comm, name)
+
+    def destroy(self) -> None:
+        if self._destroyed:
+            return
+        self._destroyed = True
+        t0 = time.perf_counter()
+        self._comm.destroy()
+        t1 = time.perf_counter()
+        here = threading.get_ident() == self._thread
+        self._destroys.append((t1 - t0, here))
+        if here:
+            self._spans.append((t0, t1))
+
+    def __del__(self) -> None:
+        self.destroy()
+
+
 class LevelSplit:
     """Installs and removes the timing wrappers; collects per-level phase seconds."""
 
@@ -136,6 +177,8 @@ class LevelSplit:
         self._closed: int | None = None
         self.span: dict[str, float] = {}
         self._span: dict[str, list[tuple[float, float]]] = defaultdict(list)
+        #: Every communicator destroy: (seconds, on the call's thread).
+        self.nccl_destroys: list[tuple[float, bool]] = []
         self._t_start: float | None = None
         self._first_level_start: float | None = None
         self._last_level_end: float | None = None
@@ -244,6 +287,16 @@ class LevelSplit:
 
         return wrapper
 
+    def _timed_nccl(self, fn):
+        """``_init_nccl`` whose communicators time their own destroy when the miner drops them."""
+        spans = self._span["tail_nccl"]
+
+        def wrapper(*args, **kwargs):
+            comms, ok = fn(*args, **kwargs)
+            return ([_TimedComm(c, spans, self.nccl_destroys) for c in comms] if comms else comms), ok
+
+        return wrapper
+
     def start(self) -> None:
         """Marks the start of the timed call."""
         self._t_start = time.perf_counter()
@@ -263,9 +316,10 @@ class LevelSplit:
                                   "input_h2d", "input_bitvec", *_DEVICE_SPANS)
             )
         span["frame"] = u.get("frame", 0.0)
+        span["tail_nccl"] = u.get("tail_nccl", 0.0)
         if self._last_level_end is not None:
             span["tail"] = t_end - self._last_level_end
-            span["tail_other"] = span["tail"] - span["frame"]
+            span["tail_other"] = span["tail"] - span["frame"] - span["tail_nccl"]
         self.span = {p: round(span[p], 6) for p in SPAN_PHASES if p in span}
 
     def _patch(self, owner, name: str, replacement) -> None:
@@ -349,6 +403,7 @@ class LevelSplit:
             self._patch(input_layer.DeviceRows, "pairs", self._timed("k2_dispatch", input_layer.DeviceRows.pairs))
             self._patch(input_layer.DeviceRows, "upload", self._timed("k2_input", input_layer.DeviceRows.upload))
         self._patch(row_split, "_build_deferred_frame", self._timed_span("frame", row_split._build_deferred_frame))
+        self._patch(row_split, "_init_nccl", self._timed_nccl(row_split._init_nccl))
         # et_miner.core re-exports the apriori function under the module's name.
         apriori_mod = importlib.import_module("et_miner.core.apriori")
         self._patch(apriori_mod, "_as_item_dtype", self._timed_span("frame", apriori_mod._as_item_dtype))

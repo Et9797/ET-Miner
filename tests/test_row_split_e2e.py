@@ -193,6 +193,49 @@ class TestOOMRegression:
 
 
 # ── Closed-itemset pruning on the sparse path (regression) ─────────────────
+POOL_SPEC = SynthSpec(
+    name="pool_reuse",
+    n_rows=500_000,
+    vocab_size=4_000,
+    zipf_a=0.5,
+    row_len_mean=10,
+    row_len_max=30,
+    min_support=0.00001,
+    seed=3,
+)
+
+
+@pytest.fixture(scope="module")
+def pool_df() -> pl.DataFrame:
+    return generate_transactions(POOL_SPEC)[0]
+
+
+class TestPoolReuse:
+    @pytest.mark.parametrize("layer", ["device", "host"])
+    def test_second_call_in_one_process(self, monkeypatch, pool_df, layer):
+        """The first call leaves its bitvectors' block (~240 MiB) cached in
+        CuPy's pool. Unless a run releases the cached blocks first, the second
+        call's small allocations split that block, a split block cannot be
+        released, and the bitvectors need a second one: twice the block under
+        a limit of 1.75 times it. One call peaks at ~1.25 times it. Both input
+        layers raised OutOfMemoryError here before the release."""
+        monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
+        kwargs = dict(min_support=POOL_SPEC.min_support, max_length=2, use_gpu=True, n_gpus=1)
+        pool = cp.get_default_memory_pool()
+        pool.free_all_blocks()
+        held = pool.total_bytes()
+        first = _counted(apriori(pool_df, **kwargs), POOL_SPEC.n_rows)
+        cached = pool.total_bytes() - held
+        assert cached > 0, "the first call left nothing cached: the test no longer exercises reuse"
+        pool.set_limit(size=held + int(cached * 1.75))
+        try:
+            second = _counted(apriori(pool_df, **kwargs), POOL_SPEC.n_rows)
+        finally:
+            pool.set_limit(size=0)  # restore unlimited
+        assert second == first
+        assert len(first) > 0
+
+
 # Two datasets, each asserting sparse+prune == dense+prune == CPU+prune on
 # exact itemsets AND counts. Both were run against the unfixed tree
 # (main @ 3d94c52) first: Spec A's sparse leg fails (the CSR tidset rows

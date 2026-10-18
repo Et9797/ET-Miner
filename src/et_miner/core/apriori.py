@@ -399,6 +399,22 @@ def _as_item_dtype(result: Any, items: pl.Series, column_ids: bool) -> Any:
     return df if session is None else (df, session)
 
 
+def _release_cached_blocks(n_gpus: int, device: int = 0) -> None:
+    """Hand CuPy's cached blocks back to the driver on the devices a GPU run uses.
+
+    An earlier call in this process leaves its blocks cached in the pool. This
+    run's first small allocations would split them, a split block cannot be
+    released, and the run's largest allocation then fails on a device that has
+    the room for it. One GPU means ``device``; more mean devices 0..n-1.
+    """
+    import cupy as cp
+
+    devices = [device] if n_gpus <= 1 else range(min(n_gpus, cp.cuda.runtime.getDeviceCount()))
+    for d in devices:
+        with cp.cuda.Device(d):
+            cp.get_default_memory_pool().free_all_blocks()
+
+
 def apriori(
     transactions: pl.LazyFrame | pl.DataFrame | None = None,
     min_support: float = 0.5,
@@ -628,6 +644,7 @@ def apriori(
 
         from et_miner.gpu.row_split import _apriori_row_split_multi_gpu, shard_prebuilt_bitvecs
 
+        _release_cached_blocks(n_gpus, int(bitvecs_gpu.device.id))
         return _apriori_row_split_multi_gpu(
             None,
             col_to_item,
@@ -726,6 +743,7 @@ def apriori(
             from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
 
             column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
+            _release_cached_blocks(n_gpus)
             built = build_device_input(
                 column,
                 min_support,
@@ -775,6 +793,7 @@ def apriori(
 
         from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
 
+        _release_cached_blocks(n_gpus)
         result = _apriori_row_split_multi_gpu(
             csr,
             idx_to_item,

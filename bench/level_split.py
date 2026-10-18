@@ -231,9 +231,10 @@ class LevelSplit:
 
     def _timed_bitvec_gpu(self, fn):
         """Times build_bitvecs_gpu and, inside it, cupy.asarray (the host-to-device copies)."""
-        import cupy as cp
 
         def wrapper(*args, **kwargs):
+            import cupy as cp
+
             original = cp.asarray
             cp.asarray = self._timed_span("input_h2d", original)
             try:

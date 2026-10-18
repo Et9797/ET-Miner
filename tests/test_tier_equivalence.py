@@ -17,7 +17,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
            forced chunks)
         == row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; and selected by
-           the r3 dispatch)
+           the s dispatch)
         == row-split 1 GPU, row order keep / lex pinned (plain / forced chunks / count inference)
         == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
@@ -46,7 +46,7 @@ larger group then go to the fused tiled kernel; on two, to per-candidate
 sub-chunks; a row-wise K=2 counts every chunk from the rows),
 ET_MINER_K2_KERNEL=rows pins the row-wise K=2 kernel (the r dispatch picks it on smoke only
 with its crossover raised), ET_MINER_REDUCE=dense pins the whole-array multi-GPU reduce,
-ET_MINER_K3_KERNEL=rows pins the row-wise K=3 kernel (the r3 dispatch picks it on smoke only with
+ET_MINER_K3_KERNEL=rows pins the row-wise K=3 kernel (the s dispatch picks it on smoke only with
 its crossover raised), ET_MINER_INPUT_LAYER pins the host CSR or the device input layer (unset, smoke's integer ids take
 the device layer, so every unpinned leg runs on it), and a chunk_size below the row count forces
 SON to four chunks.
@@ -517,13 +517,13 @@ _INPUT_K2 = ["dispatch", "rows", "rows, forced chunks"]
 
 def _row_wise_k3_leg(smoke_dataset, oracle_set, monkeypatch, variant, n_gpus):
     """A leg with K=3 on the row-wise kernel, pinned by ET_MINER_K3_KERNEL, or with "dispatch" picked by the
-    r3 dispatch with its crossover raised above smoke's r3 (0.81)."""
+    s dispatch with its crossover raised above smoke's s (2.4)."""
     from et_miner.gpu import row_split_chunks
 
     env, kwargs = {"ET_MINER_K3_KERNEL": "rows"}, {}
     if variant == "dispatch":
         monkeypatch.delenv("ET_MINER_K3_KERNEL", raising=False)
-        monkeypatch.setattr(row_split_chunks, "K3_ROWS_MAX_R", 10.0)
+        monkeypatch.setattr(row_split_chunks, "K3_ROWS_MAX_S", 10.0)
         env = {}
     elif variant == "forced chunks":
         env["ET_MINER_MAX_CHUNK_CANDS"] = _TINY_CHUNK

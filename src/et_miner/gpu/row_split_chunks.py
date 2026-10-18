@@ -141,39 +141,39 @@ def k2_counts_rows(row_pairs: int, n_pairs: int, n_transactions: int) -> bool:
     return n_pairs > 0 and row_pairs < K2_ROWS_MAX_R * n_pairs * words
 
 
-#: Row-wise K=3 runs below this r3 = Σ_rows C(len, 2) / (generated K=3 candidates × words), when its slots fit
-#: one chunk. Measured by bench/moonshots/k3_crossover.py (bench/results/2026-10-17-moonshots-m2/): the lowest
-#: crossing, between r3 = 1.69e-4 (rows 0.11x dense) and 3.73e-4 (1.05x). r3 alone does not order the kernels
-#: above it (long dense rows cost their row triples), so the rule keeps every row-wise level it admits a win.
-K3_ROWS_MAX_R = 2.5e-4
+#: Row-wise K=3 runs below this s (``k3_rows_statistic``), when its slots fit one chunk. Measured by
+#: bench/moonshots/k3_crossover.py (bench/results/2026-10-18-k3-dispatch/, PROTOCOL-K3-DISPATCH.md): the least
+#: regret over 42 points, between s = 6.0e-3 (rows 0.64x dense) and 1.7e-2 (1.58x), confirmed on held-out Zipf
+#: points. It replaced r3 = Σ_rows C(len, 2) / (generated × words) below 2.5e-4, which left out the increments.
+K3_ROWS_MAX_S = 1.0e-2
 
 
 def k3_rows_statistic(
-    row_pairs: int, row_triples: float, pair_support: int, n_generated: int, n_transactions: int
+    row_pairs: int, row_triples: float, pair_support: int, n_slots: int, n_transactions: int
 ) -> float:
-    """s = (R2 + ρ² T3) / (generated × words): the row-wise K=3's work over the dense level's.
+    """s = (R2 + ρ² T3) / (slots × words): the row-wise K=3's work over the dense level's.
 
     R2 and T3 are Σ_rows C(len, 2) and C(len, 3) over the active columns, and
     ρ = P2 / R2 the share of those row pairs that are frequent pairs (P2, the
-    K=2 level's summed counts). ρ² T3 estimates the kernel's increments, which
-    r3 leaves out (bench/moonshots/REPORT-M2.md, finding 1). Infinite without
-    candidates.
+    K=2 level's summed counts). ρ² T3 estimates the kernel's increments. The
+    slots bound the candidates the subset test keeps, which the dense level's
+    time follows more closely than the generated ones (4–5× more on Zipf
+    rows). Infinite without slots.
     """
-    if n_generated <= 0 or row_pairs <= 0:
+    if n_slots <= 0 or row_pairs <= 0:
         return float("inf")
     rho = min(1.0, pair_support / row_pairs)
     words = -(-n_transactions // 64)
-    return (row_pairs + rho * rho * row_triples) / (n_generated * words)
+    return (row_pairs + rho * rho * row_triples) / (n_slots * words)
 
 
-def k3_counts_rows(row_pairs: int, n_generated: int, n_slots: int, budget: int, n_transactions: int) -> bool:
-    """Whether K=3 is counted row-wise: ``ET_MINER_K3_KERNEL`` pins it; unset, r3 below ``K3_ROWS_MAX_R``
-    with every slot in one chunk of ``budget``."""
+def k3_counts_rows(statistic: float, n_slots: int, budget: int) -> bool:
+    """Whether K=3 is counted row-wise: ``ET_MINER_K3_KERNEL`` pins it; unset, ``k3_rows_statistic`` below
+    ``K3_ROWS_MAX_S`` with every slot in one chunk of ``budget``."""
     pinned = _env.k3_kernel()
     if pinned is not None:
         return pinned == "rows"
-    words = -(-n_transactions // 64)
-    return n_generated > 0 and n_slots <= budget and row_pairs < K3_ROWS_MAX_R * n_generated * words
+    return n_slots <= budget and statistic < K3_ROWS_MAX_S
 
 
 #: Floor/fraction for the safety margin: max(1 GiB, 4% of device VRAM).

@@ -147,27 +147,27 @@ def test_statistic_adds_the_estimated_increments_to_the_row_pairs():
     assert s(1_000, 4_000, 1_000, 50, 640_000) == pytest.approx(5_000 / (50 * words)), "every row pair frequent"
     assert s(1_000, 4_000, 500, 50, 640_000) == pytest.approx(2_000 / (50 * words)), "rho = 1/2: a quarter"
     assert s(1_000, 4_000, 3_000, 50, 640_000) == pytest.approx(5_000 / (50 * words)), "rho capped at 1"
-    assert s(1_000, 4_000, 1_000, 0, 640_000) == float("inf"), "no candidates"
+    assert s(1_000, 4_000, 1_000, 0, 640_000) == float("inf"), "no slots"
     assert s(0, 0, 0, 50, 640_000) == float("inf"), "no row pairs"
 
 
-def test_dispatch_follows_the_pin_then_r3_and_one_chunk(monkeypatch):
+def test_dispatch_follows_the_pin_then_the_statistic_and_one_chunk(monkeypatch):
     from et_miner.gpu import row_split_chunks as rsc
 
-    words = -(-640_000 // 64)
-    small = int(rsc.K3_ROWS_MAX_R * 1_000 * words) // 2
+    below, above = rsc.K3_ROWS_MAX_S / 2, rsc.K3_ROWS_MAX_S * 2
     monkeypatch.delenv("ET_MINER_K3_KERNEL", raising=False)
-    assert rsc.k3_counts_rows(small, 1_000, 500, 1_000, 640_000)
-    assert not rsc.k3_counts_rows(small, 1_000, 2_000, 1_000, 640_000), "slots beyond one chunk"
-    assert not rsc.k3_counts_rows(4 * small, 1_000, 500, 1_000, 640_000), "r3 above the crossover"
-    assert not rsc.k3_counts_rows(0, 0, 0, 1_000, 640_000), "no candidates"
+    assert rsc.k3_counts_rows(below, 500, 1_000)
+    assert not rsc.k3_counts_rows(below, 2_000, 1_000), "slots beyond one chunk"
+    assert not rsc.k3_counts_rows(above, 500, 1_000), "s above the crossover"
+    assert not rsc.k3_counts_rows(rsc.K3_ROWS_MAX_S, 500, 1_000), "s at the crossover"
+    assert not rsc.k3_counts_rows(float("inf"), 0, 1_000), "no slots"
     monkeypatch.setenv("ET_MINER_K3_KERNEL", "rows")
-    assert rsc.k3_counts_rows(4 * small, 1_000, 2_000, 1_000, 640_000)
+    assert rsc.k3_counts_rows(above, 2_000, 1_000)
     monkeypatch.setenv("ET_MINER_K3_KERNEL", "dense")
-    assert not rsc.k3_counts_rows(small, 1_000, 500, 1_000, 640_000)
+    assert not rsc.k3_counts_rows(below, 500, 1_000)
     monkeypatch.setenv("ET_MINER_K3_KERNEL", "tiled")
     with pytest.raises(ValueError, match="ET_MINER_K3_KERNEL"):
-        rsc.k3_counts_rows(small, 1_000, 500, 1_000, 640_000)
+        rsc.k3_counts_rows(below, 500, 1_000)
 
 
 # ── end to end ───────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ def test_dense_k2_and_k3_levels_run_without_the_rows(monkeypatch, layer):
         lambda flat, *a, **k: events.append(f"K={flat.shape[1] + 1}") or real_groups(flat, *a, **k),
     )
     monkeypatch.setattr(row_split_chunks, "K2_ROWS_MAX_R", 0.0)
-    monkeypatch.setattr(row_split_chunks, "K3_ROWS_MAX_R", 0.0)
+    monkeypatch.setattr(row_split_chunks, "K3_ROWS_MAX_S", 0.0)
     monkeypatch.setenv("ET_MINER_INPUT_LAYER", layer)
     df = _frame(2, 1_514, repeats=True)
     s = _tie_support(df)

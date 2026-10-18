@@ -768,9 +768,9 @@ def _apriori_row_split_multi_gpu(
         pair_support = row_pairs if prev_counts_flat is None else int(prev_counts_flat.sum())
         budget = compute_chunk_budget(device_ids, group_data_bytes=layout.device_bytes, use_nccl=_use_nccl)
         r3 = row_pairs / (generated * -(-n_transactions // 64)) if generated else float("inf")
-        s = k3_rows_statistic(row_pairs, row_triples, pair_support, generated, n_transactions)
+        s = k3_rows_statistic(row_pairs, row_triples, pair_support, layout.n_slots, n_transactions)
         stats = f"r3 = {r3:.3g}, s = {s:.3g}, rho = {pair_support / row_pairs if row_pairs else 0.0:.4g}"
-        if not k3_counts_rows(row_pairs, generated, layout.n_slots, budget, n_transactions):
+        if not k3_counts_rows(s, layout.n_slots, budget):
             logger.info(
                 f"  K=3: {stats} over {row_pairs:,} row pairs and {row_triples:.6g} row triples, "
                 f"{layout.n_slots:,} slots (one chunk: {budget:,}); counted from the bitvecs"

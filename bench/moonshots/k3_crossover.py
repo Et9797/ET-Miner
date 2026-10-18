@@ -249,12 +249,15 @@ def _child(pt: dict) -> dict:
         m = STATS_RE.search(rows_log)
         if m is None:
             raise RuntimeError(f"no K=3 statistics in the rows log: {rows_log[:300]}")
-        gen, r2, t3, r3, s, rho, slots = m.groups()
+        gen, r2, t3, r3, _, rho, slots = m.groups()
         stats = {"generated": int(gen.replace(",", "")), "row_pairs": int(r2.replace(",", "")),
-                 "row_triples": float(t3), "r3": float(r3), "s": float(s), "rho": float(rho),
-                 "slots": int(slots.replace(",", ""))}
+                 "row_triples": float(t3), "r3": float(r3), "rho": float(rho), "slots": int(slots.replace(",", ""))}
         words = -(-n_rows // 64)
-        stats["s_slots"] = stats["s"] * stats["generated"] / stats["slots"] if stats["slots"] else math.inf
+        # Both denominators from the logged terms: the miner's own s divided by the generated candidates before
+        # the dispatch switched to it, and by the slots since.
+        work = stats["row_pairs"] + min(1.0, stats["rho"]) ** 2 * stats["row_triples"]
+        stats["s"] = work / (stats["generated"] * words)
+        stats["s_slots"] = work / (stats["slots"] * words) if stats["slots"] else math.inf
         if stats["rho"] >= 0.99995:
             stats["increments"] = stats["row_triples"]
         else:

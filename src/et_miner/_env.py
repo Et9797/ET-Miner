@@ -92,11 +92,11 @@ Variables:
                                        rows of at most 64 active items, and
                                        counts from the bitvectors otherwise.
                                        Unset: rows below the measured
-                                       crossover in r3 = Σ_rows C(len, 2) /
-                                       (generated candidates × words) when
-                                       its slots fit one chunk, dense
-                                       otherwise (et_miner.gpu.
-                                       row_split_chunks.K3_ROWS_MAX_R)
+                                       crossover in s = (Σ_rows C(len, 2) +
+                                       ρ² Σ_rows C(len, 3)) / (slots ×
+                                       words) when its slots fit one chunk,
+                                       dense otherwise (et_miner.gpu.
+                                       row_split_chunks.K3_ROWS_MAX_S)
     ET_MINER_DEDUCTION                 "0" or "1": with count inference, the
                                        K>=3 counting kernels settle a
                                        candidate inference leaves by the

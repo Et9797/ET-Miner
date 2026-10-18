@@ -15,14 +15,20 @@ Guidance for Claude Code when working in this repository.
   row-split 1 GPU, group kernel pinned (plain / forced chunks / count inference / no subset test) ==
   row-split 1 GPU, forced chunks (fused tiled) ==
   row-split 1 GPU, no subset test (`prune_apriori=False`) ==
-  row-split 1 GPU, count inference (dispatch / tiled / per-candidate / forced chunks) ==
+  row-split 1 GPU, count inference (dispatch / tiled / per-candidate / forced chunks; deduction bounds on / off) ==
   row-split 1 GPU, row-wise K=2 (shared / global atomics, plain / forced chunks; by the r dispatch) ==
+  row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain / forced chunks) ==
+  row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; by the r3 dispatch) ==
+  row-split 1 GPU, row order keep / lex pinned (plain / forced chunks / count inference) ==
   ESCO 1 GPU (auto / K=3, plain / forced chunks, with / without count inference) ==
   SON 1 GPU, forced chunks ==
   row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks) ==
   row-split 2 GPUs, group kernel pinned (plain / forced chunks / count inference) ==
-  row-split 2 GPUs, count inference (plain / forced chunks) ==
+  row-split 2 GPUs, count inference (plain / forced chunks; deduction bounds on / off) ==
   row-split 2 GPUs, row-wise K=2 (plain / forced chunks) ==
+  row-split 2 GPUs, host / device input layer pinned (K=2 by dispatch; row-wise, plain / forced chunks) ==
+  row-split 2 GPUs, row-wise K=3 (plain / forced chunks / count inference) ==
+  row-split 2 GPUs, row order keep / lex pinned (plain / forced chunks / count inference) ==
   row-split 2 GPUs, compacted (default) / dense-pinned reduce (plain / forced chunks, with / without count inference) ==
   ESCO 2 GPUs (auto / K=3, forced chunks, with / without count inference) ==
   SON 2 GPUs, forced chunks == efficient-apriori

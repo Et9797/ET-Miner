@@ -143,6 +143,46 @@ def build_matrix(mode: str, n_dev: int, rows: list[dict] | None = None) -> list[
         from consolidation_matrix import build_o6_final
 
         return build_o6_final(n_dev)
+    if mode == "moonshots-baseline":
+        from consolidation_matrix import build_moonshots_baseline
+
+        return build_moonshots_baseline(n_dev)
+    if mode == "moonshots-m1":
+        from consolidation_matrix import build_moonshots_m1
+
+        return build_moonshots_m1(n_dev)
+    if mode == "moonshots-m1-final":
+        from consolidation_matrix import build_moonshots_m1_final
+
+        return build_moonshots_m1_final(n_dev)
+    if mode == "moonshots-m2":
+        from consolidation_matrix import build_moonshots_m2
+
+        return build_moonshots_m2(n_dev)
+    if mode == "moonshots-m2-final":
+        from consolidation_matrix import build_moonshots_m2_final
+
+        return build_moonshots_m2_final(n_dev)
+    if mode == "moonshots-x0":
+        from consolidation_matrix import build_moonshots_x0
+
+        return build_moonshots_x0(n_dev)
+    if mode == "moonshots-m7":
+        from consolidation_matrix import build_moonshots_m7
+
+        return build_moonshots_m7(n_dev)
+    if mode == "moonshots-m5b":
+        from consolidation_matrix import build_moonshots_m5b
+
+        return build_moonshots_m5b(n_dev)
+    if mode == "moonshots-polish":
+        from consolidation_matrix import build_moonshots_polish
+
+        return build_moonshots_polish(n_dev)
+    if mode == "moonshots-phase3":
+        from consolidation_matrix import build_moonshots_phase3
+
+        return build_moonshots_phase3(n_dev)
     gpus = [1, 2] if n_dev >= 2 else [1]
     cfgs: list[dict] = []
     if mode == "smoke":
@@ -483,6 +523,9 @@ def main() -> int:
     ap.add_argument("--mode", choices=["smoke", "full", "consolidation", "supplement", "verify", "esco", "esco-retail",
                                          "waste", "pruning", "optimizations-calibration", "optimizations",
                                          "optimizations-final", "o5-calibration", "o6", "o6-final",
+                                         "moonshots-baseline", "moonshots-m1", "moonshots-m1-final", "moonshots-m2",
+                                         "moonshots-m2-final", "moonshots-x0", "moonshots-m7", "moonshots-m5b", "moonshots-polish",
+                                         "moonshots-phase3",
                                          "cpu-baseline"], required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)

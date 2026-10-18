@@ -1,0 +1,269 @@
+# Moonshots for the GPU route: final report
+
+The campaign built five ideas and one polish. Each was measured against
+today's path and kept by its decision rule. Together they make the GPU
+route 7–16× faster on its heavy regimes, with every result unchanged:
+same itemsets, same counts, same signatures in every regime.
+
+- **Box.** 2× RTX 3060 12 GB, EPYC 7282, thread pools at 16. Every number
+  below is from this box (Phase 0's box, an A4000 with a Pentium, is not
+  compared). Medians of 3.
+- **Branches.** Each idea stacks on the previous one, on the owner's choice:
+  `perf/moonshot-baseline` → `-m1` → `-m2` → `-x0` → `-m7` → `-m5b` →
+  `-polish`. None is merged, and there is no PR.
+
+## What the stack does, end to end (Phase 3, `../results/2026-10-18-moonshots-phase3/`)
+
+`main`'s `src/` against the final tree, the same harness and pins, every knob
+at its default:
+
+| regime | GPUs | `main` [min, max] | final [min, max] | final / main |
+|---|---|---|---|---|
+| dsl | 1 | 29.39 [29.34, 30.21] | 3.86 [3.85, 3.90] | 0.131 |
+| dsl, count inference | 1 | 25.07 [24.75, 25.75] | 2.40 [2.35, 2.50] | 0.096 |
+| dsl, free sets | 1 | 24.31 [24.00, 25.28] | 2.76 [2.73, 2.77] | 0.114 |
+| sk2ml3 | 1 | 27.68 [27.55, 27.76] | 1.77 [1.74, 1.78] | 0.064 |
+| oom2ml3 | 1 | 2.70 [2.66, 2.70] | 0.38 [0.37, 0.39] | 0.139 |
+| skew / deepk | 1 | 1.20 / 0.87 | 0.17 / 0.15 | 0.14 / 0.18 |
+| or003 / or002 / smoke | 1 | 0.20 / 0.36 / 0.08 | 0.11 / 0.27 / 0.06 | 0.53–0.75 |
+| dsl / dsl-infer / dsl-free | 2 | 26.88 / 24.12 / 23.61 | 3.23 / 2.72 / 2.75 | 0.11–0.12 |
+| sk2ml3 / oom2ml3 | 2 | 20.36 / 3.13 | 2.33 / 1.12 | 0.11 / 0.36 |
+
+No regime is slower; must-fix: none. The baseline run used 0.405 GPU-hours and
+the final run 0.178.
+
+## Per idea
+
+| idea | decision | where it wins (rule 2) | report | GPU-hours |
+|---|---|---|---|---|
+| M1 device input layer | **kept**, the dispatch for integer ids spanning ≤ 2²² | 11 of 20 regimes: dsl ×6, sk2ml3 ×2, oom2ml3, skew | `REPORT-M1.md` | 0.725 |
+| M2 row-wise K=3 | **kept** behind the r3 dispatch (`K3_ROWS_MAX_R = 2.5e-4`, swept) | sk2ml3 and oom2ml3 on 1 and 2 GPUs | `REPORT-M2.md` | 0.649 |
+| M10 item order | **not built** | its stake (dense K=3 generation) went with M2 | `PROTOCOL-M2.md` | — |
+| X0 count inference by default | **table only; the owner decides** | dsl on 1 and 2 GPUs; ties elsewhere | `REPORT-X0.md` | 0.271 |
+| M7 deduction bounds | **kept**, under count inference | dsl-infer on 1 and 2 GPUs | `REPORT-M7.md` | 0.301 |
+| M5b lex row order + tile skip | **kept** for the device input layer | dsl on 1 and 2 GPUs, dsl free sets on 1 | `REPORT-M5b.md` | 0.442 |
+| polish (span check, argsort, lazy occupancy) | **kept** | dsl on 1 GPU; every regime lower or tied | `REPORT-POLISH.md` | 0.178 |
+| M6, M9, M3 | **not built** | stakes after M2 ≤ 0.70, 0.37, 0.12 s | `SPEC.md` amendments | — |
+| Phase 3 reduced matrix | — | — | `PROTOCOL-PHASE3.md` | 0.583 |
+
+M4, M5a, M8, M11 and M12 were dropped in Phase 1 or are outside the approved
+order. `deep_k20` joined `PRESETS` for a future M4. The ideas' own budget
+(≤ 1 GPU-hour each) held for all of them.
+
+Exactness carried every step:
+- each new path has pinned tier legs on 1 and 2 GPUs; the gate grew from 66
+  to 91 legs, all passing;
+- each has property tests against brute force or efficient-apriori, on the
+  brief's edge cases;
+- the device input layer's bitvectors are byte-identical to the host path's
+  on every preset.
+
+## Findings
+
+1. **(should)** *X0: the owner's decision.* `use_generator_pruning=True` takes
+   dsl from 3.86 to 2.40 s on the final tree (one GPU) and costs nothing
+   measurable elsewhere (`REPORT-X0.md`). The output is identical by
+   construction. The default stays `False` until the owner decides.
+2. **(should)** *Two GPUs rarely pay on this box after the stack.* dsl is 3.23 s
+   on two GPUs against 3.86 on one, but sk2ml3 is 2.33 against 1.77, and every
+   small regime is slower on two. Fixed costs dominate the short walls:
+   - NCCL init;
+   - the per-level reduce;
+   - a bimodal teardown tail of about 0.07 or 0.5 s (X0 finding 2,
+     unexplained).
+
+   Naming the tail (span phases for the NCCL destroy, the uploader drain, the
+   pools) comes first. A one-GPU dispatch for small work would change
+   `n_gpus`' meaning, which is the owner's call.
+3. **(should)** *CuPy's pool fragments across calls in one process*
+   (`REPORT-M2.md` finding 3, predates the campaign). A second
+   `apriori(stress_k2, max_length=2)` on one 12 GB GPU raises
+   OutOfMemoryError on either input layer. Freeing the pool's cached blocks
+   at the start of a run would fix it.
+4. **(should)** *M2's dispatch leaves wins on the table.* r3 alone does not
+   order the swept points. Adding the increments estimate gives
+   (R2 + ρ² T3) / (slots × words); ρ² T3 predicts sk2ml3's and oom2ml3's
+   increments to 10 %. It would admit mid-range wins (`REPORT-M2.md`
+   finding 1). It needs its own sweep.
+5. **(should)** *M7 could stop where it does not settle.* or002 pays 0.08 s on
+   one GPU for bounds that settle nothing there (`REPORT-M7.md` finding 1).
+   A per-level switch needs the kernels to report what they settled.
+6. **(should)** *String item ids cannot pass the GPU route* (by code reading,
+   unverified). `row_split.py` copies `col_to_item` into an int64 array.
+   That is outside the brief's scope and is left as a follow-up.
+7. **(nice)** M5b's permuted `ids_to_bitvec` costs 0.15 s on dsl against
+   0.02 s unpermuted, from atomics on scattered words. Scattering by target
+   position does not help (`REPORT-M5b.md`).
+8. **(nice)** Process: M2's crossover sweep ran before `PROTOCOL-M2.md` existed.
+   Its procedure was in `k3_crossover.py`'s docstring, committed before it ran
+   (`REPORT-M2.md` finding 5).
+9. **(nice)** `uv run ty check` is not available in this project's
+   environment. Lint (`ruff`) and the tests are the static gates used.
+10. **(nice)** *`min_support=0.0` makes the GPU route emit itemsets of count
+    0* (found by the adversarial review). The CPU route does not. The
+    baseline `c0f0fd2` does the same, so it predates the campaign.
+11. **(nice)** *Under the lex order the build holds each row's new position*
+    (4 B per row) beside the bitvectors. Under a 560–580 MiB pool limit that
+    tips the review's probe into OutOfMemoryError where `keep` runs.
+
+## Adversarial review
+
+An adversarial verifier tried to break the stack (`c0f0fd2..f103fdc`) with
+about 700 randomized datasets, under every pin combination, on 1 and 2 GPUs.
+It found **no wrong result**: itemsets, absolute counts, item dtypes and
+emission order matched efficient-apriori, the CPU route and the host input
+layer everywhere. It did find memory failures on the default path. Each one
+is fixed with a regression test, and each test fails on `f103fdc`:
+
+1. **(must-fix, fixed)** *Unsorted rows ran the card out of memory.* Sorting
+   a shard's entries within their rows (`_canonicalize`) took about 42 B per
+   entry at once, but the decision to keep the entries allowed 28. dsl with
+   each row reversed (the same transactions) raised OutOfMemoryError on one
+   GPU.
+   - The fix sorts in blocks of `CANON_BLOCK_ENTRIES` (4M) entries, written
+     back in place, and the keep decision counts one block.
+   - Peak over 30M unsorted entries: 41.7 → 12.6 B per entry.
+   - dsl reversed now mines, on one GPU and on two, with dsl's signature
+     (`6d0579224b429733`, 577,550 itemsets), in about 6 s (one untimed run
+     each).
+   - 247.5M unsorted entries now run (pool peak 1.65 GiB).
+   - Tests: `test_unsorted_rows_are_cut_within_the_keep_decision`,
+     `test_unsorted_rows_canonicalize_in_blocks`.
+2. **(should, fixed)** *The tile occupancy's temporaries took a quarter of the
+   bitvectors' size* and were allocated after the level's chunk budget.
+   - The fix bounds them at 64 MiB per block of columns (`OCC_BLOCK_BYTES`).
+     dsl's 85 columns still fit one block.
+   - A device without room for the occupancy now counts every tile.
+   - The review's probe under a 600 MiB pool limit now runs under `lex` as
+     under `keep`.
+   - Tests: `test_tile_occupancy_matches_numpy[bytes-*]`,
+     `test_without_room_for_the_occupancy_every_tile_is_counted`.
+3. **(should, fixed)** *A dense K=3 level ran beside the kept rows and their
+   positions.* When the r3 dispatch declines, the rows are now released.
+   When the K=2 dispatch declines, the positions are dropped (and the rows
+   too, unless K=3 may read them), and an ESCO level releases them.
+   - VRAM held at the K=3 launches in the review's probe: 456 → 29 MiB, as on
+     the host layer.
+   - Test: `test_dense_k2_and_k3_levels_run_without_the_rows`.
+4. **(should, fixed)** *`max_vram_gb` tripped on the kept entries* where the
+   host layer passed. The guards now drop the kept rows before they compare;
+   K=2 and K=3 then count from the bitvectors.
+   - The review's probe: `max_vram_gb=0.3` now passes on the device layer as
+     on the host.
+   - Test: `test_the_vram_guard_drops_the_kept_rows_before_it_trips`.
+5. **(nice, fixed)** *`ET_MINER_K3_KERNEL=rows` was ignored on the device
+   layer under `ET_MINER_K2_KERNEL=dense`*, since the layer kept no rows. It
+   now keeps them unless both levels are pinned dense.
+   - Test: `test_row_wise_k3_pin_holds_with_the_dense_k2_pin`.
+6. **(nice, fixed)** `SPEC.md`'s M1 amendment said 24 B per entry; the code
+   says 28. The amendment now says 28 and describes the blocks.
+7. **(nice, open)** Findings 10 and 11 above.
+
+**Speed is unchanged on the moonshot regimes, without a timed run.** The
+defaults run the same kernels on the same work: the regimes' rows are sorted
+(no canonicalization), dsl's occupancy is one block either way, and no regime
+reused K=2's positions at K=3. A spy on every `DeviceRows.pairs` call, run on
+`f103fdc` and on the fix, recorded the same column sets and no reuse on
+either. Every regime also returned the same itemset count on both trees.
+
+## Council review of PR #35
+
+Four reviewers (architecture, numerics, alternatives, correctness) judged the
+PR's 20 `src/` files over three rounds. None found a wrong result, and the
+numerics reviewer re-derived the deduction bounds over 3,000 random datasets
+(no violation). All four named the same defect as a must-fix before merge;
+the last round ended three BLOCK, one APPROVE with that must-fix flagged.
+
+1. **(must-fix, fixed)** *A misfit of the deduction bounds' older levels
+   switched off the whole subset test.* `_subset_index` sized the K−1 index
+   and the K−2 and K−3 indexes as one, so when they did not fit a quarter of
+   the free VRAM together, the apriori prune and count inference went with
+   the bounds. `main` turned the index off only when the K−1 index did not
+   fit. On the descending side of a lattice the older levels are the larger
+   ones: on C(20, k)-shaped levels at K=15 the test dropped wherever the K−1
+   index took between about 1/23 and 1/4 of the free VRAM.
+   - The fix sizes the K−1 index alone first, as `main` does, then drops only
+     the bounds (and logs that) when the older levels do not fit beside it.
+   - Test: `test_without_room_for_the_older_levels_only_the_bounds_go`.
+2. **(should, fixed)** *At `min_support=0.0` the device layer made a column of
+   every id in the span*, ids that never occur included: on
+   `[[1,5],[5],[1,5,9]]` it gave 9 and 45 itemsets at `max_length` 1 and 2
+   where the host layer gives 3 and 6. It now keeps the ids that occur, as the
+   host layer does. Finding 10 (count-0 itemsets of real items) stays open.
+   - Test: `test_min_support_zero_makes_no_column_of_an_absent_id`.
+3. **(should, fixed)** `_env.py` said `ET_MINER_K3_KERNEL` unset means dense; it
+   means the r3 dispatch.
+4. **(should, fixed)** *A row longer than `CANON_BLOCK_ENTRIES` is one sorting
+   block,* and the keep decision budgeted 4M entries. A block holds up to
+   `CANON_BLOCK_ENTRIES + longest row − 1` entries. The correctness reviewer
+   ran one row of 20M repeated items out of memory under 820–850 MiB pool
+   limits, where the host layer runs.
+   - The keep decision now budgets that block, and an OutOfMemoryError while
+     the rows are cut or uploaded drops them on either layer (`DeviceRows`,
+     `_HostRows`): `pairs` and `upload` return None, and K=2 and K=3 count
+     from the bitvectors.
+   - The reviewer's probe now runs at 820, 835 and 850 MiB.
+   - Tests: `test_a_row_longer_than_a_block_is_cut_within_the_keep_decision`,
+     `test_rows_out_of_device_memory_give_way_to_the_bitvectors` (cutting and
+     upload on the device layer, upload on the host layer).
+5. **(should, fixed)** *The kept rows had no single owner:* the keep decision
+   is in `input_layer.py`, and the releases were at about six places in
+   `row_split.py`. All five memory findings of the adversarial review came
+   from that bookkeeping.
+   - Every release now goes through one helper, `_drop_rows`, and the
+     out-of-memory contract above is shared by both row sources.
+   - `_k2_src` is renamed `_rows_src`: it carries the K=3 rows too.
+6. **(should, fixed)** `_complete_levels` held levels k−1 and k−2 in host RAM
+   under `ET_MINER_DEDUCTION=0` too, and the memory guards did not drop them.
+   - They are now kept only where the bounds may run, and a guard that would
+     trip drops them first. The bounds return once three complete levels
+     follow.
+   - Tests: `test_older_levels_are_kept_only_where_the_bounds_may_run`,
+     `test_the_memory_guard_drops_the_older_levels_before_it_trips`.
+7. **(nice, open)**
+   - The deep parameters give every K≥3 counting kernel 1408 B of local
+     memory per thread, and the tiled kernels go from 46 to 66 registers;
+     the effect on speed is unmeasured.
+   - A column the device layer does not serve is collected in memory before
+     the host CSR build.
+   - `apriori.py` repeats the miner call's keyword arguments for the two
+     input layers.
+   - `build_device_input` defaults to `row_order="keep"`, the route to lex.
+8. **(nice, open)** *Alternatives:*
+   - the host fallback could use `cpu_miner.build_transaction_csr`;
+   - M1's host arm was the slow `_build_csr_from_transactions`, so its stated
+     lead over the best existing builder is overstated (a fast-CSR
+     prototype measured 4.3 s against the device path's 1.9 s on dsl);
+   - lex is on unconditionally, where SPEC § M5 (b) planned a dispatch, on
+     evidence from dsl only.
+
+Speed on the moonshot regimes is unchanged by 1–6. The rows' paths are the
+same where nothing runs out of memory, and the levels are kept as before
+under the bounds. The older levels' indexes
+exist only under count inference, and on dsl with count inference, the one
+such regime in Phase 3, every level still uploads the bounds (a spy on the
+index uploads, 1 GPU). No regime runs at `min_support=0`.
+
+## Gates on the final tree (`perf/moonshot-polish`)
+
+| check | result |
+|---|---|
+| `uv run pytest tests/test_tier_equivalence.py -q` | 91 passed |
+| `uv run pytest -q -m "not slow" -k "not test_support_00"` | 1615 passed |
+| the same without CuPy importable, as on the CPU-only CI runner (`-m "not slow"`) | 894 passed, 557 skipped |
+| `uv run pytest -q -m "gpu and slow" -k "not test_support_00"` | 17 passed |
+| `uv run python bench/selfcheck.py` | READY: 16 kernels on 2 devices |
+| `uv run ruff check src tests bench` | clean |
+
+These ran after the council's fixes, items 1–6 (the adversarial review's
+gave 1605 passed). Before the adversarial review's fixes, the not-slow suite gave
+1586 passed and 1 failed (`test_every_bitvec_wrapper_runs_the_guard`, fixed
+below).
+
+`-k "not test_support_00"` deselects the Online Retail support tests, as in
+every earlier gate. They do not finish with Online Retail present.
+
+The `tile_occupancy` guard: `tests/test_kernel_guard_claims.py` requires every
+wrapper that takes `bitvecs_gpu` to run `_assert_bitvecs`. M5b's
+`tile_occupancy` did not. The fix sits on `perf/moonshot-polish`, so
+`perf/moonshot-m5b` alone still fails that test.

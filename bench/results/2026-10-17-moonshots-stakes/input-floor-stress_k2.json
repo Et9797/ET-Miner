@@ -1,0 +1,1 @@
+{"dataset": "stress_k2", "n_rows": 2000000, "nnz": 47473315, "lengths": 0.006595406914129853, "explode_int32": 0.1636591269634664, "explode_int32_chunked": 0.17368678585626185, "bincount_k1": 0.2042229298967868, "polars_k1_group_by": 1.0534512219019234, "polars_explode_join": 1.6288402990903705}

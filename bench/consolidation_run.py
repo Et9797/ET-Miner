@@ -16,8 +16,10 @@ device the route uses and runs the same route on a 20,000-row slice of the
 ``smoke`` preset. A fallback logged during the timed call (see
 ``FALLBACK_PATTERNS``) fails the config unless the config allows it.
 
-Optional config keys: ``level_split`` records each level's time split on the
-row-split miner (``level_split.py``) under ``timings["level_split"]``;
+``timings["read_s"]`` is the dataset read, outside ``wall_s``. Optional config
+keys: ``level_split`` records each level's time split on the row-split miner
+(``level_split.py``) under ``timings["level_split"]``, and the time before K=1
+and after the last level under ``timings["span"]``;
 ``dump_lattice`` writes the mined itemsets with their integer counts to
 ``<base_id>.lattice.parquet`` (plus a ``.json`` sidecar) next to the result
 file, after the timed call.
@@ -257,7 +259,9 @@ def run_consolidation(cfg: dict) -> int:
     logger.add(sys.stderr, level=cfg.get("log_level", "INFO"))
 
     dataset = cfg["dataset"]
+    t_read = time.perf_counter()
     df, n_rows, sidecar = _load(dataset)
+    read_s = time.perf_counter() - t_read
     min_support = float(cfg["min_support"])
     max_length = cfg.get("max_length")
 
@@ -269,7 +273,7 @@ def run_consolidation(cfg: dict) -> int:
 
     levels: list[dict] = []
     events: list[tuple[str, int, int, float]] = []
-    timings: dict = {}
+    timings: dict = {"read_s": round(read_s, 3)}
 
     def level_cb(k, n_cand, n_freq, ms):
         levels.append({"k": k, "n_candidates": int(n_cand), "n_frequent": int(n_freq), "ms": float(ms)})
@@ -296,11 +300,14 @@ def run_consolidation(cfg: dict) -> int:
             raise RuntimeError(status)
         if split is not None:
             split.install()
+            split.start()
         res = _mine(cfg, df, min_support, max_length, level_cb, progress_cb, timings)
         wall_s = time.perf_counter() - t0
         if split is not None:
+            split.finish()
             split.uninstall()
             timings["level_split"] = split.levels
+            timings["span"] = split.span
         timings["density_transitions"] = transitions
         if cfg.get("expect_transition") and not transitions:
             raise AssertionError("ESCO config completed without entering the sparse CSR path")

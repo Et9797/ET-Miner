@@ -1,0 +1,8 @@
+{
+  "dataset": "skewed_rows",
+  "min_support": 0.02,
+  "max_length": null,
+  "prune_equal_support": false,
+  "n_rows": 1000000,
+  "min_count": 20000
+}

@@ -18,6 +18,9 @@ void count_k3plus_dense(
     const unsigned char* __restrict__ index_free,
     const int index_mode,                         // 0: count every candidate
     const int write_inferred                      // this device writes inferred counts
+    SUBSET_DEEP_PARAMS,
+    const unsigned long long* __restrict__ occ,   // per column, a bit per 32-word tile holding a row of it
+    const long long occ_words                     // occ words per column; 0: no occupancy, count every tile
 ) {
     long long cand_idx = (long long)blockIdx.y * (long long)gridDim.x
                        + (long long)blockIdx.x + candidate_offset;
@@ -57,7 +60,7 @@ void count_k3plus_dense(
         if (threadIdx.x == 0) {
             int inferred = 0;
             s_status = _classify_candidate(index_rows, index_n, index_counts, index_free, index_mode,
-                                           s_items, prefix_len, suffix_i, suffix_j, &inferred);
+                                           s_items, prefix_len, suffix_i, suffix_j, &inferred SUBSET_DEEP_ARGS);
             s_inferred = inferred;
         }
         __syncthreads();
@@ -71,6 +74,13 @@ void count_k3plus_dense(
 
     unsigned long long local_count = 0;
     for (long long w = threadIdx.x; w < n_u64s; w += blockDim.x) {
+        // A warp's 32 words are one occupancy tile: skip it when an item has no row there (warp-uniform).
+        if (occ_words > 0) {
+            const long long t = w / 32;
+            int empty = 0;
+            for (int i = 0; i < k && !empty; i++) empty = !((occ[(long long)s_items[i] * occ_words + t / 64] >> (t % 64)) & 1ULL);
+            if (empty) continue;
+        }
         unsigned long long result = ~0ULL;
         for (int i = 0; i < k; i++) {
             result &= bitvecs[(long long)s_items[i] * n_u64s + w];

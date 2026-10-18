@@ -1,0 +1,3 @@
+{"mode": "k3", "order": "orig", "counted_tilepairs": 62256, "tiles": 245, "staged_row_tiles_today": 991426800, "with_prefix_skip": 991337490, "with_prefix_and_suffix_skip": 962361646, "elapsed_s": 0.7}
+{"mode": "k3", "order": "lex", "counted_tilepairs": 62256, "tiles": 245, "staged_row_tiles_today": 991426800, "with_prefix_skip": 630271200, "with_prefix_and_suffix_skip": 618719239, "elapsed_s": 17.2}
+{"mode": "k3", "order": "len_lex", "counted_tilepairs": 62256, "tiles": 245, "staged_row_tiles_today": 991426800, "with_prefix_skip": 843731720, "with_prefix_and_suffix_skip": 822507158, "elapsed_s": 17.3}

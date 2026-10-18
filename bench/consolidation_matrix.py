@@ -498,3 +498,157 @@ def build_o6_final(n_dev: int) -> list[dict]:
     """The phase C final check (`--mode o6-final`): one rep of every campaign regime with the knobs unset."""
     out = [_o6(w, label, "final", n, **kw) for w, label, n, kw in _o6_regimes(n_dev)]
     return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in out]
+
+
+#: Moonshots Phase 0 (bench/moonshots/PROTOCOL-0.md): every regime at the defaults, on one and two GPUs.
+MOONSHOT_REGIMES = (
+    *((w, "", {}) for w in ("smoke", "deepk", "skew", "or003", "or002")),
+    ("dsl", "", {}),
+    ("dsl", "infer-", {"use_generator_pruning": True}),
+    ("dsl", "free-", {"prune_equal_support": True}),
+    ("oom2ml3", "", {}),
+    ("sk2ml3", "", {}),
+)
+
+
+def build_moonshots_baseline(n_dev: int) -> list[dict]:
+    """The moonshots baseline (`--mode moonshots-baseline`): the defaults, 3 reps, rep-major.
+
+    Every regime on one GPU, then on two where the box has them. Each config
+    pins the box's logical CPU count as its thread pools, `NCCL_P2P_DISABLE=1`,
+    and records the level split with the span before K=1 and after the last
+    level. Rep 0 on one GPU dumps the lattice for the Phase 1 stakes.
+    """
+    import os
+
+    threads = str(len(os.sched_getaffinity(0)))
+    pools = {k: threads for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{label}base", w, "C", n_gpus=n, env={**pools, "NCCL_P2P_DISABLE": "1"}, level_split=True,
+             timeout_s=OPTIMIZATION_TIMEOUT_S, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, label, kw in MOONSHOT_REGIMES
+    ]
+    return [
+        {**c, "id": f"{c['base_id']}#r{rep}", "rep": rep, **({"dump_lattice": True} if rep == 0 and c["n_gpus"] == 1 else {})}
+        for rep in range(REPS)
+        for c in base
+    ]
+
+
+#: Thread pools of the moonshot idea campaigns on the 2x RTX 3060 / EPYC 7282 box: its physical core count.
+MOONSHOT_THREADS = "16"
+
+
+def build_moonshots_m1(n_dev: int) -> list[dict]:
+    """M1's campaign (`--mode moonshots-m1`, bench/moonshots/PROTOCOL-M1.md): host and device input layer.
+
+    Every moonshot regime on one GPU, then on two where the box has them; both
+    arms pin `ET_MINER_INPUT_LAYER`, the thread pools and `NCCL_P2P_DISABLE=1`,
+    and record the level split with the input span. 3 reps, rep-major.
+    """
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{label}{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1", "ET_MINER_INPUT_LAYER": arm}, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, label, kw in MOONSHOT_REGIMES
+        for arm in ("host", "device")
+    ]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_moonshots_m1_final(n_dev: int) -> list[dict]:
+    """M1's final check (`--mode moonshots-m1-final`): one rep of every M1 regime with the input layer unset."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    return [
+        {**c, "id": f"{c['base_id']}#r0", "rep": 0}
+        for c in (
+            _cfg(f"C{n}-{label}final", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+                 env={**pools, "NCCL_P2P_DISABLE": "1"}, **kw)
+            for n in (1, 2) if n <= max(1, n_dev)
+            for w, label, kw in MOONSHOT_REGIMES
+        )
+    ]
+
+
+def _moonshot_arms(arms: dict[str, dict], n_dev: int) -> list[dict]:
+    """Every moonshot regime on one GPU, then on two where the box has them, once per arm."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    return [
+        _cfg(f"C{n}-{label}{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1", **pins}, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, label, kw in MOONSHOT_REGIMES
+        for arm, pins in arms.items()
+    ]
+
+
+def build_moonshots_m2(n_dev: int) -> list[dict]:
+    """M2's campaign (`--mode moonshots-m2`, bench/moonshots/PROTOCOL-M2.md): dense against row-wise K=3, 3 reps."""
+    base = _moonshot_arms({"dense": {"ET_MINER_K3_KERNEL": "dense"}, "rows": {"ET_MINER_K3_KERNEL": "rows"}}, n_dev)
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_moonshots_m2_final(n_dev: int) -> list[dict]:
+    """M2's final check (`--mode moonshots-m2-final`): one rep of every regime with the K=3 kernel unset."""
+    return [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in _moonshot_arms({"final": {}}, n_dev)]
+
+
+#: X0's regimes: the moonshot regimes that mine the complete lattice (inference does not apply to free sets).
+X0_REGIMES = tuple((w, "", {}) for w in ("smoke", "deepk", "skew", "or003", "or002", "dsl", "oom2ml3", "sk2ml3"))
+
+
+def build_moonshots_x0(n_dev: int) -> list[dict]:
+    """X0's table (`--mode moonshots-x0`, bench/moonshots/PROTOCOL-X0.md): count inference off and on, 3 reps."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1"}, use_generator_pruning=arm == "infer", **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, _, kw in X0_REGIMES
+        for arm in ("plain", "infer")
+    ]
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_moonshots_m7(n_dev: int) -> list[dict]:
+    """M7's campaign (`--mode moonshots-m7`, bench/moonshots/PROTOCOL-M7.md): count inference with the deduction
+    bounds off and on, every complete-lattice regime, 3 reps."""
+    pools = {k: MOONSHOT_THREADS for k in BASE_ENV}
+    base = [
+        _cfg(f"C{n}-{arm}", w, "C", n_gpus=n, level_split=True, timeout_s=OPTIMIZATION_TIMEOUT_S,
+             env={**pools, "NCCL_P2P_DISABLE": "1", **({"ET_MINER_DEDUCTION": pin} if pin else {})},
+             use_generator_pruning=True, **kw)
+        for n in (1, 2) if n <= max(1, n_dev)
+        for w, _, kw in X0_REGIMES
+        for arm, pin in (("pascal", "0"), ("bounds", "1"), ("final", None))
+    ]
+    reps = [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base
+            if not c["base_id"].endswith("-final")]
+    return reps + [{**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in base if c["base_id"].endswith("-final")]
+
+
+def build_moonshots_m5b(n_dev: int) -> list[dict]:
+    """M5b's campaign (`--mode moonshots-m5b`, bench/moonshots/PROTOCOL-M5b.md): the device input layer's row order
+    kept against lex (with the tile-occupancy skip), 3 reps rep-major, then one final-check rep with it unset."""
+    arms = {"keep": {"ET_MINER_ROW_ORDER": "keep"}, "lex": {"ET_MINER_ROW_ORDER": "lex"}}
+    base = _moonshot_arms(arms, n_dev)
+    final = _moonshot_arms({"final": {}}, n_dev)
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base] + [
+        {**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in final
+    ]
+
+
+def build_moonshots_polish(n_dev: int) -> list[dict]:
+    """The Phase 3 polish's after-run (`--mode moonshots-polish`, bench/moonshots/PROTOCOL-POLISH.md): M5b's `lex`
+    arm, renamed `after`, 3 reps rep-major."""
+    base = _moonshot_arms({"after": {"ET_MINER_ROW_ORDER": "lex"}}, n_dev)
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]
+
+
+def build_moonshots_phase3(n_dev: int) -> list[dict]:
+    """Phase 3's reduced matrix (`--mode moonshots-phase3`, bench/moonshots/PROTOCOL-PHASE3.md): every moonshot
+    regime with every knob unset, 3 reps rep-major; run once on the final tree and once on the baseline's src/."""
+    base = _moonshot_arms({"phase3": {}}, n_dev)
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]

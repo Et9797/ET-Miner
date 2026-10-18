@@ -81,6 +81,31 @@ Variables:
                                        (pairs × words), dense at and above
                                        it (et_miner.gpu.row_split_chunks.
                                        K2_ROWS_MAX_R)
+    ET_MINER_K3_KERNEL                 "dense" or "rows": the row-split
+                                       miner's K=3 counting. "rows" counts
+                                       each shard's rows into one slot per
+                                       candidate the subset test admits
+                                       (the triangles of the frequent-pair
+                                       graph; et_miner.gpu.kernels.k3_rows);
+                                       it needs the transactions input,
+                                       prune_apriori, a dense level and
+                                       rows of at most 64 active items, and
+                                       counts from the bitvectors otherwise.
+                                       Unset: rows below the measured
+                                       crossover in r3 = Σ_rows C(len, 2) /
+                                       (generated candidates × words) when
+                                       its slots fit one chunk, dense
+                                       otherwise (et_miner.gpu.
+                                       row_split_chunks.K3_ROWS_MAX_R)
+    ET_MINER_DEDUCTION                 "0" or "1": with count inference, the
+                                       K>=3 counting kernels settle a
+                                       candidate inference leaves by the
+                                       deduction bounds of depth <= 3
+                                       (levels k-1, k-2, k-3 with counts):
+                                       an upper bound below min_count skips
+                                       it, equal bounds give its count.
+                                       Unset: on wherever the three levels
+                                       are complete and their index fits
     ET_MINER_REDUCE                    "dense" or "compact": the row-split
                                        miner's multi-GPU reduce of a K>=3
                                        level with a subset index. "compact"
@@ -89,6 +114,26 @@ Variables:
                                        without an index, ESCO levels and
                                        one GPU reduce dense whatever the
                                        pin. Unset: compact
+    ET_MINER_INPUT_LAYER               "host" or "device": the row-split
+                                       route's input layer. "device" copies
+                                       the item ids to the GPUs and builds
+                                       the K=1 counts, the bitvectors and
+                                       the row-wise K=2 rows there
+                                       (et_miner.gpu.input_layer); it
+                                       serves integer ids spanning at most
+                                       2**22 values, and any other column
+                                       takes the host CSR whatever the pin.
+                                       Unset: device where it serves
+    ET_MINER_ROW_ORDER                 "keep" or "lex": the device input
+                                       layer's row order. "lex" sorts each
+                                       shard's rows by their most frequent
+                                       items before the bitvectors are
+                                       built, and the per-candidate and
+                                       group kernels skip the 2,048-row
+                                       tiles an item does not occupy.
+                                       Counts do not depend on it; the host
+                                       CSR and bitvecs= keep their order.
+                                       Unset: lex
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -231,6 +276,27 @@ def k2_kernel() -> str | None:
     return v
 
 
+K3_KERNELS = ("dense", "rows")
+
+
+def k3_kernel() -> str | None:
+    v = os.environ.get("ET_MINER_K3_KERNEL", "").strip().lower()
+    if not v:
+        return None
+    if v not in K3_KERNELS:
+        raise ValueError(f"ET_MINER_K3_KERNEL must be one of {K3_KERNELS}, got {v!r}")
+    return v
+
+
+def deduction() -> str | None:
+    v = os.environ.get("ET_MINER_DEDUCTION", "").strip()
+    if not v:
+        return None
+    if v not in ("0", "1"):
+        raise ValueError(f"ET_MINER_DEDUCTION must be 0 or 1, got {v!r}")
+    return v
+
+
 REDUCE_MODES = ("dense", "compact")
 
 
@@ -240,6 +306,30 @@ def reduce_mode() -> str | None:
         return None
     if v not in REDUCE_MODES:
         raise ValueError(f"ET_MINER_REDUCE must be one of {REDUCE_MODES}, got {v!r}")
+    return v
+
+
+INPUT_LAYERS = ("host", "device")
+
+
+def input_layer() -> str | None:
+    v = os.environ.get("ET_MINER_INPUT_LAYER", "").strip().lower()
+    if not v:
+        return None
+    if v not in INPUT_LAYERS:
+        raise ValueError(f"ET_MINER_INPUT_LAYER must be one of {INPUT_LAYERS}, got {v!r}")
+    return v
+
+
+ROW_ORDERS = ("keep", "lex")
+
+
+def row_order() -> str | None:
+    v = os.environ.get("ET_MINER_ROW_ORDER", "").strip().lower()
+    if not v:
+        return None
+    if v not in ROW_ORDERS:
+        raise ValueError(f"ET_MINER_ROW_ORDER must be one of {ROW_ORDERS}, got {v!r}")
     return v
 
 

@@ -1,0 +1,74 @@
+{"idea": "M1", "regime": "dsl", "saving_s": 16.768, "wall_s": 25.206, "share": 0.665, "rule2_possible": true, "input_s": 18.575, "floor_s": 1.807}
+{"idea": "M1", "regime": "dsl-infer", "saving_s": 16.764, "wall_s": 21.544, "share": 0.778, "rule2_possible": true, "input_s": 18.571, "floor_s": 1.807}
+{"idea": "M1", "regime": "dsl-free", "saving_s": 16.617, "wall_s": 21.085, "share": 0.788, "rule2_possible": true, "input_s": 18.424, "floor_s": 1.807}
+{"idea": "M1", "regime": "sk2ml3", "saving_s": 4.818, "wall_s": 23.217, "share": 0.208, "rule2_possible": true, "input_s": 5.084, "floor_s": 0.266}
+{"idea": "M1", "regime": "smoke", "saving_s": 0.038, "wall_s": 0.07, "share": 0.538, "rule2_possible": false, "input_s": 0.041, "floor_s": 0.004, "note": "floor at dsl's explode rate per entry"}
+{"idea": "M1", "regime": "deepk", "saving_s": 0.699, "wall_s": 0.881, "share": 0.794, "rule2_possible": false, "input_s": 0.791, "floor_s": 0.092, "note": "floor at dsl's explode rate per entry"}
+{"idea": "M1", "regime": "skew", "saving_s": 0.91, "wall_s": 1.1, "share": 0.827, "rule2_possible": false, "input_s": 1.024, "floor_s": 0.114, "note": "floor at dsl's explode rate per entry"}
+{"idea": "M1", "regime": "oom2ml3", "saving_s": 0.972, "wall_s": 2.478, "share": 0.392, "rule2_possible": false, "input_s": 1.054, "floor_s": 0.083, "note": "floor at dsl's explode rate per entry"}
+{"idea": "M1", "regime": "or003", "saving_s": 0.093, "wall_s": 0.156, "share": 0.597, "rule2_possible": false, "input_s": 0.101, "floor_s": 0.008, "note": "floor at dsl's explode rate per entry"}
+{"idea": "M1", "regime": "or002", "saving_s": 0.091, "wall_s": 0.314, "share": 0.289, "rule2_possible": false, "input_s": 0.098, "floor_s": 0.008, "note": "floor at dsl's explode rate per entry"}
+{"idea": "M2", "regime": "oom2ml3", "saving_s": 0.828, "wall_s": 2.478, "share": 0.334, "rule2_possible": false, "k3_counting_s": 0.89, "rows_model_s": 0.062, "increments": 19074068, "row_pairs": 98735918, "ns_per_unit": 0.529}
+{"idea": "M2", "regime": "sk2ml3", "saving_s": 16.164, "wall_s": 23.217, "share": 0.696, "rule2_possible": true, "k3_counting_s": 16.625, "rows_model_s": 0.46, "increments": 375181499, "row_pairs": 562968354, "ns_per_unit": 0.491}
+{"idea": "M2", "regime": "dsl", "saving_s": 0.0, "wall_s": 25.206, "share": 0.0, "rule2_possible": false, "min_row_subsets_per_counted_word": 2.5345402819859837, "note": "row-wise K>=3 enumerates C(active items, k) per row"}
+{"idea": "M2", "regime": "deepk", "saving_s": 0.0, "wall_s": 0.881, "share": 0.0, "rule2_possible": false, "min_row_subsets_per_counted_word": 6.490910427892235, "note": "row-wise K>=3 enumerates C(active items, k) per row"}
+{"idea": "M2", "regime": "skew", "saving_s": 0.0, "wall_s": 1.1, "share": 0.0, "rule2_possible": false, "min_row_subsets_per_counted_word": 6.481481466749534, "note": "row-wise K>=3 enumerates C(active items, k) per row"}
+{"idea": "M2", "regime": "or002", "saving_s": 0.0, "wall_s": 0.314, "share": 0.0, "rule2_possible": false, "min_row_subsets_per_counted_word": 1.5074630331406995, "note": "row-wise K>=3 enumerates C(active items, k) per row"}
+{"idea": "M3", "regime": "sk2ml3", "saving_s": 7.257, "wall_s": 23.217, "share": 0.313, "rule2_possible": true, "tiled_s": 16.619, "ns_per_tilepair_word": 1.413, "compute_share": 0.465, "bmma_over_popc": 16.3}
+{"idea": "M3", "regime": "oom2ml3", "saving_s": 0.49, "wall_s": 2.478, "share": 0.198, "rule2_possible": false, "tiled_s": 0.889, "ns_per_tilepair_word": 1.828, "compute_share": 0.586, "bmma_over_popc": 16.3}
+{"idea": "M3", "regime": "dsl", "saving_s": 1.213, "wall_s": 25.206, "share": 0.048, "rule2_possible": false, "group_s": 2.75, "tiled_s": 0.126, "group_compute_share_dense": 0.424}
+{"idea": "M3", "regime": "dsl-infer", "saving_s": 0.739, "wall_s": 21.544, "share": 0.034, "rule2_possible": false, "group_s": 1.559, "tiled_s": 0.126, "group_compute_share_dense": 0.424}
+{"idea": "M3", "regime": "dsl-free", "saving_s": 0.594, "wall_s": 21.085, "share": 0.028, "rule2_possible": false, "group_s": 1.193, "tiled_s": 0.127, "group_compute_share_dense": 0.424}
+{"idea": "M4", "regime": "smoke", "saving_s": 0.006, "wall_s": 0.07, "share": 0.079, "rule2_possible": false, "k0": 5, "max_items": 27, "components": 1, "table_bytes": 536870912, "itemsets_from_k0": 21}
+{"idea": "M4", "regime": "deepk", "saving_s": 0.0, "wall_s": 0.881, "share": 0.0, "rule2_possible": false, "note": "no K0 where every component has <= 30 items", "smallest_max_items": 41}
+{"idea": "M4", "regime": "skew", "saving_s": 0.0, "wall_s": 1.1, "share": 0.0, "rule2_possible": false, "note": "no K0 where every component has <= 30 items", "smallest_max_items": 31}
+{"idea": "M4", "regime": "or003", "saving_s": 0.0, "wall_s": 0.156, "share": 0.0, "rule2_possible": false, "note": "no K0 where every component has <= 30 items", "smallest_max_items": 44}
+{"idea": "M4", "regime": "or002", "saving_s": 0.002, "wall_s": 0.314, "share": 0.006, "rule2_possible": false, "k0": 10, "max_items": 14, "components": 2, "table_bytes": 69632, "itemsets_from_k0": 1}
+{"idea": "M4", "regime": "dsl", "saving_s": 0.008, "wall_s": 25.206, "share": 0.0, "rule2_possible": false, "k0": 16, "max_items": 21, "components": 1, "table_bytes": 8388608, "itemsets_from_k0": 4}
+{"idea": "M4", "regime": "dsl-free", "saving_s": 0.318, "wall_s": 21.085, "share": 0.015, "rule2_possible": false, "k0": 9, "max_items": 24, "components": 1, "table_bytes": 67108864, "itemsets_from_k0": 14300}
+{"idea": "M5a", "regime": "dsl", "saving_s": 2.34, "wall_s": 25.206, "share": 0.093, "rule2_possible": false, "at_half_rule_s": 0.9}
+{"idea": "M5a", "regime": "dsl-infer", "saving_s": 0.651, "wall_s": 21.544, "share": 0.03, "rule2_possible": false, "at_half_rule_s": 0.052}
+{"idea": "M5a", "regime": "dsl-free", "saving_s": 0.543, "wall_s": 21.085, "share": 0.026, "rule2_possible": false, "at_half_rule_s": 0.032}
+{"idea": "M5a", "regime": "deepk", "saving_s": 0.007, "wall_s": 0.881, "share": 0.008, "rule2_possible": false, "at_half_rule_s": 0.006}
+{"idea": "M5a", "regime": "skew", "saving_s": 0.005, "wall_s": 1.1, "share": 0.004, "rule2_possible": false, "at_half_rule_s": 0.003}
+{"idea": "M5a", "regime": "or002", "saving_s": 0.007, "wall_s": 0.314, "share": 0.023, "rule2_possible": false, "at_half_rule_s": 0.004}
+{"idea": "M5b", "regime": "dsl", "saving_s": 0.0, "wall_s": 25.206, "share": 0.0, "rule2_possible": false, "order": "orig"}
+{"idea": "M5b", "regime": "dsl-infer", "saving_s": 0.0, "wall_s": 21.544, "share": 0.0, "rule2_possible": false, "order": "orig"}
+{"idea": "M5b", "regime": "dsl-free", "saving_s": 0.0, "wall_s": 21.085, "share": 0.0, "rule2_possible": false, "order": "orig"}
+{"idea": "M5b", "regime": "dsl", "saving_s": 5.582, "wall_s": 25.206, "share": 0.221, "rule2_possible": true, "order": "lex"}
+{"idea": "M5b", "regime": "dsl-infer", "saving_s": 2.013, "wall_s": 21.544, "share": 0.093, "rule2_possible": false, "order": "lex"}
+{"idea": "M5b", "regime": "dsl-free", "saving_s": 1.743, "wall_s": 21.085, "share": 0.083, "rule2_possible": false, "order": "lex"}
+{"idea": "M5b", "regime": "dsl", "saving_s": 5.452, "wall_s": 25.206, "share": 0.216, "rule2_possible": true, "order": "len_lex"}
+{"idea": "M5b", "regime": "dsl-infer", "saving_s": 1.953, "wall_s": 21.544, "share": 0.091, "rule2_possible": false, "order": "len_lex"}
+{"idea": "M5b", "regime": "dsl-free", "saving_s": 1.689, "wall_s": 21.085, "share": 0.08, "rule2_possible": false, "order": "len_lex"}
+{"idea": "M12", "regime": "sk2ml3", "saving_s": 0.319, "wall_s": 23.217, "share": 0.014, "rule2_possible": false, "order": "orig", "staged_cut": 0.036, "prefix_only_cut": 0.0, "staging_share": 0.535}
+{"idea": "M5b", "regime": "sk2ml3", "saving_s": 1.846, "wall_s": 23.217, "share": 0.079, "rule2_possible": false, "order": "lex", "staged_cut": 0.208, "prefix_only_cut": 0.187, "staging_share": 0.535}
+{"idea": "M5b", "regime": "sk2ml3", "saving_s": 0.968, "wall_s": 23.217, "share": 0.042, "rule2_possible": false, "order": "len_lex", "staged_cut": 0.109, "prefix_only_cut": 0.078, "staging_share": 0.535}
+{"idea": "M12", "regime": "oom2ml3", "saving_s": 0.011, "wall_s": 2.478, "share": 0.004, "rule2_possible": false, "order": "orig", "staged_cut": 0.029, "prefix_only_cut": 0.0, "staging_share": 0.414}
+{"idea": "M5b", "regime": "oom2ml3", "saving_s": 0.138, "wall_s": 2.478, "share": 0.056, "rule2_possible": false, "order": "lex", "staged_cut": 0.376, "prefix_only_cut": 0.364, "staging_share": 0.414}
+{"idea": "M5b", "regime": "oom2ml3", "saving_s": 0.063, "wall_s": 2.478, "share": 0.025, "rule2_possible": false, "order": "len_lex", "staged_cut": 0.17, "prefix_only_cut": 0.149, "staging_share": 0.414}
+{"idea": "M7", "regime": "dsl-infer", "saving_s": 1.651, "wall_s": 21.544, "share": 0.077, "rule2_possible": false, "settled_share_by_k": {"3": 0.0, "4": 0.0, "5": 0.009, "6": 0.718, "7": 0.91, "8": 1.0, "9": 1.0, "10": 1.0}}
+{"idea": "M7", "regime": "or002", "saving_s": 0.004, "wall_s": 0.314, "share": 0.012, "rule2_possible": false, "note": "without count inference the regime counts the inferable ones too"}
+{"idea": "M7", "regime": "or003", "saving_s": 0.001, "wall_s": 0.156, "share": 0.005, "rule2_possible": false, "note": "without count inference the regime counts the inferable ones too"}
+{"idea": "M7", "regime": "deepk", "saving_s": 0.0, "wall_s": 0.881, "share": 0.0, "rule2_possible": false, "note": "without count inference the regime counts the inferable ones too"}
+{"idea": "M7", "regime": "skew", "saving_s": 0.0, "wall_s": 1.1, "share": 0.0, "rule2_possible": false, "note": "without count inference the regime counts the inferable ones too"}
+{"idea": "M8", "regime": "dsl", "saving_s": 3.988, "wall_s": 25.206, "share": 0.158, "rule2_possible": true}
+{"idea": "M8", "regime": "dsl-infer", "saving_s": 0.383, "wall_s": 21.544, "share": 0.018, "rule2_possible": false}
+{"idea": "M9", "regime": "oom2ml3", "saving_s": 0.0, "wall_s": 2.478, "share": 0.0, "rule2_possible": false, "flagged": 139531, "written": 15817779, "flagged_share": 0.00882, "note": "saving = (reduce+compact) x (1 - share) on 2 GPUs"}
+{"idea": "M9", "regime": "sk2ml3", "saving_s": 0.0, "wall_s": 23.217, "share": 0.0, "rule2_possible": false, "flagged": 1727429, "written": 144951409, "flagged_share": 0.01192, "note": "saving = (reduce+compact) x (1 - share) on 2 GPUs"}
+{"idea": "M10", "regime": "oom2ml3", "saving_s": 0.509, "wall_s": 2.478, "share": 0.206, "rule2_possible": false, "order": "asc", "k3_counting_s": 0.89, "model_s": 0.381, "generated": 15908626, "tilepairs": 18891, "group_pairs": 2399590}
+{"idea": "M10", "regime": "oom2ml3", "saving_s": 0.51, "wall_s": 2.478, "share": 0.206, "rule2_possible": false, "order": "deg", "k3_counting_s": 0.89, "model_s": 0.381, "generated": 15908003, "tilepairs": 18875, "group_pairs": 2399590}
+{"idea": "M10", "regime": "sk2ml3", "saving_s": 7.793, "wall_s": 23.217, "share": 0.336, "rule2_possible": true, "order": "asc", "k3_counting_s": 16.625, "model_s": 8.831, "generated": 145203574, "tilepairs": 167136, "group_pairs": 9293981}
+{"idea": "M10", "regime": "sk2ml3", "saving_s": 7.791, "wall_s": 23.217, "share": 0.336, "rule2_possible": true, "order": "deg", "k3_counting_s": 16.625, "model_s": 8.833, "generated": 145202379, "tilepairs": 167184, "group_pairs": 9293981}
+{"idea": "M10", "regime": "dsl", "saving_s": -0.039, "wall_s": 25.206, "share": -0.002, "rule2_possible": false, "order": "asc", "model_today_s": 5.88, "model_order_s": 5.919}
+{"idea": "M10", "regime": "dsl-infer", "saving_s": -0.031, "wall_s": 21.544, "share": -0.001, "rule2_possible": false, "order": "asc", "model_today_s": 1.842, "model_order_s": 1.872}
+{"idea": "M10", "regime": "dsl", "saving_s": 0.09, "wall_s": 25.206, "share": 0.004, "rule2_possible": false, "order": "desc", "model_today_s": 5.88, "model_order_s": 5.79}
+{"idea": "M10", "regime": "dsl-infer", "saving_s": 0.023, "wall_s": 21.544, "share": 0.001, "rule2_possible": false, "order": "desc", "model_today_s": 1.842, "model_order_s": 1.818}
+{"idea": "M11", "regime": "or003", "saving_s": 0.0, "wall_s": 0.156, "share": 0.0, "rule2_possible": false, "dedup_ratio": 1.021, "note": "build only if ratio / weight planes >= 4 on a real workload"}
+{"idea": "M11", "regime": "or002", "saving_s": 0.0, "wall_s": 0.314, "share": 0.0, "rule2_possible": false, "dedup_ratio": 1.019, "note": "build only if ratio / weight planes >= 4 on a real workload"}
+{"idea": "M11", "regime": "dsl", "saving_s": 0.0, "wall_s": 25.206, "share": 0.0, "rule2_possible": false, "dedup_ratio": 6.016, "note": "build only if ratio / weight planes >= 4 on a real workload"}
+{"idea": "M11", "regime": "deepk", "saving_s": 0.0, "wall_s": 0.881, "share": 0.0, "rule2_possible": false, "dedup_ratio": 1.281, "note": "build only if ratio / weight planes >= 4 on a real workload"}
+{"idea": "M11", "regime": "skew", "saving_s": 0.0, "wall_s": 1.1, "share": 0.0, "rule2_possible": false, "dedup_ratio": 1.196, "note": "build only if ratio / weight planes >= 4 on a real workload"}
+{"idea": "M11", "regime": "smoke", "saving_s": 0.0, "wall_s": 0.07, "share": 0.0, "rule2_possible": false, "dedup_ratio": 1.203, "note": "build only if ratio / weight planes >= 4 on a real workload"}
+{"idea": "X0", "regime": "dsl", "saving_s": 3.662, "wall_s": 25.206, "share": 0.145, "rule2_possible": true}
+{"constants": {"bmma_over_popc64": 16.348916665970062, "pc_s_per_row_word": 5.369602508990625e-12, "group_stage_s_per_row_word": 2.7630681040969957e-11, "group_pair_s_per_word": 2.976139829855679e-12, "h2d_pinned": 13101879350.00898, "explode_s_per_nnz": 6.374402862656844e-09}}

@@ -122,7 +122,8 @@ void csr_count_range(const int* __restrict__ tids,
                      const int* __restrict__ index_counts,
                      const unsigned char* __restrict__ index_free,
                      const int index_mode,
-                     const int write_inferred)
+                     const int write_inferred
+    SUBSET_DEEP_PARAMS)
 {
     const long long w = _linear_warp();
     if (w >= chunk_size) return;                                   // whole warp leaves together
@@ -136,7 +137,7 @@ void csr_count_range(const int* __restrict__ tids,
                 const long long p0 = group_prefix_offsets[g];
                 status = _classify_candidate(index_rows, index_n, index_counts, index_free, index_mode,
                                              group_prefix_items + p0, (int)(group_prefix_offsets[g + 1] - p0),
-                                             group_suffixes[s0 + i], group_suffixes[s0 + j], &inferred);
+                                             group_suffixes[s0 + i], group_suffixes[s0 + j], &inferred SUBSET_DEEP_ARGS);
             }
             status = __shfl_sync(0xFFFFFFFFu, status, 0);         // warp-uniform from here on
             if (status != CAND_COUNT) {

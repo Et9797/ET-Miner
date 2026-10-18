@@ -35,3 +35,67 @@ void csr_to_bitvec(
         atomicOr(&bitvecs[col * n_u64s + word_idx], bit_mask);
     }
 }
+
+// Set a shard's bitvector bits from its rows' int32 item ids (the device
+// input layer). Each thread handles one row; lut maps an id in 0..span to its
+// column, -1 for an id that is not a column (span is the null id). With
+// `permuted` the row's bit is new_pos[row] instead of row (a row order).
+// noncanonical becomes 1 when some row's columns do not strictly ascend (an
+// unsorted row or a repeated item); every writer stores the same value.
+extern "C" __global__
+void ids_to_bitvec(
+    const long long* __restrict__ row_ptr,     // [n_rows + 1] entry offsets
+    const int* __restrict__ ids,               // [n_entries] ids minus the smallest
+    const int* __restrict__ lut,               // [span + 1] column of each id, or -1
+    unsigned long long* __restrict__ bitvecs,  // [n_cols, n_u64s], zeroed
+    int* __restrict__ noncanonical,            // [1]
+    const long long n_rows,
+    const long long n_u64s,
+    const int* __restrict__ new_pos,           // [n_rows] with permuted
+    const int permuted
+) {
+    long long row = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= n_rows) return;
+
+    const long long at = permuted ? (long long)new_pos[row] : row;
+    long long word_idx = at / 64;
+    unsigned long long bit_mask = 1ULL << (at % 64);
+    int prev = -1;
+    int unsorted = 0;
+    for (long long i = row_ptr[row]; i < row_ptr[row + 1]; i++) {
+        int col = lut[ids[i]];
+        if (col < 0) continue;
+        unsorted |= col <= prev;
+        prev = col;
+        atomicOr(&bitvecs[(long long)col * n_u64s + word_idx], bit_mask);
+    }
+    if (unsorted) noncanonical[0] = 1;
+}
+
+// Sort keys of a shard's rows for the lex row order: a row holding the column
+// of rank r (by descending occurrences) sets bit 63 - r of key_hi for r < 64
+// and bit 127 - r of key_lo for 64 <= r < 128; rows sorted by (key_hi, key_lo)
+// gather the rows sharing their most frequent items.
+extern "C" __global__
+void row_order_keys(
+    const long long* __restrict__ row_ptr,     // [n_rows + 1] entry offsets
+    const int* __restrict__ ids,               // [n_entries] ids minus the smallest
+    const int* __restrict__ lut,               // [span + 1] column of each id, or -1
+    const int* __restrict__ rank_of_col,       // [n_cols] rank by descending occurrences
+    unsigned long long* __restrict__ key_hi,   // [n_rows]
+    unsigned long long* __restrict__ key_lo,   // [n_rows]
+    const long long n_rows
+) {
+    long long row = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= n_rows) return;
+    unsigned long long hi = 0ULL, lo = 0ULL;
+    for (long long i = row_ptr[row]; i < row_ptr[row + 1]; i++) {
+        const int col = lut[ids[i]];
+        if (col < 0) continue;
+        const int r = rank_of_col[col];
+        if (r < 64) hi |= 1ULL << (63 - r);
+        else if (r < 128) lo |= 1ULL << (127 - r);
+    }
+    key_hi[row] = hi;
+    key_lo[row] = lo;
+}

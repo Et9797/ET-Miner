@@ -177,6 +177,110 @@ All notable changes to ET-Miner are recorded here. Versions follow
 - `bench/cpu/`: the CPU-tier campaign (protocol, matrix, timed child, per-level
   split, stakes, crossover measurements, report and compare scripts).
 
+### GPU route: device input layer
+
+- **Integer item columns reach the GPU without the host CSR**
+  (`gpu/input_layer.py`). It serves Int8–Int64 and UInt8–UInt32 ids that span
+  at most 2²² values:
+  - each Polars chunk's Arrow buffers are read in place;
+  - the ids go to the shard devices as int32 through pinned asynchronous
+    copies;
+  - K=1 is a device bincount, and the new `ids_to_bitvec` kernel sets the
+    bits;
+  - the row-wise K=2 kernel's rows are cut from the same device entries.
+- The bitvectors are byte-identical to the host path's (tested on every
+  preset, on null, repeated and unsorted rows, and on 1 and 2 GPUs). Other
+  dtypes, wider spans and `bitvecs=` keep the host CSR.
+  `ET_MINER_INPUT_LAYER=host|device` pins the layer. No mined output changes.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M1.md`), wall
+  per run:
+  - dsl: 29.5 → 10.6 s on one GPU (input 20.7 → 1.9 s), 26.4 → 6.9 s on two;
+  - dsl with count inference: 24.8 → 5.7 s;
+  - sk2ml3: 27.5 → 22.9 s;
+  - no regime slower by rule 2.
+  - dsl's peak host RSS falls from 10.3 to 3.5 GB.
+- The span check reads the chunks' entries (the items' minimum and maximum,
+  nulls aside) instead of Polars' per-row `list.min` / `list.max`: dsl's input
+  falls by about 0.75 s (`bench/moonshots/REPORT-POLISH.md`).
+- `bench/moonshots/`: `PROTOCOL-M1.md`, `REPORT-M1.md`, `decide.py`;
+  `bench/runner.py --mode moonshots-m1|moonshots-m1-final`. The level split
+  times the device phases.
+- Memory, from the stack's adversarial review (`bench/moonshots/REPORT.md`):
+  - unsorted rows and repeated items are sorted in blocks of 4M entries, and
+    the decision to keep the entries counts that block. Sorting all entries at
+    once took about 42 B per entry where the decision allowed 28: dsl with
+    each row reversed ran out of memory on one 12 GB GPU, and now mines
+    dsl's exact result;
+  - `max_vram_gb` and `max_ram_gb` drop the kept entries before they compare,
+    so a limit the bitvectors fit passes as on the host path;
+  - `ET_MINER_K2_KERNEL=dense` no longer drops the rows that row-wise K=3
+    reads.
+- At `min_support=0.0` the device layer's columns are the ids that occur, as
+  on the host layer; it made a column of every id in the span before.
+- When a device runs out of memory while the rows are cut or uploaded, the
+  rows are dropped and K=2 and K=3 count from the bitvectors, on either input
+  layer. The keep decision also budgets a row longer than a sorting block:
+  one unsorted row of 20M items ran a 12 GB card out of memory under an
+  820 MiB pool limit, where the host layer runs.
+
+### GPU route: row-wise K=3
+
+- **K=3 can be counted from each shard's rows** (`gpu/kernels/k3_rows.py`):
+  - every row adds 1 to each candidate it holds whose three pairs are
+    frequent, into one slot per pair and partner;
+  - the slot is found through a frequent-pair bitmap built on the device;
+  - the dispatch picks it when r3 = Σ_rows C(len, 2) / (generated candidates
+    × words) is below 2.5e-4 (measured by `bench/moonshots/k3_crossover.py`)
+    and its slots fit one chunk;
+  - `ET_MINER_K3_KERNEL=dense|rows` pins it.
+- Rows of more than 64 active items, `prune_apriori=False`, `bitvecs=` and
+  ESCO levels count from the bitvectors. No mined output changes.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M2.md`):
+  - sk2ml3: 22.7 → 1.8 s on one GPU (K=3 21.6 → 0.6 s), 15.4 → 1.9 s on two;
+  - oom2ml3: 1.62 → 0.38 s, with its peak VRAM 7.9 → 2.0 GB;
+  - the dispatch leaves every other regime on the dense kernels.
+- When the dispatch leaves K=2 or K=3 to the dense kernels, the rows'
+  positions (at K=3 the rows too) are freed before the dense level. A dense
+  K=3 level held about 8 B per entry plus 16 B per row of them before.
+
+### GPU route: deduction bounds under count inference
+
+- **With `use_generator_pruning=True`, the K≥3 subset test also settles
+  candidates by the deduction bounds of depth ≤ 3** (Calders & Goethals 2002)
+  from levels k−1, k−2 and k−3 with counts:
+  - an upper bound below min_count skips a candidate;
+  - equal bounds give its count without counting it.
+- Exact by inclusion–exclusion. No mined output changes.
+- `ET_MINER_DEDUCTION=0|1` pins it; unset, it is on wherever the three levels
+  are complete and their indexes fit. When the K−1 index fits but the older
+  levels' do not, the subset test and count inference run without the bounds
+  (the council review found the whole subset test switched off there). The
+  older levels stay in host RAM only where the bounds may run, and the memory
+  guards drop them before they trip.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M7.md`): dsl
+  with count inference goes 5.83 → 3.65 s on one GPU and 4.83 → 3.33 s on
+  two; no regime is slower by rule 2.
+
+### GPU route: lex row order and tile-occupancy skip
+
+- **The device input layer sorts each shard's rows by their most frequent
+  items before building the bitvectors**, and the per-candidate and group
+  kernels skip each 2,048-row tile that an item (a prefix item) does not
+  occupy. The skip reads per-column tile occupancy bits.
+- Counts are sums over rows and do not depend on the order. No mined output
+  changes. The host CSR and `bitvecs=` keep their order.
+  `ET_MINER_ROW_ORDER=keep|lex` pins it; unset, it is lex.
+- Measured on 2× RTX 3060 / EPYC 7282 (`bench/moonshots/REPORT-M5b.md`):
+  - dsl: 10.9 → 4.9 s on one GPU, 6.9 → 4.1 s on two;
+  - dsl with free sets: 5.3 → 3.8 s;
+  - no regime is slower by rule 2.
+- The order is two stable radix argsorts, and each device builds its tile
+  occupancy at its first per-candidate or group launch, so a run that never
+  reads it (sk2ml3's row-wise K=3) pays nothing.
+- The occupancy's temporaries take at most 64 MiB per block of columns (they
+  took a quarter of the bitvectors' size), and a device without room for them
+  counts every tile.
+
 ### Polars 2.0
 
 - **Runtime floor raised to `polars>=2.0.0`** (was `>=1.39.0`). Polars 2.0
@@ -744,6 +848,10 @@ sentence with a check wherever one is possible.
   defect is live and zero once fixed, so the same file is evidence and gate.
 - `tests/fixtures/min_count_cases.json` — shared ground truth for the min-count
   rule, read by the Python and Rust test suites alike.
+- `deep_k20` synthetic preset: 1M rows with two 20-item motifs that no
+  background item joins, so the lattice reaches K=20 (2,097,793 itemsets, two
+  20-item components from K=6). Its purpose check guards the depth, that no
+  background item can join a motif, and the lattice's size.
 
 ### Removed
 

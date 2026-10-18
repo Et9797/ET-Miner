@@ -182,6 +182,9 @@ _KERNEL_FILES: dict[str, str] = {
     "count_shared_tiled_fused": "shared_tiled.cu",
     "count_group_pairs": "group_pairs.cu",
     "csr_to_bitvec": "csr_to_bitvec.cu",
+    "ids_to_bitvec": "csr_to_bitvec.cu",
+    "row_order_keys": "csr_to_bitvec.cu",
+    "count_k3_rows": "k3_rows.cu",
 }
 
 # Shared preludes prepended at NVRTC compile time: .cu file -> list of _src/

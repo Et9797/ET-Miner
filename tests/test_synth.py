@@ -1,5 +1,6 @@
 """Tests for the synthetic dataset generator (CPU-only)."""
 
+import dataclasses
 import json
 
 import numpy as np
@@ -110,6 +111,15 @@ class TestPresets:
     @pytest.mark.parametrize("name", sorted(PRESETS))
     def test_purpose_checks_pass(self, name):
         check_preset_purpose(PRESETS[name])
+
+    @pytest.mark.parametrize(
+        "change",
+        [{"motif_size": 17}, {"motif_penetration": 0.0125}, {"motif_count": 4}],
+        ids=["shallow", "hub-joins-motif", "unbounded-lattice"],
+    )
+    def test_deep_k20_purpose_rejects_drift(self, change):
+        with pytest.raises(AssertionError, match="deep_k20"):
+            check_preset_purpose(dataclasses.replace(PRESETS["deep_k20"], **change))
 
     def test_stress_k2_estimate_exceeds_100m_pairs(self):
         est = estimate_level_sizes(PRESETS["stress_k2"])

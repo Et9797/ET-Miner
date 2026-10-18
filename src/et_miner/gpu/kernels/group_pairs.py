@@ -36,16 +36,18 @@ def _group_range(groups_info, chunk_start: int, chunk_end: int) -> tuple[int, in
 
 
 def count_group_pairs(
-    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None, untouched=0
+    bitvecs_gpu, groups_info, n_u64s, chunk_start=0, chunk_size=None, groups_gpu=None, index=None, untouched=0,
+    occ=None,
 ):
     """Dense counting via the group kernel — drop-in for count_k3plus_per_candidate
     on group-aligned chunks of groups with at most ``GROUP_MAX_SUFFIXES`` suffixes
-    (int32, chunk-relative, the same candidate layout, ``index`` and ``untouched``
-    semantics, and the same written entries)."""
+    (int32, chunk-relative, the same candidate layout, ``index``, ``untouched``
+    and ``occ`` semantics, and the same written entries)."""
     import cupy as cp
 
     from .k3plus import upload_k3plus_groups
     from .shared_tiled import _assert_k_cap
+    from .occupancy import occupancy_args
     from .subset_index import kernel_args
 
     tc = groups_info.total_candidates
@@ -84,6 +86,7 @@ def count_group_pairs(
                     np.int64(chunk_start),
                     result_counts,
                     *kernel_args(index, device_id),
+                    *occupancy_args(occ, device_id),
                 ),
             )
             cp.cuda.Stream.null.synchronize()

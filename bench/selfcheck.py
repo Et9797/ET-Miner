@@ -213,6 +213,64 @@ def _smoke_launch(cp) -> None:
     )
     assert extracted.tolist() == [0, 2, 1, 2, 0, 2]
     launched.add("bitvec_extract_tids")
+    # ids_to_bitvec: csr_to_bitvec's rows as ids 5..7 minus 5, the third row unsorted with 5 twice;
+    # id 3 is the null id
+    id_bv = cp.zeros((3, 1), dtype=cp.uint64)
+    noncanonical = cp.zeros(1, dtype=cp.int32)
+    id_ptr = cp.array([0, 2, 3, 8, 8], dtype=cp.int64)
+    id_ids = cp.array([0, 2, 1, 2, 0, 1, 0, 3], dtype=cp.int32)
+    id_lut = cp.array([0, 1, 2, -1], dtype=cp.int32)
+    get_cuda_kernel("ids_to_bitvec")(
+        (1,), (256,),
+        (id_ptr, id_ids, id_lut, id_bv, noncanonical, np.int64(4), np.int64(1), cp.zeros(1, cp.int32), np.int32(0)),
+    )
+    assert id_bv[:, 0].get().tolist() == [0b0101, 0b0110, 0b0101] and noncanonical.get().tolist() == [1]
+    # the same rows at positions 3, 2, 1, 0: the bit order reverses
+    id_bv[:] = 0
+    get_cuda_kernel("ids_to_bitvec")(
+        (1,), (256,),
+        (id_ptr, id_ids, id_lut, id_bv, noncanonical, np.int64(4), np.int64(1), cp.array([3, 2, 1, 0], cp.int32),
+         np.int32(1)),
+    )
+    assert id_bv[:, 0].get().tolist() == [0b1010, 0b0110, 0b1010]
+    launched.add("ids_to_bitvec")
+    # row_order_keys: ranks 2, 1, 0 for columns 0, 1, 2 -> row {0, 2} sets bits 61 and 63 of key_hi
+    key_hi = cp.zeros(4, dtype=cp.uint64)
+    key_lo = cp.zeros(4, dtype=cp.uint64)
+    get_cuda_kernel("row_order_keys")(
+        (1,), (256,), (id_ptr, id_ids, id_lut, cp.array([2, 1, 0], cp.int32), key_hi, key_lo, np.int64(4)),
+    )
+    assert key_hi.get().tolist() == [(1 << 63) | (1 << 61), 1 << 62, (1 << 63) | (1 << 62) | (1 << 61), 0]
+    assert key_lo.get().tolist() == [0, 0, 0, 0]
+    launched.add("row_order_keys")
+    # count_k3_rows: pairs (0,1), (0,2), (1,2), (1,3) are frequent; rows {0,1,2}, {0,1,2,3}, {1,2,3} hold the
+    # triangle (0,1,2) twice; slot (0,1,3) has (0,3) infrequent and stays 0. Bitmap and search paths alike.
+    from et_miner.gpu.kernels import build_k3_graph, count_k3_rows, k3_layout
+    from et_miner.gpu.kernels import k3_rows as k3_mod
+
+    layout = k3_layout(np.array([[0, 1], [0, 2], [1, 2], [1, 3]], np.int32))
+    k3_rows = upload_k2_rows(np.array([0, 3, 7, 10]), np.array([0, 1, 2, 0, 1, 2, 3, 1, 2, 3]), cp.cuda.Device().id)
+    assert count_k3_rows(k3_rows, build_k3_graph(layout, cp.cuda.Device().id), 0, layout.n_slots).tolist() == [2, 0]
+    bits_max, k3_mod.PAIR_BITS_MAX_BYTES = k3_mod.PAIR_BITS_MAX_BYTES, 0
+    try:
+        searched = build_k3_graph(layout, cp.cuda.Device().id)
+        assert count_k3_rows(k3_rows, searched, 0, layout.n_slots).tolist() == [2, 0]
+    finally:
+        k3_mod.PAIR_BITS_MAX_BYTES = bits_max
+    launched.add("count_k3_rows")
+    # The deduction bounds: rows {0,1}, {0,2}, {0,1,2}, {1,2}. Every pair counts 2, every item 3, N = 4, so
+    # l = 2 + 2 - 3 = 1 and u = 2 + 2 + 2 - 3 - 3 - 3 + 4 = 1: (0,1,2) is inferred as 1 without counting (on
+    # zeroed bitvecs), and skipped at min_count 2.
+    from et_miner.gpu.kernels import SUBSET_BOUNDS
+
+    pairs3 = np.array([[0, 1], [0, 2], [1, 2]], np.int32)
+    deep = [(np.array([[0], [1], [2]], np.int32), [3, 3, 3]), (np.zeros((0, 0), np.int32), [])]
+    tri = build_k3plus_groups_from_flat(pairs3)
+    zero = cp.zeros((3, 1), dtype=cp.uint64)
+    for min_count, want in ((1, [1]), (2, [0])):
+        bounds = upload_subset_index(pairs3, [2, 2, 2], [True] * 3, mode=SUBSET_PRUNE | SUBSET_INFER | SUBSET_BOUNDS,
+                                     device_id=dev, write_inferred=True, deep=deep, n_total=4, min_count=min_count)
+        assert count_k3plus_per_candidate(zero, tri, 1, index=bounds).tolist() == want
     missing = set(_KERNEL_FILES) - launched
     assert not missing, f"registered kernels this selfcheck never launches: {sorted(missing)}"
 

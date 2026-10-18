@@ -1,0 +1,8 @@
+{
+  "dataset": "smoke",
+  "min_support": 0.01,
+  "max_length": null,
+  "prune_equal_support": false,
+  "n_rows": 60000,
+  "min_count": 600
+}

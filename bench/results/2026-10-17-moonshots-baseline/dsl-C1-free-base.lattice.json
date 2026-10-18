@@ -1,0 +1,8 @@
+{
+  "dataset": "deep_sparse_large",
+  "min_support": 0.015,
+  "max_length": null,
+  "prune_equal_support": true,
+  "n_rows": 20000000,
+  "min_count": 300000
+}

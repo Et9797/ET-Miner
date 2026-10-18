@@ -151,3 +151,71 @@ uv run python bench/moonshots/k3_crossover.py --grid dispatch --out $OUT/k3_cros
 # only with s adopted, on the tree that switches the dispatch:
 uv run python bench/runner.py --mode moonshots-m2-final --out $OUT --max-gpu-hours 0.1
 ```
+
+## Amendment 1 (2026-10-18, after the sweep, before any further timed run)
+
+**The sweep's outcome** (`../results/2026-10-18-k3-dispatch/k3_crossover.txt`,
+`76c0aac`):
+- 42 of 43 points ran. The cap stopped it before `zipf-N1M-F2400-L32`, where
+  every rule below picks rows.
+- Regret:
+
+  | rule | threshold | regret |
+  |---|---|---|
+  | B0, r3 at today's threshold | 2.5e-4 | 16,241 ms |
+  | B1, r3 fitted | 2.0e-3 | 4,166 ms |
+  | P, s fitted | 6.8e-3 | 3,437 ms |
+  | `s_slots` fitted | 1.0e-2 | 5 ms |
+
+- **Rule 1 holds for P:** 3,437 ≤ 0.9 × 4,166, and it saves 12,804 ms on B0.
+  Any threshold between the neighbouring points (5.2e-3 and 8.9e-3) has the
+  same regret.
+- **The slots' variant did far better.** Nearly all of P's regret is one
+  point: `zipf-N1M-F1600-L48`, rows 9.3 s against dense 5.9 s, which s puts
+  below its threshold and `s_slots` above. On Zipf rows the slots are 4–5×
+  fewer than the generated candidates. The protocol gave `s_slots` no say, and
+  it was picked after the data were seen, so it is tested here on points the
+  sweep did not contain (the owner's choice, 2026-10-18).
+
+**The matrix regimes, both statistics** (an untimed diagnostic: each regime
+mined once to K=3 on one GPU, the dispatch's inputs recorded). The smallest s
+among the dense regimes is or002's 0.040 (`s_slots` 0.046). sk2ml3 and
+oom2ml3 have s 2.6e-6 and 7.2e-6 (`s_slots` 2.1e-4 and 8.6e-4). Neither
+threshold moves a regime to the other kernel.
+
+**Held-out points** (`k3_crossover.py --grid heldout`, the sweep's procedure):
+- six Zipf points where the two statistics disagree at their frozen
+  thresholds (s < 6.8e-3 ≤ … and `s_slots` ≥ 1.0e-2, by the CPU plan):
+  - N1M: F1000-L32, F1200-L40, F1600-L40, F1600-L44;
+  - N4M: F600-L16;
+  - N2M: F1000-L32.
+- two where they agree (rows), as controls:
+  - `zipfrev-N1M-F1600-L32`: the most frequent item last, so the generated
+    candidates equal the slots. Its dense time against `zipf-N1M-F1600-L32`'s
+    shows which of the two the dense level follows;
+  - `zipf-N4M-F800-L16`.
+
+Their planned values (CPU, not campaign data) put s at 2.5e-3–5.4e-3 and
+`s_slots` at 0.011–0.022 on the disagreeing points. They are all Zipf: it is
+the only shape in hand where the two statistics differ.
+
+**Frozen thresholds** (`k3_crossover.FROZEN`): s 6.8e-3, `s_slots` 1.0e-2, and
+r3 2.5e-4, reported for reference.
+
+**Decision rule, replacing rule 1's adoption of P:**
+1. `s_slots` replaces s if on the held-out points, at the frozen thresholds,
+   regret(`s_slots`) ≤ 0.9 × regret(s) *and*
+   regret(s) − regret(`s_slots`) ≥ 1,000 ms. Its constant is then 1.0e-2.
+2. Otherwise s is adopted at 6.8e-3, as rule 1 decided.
+3. Validity, the matrix guard and the final check stay as above. A held-out
+   point that errors or times out is excluded and listed. If more than 2 do,
+   rule 2 applies.
+
+**Budget:** 0.724 GPU-hours used. The held-out points run under
+`--max-gpu-hours 0.15` (estimated 0.06–0.09), and the final check under 0.1.
+
+```bash
+OUT=bench/results/2026-10-18-k3-dispatch
+uv run python bench/moonshots/k3_crossover.py --grid heldout --out $OUT/k3_heldout.jsonl --max-gpu-hours 0.15
+uv run python bench/moonshots/k3_crossover.py --grid heldout --out $OUT/k3_heldout.jsonl --analyze > $OUT/k3_heldout.txt
+```

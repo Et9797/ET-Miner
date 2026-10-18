@@ -37,7 +37,12 @@ pairs and triples, rho, r3 and s). ``--analyze`` then prints each statistic's
 regret: the K=3 milliseconds lost against the faster kernel when it picks rows
 below a threshold (``regret``).
 
-Usage: uv run python bench/moonshots/k3_crossover.py [--grid m2|dispatch] [--out FILE] [--max-gpu-hours H] [--analyze]
+``--grid heldout`` runs Amendment 1's 8 held-out points with the same procedure;
+its ``--analyze`` prints the regret at the thresholds frozen from the dispatch
+grid (``FROZEN``) instead of fitting them.
+
+Usage: uv run python bench/moonshots/k3_crossover.py [--grid m2|dispatch|heldout] [--out FILE] [--max-gpu-hours H]
+       [--analyze]
 """
 
 from __future__ import annotations
@@ -111,7 +116,20 @@ def grid_dispatch() -> list[dict]:
     return pts
 
 
-GRIDS = {"m2": grid, "dispatch": grid_dispatch}
+def grid_heldout() -> list[dict]:
+    """PROTOCOL-K3-DISPATCH.md Amendment 1's held-out points, none of them in ``grid_dispatch``: Zipf rows where s
+    and ``s_slots`` pick different kernels at their frozen thresholds, and two where they agree. ``zipfrev`` is
+    Zipf with the item ids reversed (the most frequent item last)."""
+    disagree = [("zipf", N_ROWS, 1_000, 32), ("zipf", N_ROWS, 1_200, 40), ("zipf", N_ROWS, 1_600, 40),
+                ("zipf", N_ROWS, 1_600, 44), ("zipf", 4 * N_ROWS, 600, 16), ("zipf", 2 * N_ROWS, 1_000, 32)]
+    agree = [("zipfrev", N_ROWS, 1_600, 32), ("zipf", 4 * N_ROWS, 800, 16)]
+    return [_point(*p) for p in disagree + agree]
+
+
+GRIDS = {"m2": grid, "dispatch": grid_dispatch, "heldout": grid_heldout}
+#: r3's threshold before this item, and Amendment 1's thresholds frozen from the dispatch grid's fit.
+R3_SHIPPED = 2.5e-4
+FROZEN = {"r3": R3_SHIPPED, "s": 6.8e-3, "s_slots": 1.0e-2}
 
 
 def regret(rows: list[dict], key: str, at: float | None = None) -> dict:
@@ -168,7 +186,10 @@ def _child(pt: dict) -> dict:
 
     t0 = time.perf_counter()
     n_rows, f, length = pt["n_rows"], pt["n_items"], pt["row_len"]
-    rows = generate_rows(pt.get("dist", "uniform"), n_rows, f, length, zlib.crc32(pt["id"].encode()))
+    dist = pt.get("dist", "uniform")
+    rows = generate_rows(dist.removesuffix("rev"), n_rows, f, length, zlib.crc32(pt["id"].encode()))
+    if dist.endswith("rev"):
+        rows = np.ascontiguousarray((f - 1 - rows)[:, ::-1])
     offsets = np.arange(0, rows.size + 1, length, dtype=np.int64)
     df = pl.DataFrame(
         {"items": pl.Series("items", pa.LargeListArray.from_arrays(offsets, rows.ravel().astype(np.int64)))}
@@ -290,7 +311,7 @@ def _run_point(pt: dict, rev: str) -> dict:
     return {**row, "rev": rev, "proc_s": round(time.time() - t, 1)}
 
 
-def _report(rows: list[dict]) -> None:
+def _report(rows: list[dict], frozen: bool = False) -> None:
     key = "s" if any("s" in r for r in rows) else "r3"
     for r in sorted(rows, key=lambda r: r.get(key, 0)):
         if r.get("status") == "ok":
@@ -303,11 +324,12 @@ def _report(rows: list[dict]) -> None:
             print(f"  {r['id']:<28} {r.get('status')}")
     print(json.dumps(crossover(rows), indent=1))
     if key == "s":
-        from et_miner.gpu.row_split_chunks import K3_ROWS_MAX_R
-
         ok = [r for r in rows if r.get("status") == "ok"]
-        table = [regret(ok, "r3", K3_ROWS_MAX_R), regret(ok, "r3"), regret(ok, "s"), regret(ok, "s_slots"),
-                 regret(ok, "s_true")]
+        if frozen:
+            table = [regret(ok, k, at) for k, at in FROZEN.items()]
+        else:
+            table = [regret(ok, "r3", R3_SHIPPED), regret(ok, "r3"), regret(ok, "s"), regret(ok, "s_slots"),
+                     regret(ok, "s_true")]
         print(json.dumps({"points": len(ok), "regret": table}, indent=1))
 
 
@@ -347,7 +369,7 @@ def main() -> int:
                 f.write(json.dumps(row) + "\n")
             print(f"   {row['status']} ratio={row.get('ratio')}", flush=True)
         print(f"GPU-hours this invocation: {gpu_s / 3600:.3f}")
-    _report([r for r in rows if r.get("rev") == here])
+    _report([r for r in rows if r.get("rev") == here], frozen=args.grid == "heldout")
     return 0
 
 

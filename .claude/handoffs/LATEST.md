@@ -1,117 +1,126 @@
-# Session Handoff: ET-Miner, 2026-10-18 13:36
+# Session Handoff: ET-Miner, 2026-10-18 18:06
 
-**Branch:** `perf/moonshot-polish` @ `6066744` (in sync with origin)
+**Branch:** `fix/pool-fragmentation` @ `cc14c6f` (in sync with origin)
 **Tree:** clean
-**Focus:** GPU-route moonshots campaign finished and merged (PR #35, per the owner); next: work through the open optimization items
-**Reason:** end of session / task switch
+**Focus:** open optimization items after PR #35; two follow-up PRs open, council-reviewed and fixed
+**Reason:** end of session
 
 ## Verify on Resume
-Run `git status --short --branch` and `git rev-parse --short HEAD`. HEAD should be `6066744` on `perf/moonshot-polish`, tree clean. The owner says PR #35 is merged into `main`, so start from an up-to-date `main` (`git fetch && git checkout main && git pull`), not from this branch.
+Run `git status --short --branch` and `git rev-parse --short HEAD`. HEAD should be `cc14c6f` on `fix/pool-fragmentation`, tree clean. The other open branch is `perf/two-gpu-teardown` @ `1a74cd0`. If the owner merged #36/#37 meanwhile, start from an up-to-date `main`.
 
 ## Current State
-- PR #35 (`perf/moonshot-polish` → `main`) merged by the owner. It holds the whole stack: baseline harness, M1, M2, X0 table, M7, M5b, polish, Phase 3, the adversarial-review fixes and the council fixes.
-- The last work was the council's three open should-items (`6066744`); gates green, GitHub CI green.
+- **PR #36** (`fix/pool-fragmentation`, https://github.com/Et9797/ET-Miner/pull/36): open, council 4/4 APPROVE. Fixes REPORT Findings 3: release CuPy's cached pool blocks before every row-split run.
+- **PR #37** (`perf/two-gpu-teardown`, https://github.com/Et9797/ET-Miner/pull/37): open, council 4/4 APPROVE. Names the 2-GPU tail (NCCL destroy) and moves the destroy to a background thread.
+- The council's points 1–3 (report contradiction, per-test GPU markers, wording/erratum) are fixed and pushed on both branches: `cc14c6f` (#36), `1a74cd0` (#37).
+- `git merge-tree` of both branches is clean, and the merged `REPORT.md` reads consistently.
 - Nothing is in flight. No timed run is running.
-- The open optimization items are listed in `bench/moonshots/REPORT.md`: § Findings 1–11 and § Council review items 7–8. The ones worth doing are listed under Next Steps below.
+- Waiting on the owner: merge #36 and #37, then pick the next item.
 
-## Next Steps (open optimization items; pick with the owner, one branch per idea off `main`)
-1. (should) **CuPy pool fragmentation across calls in one process** (REPORT Findings 3, predates the campaign): a second `apriori(stress_k2, max_length=2)` on one 12 GB GPU raises OutOfMemoryError. Fix: free the pool's cached blocks at run start. Cheap, no timed run needed beyond a check.
-2. (should) **Name the 2-GPU teardown tail** (Findings 2): it is bimodal, ~0.07 or ~0.5 s. Add span phases for NCCL destroy, the uploader drain and the pools first. A 1-GPU dispatch for small work would change what `n_gpus` means, so that part is the owner's call.
-3. (should) **M2 dispatch statistic** (Findings 4): replace r3 by (R2 + ρ²·T3) / (slots × words); ρ²T3 predicted sk2ml3's and oom2ml3's increments within 10 %. Needs its own sweep (`bench/moonshots/k3_crossover.py`) and a PROTOCOL first.
-4. (should) **M7 per-level switch** (Findings 5): or002 pays +0.08 s on 1 GPU for bounds that settle nothing. The kernels would have to report how many candidates they settled.
-5. (nice, council) **Deep params cost registers**: every K>=3 counting kernel now has 1408 B/thread of local memory, and the tiled kernels went from 46 to 66 registers even with the bounds off (sm_86 tiled occupancy 5 → 3 blocks/SM by arithmetic). The speed effect is unmeasured; measure it on a tiled-heavy regime.
-6. (nice, council) **Lex row order is unconditional** (`core/apriori.py`, `row_order=_env.row_order() or "lex"`). SPEC § M5 (b) planned a dispatch on the zero-tile share, and the evidence comes from dsl only. Measure on real data (Online Retail, larger row counts) before keeping lex as the default.
-7. (nice) **M5b permuted `ids_to_bitvec`** costs 0.15 s on dsl against 0.02 s unpermuted (atomics on scattered words) (Findings 7).
-8. (nice, council) **Host fallback builder**: point the host CSR path (`core/apriori.py` host branch → `matrix._build_csr_from_transactions`, explode + join + COO, 20.7 s input on dsl) at `core/cpu_miner.build_transaction_csr` (bincount + LUT). That builder filters columns by row count, not occurrences, so `col_to_item` can differ; adjust the byte-identity tests in `tests/test_input_layer.py`.
-9. (nice, council) **Unserved column read in memory**: a column with span > 2²² is collected and its chunks read before the span check, so the host build no longer streams it (~8 B/entry extra peak RAM). Check the span first, or fall back to the original LazyFrame.
-10. (nice) `KEEP_ROWS_BYTES = 28` is about 2× conservative (measured 13.4 B/entry canonical), so rows could be kept more often. Lex holds `new_pos` (4 B/row) during the build (Findings 11).
-11. Small code cleanups (council): `core/apriori.py` repeats ~18 kwargs across the device and host miner calls; `build_device_input(row_order="keep")` defaults differ from the route's "lex"; the occupancy peak is ~98 MiB per block, not the 64 MiB that `OCC_BLOCK_BYTES` documents.
+## Next Steps
+1. Owner merges #36 and #37 (in either order). Afterwards, on `main`, run `tests/test_nccl_teardown.py`, `tests/test_row_split_e2e.py::TestPoolReuse` and the tier chain on the merged tree (council flag: the combination was checked only by the auditor's scratch merge, 99 passed).
+2. The next open item, recommended to the owner: **M2 dispatch statistic** (REPORT Findings 4). Replace r3 by (R2 + ρ²·T3)/(slots × words). It needs its own sweep (`bench/moonshots/k3_crossover.py`) and a PROTOCOL first.
+3. Further items, from the old handoff list:
+   - M7 per-level switch (Findings 5);
+   - deep-param register cost;
+   - lex row order on real data;
+   - M5b permuted `ids_to_bitvec`;
+   - host fallback builder;
+   - unserved column read;
+   - `KEEP_ROWS_BYTES`;
+   - cleanups.
+4. Open council flags (nice, owner's call):
+   - `_release_cached_blocks` is the third copy of `gpu/utils.py:113 cleanup_gpu_memory` / `streaming/multi_gpu.py:93`. Those two also free the pinned pool, so reuse changes behaviour; at least document why.
+   - The `bitvecs=` call site (`core/apriori.py:647` on #36) has no test.
+   - `TestPoolReuse[host]` passes spuriously after a failed `[device]` (a traceback holds GPU memory).
+   - SON GPU routes do not release the pool (unverified whether they need it).
+   - `bench/level_split.py` `_TimedComm.destroy` sets `_destroyed` before success.
+   - Pending destroys hold ~16 MiB/device each in tight loops (bounded).
+   - New Findings 12: `count_tiled_fused` sizes its output at min(2²⁴, candidates) × 12 B regardless of the budget.
 
 ## Session Instructions
-- Campaign brief rules stay binding for any follow-up idea:
-  - efficient-apriori is the oracle;
-  - every new path gets pinned tier legs on 1 and 2 GPUs (forced chunks, count inference, free sets where served);
-  - knobs are `ET_MINER_*` pins only, documented in `_env.py`; no new public params, no default change, no new runtime dependency without the owner's word;
-  - `PROTOCOL-<id>.md` committed before an idea's first timed run;
-  - ≥ 3 reps rep-major, fresh process per config, never compare across boxes, no tracked-file edits or commits during a timed run;
-  - one branch per idea; commit and push after each verified step; no PR or merge without the owner's word.
-- GPU budget ≤ 1 GPU-hour per idea (owner, 2026-10-17); stop and ask when exceeded.
-- Chat in Dutch, concise, plain language. Files, code and commits in English.
-- Reports are numbered lists tagged (must-fix)/(should)/(nice), sorted in that order.
-- Owner chose: stacked branches, `deep_k20` in PRESETS, lattice dumps kept.
+- Owner decisions 2026-10-18:
+  - X0 `use_generator_pruning` default stays **off** (closed);
+  - **no 1-GPU dispatch** for small work (`n_gpus` stays the exact device count);
+  - NCCL fix = **background destroy thread** (not caching communicators, not `abort()`);
+  - for #37: one PR with naming + fix together.
+- Campaign rules still bind:
+  - one branch per idea off `main`;
+  - PROTOCOL committed before any timed run;
+  - ≥3 reps rep-major, fresh process per config, same box only;
+  - no tracked-file edits/commits during a timed run;
+  - knobs only as `ET_MINER_*` pins;
+  - GPU budget ≤ 1 GPU-h per idea (#37 used 0.244);
+  - no PR merge without the owner.
+- Chat in Dutch, plain language. Files, code and commits in English.
+- Reports: numbered lists tagged (must-fix)/(should)/(nice).
 
 ## Decisions & Rationale
-- **X0 (`use_generator_pruning` default) not flipped**: owner's decision, still unanswered. On the final tree it takes dsl from 3.86 to 2.40 s, costs nothing measurable elsewhere, and leaves the output identical.
-- **M6, M9, M3, M10 dropped**: their stakes after M2 are below 1 s (SPEC amendments). M4, M5a, M8, M11 and M12 were dropped in Phase 1.
-- **Rows give way out of memory, not a second estimate** (council): `DeviceRows.pairs/upload` and `_HostRows.upload` return None on OutOfMemoryError and release the rows; K=2 and K=3 then count from the bitvectors.
-- **`_subset_index` degrades per layer** (council must-fix): when the K−1 index fits but the older levels do not, only SUBSET_BOUNDS goes. The whole index goes only when the K−1 index alone does not fit, as on `main`.
-- **No timed run for the review/council fixes**: a spy showed the regimes run the same work (no position reuse, dsl occupancy in one block, every level keeps its bounds on dsl-infer).
+- **Pool release in `core/apriori.py`, at three sites before the first GPU allocation** (bitvecs=, before `build_device_input`, before the host `_apriori_row_split_multi_gpu`). The release inside the miner would come too late: `build_device_input` and `shard_prebuilt_bitvecs` allocate first. Only the run's devices are touched, so no context is created on unused GPUs. The pinned pool is not freed (the finding is device memory only).
+- **NCCL destroy hand-off after the level loop's try/finally, normal path only** (`gpu/row_split.py:1261`). After an error the comms go with the frame, as before, so a hung collective cannot strand a background thread. The thread is non-daemon, so the interpreter joins it before CUDA's atexit handlers run.
+- **Errata, not silent edits, for protocols after their run** (`PROTOCOL-TEARDOWN.md` "554 rows" → erratum: 404 unique).
+- **REPORT.md follow-ups go in an appended "After the merge" section** so parallel PRs do not conflict on the Findings lines.
 
 ## Dead Ends
-- Do not retry the M2 triangle-list layout with binary search: 1.1 s; the slot-by-pair layout with bitmap ranks replaced it (kernel 1.56 → 0.39 s) (from compaction summary).
-- Do not retry scattering M5b's bitvectors by target position: it does not help (`REPORT-M5b.md`).
-- Do not import cupy at module or install time in `bench/` or tests: CI is CPU-only (`.github/workflows`, `uv run pytest -q -m "not slow"`). `bench/level_split.py` broke CI this way (fixed in `fa3f021`).
-- Do not `pkill` by a pattern that matches your own shell (from compaction summary).
+- Do not use `abort()` for NCCL teardown: 0.54–0.56 s, slower than `destroy()`.
+- Do not use `gh pr view`/`gh pr edit` for PR bodies: they fail with a GraphQL "Projects (classic) is being deprecated" error. Use `gh api repos/Et9797/ET-Miner/pulls/<n> --jq .body` and `gh api -X PATCH ... -F body=@file`.
+- Do not rebase branches whose commits stamp campaign rows (`8d7d317`, `09d08fd`): the rows' `rev` would become unreachable.
+- Do not trust `TestPoolReuse` results right after another test failed with OOM: the pytest traceback keeps GPU memory alive.
 
 ## Key Findings
-- CI has no CuPy. To reproduce locally, run pytest with `sys.modules["cupy"] = None` and `sys.modules["cupyx"] = None` set before `pytest.main` (`-m "not slow"`): 894 passed, 557 skipped at `6066744`.
-- The `test_support_00*` tests (Online Retail) do not finish with the dataset present; every local gate uses `-k "not test_support_00"`.
-- CuPy's pinned pool must be freed in tests (`_free_pools` in `tests/test_input_layer.py`), or it locks host RAM (from compaction summary).
-- In `tile_occupancy` and `DeviceRows`, release memory only after the `except` block exits: the traceback keeps the failed allocation's arrays alive (`input_layer.py` `DeviceRows._out_of_memory`).
-- `min_support=0.0`: the GPU route emits count-0 itemsets of real items (predates the campaign, Findings 10). The device layer no longer invents absent ids (`input_layer.py`, `freq = ... & (occurrences > 0)`).
-
-## Blockers & Pending Decisions
-- Owner: flip the `use_generator_pruning` default (X0)?
-- Owner: a 1-GPU dispatch for small work on `n_gpus=2` (changes what `n_gpus` means)?
-- Owner: which open items to take first (Next Steps).
+- 2-GPU tail = NCCL communicator destroy. NCCL 2.31.2's proxy thread polls every 500 ms when idle, so the destroy waits ≈ 500 ms − (idle since last NCCL call mod 500). Before the fix: 0.319 s median, 0.028–0.520 s. After: `tail_nccl` 0.
+- Pool OOM repro: a second `apriori(stress_k2, max_length=2)` raised "Out of memory allocating 8,750,000,128 bytes"; the cached block is exactly the bitvectors (35000 × 31250 × 8 B).
+- The 2-GPU reduce is the next fixed cost on small regimes (0.07–0.09 s; the first all-reduce on new comms is ~0.07 s). NCCL first init is 0.6 s, but the bench warm-up pays it.
 
 ## Test Status
-At `6066744` (2026-10-18 ~13:30):
-- `uv run pytest tests/test_tier_equivalence.py -q`: 91 passed.
-- `uv run pytest -q -m "not slow" -k "not test_support_00"`: 1615 passed.
-- No-CuPy run (as CI): 894 passed, 557 skipped.
-- `uv run pytest -q -m "gpu and slow" -k "not test_support_00"`: 17 passed.
-- `bench/selfcheck.py`: READY (16 kernels, 2 devices).
-- `ruff check src tests bench`: clean. GitHub CI: pass.
+- `perf/two-gpu-teardown` @ `09d08fd`:
+  - tier: 91 passed;
+  - `-m "not slow" -k "not test_support_00"`: 1625 passed;
+  - gpu+slow: 17 passed;
+  - no-CuPy: 895/559;
+  - selfcheck READY.
+- At `1a74cd0`: affected tests 25 passed; no-CuPy 896 passed, 563 skipped; ruff clean.
+- `fix/pool-fragmentation` @ `8ee633a`:
+  - tier: 91 passed;
+  - not-slow: 1617 passed;
+  - gpu+slow: 17 passed;
+  - no-CuPy: 893/556 (with `-k "not test_support_00"`);
+  - selfcheck READY.
+  - `cc14c6f` is a report-only change.
 
-## What Was Done (this session)
-- Adversarial review: no wrong result; memory findings fixed (`88e2532`):
-  - blocked `_canonicalize` (`CANON_BLOCK_ENTRIES`) and `_keep_bytes` in `gpu/input_layer.py`;
-  - occupancy temporaries capped by `OCC_BLOCK_BYTES`, with an OOM fallback (`gpu/kernels/occupancy.py`, `row_split._occupancy`);
-  - rows released before dense levels; memory guard drops the rows;
-  - device layer keeps rows when row-wise K=3 may run under a dense K=2 pin.
-- PR #35 opened. The council (4 reviewers, 3 rounds) found one must-fix, fixed in `c1f8b38`: `row_split._subset_index` degrades per layer, plus the `min_support=0` column rule and the `_env.py` K3 doc.
-- CI fix: `bench/level_split.py` imports cupy lazily (`fa3f021`).
-- Council should-items (`6066744`):
-  - out-of-memory contract for both row sources;
-  - `_drop_rows` as the single release point (`_k2_src` renamed `_rows_src`);
-  - `_keep_levels` and the guard dropping `_complete_levels` (`gpu/row_split.py`).
-- Reports: `bench/moonshots/REPORT.md` (§ Adversarial review, § Council review of PR #35, Gates), `SPEC.md` M1 amendment, `CHANGELOG.md`.
+## What Was Done
+- `core/apriori.py` `_release_cached_blocks` + 3 call sites; `tests/test_row_split_e2e.py::TestPoolReuse` (500k rows, limit held + 1.75 × cached).
+- `gpu/nccl.py` `_destroy_nccl`; `gpu/row_split.py:1258-1262` hand-off; `tests/test_nccl_teardown.py` (6 tests).
+- Bench changes:
+  - `bench/level_split.py` `_TimedComm`, `tail_nccl`, `nccl_destroys`;
+  - `--mode moonshots-teardown(-after)` (`bench/consolidation_matrix.py`, `bench/runner.py`);
+  - `bench/moonshots/tail_table.py`.
+- Reports:
+  - `bench/moonshots/PROTOCOL-TEARDOWN.md`, `REPORT-TEARDOWN.md`, `REPORT.md`;
+  - results in `bench/results/2026-10-18-moonshots-teardown{,-after}/`;
+  - CHANGELOG entries.
+- Council review of both PRs (4/4 APPROVE, round 1).
+- Memory: `moonshots-campaign.md` updated with the owner decisions and progress.
 
 ## Commits This Session
-- `6066744` Council open items: rows give way out of memory; one owner; levels kept for the bounds only
-- `7f18830` Moonshots report: the subset-index window as index_nbytes gives it
-- `fa3f021` bench: level split imports cupy only when the GPU bitvec build runs
-- `c1f8b38` Council review: keep the subset test when only the bounds do not fit
-- `88e2532` Moonshots: fix the adversarial review's memory findings
-- `f103fdc` Moonshots report: gate counts as run (from compaction summary)
-- `390039d` Moonshots: final report; tile_occupancy runs the bitvec guard (from compaction summary)
-- `ba158d9` Phase 3: reduced matrix, baseline src against the final tree (from compaction summary)
+- `cc14c6f` Moonshots report: Findings 2 leaves the tail's status to its follow-up (#36)
+- `1a74cd0` Council review of PR #37: wording, erratum, per-test GPU markers (#37)
+- `46166ad` Teardown report, Amendment 1: every 2-GPU regime faster by the wait (#37)
+- `09d08fd` GPU route: destroy the NCCL communicators off the call's path (#37)
+- `a3028c2` Teardown report: the 2-GPU tail is the NCCL destroy (#37)
+- `8d7d317` bench: time the NCCL destroy in the 2-GPU tail; teardown protocol (#37)
+- `f17650b` handoff: 2026-10-18 13:36, after PR #35 (#36)
+- `8ee633a` GPU route: release the pool's cached blocks before a run (#36)
 
 ## Key Files
 | File | Role |
 |------|------|
-| `src/et_miner/gpu/input_layer.py` | M1 device input layer: `build_device_input`, `DeviceRows`, `_canonicalize`, `_keep_bytes`, `_row_order` |
-| `src/et_miner/gpu/row_split.py` | Row-split miner: `_rows_src`/`_drop_rows`, `_subset_index`, `_count_k2_rows`, `_count_k3_rows`, `_occupancy`, `_check_memory_guard` |
-| `src/et_miner/gpu/row_split_chunks.py` | Dispatches `k2_counts_rows` / `k3_counts_rows` (`K2_ROWS_MAX_R`, `K3_ROWS_MAX_R`), chunk budget |
-| `src/et_miner/gpu/kernels/{k3_rows,occupancy,subset_index}.py`, `_src/*.cu` | M2, M5b and M7 kernels and wrappers |
-| `src/et_miner/core/apriori.py` | Device/host input-layer dispatch before the miner call |
-| `src/et_miner/_env.py` | Every `ET_MINER_*` pin, documented |
-| `bench/consolidation_matrix.py`, `bench/runner.py` | Moonshot matrices (`--mode moonshots-*`), `MOONSHOT_REGIMES`, `WORKLOADS` |
-| `bench/level_split.py`, `bench/moonshots/{decide,split_table,k3_crossover}.py` | Level split, decision rule 2, split tables, M2 sweep |
-| `bench/moonshots/REPORT.md`, `SPEC.md`, `PROTOCOL-*.md` | Final report with every open item, design and amendments, protocols |
+| `src/et_miner/core/apriori.py` (#36) | `_release_cached_blocks` and its call sites |
+| `src/et_miner/gpu/nccl.py`, `gpu/row_split.py` (#37) | `_destroy_nccl`, hand-off after the level loop |
+| `bench/level_split.py` | span phases incl. `tail_nccl` |
+| `bench/moonshots/REPORT.md` | all open items; "After the merge" section (#37) |
+| `bench/moonshots/{PROTOCOL,REPORT}-TEARDOWN.md` | teardown protocol + Amendment 1, report |
+| `tests/test_nccl_teardown.py`, `tests/test_row_split_e2e.py` | new regression tests |
 
 ## Extra Context
-- Focus for the next session: **open optimization punten afwerken**, the items in Next Steps. Confirm the order with the owner first, then one branch per idea off `main`, with a PROTOCOL before any timed run.
-- Box: 2× RTX 3060 12 GB, EPYC 7282; thread pools at 16 (`MOONSHOT_THREADS`); `NCCL_P2P_DISABLE=1`. Phase 0 ran on an A4000/Pentium box and is never compared.
-- The Phase 3 numbers on this box (`main` src → final, 1 GPU): dsl 29.39 → 3.86 s, dsl-infer 25.07 → 2.40 s, sk2ml3 27.68 → 1.77 s, oom2ml3 2.70 → 0.38 s. These are the reference for any follow-up idea.
+- Box: 2× RTX 3060 12 GB, EPYC 7282, NCCL 2.31.2, CuPy 14.1.1; campaigns pin threads 16 and `NCCL_P2P_DISABLE=1`.
+- The scratch diagnostics are in the session scratchpad (`repro_pool.py`, `nccl_destroy.py`, `tail_diag.py`); they are not in the repo.

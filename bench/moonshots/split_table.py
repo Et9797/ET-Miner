@@ -17,10 +17,9 @@ import statistics
 from collections import defaultdict
 
 INPUT = ("input_count", "input_k1", "input_explode", "input_csr", "input_widen", "input_h2d", "input_bitvec",
-         "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_dev_order", "input_occupancy",
-         "input_other")
+         "input_dev_chunks", "input_dev_copy", "input_dev_k1", "input_dev_bitvec", "input_dev_order", "input_other")
 LEVEL = ("count_rows", "count_percand", "count_group", "count_tiled", "count_fused", "count_csr", "reduce",
-         "compact", "filter", "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "k3_graph", "decode",
+         "compact", "filter", "group_build", "group_upload", "budget", "k2_dispatch", "k2_input", "k3_graph", "occupancy", "decode",
          "sort",
          "free_prune", "transition", "materialize", "other")
 
@@ -82,7 +81,7 @@ def main() -> int:
         return 0
     print(f"signature mismatches: {bad or 'none'}\n")
     print("| config | reps | wall [min, max] | input | count/k1/explode/csr | widen/h2d/bitvec "
-          "| device chunks/copy/k1/bitvec/order/occ | other | K=1 | K>=2 | frame | tail |")
+          "| device chunks/copy/k1/bitvec/order | other | K=1 | K>=2 | frame | tail |")
     print("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for base, m in table.items():
         print(
@@ -90,7 +89,7 @@ def main() -> int:
             f"{m['input_count']:.2f}/{m['input_k1']:.2f}/{m['input_explode']:.2f}/{m['input_csr']:.2f} | "
             f"{m['input_widen']:.2f}/{m['input_h2d']:.2f}/{m['input_bitvec']:.2f} | "
             f"{m['input_dev_chunks']:.2f}/{m['input_dev_copy']:.2f}/{m['input_dev_k1']:.2f}/{m['input_dev_bitvec']:.2f}/"
-            f"{m['input_dev_order']:.2f}/{m['input_occupancy']:.2f} | "
+            f"{m['input_dev_order']:.2f} | "
             f"{m['input_other']:.2f} | {m['k1']:.2f} | {m['levels_k2plus']:.2f} | {m['frame']:.2f} | {m['tail']:.2f} |"
         )
     print()

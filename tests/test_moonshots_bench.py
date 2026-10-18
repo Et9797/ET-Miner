@@ -193,7 +193,6 @@ def test_level_split_times_the_device_input_layer(monkeypatch):
         "input_dev_k1",
         "input_dev_bitvec",
         "input_dev_order",
-        "input_occupancy",
     ):
         assert split.span[phase] > 0, phase
     assert split.span["input_explode"] == 0 and split.span["input_csr"] == 0
@@ -220,3 +219,25 @@ def test_level_split_times_the_row_wise_k3(monkeypatch):
     for phase in ("k2_dispatch", "k2_input", "k3_graph", "count_rows", "decode"):
         assert split.levels[3][phase] > 0, phase
     assert split.levels[3]["count_tiled"] == split.levels[3]["count_group"] == 0
+
+
+@pytest.mark.gpu
+def test_occupancy_is_built_at_the_first_level_that_reads_it(monkeypatch):
+    """Under the lex row order a device's occupancy waits for its first per-candidate or group launch."""
+    from et_miner import apriori
+
+    monkeypatch.setenv("ET_MINER_ROW_ORDER", "lex")
+    monkeypatch.setenv("ET_MINER_TILED_MIN_GROUP_PAIRS", str(10**12))
+    monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "group")
+    rng = np.random.default_rng(5)
+    rows = [sorted(set(rng.integers(0, 25, size=int(rng.integers(2, 9))).tolist())) for _ in range(6_000)]
+    split = LevelSplit()
+    split.install()
+    try:
+        split.start()
+        apriori(pl.DataFrame({"items": rows}), min_support=0.01, use_gpu=True, level_callback=split.callback())
+        split.finish()
+    finally:
+        split.uninstall()
+    built = [k for k, phases in split.levels.items() if phases["occupancy"] > 0]
+    assert built == [3], f"occupancy built at levels {built}"

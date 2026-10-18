@@ -534,11 +534,18 @@ def _row_wise_k3_leg(smoke_dataset, oracle_set, monkeypatch, variant, n_gpus):
 
 
 def _row_order_leg(smoke_dataset, oracle_set, monkeypatch, order, variant, n_gpus):
-    """A leg with the device input layer's row order pinned; "lex" must build the tile occupancy, "keep" not."""
+    """A leg with the device input layer's row order pinned. Under "lex" every per-candidate and group launch gets
+    the tile occupancy, built only when such a launch runs; under "keep" none does."""
     from et_miner.gpu import kernels
 
-    built = []
+    built, occ_args = [], []
     monkeypatch.setattr(kernels, "tile_occupancy", lambda bv, _real=kernels.tile_occupancy: built.append(1) or _real(bv))
+    for name in ("count_k3plus_per_candidate", "count_group_pairs"):
+        def spy(*a, _real=getattr(kernels, name), **k):
+            occ_args.append(k.get("occ") is not None)
+            return _real(*a, **k)
+
+        monkeypatch.setattr(kernels, name, spy)
     env = {"ET_MINER_ROW_ORDER": order, "ET_MINER_INPUT_LAYER": "device"}
     kwargs = {}
     if variant == "forced chunks":
@@ -547,7 +554,12 @@ def _row_order_leg(smoke_dataset, oracle_set, monkeypatch, order, variant, n_gpu
         kwargs = {"index_mode": "infer", "use_generator_pruning": True}
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split {n_gpus} GPU(s), row order {order} ({variant})",
              env, n_gpus=n_gpus, **kwargs)
-    assert bool(built) == (order == "lex"), f"row order {order}: tile occupancy built {len(built)} time(s)"
+    label = f"row order {order} ({variant}, {n_gpus} GPU(s))"
+    if order == "keep":
+        assert not built and not any(occ_args), f"{label}: occupancy built {len(built)}x, passed {occ_args}"
+    else:
+        assert all(occ_args), f"{label}: a launch without the occupancy: {occ_args}"
+        assert bool(built) == bool(occ_args), f"{label}: occupancy built {len(built)}x for {len(occ_args)} launch(es)"
 
 
 @pytest.mark.gpu

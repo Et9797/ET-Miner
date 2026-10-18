@@ -638,3 +638,10 @@ def build_moonshots_m5b(n_dev: int) -> list[dict]:
     return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base] + [
         {**c, "id": f"{c['base_id']}#r0", "rep": 0} for c in final
     ]
+
+
+def build_moonshots_polish(n_dev: int) -> list[dict]:
+    """The Phase 3 polish's after-run (`--mode moonshots-polish`, bench/moonshots/PROTOCOL-POLISH.md): M5b's `lex`
+    arm, renamed `after`, 3 reps rep-major."""
+    base = _moonshot_arms({"after": {"ET_MINER_ROW_ORDER": "lex"}}, n_dev)
+    return [{**c, "id": f"{c['base_id']}#r{rep}", "rep": rep} for rep in range(REPS) for c in base]

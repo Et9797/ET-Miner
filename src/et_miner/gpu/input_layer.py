@@ -10,12 +10,13 @@ per row and item however often the item repeats in the row.
 Steps:
 1. Each Polars chunk of the list column is read through its Arrow buffers in
    place: the row offsets and the item values. A chunk with null items, or
-   with a null list holding entries, is exploded by Polars instead, each null
-   becoming the null id ``span``; so is every chunk when pyarrow cannot be
-   imported.
+   with a null list holding entries, is exploded by Polars instead, its nulls
+   marked; so is every chunk when pyarrow cannot be imported. The items'
+   smallest and largest values (nulls aside) give the span.
 2. Per row shard (``csr_bitvec._row_split_cuts``), the ids minus the smallest
-   are written as int32 into two pinned buffers in turn and copied
-   asynchronously to the shard's device, after the shard's row offsets.
+   are written as int32 into two pinned buffers in turn, a null as the null
+   id ``span``, and copied asynchronously to the shard's device, after the
+   shard's row offsets.
 3. K=1: an occurrence bincount over the id range on every device, summed on
    the host; the ids reaching min_count are the columns.
 4. A lookup table maps ids to columns and ``ids_to_bitvec`` sets the bits,
@@ -52,8 +53,8 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
-from et_miner.core.cpu_miner import _int_ids, _IntIds
-from et_miner.core.result import _min_count
+from et_miner.core.cpu_miner import INT_SPAN_LIMIT, _IntIds
+from et_miner.core.result import _INT64_ITEM_DTYPES, _min_count
 
 from .csr_bitvec import _row_split_cuts
 from .row_split_chunks import _device_available_bytes
@@ -178,14 +179,29 @@ def _canonicalize(sh: _Shard, n_cols: int) -> None:
     sh.canonical = True
 
 
-def _chunk_entries(s: pl.Series, ids: _IntIds, in_place: bool) -> tuple[np.ndarray, np.ndarray, bool]:
-    """(row offsets int64 from 0, entries, shifted) of one Polars chunk of the list column.
+@dataclass
+class _Chunk:
+    """One Polars chunk of the list column: row offsets from 0, its entries as they are, and their nulls.
 
-    With ``in_place`` (pyarrow importable) the entries are the Arrow values in
-    place, not yet minus the smallest id (``shifted`` False). Otherwise, and
-    for a chunk with null items or with a null list holding entries, Polars
-    explodes the chunk: an empty list explodes to nothing, a null list to one
-    null, and every null becomes the null id ``span`` (``shifted`` True, int32).
+    ``nulls`` marks the entries that are no item (a null item, or the one
+    entry a null list explodes to); None when there are none. ``lo`` / ``hi``
+    are the smallest and largest item, None for a chunk without one.
+    """
+
+    offsets: np.ndarray
+    entries: np.ndarray
+    nulls: np.ndarray | None
+    lo: int | None
+    hi: int | None
+
+
+def _chunk_entries(s: pl.Series, in_place: bool) -> _Chunk:
+    """One Polars chunk's entries: the Arrow values in place, or for a chunk with nulls Polars' explode.
+
+    With ``in_place`` (pyarrow importable) and no null item, and no null list
+    holding entries, the entries are a view of the Arrow values. Otherwise
+    Polars explodes the chunk: an empty list explodes to nothing, a null list
+    to one null, and the nulls are marked.
     """
     if in_place:
         arr = s.to_arrow()
@@ -196,16 +212,39 @@ def _chunk_entries(s: pl.Series, ids: _IntIds, in_place: bool) -> tuple[np.ndarr
         )
         if values.null_count == 0 and not null_lists_hold_entries:
             entries = values.to_numpy(zero_copy_only=True)[offsets[0] : offsets[-1]]
-            return offsets - offsets[0], entries, False
+            if len(entries):
+                return _Chunk(offsets - offsets[0], entries, None, int(entries.min()), int(entries.max()))
+            return _Chunk(offsets - offsets[0], entries, None, None, None)
     lens = s.list.len().fill_null(1).to_numpy().astype(np.int64)
     exploded = s.explode(empty_as_null=False, keep_nulls=True)
-    entries = np.full(len(exploded), ids.span, dtype=np.int32)
-    entries[exploded.is_not_null().to_numpy()] = ids.shift(exploded.drop_nulls().to_numpy())
+    nulls = exploded.is_null().to_numpy()
+    entries = exploded.fill_null(0).to_numpy()
     offsets = np.zeros(len(lens) + 1, dtype=np.int64)
     np.cumsum(lens, out=offsets[1:])
     if offsets[-1] != len(entries):
         raise RuntimeError(f"a chunk explodes to {len(entries)} entries, its lengths sum to {offsets[-1]}")
-    return offsets, entries, True
+    items = entries[~nulls]
+    if len(items):
+        return _Chunk(offsets, entries, nulls, int(items.min()), int(items.max()))
+    return _Chunk(offsets, entries, nulls, None, None)
+
+
+def _read_chunks(column: pl.Series) -> tuple[list[tuple[int, _Chunk]], int, int]:
+    """(first row, chunk) of every non-empty Polars chunk, and the smallest and largest item (0, 0 for none)."""
+    try:
+        import pyarrow  # noqa: F401
+
+        in_place = True
+    except ImportError:
+        in_place = False
+    pieces, r0 = [], 0
+    for s in column.get_chunks():
+        if len(s):
+            pieces.append((r0, _chunk_entries(s, in_place)))
+            r0 += len(s)
+    los = [c.lo for _, c in pieces if c.lo is not None]
+    his = [c.hi for _, c in pieces if c.hi is not None]
+    return pieces, min(los, default=0), max(his, default=0)
 
 
 class _Uploader:
@@ -222,8 +261,8 @@ class _Uploader:
         self._streams: dict[int, Any] = {}
         self._turn = 0
 
-    def copy(self, dst, entries: np.ndarray, lo: int, shifted: bool) -> None:
-        """``dst[i] = entries[i] - lo`` as int32 (``entries`` as they are when ``shifted``)."""
+    def copy(self, dst, entries: np.ndarray, nulls: np.ndarray | None, ids: _IntIds) -> None:
+        """``dst[i] = entries[i] - ids.lo`` as int32, and the null id ``ids.span`` where ``nulls`` is set."""
         import cupy as cp
 
         device = dst.device.id
@@ -236,10 +275,12 @@ class _Uploader:
                 if self._events[b] is not None:
                     self._events[b].synchronize()
                 buf = self._bufs[b][: len(part)]
-                if shifted or (lo == 0 and part.dtype == np.int32):
-                    np.copyto(buf, part, casting="unsafe")
+                if ids.lo == 0 and part.dtype == np.int32:
+                    np.copyto(buf, part)
                 else:
-                    np.subtract(part, lo, out=buf, dtype=np.int64, casting="unsafe")
+                    np.subtract(part, ids.lo, out=buf, dtype=np.int64, casting="unsafe")
+                if nulls is not None:
+                    buf[nulls[i : i + CHUNK_ENTRIES]] = ids.span
                 dst[i : i + len(part)].set(buf, stream=stream)
                 self._events[b] = stream.record()
 
@@ -248,36 +289,26 @@ class _Uploader:
             stream.synchronize()
 
 
-def _upload_shards(column: pl.Series, ids: _IntIds, cuts: list[tuple[int, int]]) -> list[_Shard]:
+def _upload_shards(pieces: list[tuple[int, _Chunk]], ids: _IntIds, cuts: list[tuple[int, int]]) -> list[_Shard]:
     """Each shard's row offsets and int32 ids on its device (shard ``i`` on device ``i``)."""
     import cupy as cp
 
-    try:
-        import pyarrow  # noqa: F401
-
-        in_place = True
-    except ImportError:
-        in_place = False
-    pieces, r0 = [], 0
-    for s in column.get_chunks():
-        if len(s):
-            pieces.append((r0, *_chunk_entries(s, ids, in_place)))
-            r0 += len(s)
     shards, uploader = [], _Uploader()
     for device, (s0, s1) in enumerate(cuts):
         parts, row_ptr, base = [], [np.zeros(1, dtype=np.int64)], 0
-        for c0, offsets, entries, shifted in pieces:
+        for c0, chunk in pieces:
+            offsets = chunk.offsets
             a, b = max(s0, c0), min(s1, c0 + len(offsets) - 1)
             if a >= b:
                 continue
             e0, e1 = int(offsets[a - c0]), int(offsets[b - c0])
             row_ptr.append(offsets[a - c0 + 1 : b - c0 + 1] - e0 + base)
-            parts.append((base, entries[e0:e1], shifted))
+            parts.append((base, chunk.entries[e0:e1], None if chunk.nulls is None else chunk.nulls[e0:e1]))
             base += e1 - e0
         with cp.cuda.Device(device):
             keys = cp.empty(base, dtype=cp.int32)
-            for off, entries, shifted in parts:
-                uploader.copy(keys[off : off + len(entries)], entries, ids.lo, shifted)
+            for off, entries, nulls in parts:
+                uploader.copy(keys[off : off + len(entries)], entries, nulls, ids)
             shard_ptr = cp.asarray(np.concatenate(row_ptr))
         shards.append(_Shard(device, s1 - s0, shard_ptr, keys))
     uploader.finish()
@@ -312,7 +343,9 @@ def _row_order(shards: list[_Shard], lut: np.ndarray, rank_of_col: np.ndarray) -
                 (256,),
                 (sh.row_ptr, sh.keys, cp.asarray(lut), cp.asarray(rank_of_col), key_hi, key_lo, np.int64(sh.n_rows)),
             )
-            order = cp.lexsort(cp.stack([key_lo, key_hi]))
+            # (key_hi, key_lo) order by two stable radix sorts: by key_lo, then by key_hi through it.
+            order = cp.argsort(key_lo)
+            order = order[cp.argsort(key_hi[order])]
             del key_hi, key_lo
             new_pos = cp.empty(sh.n_rows, dtype=cp.int32)
             new_pos[order] = cp.arange(sh.n_rows, dtype=cp.int32)
@@ -367,15 +400,20 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
     """
     import cupy as cp
 
-    ids = _int_ids(column)
+    dtype = column.dtype
     n_rows = len(column)
-    if ids is None or n_rows > np.iinfo(np.int32).max:
+    if not isinstance(dtype, pl.List) or dtype.inner not in _INT64_ITEM_DTYPES or n_rows > np.iinfo(np.int32).max:
+        return NOT_SERVED
+    pieces, lo, hi = _read_chunks(column)
+    if hi - lo + 1 > INT_SPAN_LIMIT:
         return NOT_SERVED
     if n_rows == 0:
         return None
+    ids = _IntIds(lo, hi - lo + 1, dtype.inner)
     min_count = _min_count(min_support, n_rows)
     cuts = _row_split_cuts(n_rows, min(n_gpus, cp.cuda.runtime.getDeviceCount()))
-    shards = _upload_shards(column, ids, cuts)
+    shards = _upload_shards(pieces, ids, cuts)
+    del pieces
     occurrences = _occurrences(shards, ids.span)
     freq = np.flatnonzero(occurrences >= min_count)
     logger.info(

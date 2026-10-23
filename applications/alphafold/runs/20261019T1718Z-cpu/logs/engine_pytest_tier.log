@@ -1,0 +1,30 @@
+.....sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 79%]
+sssssssssssssssssss                                                      [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_tier_equivalence.py:360: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:365: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:378: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:391: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:410: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:418: no CUDA device available
+SKIPPED [8] tests/test_tier_equivalence.py:424: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:477: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:486: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:565: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:572: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:582: no CUDA device available
+SKIPPED [3] tests/test_tier_equivalence.py:588: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:597: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:604: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:614: no CUDA device available
+SKIPPED [8] tests/test_tier_equivalence.py:620: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:644: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:655: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:662: no CUDA device available
+SKIPPED [3] tests/test_tier_equivalence.py:673: no CUDA device available
+SKIPPED [2] tests/test_tier_equivalence.py:698: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:708: no CUDA device available
+SKIPPED [8] tests/test_tier_equivalence.py:722: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:758: no CUDA device available
+5 passed, 86 skipped in 1.79s
+rc=0

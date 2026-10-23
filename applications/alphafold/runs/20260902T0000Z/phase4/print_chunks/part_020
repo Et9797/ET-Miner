@@ -1,0 +1,175 @@
+| R2-325 | F2:591 | 5.3 s Base K=4 time | run_v35k_wave3_k4_time_s |  | inconclusive | not measured in this campaign |
+| R2-326 | F2:592, 609 | 280,784 Base K=5 frequent | kdist_v35k_wave3_k5_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-327 | F2:592 | 17.5 s Base K=5 time | run_v35k_wave3_k5_time_s |  | inconclusive | not measured in this campaign |
+| R2-328 | F2:593, 609 | 835,466 Base K=6 frequent | kdist_v35k_wave3_k6_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-329 | F2:593 | 52.1 s Base K=6 time | run_v35k_wave3_k6_time_s |  | inconclusive | not measured in this campaign |
+| R2-330 | F2:594, 610 | 2,207,022 Base K=7 frequent | kdist_v35k_wave3_k7_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-331 | F2:594 | 145.3 s Base K=7 time | run_v35k_wave3_k7_time_s |  | inconclusive | not measured in this campaign |
+| R2-332 | F2:595, 610 | 5,063,845 Base K=8 frequent | kdist_v35k_wave3_k8_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-333 | F2:595 | 348.5 s Base K=8 time | run_v35k_wave3_k8_time_s |  | inconclusive | not measured in this campaign |
+| R2-334 | F2:596 | 743.4 s Base K=9 time | run_v35k_wave3_k9_time_s |  | inconclusive | not measured in this campaign |
+| R2-335 | F2:600–601 | > 15 expected Base K-max (prediction) | run_v35k_wave3_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-336 | F2:601, 611–612 | tens of millions expected Base total itemsets (prediction) | run_v35k_wave3_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-337 | F2:625 | 141 GB H200 SXM5 VRAM (hardware section) | hw_v35k_gpu_vram_gb |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-338 | F2:625 | 1.5 TB host RAM | hw_v35k_host_ram_tb |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-339 | F2:625 | Python 3.12 software version | sw_v35k_python |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-340 | F2:625 | CuPy 13.4 software version | sw_v35k_cupy |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-341 | F2:626 | NumPy 2.0 software version | sw_v35k_numpy |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-342 | F2:626 | CUDA 12.6 software version | sw_v35k_cuda |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-343 | F2:626 | Ubuntu 22.04 OS version | sw_v35k_os |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-344 | F2:627 | ~27.3M proteins per GPU (row-split) | run_v35k_transactions_per_gpu |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-345 | F2:630 | ~12 bytes nccl.allReduce payload per K-level | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| R2-346 | F3:4 | 968 lines in `et_miner_proteome.tex` (reviewed version) | meta_review_jun01_tex_lines |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-347 | F3:18, 94, 98 | 26,849,505 kdist sum K=1..22 (recounted by hand) | run_opus_itemsets | 26,849,505 | confirmed | exact |
+| R2-348 | F3:18, 98 | 16,812,646,639 expanded-run cumulative itemsets (sum verified) | run_v35k_16p8b_itemsets |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-349 | F3:19, 100 | 9× speedup/ratio in paper (verified) | run_blitz_vs_power_speedup |  | inconclusive | not measured in this campaign |
+| R2-350 | F3:19, 100 | 124× speedup/ratio in paper (verified) | run_blitz_vs_power_itemset_ratio | 5.97 | hallucinated | exact-match rule: fresh value differs |
+| R2-351 | F3:19, 100 | 21× Direct-vs-SON speedup in paper (verified) | son_speedup | 61.87 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.95 (claimed 21) |
+| R2-352 | F3:19, 101 | 95.2% SON miss rate in paper (verified) | son_miss_rate_pct | 0 | hallucinated | exact-match rule: fresh value differs |
+| R2-353 | F3:19, 55, 101 | 5.1× scale ratio vs GMiner in paper (verified) | run_opus_vs_gminer_transaction_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-354 | F3:31 | 37 `\bibitem` entries (r574–757) | meta_review_jun01_bibitems |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-355 | F3:31 | 32 distinct `\cite` keys, all resolving | meta_review_jun01_cite_keys |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-356 | F3:39 | 3077 → 3077–3083 coin2009 (actually Terrapon et al.) page range (old → | meta_review_jun01_coin2009_pages |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-357 | F3:40, 149 | 50(D1):D419–D427 → D439–D444 varadi2022 page range (old → new) | meta_review_jun01_varadi2022_pages |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-358 | F3:40 | D412–D419 mistry2021 page range (r712), source of the copy error | meta_review_jun01_mistry2021_pages |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-359 | F3:41 | 100M BIGMiner transactions as stated in paper table | ext_bigminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-360 | F3:41 | 30 BIGMiner servers/nodes as stated in paper (unverifiable) | ext_bigminer_nodes |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-361 | F3:41 | 6.5 billion BIGMiner transactions per the BIGMiner paper | ext_bigminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-362 | F3:41 | ≈65× 6.5B / 100M | ext_bigminer_transactions_ratio |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-363 | F3:41 | three orders of magnitude paper's scale claim vs prior work | ext_prior_gpu_fim_scale_gap_orders |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-364 | F3:47 | ~100K Meysman2015 structures as stated in paper (r499) | ext_meysman_structures |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-365 | F3:47 | ~32,142 Meysman2015 structures (actual) | ext_meysman_structures |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-366 | F3:47 | ~3× overestimate factor | ext_meysman_overestimate_ratio |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-367 | F3:47 | ~32K suggested replacement value | ext_meysman_structures |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-368 | F3:48 | 54(7):1–36 → 54(9), Article 179 (179:1–179:35) acmsurvey2021 issue/pag | meta_review_jun01_acmsurvey2021_pages |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-369 | F3:49 | 2008 tech-report title vs DaMoN 2009 paper, pp 34–42 fang2009 title/ve | meta_review_jun01_fang2009_reference |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-370 | F3:50 | vol 250, Art. 123928 chon2024 ESWA volume/article (title wrong) | meta_review_jun01_chon2024_reference |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-371 | F3:51 | 52(D1):D368 → D368–D375 varadi2024 page range (old → new) | meta_review_jun01_varadi2024_pages |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-372 | F3:52 | 21:1507–1521 → 21(3):1507–1520 chon2018b pages (old → new) | meta_review_jun01_chon2018b_pages |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-373 | F3:53 | pp. 432–444 savasere1995 pages (missing in paper) | meta_review_jun01_savasere1995_pages |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-374 | F3:54 | 50–350× GPU speedup range claimed in paper (r106; range verified) | ext_prior_gpu_fim_speedup_range |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-375 | F3:54 | 350× djenouri2019 speedup (confirmed) | ext_djenouri2019_speedup |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-376 | F3:54 | 100× zhang2011 speedup (confirmed) | ext_gpapriori_speedup |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-377 | F3:54 | 2 CPU algorithms (han2000 FP-Growth, zaki2000 Eclat) wrongly inside th | meta_review_jun01_gpu_cite_cluster_cpu_algorithms |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-378 | F3:55 | 15M GMiner transactions, scale table (r466) | ext_gminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-379 | F3:55 | 1.7M GMiner transactions, gpu-arch table (r877) | ext_gminer_transactions_real |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-380 | F3:55 | 1,692,082 webdocs FIMI transaction count | ext_gminer_transactions_real |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-381 | F3:55 | 4× GTX 1080 GMiner hardware as stated in paper (unverifiable) | ext_gminer_hardware |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-382 | F3:59–60 | 5 (cited 0×) orphan bibitems: webb2007, webb2014, abramson2024, zaki19 | meta_review_jun01_orphan_bibitems |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-383 | F3:76 | 316M CSR nnz (r175) | csr_nnz | 316,421,093 | confirmed | fresh rounds to 316 at 3 significant digits |
+| R2-384 | F3:76 | ~5.1 GB CSR/COO size (r175) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R2-385 | F3:76 | 2 × 64-bit ints = 16 B/entry COO entry size (r175) | alg_coo_bytes_per_entry |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-386 | F3:76 | ~3 GB H2D transfer size (r179/r485) | csr_h2d_transfer_gb | 2.53 | confirmed | fresh rounds to 3 at 1 significant digits |
+| R2-387 | F3:76 | 8 B/entry CSR column-index entry size (appendix r920) | mem_csr_bytes_per_entry |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-388 | F3:76 | 2.53 GB 316M × 8 B | csr_h2d_transfer_gb | 2.53 | confirmed | exact |
+| R2-389 | F3:76, 152 | 19 GB CSR size for 214M proteins (appendix r920) | mem_csr_214m_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-390 | F3:76, 152 | 3 (3 / 5.1 / 19 GB) distinct CSR sizes given without labels | meta_review_jun01_csr_size_variants |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-391 | F3:76 | nnz of the 214M set value missing from paper | mem_csr_nnz_214m |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-392 | F3:77 | 40× memory reduction (r175) | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R2-393 | F3:77 | 1.4× memory reduction (r908/r920) | mem_ratio_214m |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-394 | F3:77, 152 | 206 GB naïve byte matrix (1 B/boolean) | dense_gb | 206 | confirmed | exact |
+| R2-395 | F3:77 | 1 B/boolean byte-matrix convention | alg_dense_bytes_per_bool |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-396 | F3:77 | 27 GB bitpacked dense (appendix) | mem_dense_214m_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-397 | F3:77, 152 | 26 GB actual on-GPU bitvector | bitvec_gb | 25.8 | confirmed | fresh rounds to 26 at 2 significant digits |
+| R2-398 | F3:77 | ~8× 206 GB / 26 GB | mem_dense_vs_bitvec_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-399 | F3:78 | ~445 GB expanded bitvector size (r258) | mem_v35k_bitvec_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-400 | F3:78 | ~56 GB/device expanded per-device bitvector (paper) | mem_v35k_16p8b_bitvec_per_device_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-401 | F3:78, 92 | 8 devices in the expanded run (r258 "× 8"; r965 "× 8") | run_v35k_16p8b_n_gpus |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-402 | F3:78 | 448 GB 56 × 8 | mem_v35k_bitvec_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-403 | F3:78 | 478 GB 109.2M × 35012 / 8 (decimal GB) | mem_v35k_bitvec_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-404 | F3:78 | 109.2M expanded protein count | run_v35k_n_transactions |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-405 | F3:78 | 35012 expanded feature count | vocab_v35k_items |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-406 | F3:78 | 445.19 GiB same size in GiB | mem_v35k_bitvec_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-407 | F3:78 | 55.6 GiB 56 GB per device in GiB | mem_v35k_16p8b_bitvec_per_device_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-408 | F3:84, 142, 153 | p < 0.17 one-sided binomial p for 0/5 permutations > K=6 (r414, r429,  | null_p_bound_kge7 | 0.4507 | hallucinated | exact-match rule: fresh value differs |
+| R2-409 | F3:84 | 0/5 permutations exceeding K=6 | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R2-410 | F3:84 | K=6 1K null-model ceiling | null_kmax | 6 | confirmed | exact |
+| R2-411 | F3:84, 153 | ≈0.45 95% upper bound for 0 successes in 5 trials | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R2-412 | F3:84 | 3/5 = 0.6 rule-of-three bound | null_p_bound_kge7_rule_of_three |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-413 | F3:84 | 1/6 0.17 ≈ 1/6, origin unclear | null_p_bound_kge7 | 0.4507 | hallucinated | exact-match rule: fresh value differs |
+| R2-414 | F3:90 | 1,092 expanded-run min_count (r260) | run_v35k_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-415 | F3:90 | 109,224,173 expanded-run n (exact) | run_v35k_n_transactions |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-416 | F3:90 | 1092.24 0.001% × 109,224,173 | run_v35k_min_count_raw |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-417 | F3:90 | 1,092 → 1093 min_count fix (old → new) if ceil is used | run_v35k_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-418 | F3:90 | 769 Power min_count (ceil applied) | run_power_min_count | 769 | confirmed | exact |
+| R2-419 | F3:91 | $243 saving stated in paper (r965) | cost_saving_usd |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-420 | F3:91, 92 | $332 run cost stated in paper | cost_expanded_run_usd |  | inconclusive | not measured in this campaign |
+| R2-421 | F3:91 | $90 comparison cost stated in paper | cost_comparison_usd |  | inconclusive | not measured in this campaign |
+| R2-422 | F3:91 | $243 → $242 saving (old → new) | cost_saving_usd |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-423 | F3:92 | $3.50/GPU/hour GPU rental price used in paper (r940) | cost_gpu_hour_usd |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-424 | F3:92 | ~12 h run duration used in paper cost formula | cost_expanded_run_hours |  | inconclusive | not measured in this campaign |
+| R2-425 | F3:92 | $336 3.50 × 8 × 12 | cost_expanded_run_usd |  | inconclusive | not measured in this campaign |
+| R2-426 | F3:92 | 11.86 h hours implied by $332 | cost_expanded_run_hours |  | inconclusive | not measured in this campaign |
+| R2-427 | F3:93, 99 | 62.6% excluded single-feature proteins (Limitation 4, r525; base run) | dataset_single_feature_pct | 62.6054 | confirmed | fresh rounds to 62.6 at 1 decimals |
+| R2-428 | F3:93, 99 | 37.4% multi-feature share (base run) | dataset_multi_feature_pct | 37.3946 | confirmed | fresh rounds to 37.4 at 1 decimals |
+| R2-429 | F3:93, 99 | 53.1% expanded-run coverage claim | run_v35k_coverage_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-430 | F3:94 | 26.8M total itemsets as written (r301, r306) | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.8 at 3 significant digits |
+| R2-431 | F3:94 | 26.85M correct 2-decimal rounding | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.85 at 4 significant digits |
+| R2-432 | F3:94 | 26.9M correct 1-decimal rounding | run_opus_itemsets | 26,849,505 | hallucinated | exact-match rule: fresh value differs |
+| R2-433 | F3:99 | 7 growth factors in paper (all verified) | misc_growth_factors_n |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-434 | F3:99 | 25.8× largest growth factor | misc_growth_factor_max |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-435 | F3:99 | 3.4× smallest growth factor | misc_growth_factor_min |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-436 | F3:99 | 76,891 largest min_count (base run) | run_base_min_count | 76,891 | confirmed | exact |
+| R2-437 | F3:99 | 8 smallest min_count | run_opus_min_count | 8 | confirmed | exact |
+| R2-438 | F3:100 | 13.14% percentage in paper (quantity unspecified; verified) | kdist_opus_peak_pct | 13.1446 | confirmed | fresh rounds to 13.14 at 2 decimals |
+| R2-439 | F3:100 | Z > 3,700 for K=4–6 Z-scores, abstract↔table↔conclusion | null_z_min_k4to6 | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R2-440 | F3:101 | 475,865 null-table Bio column total = Direct-GPU total | run_power_direct_itemsets | 475,865 | confirmed | exact |
+| R2-441 | F3:101 | 0.32 pruning factor, technique 1 | misc_pruning_saving_1_pct |  | inconclusive | not measured in this campaign |
+| R2-442 | F3:101 | 0.88 pruning factor, technique 2 | misc_pruning_saving_2_pct |  | inconclusive | not measured in this campaign |
+| R2-443 | F3:101 | 0.96 pruning factor, technique 3 | misc_pruning_saving_3_pct |  | inconclusive | not measured in this campaign |
+| R2-444 | F3:102, 115 | 73% combined projected K=9 runtime reduction | misc_pruning_combined_saving_pct |  | inconclusive | not measured in this campaign |
+| R2-445 | F3:102 | ~264 B total allreduce transfer (22 × 12) | alg_pcie_bytes_total |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-446 | F3:102 | 22 K-levels in the transfer calculation | run_opus_kmax | 22 | confirmed | exact |
+| R2-447 | F3:102, 127 | 12 bytes per-K-level allreduce transfer (r842/r873) | alg_pcie_bytes_per_level |  | inconclusive | not measured in this campaign |
+| R2-448 | F3:109 | 70–90 / 583–589 / K=4–8 en-dash range examples (pLDDT bin, citation pa | meta_review_jun01_endash_examples |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-449 | F3:115 | K=9 level of the projected runtime reduction (r92, r549) | misc_pruning_k |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-450 | F3:121 | 40+ occurrences of "ET-miner" (vs one "ET-Miner", r795) | meta_review_jun01_etminer_spelling_count |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-451 | F3:123 | 7.3 minutes run time (r121, r92) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R2-452 | F3:123 | 63 minutes run time (r130) | extract_time_min | 9.3 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 63) |
+| R2-453 | F3:123, 143 | 4.3 hours run time (r549; expanded 35K run per l.143) | run_v35k_16p8b_time_h |  | inconclusive | not measured in this campaign |
+| R2-454 | F3:123 | 80 GB house-style unit example (`80\,GB`) | hw_gpu_vram_gb | 24 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.30 (claimed 80) |
+| R2-455 | F3:125 | Opus 4.6 model name in author info (r559 "Opus4.6") | meta_review_jun01_author_model_name |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-456 | F3:138, 149 | 247/752/3 → 500/500/2 Table 1 breakdown fixed between versions (r143–1 | vocab_composition | 500:500:2 | hallucinated | claim numbers [2.0, 3.0, 247.0, 500.0, 752.0] not all in fresh 500:500:2 |
+| R2-457 | F3:140 | 2 pLDDT bins, Run 1 (current version, r150) | vocab_plddt_frequent | 2 | confirmed | exact |
+| R2-458 | F3:143 | 606,292 35K @0.001% itemsets per revision_notes_b3 | run_v35k_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-459 | F3:143 | K_max=17 35K @0.001% max K per revision_notes_b3 | run_v35k_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-460 | F3:143 | 654 s 35K @0.001% time per revision_notes_b3 | run_v35k_time_s |  | inconclusive | not measured in this campaign |
+| R2-461 | F3:143 | 16.8 billion 35K @0.001% itemsets through K=8 (current paper) | run_v35k_16p8b_itemsets |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-462 | F3:143 | K=8 depth reached in current paper's 35K run | run_v35k_16p8b_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-463 | F3:143 | ~27,000× ratio between the two 35K results | run_v35k_16p8b_vs_v35k_itemset_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-464 | F3:143 | int32 NCCL overflow bug (integer width) | sw_nccl_overflow_int_width |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-465 | F4:15, 20, 22 | 247 Pfam domains, Run 1 (paper Table 1, lines 143–145) | vocab_pfam_frequent | 500 | hallucinated | exact-match rule: fresh value differs |
+| R2-466 | F4:16, 20, 22 | 752 GO terms, Run 1 (paper Table 1) | vocab_go_frequent | 500 | hallucinated | exact-match rule: fresh value differs |
+| R2-467 | F4:16 | 5,763 GO terms, Run 2 (paper Table 1) | vocab_v35k_go |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-468 | F4:17, 20, 70 | 3 pLDDT bins, Run 1 (paper Table 1) | vocab_plddt_frequent | 2 | hallucinated | exact-match rule: fresh value differs |
+| R2-469 | F4:17, 70 | 6 pLDDT bins, Run 2 / defined in item mapping | vocab_v35k_plddt_bins |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-470 | F4:20, 22 | 1,002 Run 1 feature total | vocab_items_frequent | 1,002 | confirmed | exact |
+| R2-471 | F4:22, 89 | 500 Pfam domains, actual (item_mapping_214m.parquet) | vocab_pfam_frequent | 500 | confirmed | exact |
+| R2-472 | F4:22, 89 | 500 GO terms, actual | vocab_go_frequent | 500 | confirmed | exact |
+| R2-473 | F4:22, 89 | 2 pLDDT bins, actual | vocab_plddt_frequent | 2 | confirmed | exact |
+| R2-474 | F4:22 | top_pfam=500, top_go=500 pipeline parameters (non-default) | vocab_pfam_defined | 500 | confirmed | exact |
+| R2-475 | F4:27, 29 | 769 vs 8 min_count null vs main (paper line 438 quote) | null_min_count | 769 | confirmed | exact |
+| R2-476 | F4:29 | 8 min_count requested for null-model rerun | null_minc8_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-477 | F4:29 | K=15–22 depth range whose significance is extrapolated | null_uncovered_k_range |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-478 | F4:42 | 68% pruning saving, technique 1 (Table 8, K=9) — projection | misc_pruning_saving_1_pct |  | inconclusive | not measured in this campaign |
+| R2-479 | F4:42 | 12% pruning saving, technique 2 — projection | misc_pruning_saving_2_pct |  | inconclusive | not measured in this campaign |
+| R2-480 | F4:42 | 4% pruning saving, technique 3 — projection | misc_pruning_saving_3_pct |  | inconclusive | not measured in this campaign |
+| R2-481 | F4:42 | 2% pruning saving, technique 4 — projection | misc_pruning_saving_4_pct |  | inconclusive | not measured in this campaign |
+| R2-482 | F4:42 | 73% combined projected K=9 runtime reduction (abstract, unqualified) | misc_pruning_combined_saving_pct |  | inconclusive | not measured in this campaign |
+| R2-483 | F4:42 | K=9 level of the pruning projection | misc_pruning_k |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-484 | F4:50 | 12,773 InterPro entries, Run 2 (replacing Pfam) | vocab_v35k_interpro |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R2-485 | F4:52, 54, 56 | 769× more transactions than next largest GPU system (paper line 456) | run_opus_vs_prior_transaction_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-486 | F4:56 | 100K transactions of the CPU systems the 769× apparently compares to | ext_borgelt_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-487 | F4:56 | 100M BIGMiner transactions (paper table) | ext_bigminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-488 | F4:56 | 76.9M ET-miner transactions | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R2-489 | F4:56 | 15M GMiner transactions (paper table) | ext_gminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R2-490 | F4:56 | 5.1× 76.9M / 15M | run_opus_vs_gminer_transaction_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-491 | F4:66 | 5 permutations in null model (paper line 410) | null_permutations | 5 | confirmed | exact |
+| R2-492 | F4:66 | 0.17 lowest achievable bound on P(K≥7 given null) with 5 trials | null_p_bound_laplace | 0.1667 | confirmed | fresh rounds to 0.17 at 2 decimals |
+| R2-493 | F4:66 | +∞ Z-scores for K≥7 as reported (paper) | null_kge7_z |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-494 | F4:66 | 0 out of 5 trials producing K≥7 | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R2-495 | F4:70 | 2 pLDDT bins frequent at min_count=8 (plddt_mean_med, plddt_mean_high) | vocab_plddt_frequent | 2 | confirmed | exact |
+| R2-496 | F4:70 | 4 defined bins with < 8 proteins | vocab_items_infrequent |  | inconclusive | no fresh artifact for the underlying quantity |
+| R2-497 | F4:70 | < 8 proteins in each of the 4 infrequent bins | vocab_plddt_infrequent_support |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-498 | F4:74 | K=1 through K=8 Run 2 levels reported from the pre-fix (NCCL int32 bug | run_v35k_16p8b_bug_levels |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R2-499 | F4:74 | f8c56cb5 commit fixing the NCCL int32 bug | sw_nccl_overflow_fix_commit |  | inconclusive | statement about the original setup; not verifiable by re-execution |

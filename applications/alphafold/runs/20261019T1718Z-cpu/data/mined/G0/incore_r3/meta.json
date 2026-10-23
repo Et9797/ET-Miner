@@ -1,0 +1,160 @@
+{
+  "label": "G0_incore_r3",
+  "data": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/transactions_214m_base_multi.parquet",
+  "head": 1000000,
+  "n_rows": 1000000,
+  "min_count": 50,
+  "min_support": 5e-05,
+  "max_length": null,
+  "use_generator_pruning": false,
+  "n_jobs": 6,
+  "load_s": 0.03256754402536899,
+  "mine_wall_s": 3.0598860760219395,
+  "process": {
+    "wall_s": 3.0925765790161677,
+    "cpu_s": 5.431712,
+    "peak_rss_mb": 504.0703125
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.05028297891840339,
+      "utc": "2026-10-20T15:58:10Z"
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 12259,
+      "ms": 127.71884101675823,
+      "utc": "2026-10-20T15:58:11Z"
+    },
+    {
+      "k": 3,
+      "candidates": 66300,
+      "frequent": 30053,
+      "ms": 592.6412330009043,
+      "utc": "2026-10-20T15:58:11Z"
+    },
+    {
+      "k": 4,
+      "candidates": 39285,
+      "frequent": 36550,
+      "ms": 711.6097999969497,
+      "utc": "2026-10-20T15:58:12Z"
+    },
+    {
+      "k": 5,
+      "candidates": 32787,
+      "frequent": 32624,
+      "ms": 529.2602810077369,
+      "utc": "2026-10-20T15:58:12Z"
+    },
+    {
+      "k": 6,
+      "candidates": 24197,
+      "frequent": 24189,
+      "ms": 379.5115660177544,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 7,
+      "candidates": 15419,
+      "frequent": 15419,
+      "ms": 241.2883270299062,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 8,
+      "candidates": 8586,
+      "frequent": 8586,
+      "ms": 164.25656399223953,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 9,
+      "candidates": 4117,
+      "frequent": 4117,
+      "ms": 85.21154598565772,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 10,
+      "candidates": 1624,
+      "frequent": 1624,
+      "ms": 40.50567903323099,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 11,
+      "candidates": 495,
+      "frequent": 495,
+      "ms": 16.73024595947936,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 12,
+      "candidates": 108,
+      "frequent": 108,
+      "ms": 4.922527994494885,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 13,
+      "candidates": 15,
+      "frequent": 15,
+      "ms": 3.733319987077266,
+      "utc": "2026-10-20T15:58:13Z"
+    },
+    {
+      "k": 14,
+      "candidates": 1,
+      "frequent": 1,
+      "ms": 2.964352024719119,
+      "utc": "2026-10-20T15:58:13Z"
+    }
+  ],
+  "signature": {
+    "itemsets": 167042,
+    "sum_counts": 48390414,
+    "sha256": "8a3f042ee23f70f03fd7f0274c6713ddcade2c0acd40871773875a8c00e8ef39",
+    "k_distribution": {
+      "1": 1002,
+      "2": 12259,
+      "3": 30053,
+      "4": 36550,
+      "5": 32624,
+      "6": 24189,
+      "7": 15419,
+      "8": 8586,
+      "9": 4117,
+      "10": 1624,
+      "11": 495,
+      "12": 108,
+      "13": 15,
+      "14": 1
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-20T15:58:13Z"
+  },
+  "k_max": 14,
+  "process_end": {
+    "wall_s": 3.202127365046181,
+    "cpu_s": 5.587279999999999,
+    "peak_rss_mb": 504.0703125
+  }
+}

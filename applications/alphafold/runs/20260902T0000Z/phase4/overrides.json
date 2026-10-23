@@ -1,0 +1,125 @@
+{
+ "run_ultra_max_length": {
+  "verdict": "inconclusive",
+  "note": "old run's length cap (non-binding: K_max 20 < 25); this campaign used --max-length 50, also non-binding"
+ },
+ "run_blitz_max_length": {
+  "verdict": "inconclusive",
+  "note": "old run's length cap (non-binding: K_max 19 < 20); this campaign used --max-length 50"
+ },
+ "run_power_son_max_length": {
+  "verdict": "inconclusive",
+  "note": "old SON run's length cap (non-binding: K_max 13 < 20); this campaign's SON run is uncapped"
+ },
+ "run_madman_max_length": {
+  "verdict": "inconclusive",
+  "note": "aborted old run; not reproduced"
+ },
+ "run_opus_bytes": {
+  "verdict": "inconclusive",
+  "note": "size of the old single-file result parquet; this campaign flushes per-K zstd parquets \u2014 sizes are not comparable"
+ },
+ "run_blitz_bytes": {
+  "verdict": "inconclusive",
+  "note": "old result-file size; not comparable (different writer/codec)"
+ },
+ "run_ultra_bytes": {
+  "verdict": "inconclusive",
+  "note": "old result-file size; not comparable (different writer/codec)"
+ },
+ "run_minc4_bytes": {
+  "verdict": "inconclusive",
+  "note": "old result-file size; not comparable (different writer/codec)"
+ },
+ "run_hmb_bytes": {
+  "verdict": "inconclusive",
+  "note": "old result-file size; not comparable (different writer/codec)"
+ },
+ "extract_progress_dat_parsed": {
+  "verdict": "inconclusive",
+  "note": "periodic progress line of the old extraction (suppressed in this campaign's log); the final record count is compared under extract_dat_records"
+ },
+ "extract_progress_transactions_written": {
+  "verdict": "inconclusive",
+  "note": "periodic progress line; the final count is compared under dataset_plddt_pass"
+ },
+ "extract_progress_csv_read": {
+  "verdict": "inconclusive",
+  "note": "periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quantity \u2014 see dataset_metadata_rows"
+ },
+ "extract_wall_user_s": {
+  "verdict": "inconclusive",
+  "note": "user CPU time of the old run; not measured here"
+ },
+ "extract_wall_sys_s": {
+  "verdict": "inconclusive",
+  "note": "system CPU time of the old run; not measured here"
+ },
+ "run_minc4_support": {
+  "verdict": "inconclusive",
+  "note": "nominal fraction quoted with the 205,620,298 denominator; the applied threshold is compared under run_minc4_min_count"
+ },
+ "run_minc3_support": {
+  "verdict": "inconclusive",
+  "note": "nominal fraction with the 205,620,298 denominator; the applied threshold is compared under run_minc3_min_count"
+ },
+ "run_hmb_support_pct": {
+  "verdict": "inconclusive",
+  "note": "holdmybeer run: threshold ambiguous (4/76.9M applied to the 205.6M-row file); not reproduced"
+ },
+ "run_hmb_support": {
+  "verdict": "inconclusive",
+  "note": "holdmybeer run not reproduced (ambiguous denominator, log-only run without a paper row)"
+ },
+ "run_madman_min_count": {
+  "verdict": "inconclusive",
+  "note": "aborted old run (madman_mining.log ends after its banner); not reproduced"
+ },
+ "pattern_k19_item_ids": {
+  "verdict": "inconclusive",
+  "note": "item ids depend on the run's mapping (HashMap tie order); members are compared under pattern_k19_*_members"
+ },
+ "dataset_access_date": {
+  "verdict": "inconclusive",
+  "note": "statement about when the authors accessed UniProt; not a reproducible quantity (this campaign accessed the archive on 2026-09-02)"
+ },
+ "mem_items_per_txn_214m": {
+  "note": "fresh mean items per transaction: 2.165 over all 205.6M pLDDT-passing proteins, 4.115 over the 76.9M mined set \u2014 neither is ~10"
+ },
+ "dataset_max_features_per_protein": {
+  "note": "fresh maximum number of vocabulary items on one protein is 46 (also the old pipeline log's 'max 46'); the paper's structural-ceiling argument assumes 22"
+ },
+ "k22_independent_features": {
+  "verdict": "inconclusive",
+  "note": "the released script's GO-hierarchy criterion finds 0 redundant GO terms (independent K = 22); the paper's 21 subtracts one InterPro2GO-derived link (PF00270 \u2192 GO:0005524) by hand, which no script computes"
+ },
+ "k22_script_identified_proteins": {
+  "verdict": "inconclusive",
+  "note": "the reviewer describes the fallback heuristic of the old run (3 proteins from a name-mismatched feature list); this campaign ran analyze_k22_proteins.py with --itemset-source and found the 8 supporting proteins (fresh k22_n_proteins)"
+ },
+ "pattern_power_son_k10_4_support": {
+  "note": "no fresh K=10 itemset has exactly 16,029 supporting proteins; the nearest is 16,030 (16,030/76,890,945 = 0.00020848 \u2014 the old log's 16,029 matches int() truncation of that fraction \u00d7 n)"
+ },
+ "pattern_n_highlighted": {
+  "verdict": "inconclusive",
+  "note": "count of the paper's own list of highlighted patterns; not a reproducible quantity (each listed pattern is judged under its own key)"
+ },
+ "download_size_gib": {
+  "verdict": "confirmed",
+  "note": "aria2c/du display truncated to integer GiB: fresh member size 160,834,306,675 B = 149.79 GiB \u2192 '149GiB'/'150G' are the floor/round of the same value"
+ },
+ "doc_notebook_kdist_opus_bins": {
+  "verdict": "hallucinated",
+  "note": "fresh binned Opus K-distribution: K1-3 527,565; K4-6 5,784,919; K7-9 10,090,670; K10-14 9,968,432; K15-22 477,919 \u2014 the notebook's 'K10-14: 6.0M' and 'K15-22: 5.5K' do not match"
+ },
+ "null_z_min_k4to6": {
+  "note": "the paper's headline 'Z > 3,700 for K = 4\u20136' is NOT met at K=4 in this reproduction (fresh Z_K4 = 3,048; Z_K5 = 9,917; Z_K6 = 175,697); Z depends on \u03c3 over 5 permutations and the random stream"
+ },
+ "null_z_headline_k_range": {
+  "note": "fresh finite Z exceeds 3,700 only for K = 5\u20136 (K=4: 3,048); random-stream dependent"
+ },
+ "bench_gpu_test_suite_result": {
+  "verdict": "confirmed",
+  "note": "fresh run of the GPU test suite on this box: '136 passed, 3 skipped, 327 deselected, 120 warnings in 79.43s (0:01:19)'; the number of collected tests differs with the code version, so the comparison is on the outcome (all selected tests pass) rather than the count"
+ }
+}

@@ -1,0 +1,3 @@
+2026-10-20 18:07:33.195 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-20 18:07:33.195 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+{"label": "R1_r3", "n_rules": 53447, "n_rules_lift_ge5": 51126, "n_rules_lift_ge100": 40428, "max_lift": 968.9956430284116}

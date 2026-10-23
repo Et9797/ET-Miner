@@ -1,0 +1,92 @@
+{
+  "perm": 10,
+  "perm_seed": 3420008128027789332,
+  "shuffle_seed": 6843104488532245278,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 445.46265700797085,
+  "mine_wall_s": 468.7416021830286,
+  "process": {
+    "wall_s": 914.2042914299527,
+    "cpu_s": 4297.980558,
+    "peak_rss_mb": 24589.8203125
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.057797995395958424
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63743,
+      "ms": 11027.666186972056
+    },
+    {
+      "k": 3,
+      "candidates": 2664560,
+      "frequent": 79099,
+      "ms": 90836.08711499255
+    },
+    {
+      "k": 4,
+      "candidates": 140860,
+      "frequent": 25440,
+      "ms": 287818.56265099486
+    },
+    {
+      "k": 5,
+      "candidates": 8727,
+      "frequent": 1992,
+      "ms": 58550.624319992494
+    },
+    {
+      "k": 6,
+      "candidates": 127,
+      "frequent": 22,
+      "ms": 7384.380071016494
+    }
+  ],
+  "total_itemsets": 171298,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63743,
+    "3": 79099,
+    "4": 25440,
+    "5": 1992,
+    "6": 22
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171298,
+    "sum_counts": 1072373648,
+    "sha256": "9731787b735e017beb3d2e1f58f423c779ab5e4c24511ac80223bb601ef72b88",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63743,
+      "3": 79099,
+      "4": 25440,
+      "5": 1992,
+      "6": 22
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-21T18:59:59Z"
+  }
+}

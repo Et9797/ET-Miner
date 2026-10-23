@@ -1,0 +1,12 @@
+2026-09-02 11:55:43.158 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 2,000,000 transactions, min_count=30
+2026-09-02 11:55:43.592 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 35000 frequent items
+2026-09-02 11:55:44.205 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 47,473,315 non-zeros
+2026-09-02 11:55:45.950 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:127 -   Row-split multi-GPU: 2 GPUs, min_count=30 (GPU-resident dense counting)
+2026-09-02 11:55:46.008 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 0] Building bitvec: 1,000,000 rows, 23,730,984 nnz, ~4.4 GB (rows-balanced)
+2026-09-02 11:55:46.009 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 1] Building bitvec: 1,000,000 rows, 23,742,331 nnz, ~4.4 GB (rows-balanced)
+2026-09-02 11:55:46.570 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:137 -   Bitvec build: 0.6s across 2 GPUs
+2026-09-02 11:55:46.928 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:170 -   NCCL: 2 communicators (ring all-reduce)
+2026-09-02 11:55:47.217 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:318 -   K=1: 35,000 frequent items in 0.3s
+2026-09-02 11:55:47.233 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:453 -   K=2: 612,482,500 total pairs, 1 chunk(s), dense output 2.28 GB/GPU per chunk
+2026-09-02 11:57:13.740 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=2 chunk 1/1 filtering: 612,482,500 candidates → 1,660,332 frequent (0.3% pass rate, min_count=30)
+2026-09-02 11:57:13.782 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=2: 1,660,332 frequent in 86.6s

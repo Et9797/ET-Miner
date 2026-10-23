@@ -1,0 +1,75 @@
+........................................................................ [ 51%]
+.................................................sss...............      [100%]
+=============================== warnings summary ===============================
+tests/test_balance_split.py::TestBalanceSplitGPU::test_nnz_shards_balanced_and_correct
+tests/test_chunked_dense.py::TestChunkedEquivalenceGPU::test_unforced_baseline
+  /root/projects/ET-Miner/.venv/lib/python3.10/site-packages/_pytest/fixtures.py:1313: PytestRemovedIn10Warning: Class-scoped fixture defined as instance method is deprecated.
+  Instance attributes set in this fixture will NOT be visible to test methods,
+  as each test gets a new instance while the fixture runs only once per class.
+  Use @classmethod decorator and set attributes on cls instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#class-scoped-fixture-as-instance-method
+    fixturefunc = resolve_fixture_function(fixturedef, request)
+
+tests/test_balance_split.py: 2 warnings
+tests/test_chunked_dense.py: 10 warnings
+tests/test_density_auto_gpu.py: 12 warnings
+tests/test_gpu_resident_e2e.py: 1 warning
+tests/test_row_split_e2e.py: 17 warnings
+tests/test_tier_equivalence.py: 5 warnings
+tests/test_verify_efficient_apriori.py: 5 warnings
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:509: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode())
+
+tests/test_balance_split.py: 2 warnings
+tests/test_chunked_dense.py: 10 warnings
+tests/test_density_auto_gpu.py: 12 warnings
+tests/test_gpu_resident_e2e.py: 1 warning
+tests/test_row_split_e2e.py: 17 warnings
+tests/test_tier_equivalence.py: 5 warnings
+tests/test_verify_efficient_apriori.py: 5 warnings
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:536: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    .explode(item_col)
+
+tests/test_density_auto_gpu.py::test_single_gpu_sparse_equals_dense
+  /root/projects/ET-Miner/tests/test_density_auto_gpu.py:45: UserWarning: 100% of items are frequent (min_count=200). Mining may produce combinatorially explosive results. Consider raising min_support.
+    res = apriori(
+
+tests/test_gpu_resident_e2e.py::test_gpu_resident_matches_cpu_reference
+tests/test_row_split_e2e.py::TestRowSplitEquivalence::test_matches_cpu_reference
+tests/test_row_split_e2e.py::TestClosedPruning::test_spec_a_sparse_misalignment
+tests/test_row_split_e2e.py::TestClosedPruning::test_spec_b_dense_under_pruning
+tests/test_row_split_e2e.py::TestTwoPhaseSparse::test_auto_prune_matches_cpu
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:122: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode().alias("item"))
+
+tests/test_row_split_e2e.py::TestRowSplitEquivalence::test_two_gpu_matches_single_gpu_path
+  /root/projects/ET-Miner/tests/test_row_split_e2e.py:79: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    single = apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True)
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+  /root/projects/ET-Miner/tests/test_tier_equivalence.py:165: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    got = _result_to_counted_set(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True))
+
+tests/test_tier_equivalence.py::test_single_gpu_sparse_matches_oracle
+  /root/projects/ET-Miner/tests/test_tier_equivalence.py:202: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, sparse_from_k=3)
+
+tests/test_verify_efficient_apriori.py::test_small_dataset[0.3]
+tests/test_verify_efficient_apriori.py::test_small_dataset[0.4]
+  /root/projects/ET-Miner/tests/test_verify_efficient_apriori.py:120: UserWarning: 100% of items are frequent (min_count=2). Mining may produce combinatorially explosive results. Consider raising min_support.
+    pa_result = pa_apriori(pl.DataFrame({"items": transactions_raw}), min_support=min_support, use_gpu=True)
+
+tests/test_verify_efficient_apriori.py::test_large_dataset[0.01]
+  /root/projects/ET-Miner/tests/test_verify_efficient_apriori.py:139: UserWarning: 100% of items are frequent (min_count=1000). Mining may produce combinatorially explosive results. Consider raising min_support.
+    pa_result = pa_apriori(pa_df, min_support=min_support, use_gpu=True)
+
+tests/test_verify_efficient_apriori.py::test_large_dataset[0.005]
+  /root/projects/ET-Miner/tests/test_verify_efficient_apriori.py:139: UserWarning: 100% of items are frequent (min_count=500). Mining may produce combinatorially explosive results. Consider raising min_support.
+    pa_result = pa_apriori(pa_df, min_support=min_support, use_gpu=True)
+
+tests/test_verify_efficient_apriori.py::test_k3_validation
+  /root/projects/ET-Miner/tests/test_verify_efficient_apriori.py:164: UserWarning: 100% of items are frequent (min_count=20). Mining may produce combinatorially explosive results. Consider raising min_support.
+    pa_result = pa_apriori(pl.DataFrame({"items": dense_txns}), min_support=min_support, use_gpu=True)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+136 passed, 3 skipped, 327 deselected, 120 warnings in 79.43s (0:01:19)

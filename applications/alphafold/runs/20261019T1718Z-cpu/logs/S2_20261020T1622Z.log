@@ -1,0 +1,8 @@
+2026-10-20 18:22:10.122 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-20 18:22:10.122 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-10-20 18:22:11.559 | INFO     | et_miner.streaming.son:apriori_streaming:296 - SON streaming: 76890945 total transactions, 2 chunks of 40000000, local_support=0.000090 (90.0% of 0.000100)
+2026-10-20 18:22:18.873 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 40000000 rows, 1002 frequent items, 164610982 entries
+2026-10-20 19:23:52.841 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 36890945 rows, 1002 frequent items, 151810111 entries
+2026-10-20 20:20:36.420 | INFO     | et_miner.streaming.son:_son_cpu:831 - Pass 1 complete: 122325 candidate itemsets from 1002 items; 113405 within the partition bound, 113405 of them exact
+2026-10-20 20:20:36.422 | INFO     | et_miner.streaming.son:_son_cpu:860 - Pass 2 complete: 113405/122325 candidates are globally frequent (support >= 0.000100)
+{"label": "S2", "itemsets": 113405, "k_max": 14, "mine_wall_s": 7104.87, "pass1_s": 7104.83, "peak_rss_mb": 8201}

@@ -1,0 +1,14 @@
+== harness tests
+..................                                                       [100%]
+18 passed in 1.02s
+== regression against earlier reports
+{"label": "C1_recheck", "verdict": "identical", "cpu_itemsets": 5305, "ref_itemsets": 5305, "n_differing": 0, "wrong": []}
+{"label": "S2_recheck", "verdict": "identical", "cpu_itemsets": 113405, "ref_itemsets": 113405, "n_differing": 0, "wrong": []}
+{"label": "G0_recheck", "verdict": "identical", "cpu_itemsets": 167042, "ref_itemsets": 167042, "n_differing": 0, "wrong": []}
+C1_vs_opus equal to ../data/mined/C1/cmp_gpu_opus.json {'per_k': True, 'signature_cpu': True, 'signature_ref': True, 'verdict': True, 'n_differing': True}
+S2_vs_son_super equal to ../data/mined/S2/cmp_gpu_son.json {'per_k': True, 'signature_cpu': True, 'signature_ref': True, 'verdict': True, 'n_differing': True}
+G0_son_vs_ea equal to ../data/mined/G0/cmp_son_ea.json {'per_k': True, 'signature_cpu': True, 'signature_ref': True, 'verdict': True, 'n_differing': True}
+== planted differences (G0 SON K=3: row 7 count +1, row 11 removed)
+{"label": "mutated", "verdict": "mismatch", "cpu_itemsets": 167041, "ref_itemsets": 167042, "n_differing": 2, "wrong": ["cpu"]}
+mutated: mismatch [('count_mismatch', ['cpu']), ('ref_only', ['cpu'])]
+result: pass

@@ -1,0 +1,38 @@
+phase3 release=2026_01 n_multi=76890945 start 2026-09-02T05:24:46Z
+start validate_row_split 2026-09-02T05:24:46Z
+end validate_row_split rc=0 wall_s=13 2026-09-02T05:24:59Z
+start opus_mining 2026-09-02T05:24:59Z
+end opus_mining rc=0 wall_s=2647 2026-09-02T06:09:06Z
+start blitz_mining 2026-09-02T06:09:06Z
+end blitz_mining rc=0 wall_s=618 2026-09-02T06:19:24Z
+start k22_analysis 2026-09-02T06:19:24Z
+end k22_analysis rc=1 wall_s=11 2026-09-02T06:19:35Z
+start direct_vs_son 2026-09-02T06:19:35Z
+/root/projects/ET-Miner/runs/20260902T0000Z/phase2/scripts/run_phase3.sh: line 26: 210855 Killed                  "$@" > "$R/$name.log" 2>&1
+end direct_vs_son rc=137 wall_s=1943 2026-09-02T06:51:58Z
+skip null_model_769_5 (done)
+start full_campaign_r1 2026-09-02T06:51:58Z
+phase3 sequencer stopped 2026-09-02T06:53:27Z after direct_vs_son OOM (rc=137) — null model running alone; resume run_phase3.sh afterwards
+phase3 release=2026_01 n_multi=76890945 start 2026-09-02T07:02:23Z
+skip validate_row_split (done)
+skip opus_mining (done)
+skip blitz_mining (done)
+skip k22_analysis (done)
+start direct_vs_son 2026-09-02T07:02:23Z
+end direct_vs_son rc=0 wall_s=5772 2026-09-02T08:38:35Z
+skip null_model_769_5 (done)
+start full_campaign_r1 2026-09-02T08:38:35Z
+minc3 step pre-marked done (skipped: the old yolo.log records no result)
+end full_campaign_r1 rc=0 wall_s=2260 2026-09-02T09:16:15Z
+start son_base 2026-09-02T09:16:15Z
+end son_base rc=0 wall_s=784 2026-09-02T09:29:19Z
+start son_super 2026-09-02T09:29:19Z
+end son_super rc=0 wall_s=1430 2026-09-02T09:53:09Z
+start minc4_mining 2026-09-02T09:53:09Z
+end minc4_mining rc=0 wall_s=4549 2026-09-02T11:08:58Z
+skip minc3_mining (done)
+start null_model_769_100 2026-09-02T11:08:58Z
+end null_model_769_100 rc=1 wall_s=109 2026-09-02T11:10:47Z
+start bench_full 2026-09-02T11:10:47Z
+end bench_full rc=2 wall_s=0 2026-09-02T11:10:47Z
+phase3 end 2026-09-02T11:10:47Z

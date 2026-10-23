@@ -1,0 +1,92 @@
+{
+  "perm": 70,
+  "perm_seed": 1979194270821277479,
+  "shuffle_seed": 6284943392051591573,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 444.27724645700073,
+  "mine_wall_s": 437.04676964104874,
+  "process": {
+    "wall_s": 881.3240453220205,
+    "cpu_s": 4203.311793999999,
+    "peak_rss_mb": 24585.8515625
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.06010098149999976
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63678,
+      "ms": 10581.614220980555
+    },
+    {
+      "k": 3,
+      "candidates": 2658005,
+      "frequent": 79184,
+      "ms": 84201.2532770168
+    },
+    {
+      "k": 4,
+      "candidates": 141151,
+      "frequent": 25471,
+      "ms": 262931.99525098316
+    },
+    {
+      "k": 5,
+      "candidates": 8718,
+      "frequent": 1994,
+      "ms": 60176.31640401669
+    },
+    {
+      "k": 6,
+      "candidates": 127,
+      "frequent": 22,
+      "ms": 7065.368362993468
+    }
+  ],
+  "total_itemsets": 171351,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63678,
+    "3": 79184,
+    "4": 25471,
+    "5": 1994,
+    "6": 22
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171351,
+    "sum_counts": 1072451250,
+    "sha256": "59a8af7a433fc72db458699ae3fca09f298426172874ac7f4fc96a15ad945d1c",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63678,
+      "3": 79184,
+      "4": 25471,
+      "5": 1994,
+      "6": 22
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-22T09:47:44Z"
+  }
+}

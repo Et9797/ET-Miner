@@ -1,0 +1,54 @@
+{
+  "experiment": "direct_gpu_vs_son",
+  "timestamp": "2026-02-19T05:03:26.988464+00:00",
+  "parameters": {
+    "min_support": 1e-05,
+    "support_pct": "0.001%",
+    "n_transactions": 76890945,
+    "min_count": 768,
+    "max_length": null,
+    "use_gpu": true
+  },
+  "direct_gpu_result": {
+    "itemsets": 475865,
+    "time_seconds": 50.72,
+    "max_k": 14,
+    "k_distribution": {
+      "1": 1002,
+      "2": 22019,
+      "3": 73205,
+      "4": 108059,
+      "5": 104239,
+      "6": 78596,
+      "7": 48699,
+      "8": 25011,
+      "9": 10508,
+      "10": 3488,
+      "11": 869,
+      "12": 152,
+      "13": 17,
+      "14": 1
+    }
+  },
+  "son_reference": {
+    "method": "SON (Power)",
+    "support_pct": "0.001%",
+    "min_support": 1e-05,
+    "itemsets": 22846,
+    "time_seconds": 1085.6,
+    "max_k": 13
+  },
+  "blitz_reference": {
+    "method": "Direct GPU (Blitz)",
+    "support_pct": "0.0001%",
+    "min_support": 1e-06,
+    "itemsets": 2841280,
+    "time_seconds": 119.3,
+    "max_k": 19
+  },
+  "comparison": {
+    "speedup_vs_son": 21.4,
+    "itemset_match": false,
+    "itemset_diff": 453019
+  }
+}

@@ -1,0 +1,48 @@
+2026-10-21T05:18:36Z skip G0_incore (done)
+2026-10-21T05:18:36Z skip G0_son (done)
+2026-10-21T05:18:36Z skip G0_ea (done)
+2026-10-21T05:18:36Z skip G0_cmp_incore (done)
+2026-10-21T05:18:36Z skip G0_cmp_son (done)
+2026-10-21T05:18:36Z skip G0_check (done)
+2026-10-21T05:18:36Z skip C1 (done)
+2026-10-21T05:18:36Z skip C2 (done)
+2026-10-21T05:18:36Z skip C3 (done)
+2026-10-21T05:18:36Z skip P1T (done)
+2026-10-21T05:18:36Z skip C1_cmp (done)
+2026-10-21T05:18:36Z skip C2_cmp (done)
+2026-10-21T05:18:36Z skip C3_cmp (done)
+2026-10-21T05:18:36Z skip G0_incore_r2 (done)
+2026-10-21T05:18:36Z skip G0_incore_r3 (done)
+2026-10-21T05:18:36Z skip G0_son_r2 (done)
+2026-10-21T05:18:36Z skip G0_son_r3 (done)
+2026-10-21T05:18:36Z skip C1_r2 (done)
+2026-10-21T05:18:36Z skip C1_r3 (done)
+2026-10-21T05:18:36Z skip R1 (done)
+2026-10-21T05:18:36Z skip R1_r2 (done)
+2026-10-21T05:18:36Z skip R1_r3 (done)
+2026-10-21T05:18:36Z skip S1 (done)
+2026-10-21T05:18:36Z skip S1_cmp_C1 (done)
+2026-10-21T05:18:36Z skip S1_cmp_gpu (done)
+2026-10-21T05:18:36Z skip S1_r2 (done)
+2026-10-21T05:18:36Z skip S1_r3 (done)
+2026-10-21T05:18:36Z skip S2 (done)
+2026-10-21T05:18:36Z skip S2_cmp_C2 (done)
+2026-10-21T05:18:36Z skip S2_cmp_gpu (done)
+2026-10-21T05:18:36Z skip S3 (done)
+2026-10-21T05:18:36Z skip S3_cmp_C3 (done)
+2026-10-21T05:18:36Z skip S3_cmp_gpu (done)
+2026-10-21T05:18:36Z skip N5 (done)
+2026-10-21T05:18:36Z skip N5_verdict (done)
+2026-10-21T05:18:36Z skip C3G (done)
+2026-10-21T05:18:36Z skip C3G_cmp_C3 (done)
+2026-10-21T05:18:36Z start C4 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C4_20261021T0518Z.log
+2026-10-21T08:12:42Z done C4
+2026-10-21T08:12:42Z start C4_cmp log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C4_cmp_20261021T0812Z.log
+2026-10-21T08:12:52Z done C4_cmp
+2026-10-21T08:12:52Z start C4_cmp_blitz log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C4_cmp_blitz_20261021T0812Z.log
+2026-10-21T08:13:00Z done C4_cmp_blitz
+2026-10-21T08:13:00Z start A1_decode log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/A1_decode_20261021T0813Z.log
+2026-10-21T08:13:00Z done A1_decode
+2026-10-21T08:13:00Z start A1_p026 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/A1_p026_20261021T0813Z.log
+2026-10-21T08:13:00Z done A1_p026
+2026-10-21T08:13:00Z queue end

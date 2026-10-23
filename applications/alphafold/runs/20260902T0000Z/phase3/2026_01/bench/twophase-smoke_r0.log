@@ -1,0 +1,75 @@
+2026-09-02 12:00:47.284 | INFO     | et_miner.gpu.row_split:mine_two_phase:799 - TWO-PHASE MINING: Phase 1 1.000000% support (anchor discovery), Phase 2 1.000000% support (neighborhood zoom)
+2026-09-02 12:00:47.285 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 60,000 transactions, min_count=600
+2026-09-02 12:00:47.289 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 118 frequent items
+2026-09-02 12:00:47.295 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 330,069 non-zeros
+2026-09-02 12:00:47.307 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:127 -   Row-split multi-GPU: 2 GPUs, min_count=600 (GPU-resident dense counting)
+2026-09-02 12:00:47.308 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 0] Building bitvec: 30,000 rows, 165,218 nnz, ~0.0 GB (rows-balanced)
+2026-09-02 12:00:47.309 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 1] Building bitvec: 30,000 rows, 164,851 nnz, ~0.0 GB (rows-balanced)
+2026-09-02 12:00:47.584 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:137 -   Bitvec build: 0.3s across 2 GPUs
+2026-09-02 12:00:47.871 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:170 -   NCCL: 2 communicators (ring all-reduce)
+2026-09-02 12:00:48.264 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 118 itemsets to /tmp/tmpc3mv7tgk/phase1/frequent_k1.parquet (0 MB, zstd)
+2026-09-02 12:00:48.265 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:318 -   K=1: 118 frequent items in 0.4s
+2026-09-02 12:00:48.265 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:453 -   K=2: 6,903 total pairs, 1 chunk(s), dense output 0.00 GB/GPU per chunk
+2026-09-02 12:00:48.359 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=2 chunk 1/1 filtering: 6,903 candidates → 290 frequent (4.2% pass rate, min_count=600)
+2026-09-02 12:00:48.360 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 290 itemsets to /tmp/tmpc3mv7tgk/phase1/frequent_k2.parquet (0 MB, zstd)
+2026-09-02 12:00:48.360 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=2: 290 frequent in 0.1s
+2026-09-02 12:00:48.362 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:631 -     Pruning: zeroed 26 dead bitvecs at K=2 (0 MB logical × 2 GPUs)
+2026-09-02 12:00:48.362 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:368 -   ═══ DENSITY TRANSITION at K=3 (measured mean support 2.6607% < 3.1250% crossover): dense bitvec → sparse CSR ═══
+2026-09-02 12:00:48.393 | INFO     | et_miner.gpu.sparse_csr:convert_shards_to_csr:196 -     Dense→Sparse: 290 itemsets, avg support 1596, 1.8 MB tidset across 2 shard(s), row lengths verified exactly
+2026-09-02 12:00:48.393 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:380 -     Freed bitvec VRAM across all GPUs
+2026-09-02 12:00:48.394 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:393 -     Apriori pruning K=3: 7,045 → 3,748 (46.8% pruned)
+2026-09-02 12:00:48.394 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:404 -   K=3: 3,748 candidates (CSR sparse mode)
+2026-09-02 12:00:48.400 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=3 CSR chunk 1/1 filtering: 3,748 candidates → 202 frequent (5.4% pass rate, min_count=600)
+2026-09-02 12:00:48.401 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 202 itemsets to /tmp/tmpc3mv7tgk/phase1/frequent_k3.parquet (0 MB, zstd)
+2026-09-02 12:00:48.402 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=3: 202 frequent in 0.0s
+2026-09-02 12:00:48.402 | DEBUG    | et_miner.gpu.mining:_prune_closed_mask:208 -     Closed pruning: 202 → 175 (13.4% non-closed removed) [rust-mask]
+2026-09-02 12:00:48.407 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 175 itemsets, avg support 1165, 0.8 MB across 2 shard(s)
+2026-09-02 12:00:48.407 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:393 -     Apriori pruning K=4: 1,226 → 142 (88.4% pruned)
+2026-09-02 12:00:48.407 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:404 -   K=4: 142 candidates (CSR sparse mode)
+2026-09-02 12:00:48.411 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=4 CSR chunk 1/1 filtering: 142 candidates → 22 frequent (15.5% pass rate, min_count=600)
+2026-09-02 12:00:48.412 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 22 itemsets to /tmp/tmpc3mv7tgk/phase1/frequent_k4.parquet (0 MB, zstd)
+2026-09-02 12:00:48.412 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=4: 22 frequent in 0.0s
+2026-09-02 12:00:48.412 | DEBUG    | et_miner.gpu.mining:_prune_closed_mask:208 -     Closed pruning: 22 → 18 (18.2% non-closed removed) [rust-mask]
+2026-09-02 12:00:48.415 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 18 itemsets, avg support 932, 0.1 MB across 2 shard(s)
+2026-09-02 12:00:48.415 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:393 -     Apriori pruning K=5: 48 → 0 (100.0% pruned)
+2026-09-02 12:00:48.415 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=5: 0 frequent in 0.0s
+2026-09-02 12:00:48.415 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:707 -   All results flushed to /tmp/tmpc3mv7tgk/phase1/frequent_k*.parquet
+2026-09-02 12:00:48.910 | INFO     | et_miner.gpu.row_split:mine_two_phase:829 -   Phase 1 complete: 118 anchor items
+2026-09-02 12:00:48.911 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 60,000 transactions, min_count=600
+2026-09-02 12:00:48.917 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 118 frequent items
+2026-09-02 12:00:48.925 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 330,069 non-zeros
+2026-09-02 12:00:48.947 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:127 -   Row-split multi-GPU: 2 GPUs, min_count=600 (GPU-resident dense counting)
+2026-09-02 12:00:48.948 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 0] Building bitvec: 30,000 rows, 165,218 nnz, ~0.0 GB (rows-balanced)
+2026-09-02 12:00:48.949 | DEBUG    | et_miner.gpu.csr_bitvec:_build_shard:508 -   [GPU 1] Building bitvec: 30,000 rows, 164,851 nnz, ~0.0 GB (rows-balanced)
+2026-09-02 12:00:48.951 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:137 -   Bitvec build: 0.0s across 2 GPUs
+2026-09-02 12:00:48.951 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:162 -   Anchor filter: 118 of 118 anchor items mapped to columns
+2026-09-02 12:00:48.973 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:170 -   NCCL: 2 communicators (ring all-reduce)
+2026-09-02 12:00:48.976 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 118 itemsets to /tmp/tmpc3mv7tgk/phase2/frequent_k1.parquet (0 MB, zstd)
+2026-09-02 12:00:48.976 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:318 -   K=1: 118 frequent items in 0.0s
+2026-09-02 12:00:48.977 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:453 -   K=2: 6,903 total pairs, 1 chunk(s), dense output 0.00 GB/GPU per chunk
+2026-09-02 12:00:49.043 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=2 chunk 1/1 filtering: 6,903 candidates → 290 frequent (4.2% pass rate, min_count=600)
+2026-09-02 12:00:49.044 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 290 itemsets to /tmp/tmpc3mv7tgk/phase2/frequent_k2.parquet (0 MB, zstd)
+2026-09-02 12:00:49.044 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=2: 290 frequent in 0.1s
+2026-09-02 12:00:49.045 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:631 -     Pruning: zeroed 26 dead bitvecs at K=2 (0 MB logical × 2 GPUs)
+2026-09-02 12:00:49.046 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:368 -   ═══ DENSITY TRANSITION at K=3 (measured mean support 2.6607% < 3.1250% crossover): dense bitvec → sparse CSR ═══
+2026-09-02 12:00:49.050 | INFO     | et_miner.gpu.sparse_csr:convert_shards_to_csr:196 -     Dense→Sparse: 290 itemsets, avg support 1596, 1.8 MB tidset across 2 shard(s), row lengths verified exactly
+2026-09-02 12:00:49.051 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:380 -     Freed bitvec VRAM across all GPUs
+2026-09-02 12:00:49.051 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:393 -     Apriori pruning K=3: 7,045 → 3,748 (46.8% pruned)
+2026-09-02 12:00:49.051 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:404 -   K=3: 3,748 candidates (CSR sparse mode)
+2026-09-02 12:00:49.055 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=3 CSR chunk 1/1 filtering: 3,748 candidates → 202 frequent (5.4% pass rate, min_count=600)
+2026-09-02 12:00:49.057 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 202 itemsets to /tmp/tmpc3mv7tgk/phase2/frequent_k3.parquet (0 MB, zstd)
+2026-09-02 12:00:49.057 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=3: 202 frequent in 0.0s
+2026-09-02 12:00:49.057 | DEBUG    | et_miner.gpu.mining:_prune_closed_mask:208 -     Closed pruning: 202 → 175 (13.4% non-closed removed) [rust-mask]
+2026-09-02 12:00:49.061 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 175 itemsets, avg support 1165, 0.8 MB across 2 shard(s)
+2026-09-02 12:00:49.061 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:393 -     Apriori pruning K=4: 1,226 → 142 (88.4% pruned)
+2026-09-02 12:00:49.062 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:404 -   K=4: 142 candidates (CSR sparse mode)
+2026-09-02 12:00:49.065 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=4 CSR chunk 1/1 filtering: 142 candidates → 22 frequent (15.5% pass rate, min_count=600)
+2026-09-02 12:00:49.066 | INFO     | et_miner.io.flush:_flush_k_parquet:126 -   → Flushed 22 itemsets to /tmp/tmpc3mv7tgk/phase2/frequent_k4.parquet (0 MB, zstd)
+2026-09-02 12:00:49.067 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=4: 22 frequent in 0.0s
+2026-09-02 12:00:49.067 | DEBUG    | et_miner.gpu.mining:_prune_closed_mask:208 -     Closed pruning: 22 → 18 (18.2% non-closed removed) [rust-mask]
+2026-09-02 12:00:49.070 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 18 itemsets, avg support 932, 0.1 MB across 2 shard(s)
+2026-09-02 12:00:49.070 | DEBUG    | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:393 -     Apriori pruning K=5: 48 → 0 (100.0% pruned)
+2026-09-02 12:00:49.070 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:599 -   K=5: 0 frequent in 0.0s
+2026-09-02 12:00:49.070 | INFO     | et_miner.gpu.row_split:_apriori_row_split_multi_gpu:707 -   All results flushed to /tmp/tmpc3mv7tgk/phase2/frequent_k*.parquet
+2026-09-02 12:00:49.505 | INFO     | et_miner.gpu.row_split:mine_two_phase:857 -   Phase 2 complete
+2026-09-02 12:00:49.505 | INFO     | et_miner.gpu.row_split:mine_two_phase:862 - TWO-PHASE MINING DONE

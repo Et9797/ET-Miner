@@ -1,0 +1,8 @@
+qkey,category,unit,description,claimed_value_tex,tex_lines,reproducibility
+null_k7_p,deterministic,p,"One-sided p-value of the permutation null model at K=7 (0 when no null permutation reaches K=7).",review:p=0,review_b2_results.md,rerun
+null_perms_reaching_kge7,deterministic,permutations,"Number of null permutations that produced any itemset at K>=7.",0 of 5,,rerun
+null_t_df,deterministic,df,"Degrees of freedom of the permutation-based t-statistic (n permutations − 1).",4,,derived
+null_enriched_from_k,deterministic,K,"Lowest K (>1) at which the biological count exceeds the null mean.",4,,derived
+vocab_composition,deterministic,Pfam:GO:pLDDT,"Frequent items per category (Pfam:GO:pLDDT).",500:500:2,,rerun
+run_blitz_vs_power_itemset_ratio,deterministic,×,"Ratio of Blitz to Power itemset counts (fresh exhaustive counts).",124,,derived
+null_p_bound_laplace,deterministic,p,"Laplace (rule-of-succession) bound on P(K>=7 | null) from n permutations with r successes: (r+1)/(n+1); with 0 of 5 → 1/6 ≈ 0.17.",review:0.17,review_b2_results.md,derived

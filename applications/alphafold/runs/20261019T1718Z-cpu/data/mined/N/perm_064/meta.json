@@ -1,0 +1,92 @@
+{
+  "perm": 64,
+  "perm_seed": 5854243203972891491,
+  "shuffle_seed": 2799819276587816600,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 445.0261660259566,
+  "mine_wall_s": 436.00779723702,
+  "process": {
+    "wall_s": 881.0339931289782,
+    "cpu_s": 4173.784912,
+    "peak_rss_mb": 24586.0546875
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.0502640032209456
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63718,
+      "ms": 10490.334516973235
+    },
+    {
+      "k": 3,
+      "candidates": 2664497,
+      "frequent": 79141,
+      "ms": 85068.08247498702
+    },
+    {
+      "k": 4,
+      "candidates": 141063,
+      "frequent": 25415,
+      "ms": 268348.2178520062
+    },
+    {
+      "k": 5,
+      "candidates": 8744,
+      "frequent": 1991,
+      "ms": 52760.82931901328
+    },
+    {
+      "k": 6,
+      "candidates": 128,
+      "frequent": 21,
+      "ms": 7095.777174981777
+    }
+  ],
+  "total_itemsets": 171288,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63718,
+    "3": 79141,
+    "4": 25415,
+    "5": 1991,
+    "6": 21
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171288,
+    "sum_counts": 1072355309,
+    "sha256": "f3df658fdaa0f1b59d23411522face4a361ea8f366bc9d9ef1679ba80c224f53",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63718,
+      "3": 79141,
+      "4": 25415,
+      "5": 1991,
+      "6": 21
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-22T08:19:26Z"
+  }
+}

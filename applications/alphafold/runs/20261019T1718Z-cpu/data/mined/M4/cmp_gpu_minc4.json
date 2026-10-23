@@ -1,0 +1,248 @@
+{
+  "label": "M4_vs_GPU_minc4",
+  "cpu": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/M4/parquet",
+  "ref": "/home/et/personal-projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/minc4/parquet",
+  "n_rows": 76890945,
+  "ref_min_count": null,
+  "cpu_min_count": null,
+  "translated": true,
+  "verdict": "identical",
+  "per_k": {
+    "1": {
+      "cpu": 1002,
+      "ref": 1002,
+      "both": 1002,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "2": {
+      "cpu": 94427,
+      "ref": 94427,
+      "both": 94427,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "3": {
+      "cpu": 603403,
+      "ref": 603403,
+      "both": 603403,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "4": {
+      "cpu": 1649283,
+      "ref": 1649283,
+      "both": 1649283,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "5": {
+      "cpu": 2916124,
+      "ref": 2916124,
+      "both": 2916124,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "6": {
+      "cpu": 4169081,
+      "ref": 4169081,
+      "both": 4169081,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "7": {
+      "cpu": 5318506,
+      "ref": 5318506,
+      "both": 5318506,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "8": {
+      "cpu": 6223873,
+      "ref": 6223873,
+      "both": 6223873,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "9": {
+      "cpu": 6644170,
+      "ref": 6644170,
+      "both": 6644170,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "10": {
+      "cpu": 6362841,
+      "ref": 6362841,
+      "both": 6362841,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "11": {
+      "cpu": 5373365,
+      "ref": 5373365,
+      "both": 5373365,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "12": {
+      "cpu": 3943668,
+      "ref": 3943668,
+      "both": 3943668,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "13": {
+      "cpu": 2484117,
+      "ref": 2484117,
+      "both": 2484117,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "14": {
+      "cpu": 1327096,
+      "ref": 1327096,
+      "both": 1327096,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "15": {
+      "cpu": 593694,
+      "ref": 593694,
+      "both": 593694,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "16": {
+      "cpu": 219052,
+      "ref": 219052,
+      "both": 219052,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "17": {
+      "cpu": 65356,
+      "ref": 65356,
+      "both": 65356,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "18": {
+      "cpu": 15343,
+      "ref": 15343,
+      "both": 15343,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "19": {
+      "cpu": 2722,
+      "ref": 2722,
+      "both": 2722,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "20": {
+      "cpu": 342,
+      "ref": 342,
+      "both": 342,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "21": {
+      "cpu": 27,
+      "ref": 27,
+      "both": 27,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "22": {
+      "cpu": 1,
+      "ref": 1,
+      "both": 1,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    }
+  },
+  "signature_cpu": {
+    "itemsets": 48007493,
+    "sum_counts": 5584830296,
+    "sha256": "57f7f584b7bf2b3993bd91cf2c228df7e4cd0581b801bf3f5d9352beb28652dc",
+    "k_distribution": {
+      "1": 1002,
+      "2": 94427,
+      "3": 603403,
+      "4": 1649283,
+      "5": 2916124,
+      "6": 4169081,
+      "7": 5318506,
+      "8": 6223873,
+      "9": 6644170,
+      "10": 6362841,
+      "11": 5373365,
+      "12": 3943668,
+      "13": 2484117,
+      "14": 1327096,
+      "15": 593694,
+      "16": 219052,
+      "17": 65356,
+      "18": 15343,
+      "19": 2722,
+      "20": 342,
+      "21": 27,
+      "22": 1
+    }
+  },
+  "signature_ref": {
+    "itemsets": 48007493,
+    "sum_counts": 5584830296,
+    "sha256": "57f7f584b7bf2b3993bd91cf2c228df7e4cd0581b801bf3f5d9352beb28652dc",
+    "k_distribution": {
+      "1": 1002,
+      "2": 94427,
+      "3": 603403,
+      "4": 1649283,
+      "5": 2916124,
+      "6": 4169081,
+      "7": 5318506,
+      "8": 6223873,
+      "9": 6644170,
+      "10": 6362841,
+      "11": 5373365,
+      "12": 3943668,
+      "13": 2484117,
+      "14": 1327096,
+      "15": 593694,
+      "16": 219052,
+      "17": 65356,
+      "18": 15343,
+      "19": 2722,
+      "20": 342,
+      "21": 27,
+      "22": 1
+    }
+  },
+  "n_differing": 0,
+  "differing": []
+}

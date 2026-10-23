@@ -1,0 +1,24 @@
+{
+  "rows_direct": 2000000,
+  "rows_merged": 2000000,
+  "protein_id_sequence_equal": true,
+  "decoded_rows_equal": true,
+  "rows_differing": 0,
+  "mapping_feature_sets_equal": true,
+  "mapping_rows": [
+    106,
+    106
+  ],
+  "ids_moved": 0,
+  "moved": [],
+  "within_row_ascending": true,
+  "dtypes_merged": {
+    "protein_id": "String",
+    "items": "List(Int64)"
+  },
+  "dtypes_direct": {
+    "protein_id": "String",
+    "items": "List(Int64)"
+  },
+  "pass": true
+}

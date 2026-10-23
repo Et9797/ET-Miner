@@ -1,0 +1,606 @@
+start 2026-10-19T18:13:23Z url=https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/knowledgebase2026_01.tar.gz size=161890570993 member=uniprot_trembl.dat.gz
+consumed 0.02 GB of 161.89 GB  avg 0.0 MB/s
+member docs size=0
+member docs/ptmlist.txt size=248929
+member docs/keywlist.xsd size=1819
+member docs/humchr07.txt size=176981
+member docs/dicty.txt size=317907
+member docs/sp_soon.htm size=0
+member docs/yeast14.txt size=82882
+member docs/mgdtosp.txt size=989817
+member docs/humchr08.txt size=131541
+member docs/protspot.txt size=35596
+member docs/enzuser.txt size=11597
+member docs/humchr06.txt size=195161
+member docs/yeast6.txt size=28528
+member docs/pdbtosp.txt size=16381490
+member docs/tisslist.txt size=80324
+member docs/yeast7.txt size=111548
+member docs/jourlist.txt size=1138759
+member docs/humchry.txt size=10418
+member docs/intein.txt size=7825
+member docs/plasmid.txt size=17290
+member docs/fly.txt size=258116
+member docs/userman.htm size=313794
+member docs/yeast3.txt size=39235
+member docs/humchr15.txt size=107803
+member docs/humdisease.txt size=4602566
+member docs/acindex.txt size=18782014
+member docs/extradom.txt size=10399
+member docs/keywlist.txt size=655311
+member docs/allergen.txt size=17285
+member docs/delac_tr.txt.gz size=631248764
+consumed 0.15 GB of 161.89 GB  avg 0.3 MB/s
+member docs/hoxlist.txt size=13462
+member docs/enzclass.txt size=20806
+member docs/reinstated_map.txt.gz size=84186361
+member docs/pkinfam.txt size=36166
+member docs/yeast15.txt size=113261
+member docs/speclist.txt size=2450418
+member docs/humchr17.txt size=217735
+member docs/humchr14.txt size=129100
+member docs/xml_news.htm size=0
+member docs/glycosid.txt size=145542
+member docs/humchr18.txt size=49903
+member docs/humchr19.txt size=251037
+member docs/humchr21.txt size=49371
+member docs/humsavar.txt size=8639883
+member docs/delac_sp.txt size=14711
+member docs/yeast11.txt size=66046
+member docs/shortdes.txt size=157818186
+member docs/initfact.txt size=57401
+member docs/humchr10.txt size=139410
+member docs/keywlist.xml.gz size=155581
+member docs/arath.txt size=2355559
+member docs/humchr01.txt size=377698
+member docs/strains.txt size=535790
+member docs/subcell.txt size=261753
+member docs/aatrnasy.txt size=320994
+member docs/nomlist.txt size=28193
+member docs/humchr05.txt size=159638
+member docs/yeast12.txt size=110699
+member docs/metallo.txt size=27619
+member docs/dbxref.txt size=55430
+member docs/humchr11.txt size=239232
+member docs/similar.txt size=14866781
+member docs/yeast.txt size=959553
+member docs/humchr09.txt size=144443
+member docs/yeast10.txt size=76294
+member docs/celegans.txt size=515095
+member docs/upflist.txt size=406972
+member docs/humchr13.txt size=61150
+member docs/peptidas.txt size=338601
+member docs/scorpktx.txt size=20973
+member docs/yeast5.txt size=62200
+member docs/humchrx.txt size=155909
+member docs/humchr02.txt size=237035
+member docs/pe_criteria.txt size=4448
+member docs/pathway.txt size=4146164
+member docs/International_Protein_Nomenclature_Guidelines.pdf size=505513
+member docs/rice.txt size=705832
+member docs/cdlist.txt size=70717
+member docs/ribosomp.txt size=1299381
+member docs/xml_soon.htm size=0
+member docs/yeast13.txt size=96424
+member docs/bloodgrp.txt size=9634
+member docs/yeast4.txt size=158825
+member docs/humchr16.txt size=156497
+member docs/7tmrlist.txt size=337307
+member docs/RELEASE.metalink size=71499
+member docs/humchr04.txt size=148514
+member docs/speindex.txt size=16206228
+member docs/calbican.txt size=130906
+member docs/humchr12.txt size=195469
+member docs/humchr20.txt size=103199
+member docs/humchr03.txt size=196880
+member docs/humpvar.txt size=1066182
+member docs/mimtosp.txt size=794333
+member docs/pathlist.txt size=861086
+member docs/yeast2.txt size=86722
+member docs/sec_ac.txt size=60521766
+consumed 0.42 GB of 161.89 GB  avg 0.8 MB/s
+member docs/sp_news.htm size=0
+member docs/humchr22.txt size=89045
+member docs/restric.txt size=17174
+member docs/yeast16.txt size=98399
+member docs/yeast9.txt size=47926
+member docs/yeast1.txt size=24319
+member docs/pombe.txt size=552544
+member docs/yeast8.txt size=62017
+member reldate.txt size=151
+member uniprot_sprot.dat.gz size=692563345
+consumed 1.09 GB of 161.89 GB  avg 1.3 MB/s
+member uniprot_trembl.dat.gz size=160834306675
+consumed 1.49 GB of 161.89 GB  avg 1.7 MB/s
+consumed 2.16 GB of 161.89 GB  avg 2.1 MB/s
+consumed 2.30 GB of 161.89 GB  avg 1.9 MB/s
+consumed 2.57 GB of 161.89 GB  avg 2.0 MB/s
+consumed 2.84 GB of 161.89 GB  avg 2.1 MB/s
+consumed 2.97 GB of 161.89 GB  avg 2.1 MB/s
+consumed 3.37 GB of 161.89 GB  avg 2.2 MB/s
+consumed 3.51 GB of 161.89 GB  avg 2.2 MB/s
+consumed 4.04 GB of 161.89 GB  avg 2.4 MB/s
+consumed 4.18 GB of 161.89 GB  avg 2.4 MB/s
+consumed 4.31 GB of 161.89 GB  avg 2.5 MB/s
+consumed 4.45 GB of 161.89 GB  avg 2.1 MB/s
+consumed 4.58 GB of 161.89 GB  avg 2.2 MB/s
+consumed 5.25 GB of 161.89 GB  avg 2.4 MB/s
+consumed 5.52 GB of 161.89 GB  avg 2.2 MB/s
+consumed 5.65 GB of 161.89 GB  avg 2.2 MB/s
+consumed 6.19 GB of 161.89 GB  avg 2.4 MB/s
+consumed 6.33 GB of 161.89 GB  avg 2.3 MB/s
+consumed 6.59 GB of 161.89 GB  avg 2.3 MB/s
+consumed 6.73 GB of 161.89 GB  avg 2.2 MB/s
+consumed 7.00 GB of 161.89 GB  avg 2.2 MB/s
+consumed 7.53 GB of 161.89 GB  avg 2.2 MB/s
+consumed 7.80 GB of 161.89 GB  avg 2.3 MB/s
+consumed 8.07 GB of 161.89 GB  avg 2.3 MB/s
+consumed 8.20 GB of 161.89 GB  avg 2.3 MB/s
+consumed 8.52 GB of 161.89 GB  avg 2.3 MB/s
+consumed 8.61 GB of 161.89 GB  avg 2.2 MB/s
+consumed 8.88 GB of 161.89 GB  avg 2.2 MB/s
+consumed 9.28 GB of 161.89 GB  avg 2.3 MB/s
+consumed 9.41 GB of 161.89 GB  avg 2.3 MB/s
+consumed 9.68 GB of 161.89 GB  avg 2.2 MB/s
+consumed 10.35 GB of 161.89 GB  avg 2.3 MB/s
+consumed 10.62 GB of 161.89 GB  avg 2.3 MB/s
+consumed 11.02 GB of 161.89 GB  avg 2.3 MB/s
+consumed 11.54 GB of 161.89 GB  avg 2.4 MB/s
+consumed 11.56 GB of 161.89 GB  avg 2.3 MB/s
+consumed 12.10 GB of 161.89 GB  avg 2.3 MB/s
+consumed 12.90 GB of 161.89 GB  avg 2.4 MB/s
+consumed 13.17 GB of 161.89 GB  avg 2.3 MB/s
+consumed 13.57 GB of 161.89 GB  avg 2.4 MB/s
+consumed 13.98 GB of 161.89 GB  avg 2.4 MB/s
+consumed 14.11 GB of 161.89 GB  avg 2.4 MB/s
+consumed 14.38 GB of 161.89 GB  avg 2.4 MB/s
+consumed 14.65 GB of 161.89 GB  avg 2.4 MB/s
+consumed 14.78 GB of 161.89 GB  avg 2.4 MB/s
+consumed 15.18 GB of 161.89 GB  avg 2.4 MB/s
+consumed 15.32 GB of 161.89 GB  avg 2.4 MB/s
+consumed 15.45 GB of 161.89 GB  avg 2.4 MB/s
+consumed 15.72 GB of 161.89 GB  avg 2.4 MB/s
+consumed 16.26 GB of 161.89 GB  avg 2.5 MB/s
+consumed 16.39 GB of 161.89 GB  avg 2.5 MB/s
+consumed 16.53 GB of 161.89 GB  avg 2.5 MB/s
+consumed 16.66 GB of 161.89 GB  avg 2.5 MB/s
+consumed 17.05 GB of 161.89 GB  avg 2.5 MB/s
+consumed 17.20 GB of 161.89 GB  avg 2.5 MB/s
+consumed 17.47 GB of 161.89 GB  avg 2.5 MB/s
+consumed 17.73 GB of 161.89 GB  avg 2.5 MB/s
+consumed 17.87 GB of 161.89 GB  avg 2.5 MB/s
+consumed 18.00 GB of 161.89 GB  avg 2.5 MB/s
+consumed 18.40 GB of 161.89 GB  avg 2.6 MB/s
+consumed 18.81 GB of 161.89 GB  avg 2.5 MB/s
+consumed 19.34 GB of 161.89 GB  avg 2.6 MB/s
+consumed 19.48 GB of 161.89 GB  avg 2.6 MB/s
+consumed 19.75 GB of 161.89 GB  avg 2.6 MB/s
+consumed 19.88 GB of 161.89 GB  avg 2.5 MB/s
+consumed 20.55 GB of 161.89 GB  avg 2.6 MB/s
+consumed 20.95 GB of 161.89 GB  avg 2.5 MB/s
+consumed 21.63 GB of 161.89 GB  avg 2.6 MB/s
+consumed 21.76 GB of 161.89 GB  avg 2.6 MB/s
+consumed 22.16 GB of 161.89 GB  avg 2.6 MB/s
+consumed 22.70 GB of 161.89 GB  avg 2.6 MB/s
+consumed 22.83 GB of 161.89 GB  avg 2.6 MB/s
+consumed 23.24 GB of 161.89 GB  avg 2.6 MB/s
+consumed 23.37 GB of 161.89 GB  avg 2.6 MB/s
+consumed 23.64 GB of 161.89 GB  avg 2.7 MB/s
+consumed 23.91 GB of 161.89 GB  avg 2.7 MB/s
+consumed 24.04 GB of 161.89 GB  avg 2.7 MB/s
+consumed 24.31 GB of 161.89 GB  avg 2.6 MB/s
+consumed 24.44 GB of 161.89 GB  avg 2.6 MB/s
+consumed 24.98 GB of 161.89 GB  avg 2.7 MB/s
+consumed 25.25 GB of 161.89 GB  avg 2.6 MB/s
+consumed 25.52 GB of 161.89 GB  avg 2.6 MB/s
+consumed 25.92 GB of 161.89 GB  avg 2.7 MB/s
+consumed 26.06 GB of 161.89 GB  avg 2.7 MB/s
+consumed 26.19 GB of 161.89 GB  avg 2.7 MB/s
+consumed 26.32 GB of 161.89 GB  avg 2.7 MB/s
+consumed 26.46 GB of 161.89 GB  avg 2.6 MB/s
+consumed 26.59 GB of 161.89 GB  avg 2.6 MB/s
+consumed 26.99 GB of 161.89 GB  avg 2.7 MB/s
+consumed 27.26 GB of 161.89 GB  avg 2.6 MB/s
+consumed 27.53 GB of 161.89 GB  avg 2.6 MB/s
+consumed 27.67 GB of 161.89 GB  avg 2.6 MB/s
+consumed 27.93 GB of 161.89 GB  avg 2.6 MB/s
+consumed 28.07 GB of 161.89 GB  avg 2.6 MB/s
+consumed 28.20 GB of 161.89 GB  avg 2.6 MB/s
+consumed 28.39 GB of 161.89 GB  avg 2.6 MB/s
+consumed 28.47 GB of 161.89 GB  avg 2.6 MB/s
+consumed 28.61 GB of 161.89 GB  avg 2.6 MB/s
+consumed 29.01 GB of 161.89 GB  avg 2.6 MB/s
+consumed 29.28 GB of 161.89 GB  avg 2.6 MB/s
+consumed 29.68 GB of 161.89 GB  avg 2.6 MB/s
+consumed 29.95 GB of 161.89 GB  avg 2.6 MB/s
+consumed 30.22 GB of 161.89 GB  avg 2.6 MB/s
+consumed 30.48 GB of 161.89 GB  avg 2.6 MB/s
+consumed 30.75 GB of 161.89 GB  avg 2.6 MB/s
+consumed 30.89 GB of 161.89 GB  avg 2.6 MB/s
+consumed 31.29 GB of 161.89 GB  avg 2.6 MB/s
+consumed 31.69 GB of 161.89 GB  avg 2.6 MB/s
+consumed 31.83 GB of 161.89 GB  avg 2.6 MB/s
+consumed 32.09 GB of 161.89 GB  avg 2.6 MB/s
+consumed 32.23 GB of 161.89 GB  avg 2.6 MB/s
+consumed 32.36 GB of 161.89 GB  avg 2.6 MB/s
+consumed 32.50 GB of 161.89 GB  avg 2.6 MB/s
+consumed 32.77 GB of 161.89 GB  avg 2.6 MB/s
+consumed 33.03 GB of 161.89 GB  avg 2.6 MB/s
+consumed 33.30 GB of 161.89 GB  avg 2.6 MB/s
+consumed 33.44 GB of 161.89 GB  avg 2.6 MB/s
+consumed 33.57 GB of 161.89 GB  avg 2.6 MB/s
+consumed 33.71 GB of 161.89 GB  avg 2.6 MB/s
+consumed 34.38 GB of 161.89 GB  avg 2.6 MB/s
+consumed 34.51 GB of 161.89 GB  avg 2.6 MB/s
+consumed 35.10 GB of 161.89 GB  avg 2.6 MB/s
+consumed 35.18 GB of 161.89 GB  avg 2.6 MB/s
+consumed 35.45 GB of 161.89 GB  avg 2.6 MB/s
+consumed 35.72 GB of 161.89 GB  avg 2.6 MB/s
+consumed 36.26 GB of 161.89 GB  avg 2.6 MB/s
+consumed 36.52 GB of 161.89 GB  avg 2.6 MB/s
+consumed 36.66 GB of 161.89 GB  avg 2.6 MB/s
+consumed 37.06 GB of 161.89 GB  avg 2.6 MB/s
+consumed 37.33 GB of 161.89 GB  avg 2.6 MB/s
+consumed 37.46 GB of 161.89 GB  avg 2.6 MB/s
+consumed 37.60 GB of 161.89 GB  avg 2.6 MB/s
+consumed 38.00 GB of 161.89 GB  avg 2.6 MB/s
+consumed 38.27 GB of 161.89 GB  avg 2.6 MB/s
+consumed 38.54 GB of 161.89 GB  avg 2.6 MB/s
+consumed 38.67 GB of 161.89 GB  avg 2.6 MB/s
+consumed 39.21 GB of 161.89 GB  avg 2.6 MB/s
+consumed 39.61 GB of 161.89 GB  avg 2.6 MB/s
+consumed 39.75 GB of 161.89 GB  avg 2.6 MB/s
+consumed 40.15 GB of 161.89 GB  avg 2.6 MB/s
+consumed 40.82 GB of 161.89 GB  avg 2.7 MB/s
+consumed 41.09 GB of 161.89 GB  avg 2.7 MB/s
+consumed 41.49 GB of 161.89 GB  avg 2.7 MB/s
+consumed 42.16 GB of 161.89 GB  avg 2.7 MB/s
+consumed 42.30 GB of 161.89 GB  avg 2.7 MB/s
+consumed 42.70 GB of 161.89 GB  avg 2.7 MB/s
+consumed 43.23 GB of 161.89 GB  avg 2.7 MB/s
+consumed 43.50 GB of 161.89 GB  avg 2.7 MB/s
+consumed 43.77 GB of 161.89 GB  avg 2.7 MB/s
+consumed 44.31 GB of 161.89 GB  avg 2.8 MB/s
+consumed 44.58 GB of 161.89 GB  avg 2.8 MB/s
+consumed 44.85 GB of 161.89 GB  avg 2.8 MB/s
+consumed 45.11 GB of 161.89 GB  avg 2.8 MB/s
+consumed 45.38 GB of 161.89 GB  avg 2.8 MB/s
+consumed 46.05 GB of 161.89 GB  avg 2.8 MB/s
+consumed 46.19 GB of 161.89 GB  avg 2.8 MB/s
+consumed 46.59 GB of 161.89 GB  avg 2.8 MB/s
+consumed 46.86 GB of 161.89 GB  avg 2.8 MB/s
+consumed 47.13 GB of 161.89 GB  avg 2.8 MB/s
+consumed 47.26 GB of 161.89 GB  avg 2.8 MB/s
+consumed 47.53 GB of 161.89 GB  avg 2.8 MB/s
+consumed 47.80 GB of 161.89 GB  avg 2.8 MB/s
+consumed 48.34 GB of 161.89 GB  avg 2.9 MB/s
+consumed 48.87 GB of 161.89 GB  avg 2.9 MB/s
+consumed 49.01 GB of 161.89 GB  avg 2.9 MB/s
+consumed 49.95 GB of 161.89 GB  avg 2.9 MB/s
+consumed 50.08 GB of 161.89 GB  avg 2.9 MB/s
+consumed 50.35 GB of 161.89 GB  avg 2.9 MB/s
+consumed 50.62 GB of 161.89 GB  avg 2.9 MB/s
+consumed 51.15 GB of 161.89 GB  avg 2.9 MB/s
+consumed 51.56 GB of 161.89 GB  avg 2.9 MB/s
+consumed 52.36 GB of 161.89 GB  avg 3.0 MB/s
+consumed 52.63 GB of 161.89 GB  avg 2.9 MB/s
+consumed 53.10 GB of 161.89 GB  avg 3.0 MB/s
+consumed 53.44 GB of 161.89 GB  avg 3.0 MB/s
+consumed 53.70 GB of 161.89 GB  avg 3.0 MB/s
+consumed 53.84 GB of 161.89 GB  avg 3.0 MB/s
+consumed 54.24 GB of 161.89 GB  avg 3.0 MB/s
+consumed 54.51 GB of 161.89 GB  avg 3.0 MB/s
+consumed 54.78 GB of 161.89 GB  avg 3.0 MB/s
+consumed 55.45 GB of 161.89 GB  avg 3.0 MB/s
+consumed 55.72 GB of 161.89 GB  avg 3.0 MB/s
+consumed 55.85 GB of 161.89 GB  avg 3.0 MB/s
+consumed 56.79 GB of 161.89 GB  avg 3.0 MB/s
+consumed 56.93 GB of 161.89 GB  avg 3.0 MB/s
+consumed 57.33 GB of 161.89 GB  avg 3.0 MB/s
+consumed 57.86 GB of 161.89 GB  avg 3.1 MB/s
+consumed 58.40 GB of 161.89 GB  avg 3.1 MB/s
+consumed 58.54 GB of 161.89 GB  avg 3.1 MB/s
+consumed 58.67 GB of 161.89 GB  avg 3.1 MB/s
+consumed 59.07 GB of 161.89 GB  avg 3.1 MB/s
+consumed 59.34 GB of 161.89 GB  avg 3.1 MB/s
+consumed 59.61 GB of 161.89 GB  avg 3.1 MB/s
+consumed 60.28 GB of 161.89 GB  avg 3.1 MB/s
+consumed 60.82 GB of 161.89 GB  avg 3.1 MB/s
+consumed 60.95 GB of 161.89 GB  avg 3.1 MB/s
+consumed 61.09 GB of 161.89 GB  avg 3.1 MB/s
+consumed 61.62 GB of 161.89 GB  avg 3.1 MB/s
+consumed 61.89 GB of 161.89 GB  avg 3.1 MB/s
+consumed 62.29 GB of 161.89 GB  avg 3.1 MB/s
+consumed 62.56 GB of 161.89 GB  avg 3.1 MB/s
+consumed 62.70 GB of 161.89 GB  avg 3.1 MB/s
+consumed 62.83 GB of 161.89 GB  avg 3.1 MB/s
+consumed 62.96 GB of 161.89 GB  avg 3.1 MB/s
+consumed 63.64 GB of 161.89 GB  avg 3.2 MB/s
+consumed 63.77 GB of 161.89 GB  avg 3.1 MB/s
+consumed 63.90 GB of 161.89 GB  avg 3.1 MB/s
+consumed 64.71 GB of 161.89 GB  avg 3.2 MB/s
+consumed 64.84 GB of 161.89 GB  avg 3.2 MB/s
+consumed 65.52 GB of 161.89 GB  avg 3.2 MB/s
+consumed 65.65 GB of 161.89 GB  avg 3.2 MB/s
+consumed 65.92 GB of 161.89 GB  avg 3.2 MB/s
+consumed 66.05 GB of 161.89 GB  avg 3.2 MB/s
+consumed 66.72 GB of 161.89 GB  avg 3.2 MB/s
+consumed 66.99 GB of 161.89 GB  avg 3.2 MB/s
+consumed 67.39 GB of 161.89 GB  avg 3.2 MB/s
+consumed 68.20 GB of 161.89 GB  avg 3.2 MB/s
+consumed 68.47 GB of 161.89 GB  avg 3.2 MB/s
+consumed 68.74 GB of 161.89 GB  avg 3.2 MB/s
+consumed 69.14 GB of 161.89 GB  avg 3.2 MB/s
+consumed 69.54 GB of 161.89 GB  avg 3.2 MB/s
+consumed 69.84 GB of 161.89 GB  avg 3.2 MB/s
+consumed 70.08 GB of 161.89 GB  avg 3.2 MB/s
+consumed 70.35 GB of 161.89 GB  avg 3.3 MB/s
+consumed 70.62 GB of 161.89 GB  avg 3.3 MB/s
+consumed 70.75 GB of 161.89 GB  avg 3.3 MB/s
+consumed 71.15 GB of 161.89 GB  avg 3.3 MB/s
+consumed 71.55 GB of 161.89 GB  avg 3.3 MB/s
+consumed 72.36 GB of 161.89 GB  avg 3.3 MB/s
+consumed 72.63 GB of 161.89 GB  avg 3.3 MB/s
+consumed 72.90 GB of 161.89 GB  avg 3.3 MB/s
+consumed 73.17 GB of 161.89 GB  avg 3.3 MB/s
+consumed 73.70 GB of 161.89 GB  avg 3.3 MB/s
+consumed 73.97 GB of 161.89 GB  avg 3.3 MB/s
+consumed 74.10 GB of 161.89 GB  avg 3.3 MB/s
+consumed 74.78 GB of 161.89 GB  avg 3.3 MB/s
+consumed 74.91 GB of 161.89 GB  avg 3.3 MB/s
+consumed 75.18 GB of 161.89 GB  avg 3.3 MB/s
+consumed 75.98 GB of 161.89 GB  avg 3.3 MB/s
+consumed 76.12 GB of 161.89 GB  avg 3.3 MB/s
+consumed 76.92 GB of 161.89 GB  avg 3.3 MB/s
+consumed 77.06 GB of 161.89 GB  avg 3.3 MB/s
+consumed 77.46 GB of 161.89 GB  avg 3.3 MB/s
+consumed 77.86 GB of 161.89 GB  avg 3.4 MB/s
+consumed 78.00 GB of 161.89 GB  avg 3.4 MB/s
+consumed 78.13 GB of 161.89 GB  avg 3.3 MB/s
+consumed 78.53 GB of 161.89 GB  avg 3.4 MB/s
+consumed 79.05 GB of 161.89 GB  avg 3.4 MB/s
+consumed 79.07 GB of 161.89 GB  avg 3.4 MB/s
+consumed 79.47 GB of 161.89 GB  avg 3.4 MB/s
+consumed 79.88 GB of 161.89 GB  avg 3.4 MB/s
+consumed 80.14 GB of 161.89 GB  avg 3.4 MB/s
+consumed 80.68 GB of 161.89 GB  avg 3.4 MB/s
+consumed 81.22 GB of 161.89 GB  avg 3.4 MB/s
+consumed 81.76 GB of 161.89 GB  avg 3.4 MB/s
+consumed 82.01 GB of 161.89 GB  avg 3.4 MB/s
+consumed 82.16 GB of 161.89 GB  avg 3.4 MB/s
+consumed 82.43 GB of 161.89 GB  avg 3.4 MB/s
+consumed 82.83 GB of 161.89 GB  avg 3.4 MB/s
+consumed 83.10 GB of 161.89 GB  avg 3.4 MB/s
+consumed 83.37 GB of 161.89 GB  avg 3.4 MB/s
+consumed 83.63 GB of 161.89 GB  avg 3.4 MB/s
+consumed 83.90 GB of 161.89 GB  avg 3.4 MB/s
+consumed 84.44 GB of 161.89 GB  avg 3.4 MB/s
+consumed 84.57 GB of 161.89 GB  avg 3.4 MB/s
+consumed 84.71 GB of 161.89 GB  avg 3.4 MB/s
+consumed 85.38 GB of 161.89 GB  avg 3.5 MB/s
+consumed 85.53 GB of 161.89 GB  avg 3.5 MB/s
+consumed 85.65 GB of 161.89 GB  avg 3.4 MB/s
+consumed 85.92 GB of 161.89 GB  avg 3.4 MB/s
+consumed 86.18 GB of 161.89 GB  avg 3.4 MB/s
+consumed 86.72 GB of 161.89 GB  avg 3.5 MB/s
+consumed 87.12 GB of 161.89 GB  avg 3.5 MB/s
+consumed 87.53 GB of 161.89 GB  avg 3.5 MB/s
+consumed 87.80 GB of 161.89 GB  avg 3.5 MB/s
+consumed 88.20 GB of 161.89 GB  avg 3.5 MB/s
+consumed 88.33 GB of 161.89 GB  avg 3.5 MB/s
+consumed 88.52 GB of 161.89 GB  avg 3.5 MB/s
+consumed 88.73 GB of 161.89 GB  avg 3.5 MB/s
+consumed 88.87 GB of 161.89 GB  avg 3.5 MB/s
+consumed 89.27 GB of 161.89 GB  avg 3.5 MB/s
+consumed 89.41 GB of 161.89 GB  avg 3.5 MB/s
+consumed 89.81 GB of 161.89 GB  avg 3.5 MB/s
+consumed 90.61 GB of 161.89 GB  avg 3.5 MB/s
+consumed 91.02 GB of 161.89 GB  avg 3.5 MB/s
+consumed 91.15 GB of 161.89 GB  avg 3.5 MB/s
+consumed 91.28 GB of 161.89 GB  avg 3.5 MB/s
+consumed 91.57 GB of 161.89 GB  avg 3.5 MB/s
+consumed 91.82 GB of 161.89 GB  avg 3.5 MB/s
+consumed 92.63 GB of 161.89 GB  avg 3.5 MB/s
+consumed 93.03 GB of 161.89 GB  avg 3.5 MB/s
+consumed 93.43 GB of 161.89 GB  avg 3.5 MB/s
+consumed 93.70 GB of 161.89 GB  avg 3.5 MB/s
+consumed 94.24 GB of 161.89 GB  avg 3.5 MB/s
+consumed 94.77 GB of 161.89 GB  avg 3.5 MB/s
+consumed 95.26 GB of 161.89 GB  avg 3.5 MB/s
+consumed 95.31 GB of 161.89 GB  avg 3.5 MB/s
+consumed 95.85 GB of 161.89 GB  avg 3.5 MB/s
+consumed 95.98 GB of 161.89 GB  avg 3.5 MB/s
+consumed 96.25 GB of 161.89 GB  avg 3.5 MB/s
+consumed 96.39 GB of 161.89 GB  avg 3.6 MB/s
+consumed 96.52 GB of 161.89 GB  avg 3.6 MB/s
+consumed 96.65 GB of 161.89 GB  avg 3.6 MB/s
+consumed 96.92 GB of 161.89 GB  avg 3.6 MB/s
+consumed 97.32 GB of 161.89 GB  avg 3.6 MB/s
+consumed 97.46 GB of 161.89 GB  avg 3.6 MB/s
+consumed 98.13 GB of 161.89 GB  avg 3.6 MB/s
+consumed 98.53 GB of 161.89 GB  avg 3.6 MB/s
+consumed 98.80 GB of 161.89 GB  avg 3.6 MB/s
+consumed 99.34 GB of 161.89 GB  avg 3.6 MB/s
+consumed 99.47 GB of 161.89 GB  avg 3.6 MB/s
+consumed 99.61 GB of 161.89 GB  avg 3.6 MB/s
+consumed 99.74 GB of 161.89 GB  avg 3.6 MB/s
+consumed 100.28 GB of 161.89 GB  avg 3.6 MB/s
+consumed 100.55 GB of 161.89 GB  avg 3.6 MB/s
+consumed 100.95 GB of 161.89 GB  avg 3.6 MB/s
+consumed 101.62 GB of 161.89 GB  avg 3.6 MB/s
+consumed 102.02 GB of 161.89 GB  avg 3.6 MB/s
+consumed 102.69 GB of 161.89 GB  avg 3.6 MB/s
+consumed 103.10 GB of 161.89 GB  avg 3.6 MB/s
+consumed 103.36 GB of 161.89 GB  avg 3.6 MB/s
+consumed 103.77 GB of 161.89 GB  avg 3.6 MB/s
+consumed 104.04 GB of 161.89 GB  avg 3.6 MB/s
+consumed 104.35 GB of 161.89 GB  avg 3.6 MB/s
+consumed 104.44 GB of 161.89 GB  avg 3.6 MB/s
+consumed 104.98 GB of 161.89 GB  avg 3.6 MB/s
+consumed 105.65 GB of 161.89 GB  avg 3.6 MB/s
+consumed 106.05 GB of 161.89 GB  avg 3.6 MB/s
+consumed 106.32 GB of 161.89 GB  avg 3.6 MB/s
+consumed 106.72 GB of 161.89 GB  avg 3.6 MB/s
+consumed 106.85 GB of 161.89 GB  avg 3.6 MB/s
+consumed 107.26 GB of 161.89 GB  avg 3.6 MB/s
+consumed 107.66 GB of 161.89 GB  avg 3.6 MB/s
+consumed 107.99 GB of 161.89 GB  avg 3.6 MB/s
+consumed 108.06 GB of 161.89 GB  avg 3.6 MB/s
+consumed 108.20 GB of 161.89 GB  avg 3.6 MB/s
+consumed 108.73 GB of 161.89 GB  avg 3.6 MB/s
+consumed 109.14 GB of 161.89 GB  avg 3.6 MB/s
+consumed 109.40 GB of 161.89 GB  avg 3.7 MB/s
+consumed 109.54 GB of 161.89 GB  avg 3.6 MB/s
+consumed 109.81 GB of 161.89 GB  avg 3.7 MB/s
+consumed 110.08 GB of 161.89 GB  avg 3.7 MB/s
+consumed 110.21 GB of 161.89 GB  avg 3.7 MB/s
+consumed 110.61 GB of 161.89 GB  avg 3.7 MB/s
+consumed 111.15 GB of 161.89 GB  avg 3.7 MB/s
+consumed 111.28 GB of 161.89 GB  avg 3.7 MB/s
+consumed 111.42 GB of 161.89 GB  avg 3.7 MB/s
+consumed 111.55 GB of 161.89 GB  avg 3.7 MB/s
+consumed 112.22 GB of 161.89 GB  avg 3.7 MB/s
+consumed 112.49 GB of 161.89 GB  avg 3.7 MB/s
+consumed 113.03 GB of 161.89 GB  avg 3.7 MB/s
+consumed 113.16 GB of 161.89 GB  avg 3.7 MB/s
+consumed 113.30 GB of 161.89 GB  avg 3.7 MB/s
+consumed 113.46 GB of 161.89 GB  avg 3.7 MB/s
+consumed 114.24 GB of 161.89 GB  avg 3.7 MB/s
+consumed 114.37 GB of 161.89 GB  avg 3.7 MB/s
+consumed 114.64 GB of 161.89 GB  avg 3.7 MB/s
+consumed 114.77 GB of 161.89 GB  avg 3.7 MB/s
+consumed 115.31 GB of 161.89 GB  avg 3.7 MB/s
+consumed 115.71 GB of 161.89 GB  avg 3.7 MB/s
+consumed 115.98 GB of 161.89 GB  avg 3.7 MB/s
+consumed 116.79 GB of 161.89 GB  avg 3.7 MB/s
+consumed 117.46 GB of 161.89 GB  avg 3.7 MB/s
+consumed 117.86 GB of 161.89 GB  avg 3.7 MB/s
+consumed 118.80 GB of 161.89 GB  avg 3.7 MB/s
+consumed 119.07 GB of 161.89 GB  avg 3.7 MB/s
+consumed 119.20 GB of 161.89 GB  avg 3.7 MB/s
+consumed 119.74 GB of 161.89 GB  avg 3.7 MB/s
+consumed 119.87 GB of 161.89 GB  avg 3.7 MB/s
+consumed 120.28 GB of 161.89 GB  avg 3.7 MB/s
+consumed 120.54 GB of 161.89 GB  avg 3.7 MB/s
+consumed 120.95 GB of 161.89 GB  avg 3.7 MB/s
+consumed 121.48 GB of 161.89 GB  avg 3.7 MB/s
+consumed 122.02 GB of 161.89 GB  avg 3.7 MB/s
+consumed 122.29 GB of 161.89 GB  avg 3.7 MB/s
+consumed 122.56 GB of 161.89 GB  avg 3.7 MB/s
+consumed 122.69 GB of 161.89 GB  avg 3.7 MB/s
+consumed 122.83 GB of 161.89 GB  avg 3.7 MB/s
+consumed 123.50 GB of 161.89 GB  avg 3.7 MB/s
+consumed 123.90 GB of 161.89 GB  avg 3.7 MB/s
+consumed 124.57 GB of 161.89 GB  avg 3.7 MB/s
+consumed 124.84 GB of 161.89 GB  avg 3.7 MB/s
+consumed 125.51 GB of 161.89 GB  avg 3.8 MB/s
+consumed 125.64 GB of 161.89 GB  avg 3.8 MB/s
+consumed 125.78 GB of 161.89 GB  avg 3.8 MB/s
+consumed 125.91 GB of 161.89 GB  avg 3.8 MB/s
+consumed 126.18 GB of 161.89 GB  avg 3.8 MB/s
+consumed 126.58 GB of 161.89 GB  avg 3.8 MB/s
+consumed 126.72 GB of 161.89 GB  avg 3.8 MB/s
+consumed 126.85 GB of 161.89 GB  avg 3.8 MB/s
+consumed 126.99 GB of 161.89 GB  avg 3.8 MB/s
+consumed 127.66 GB of 161.89 GB  avg 3.8 MB/s
+consumed 127.79 GB of 161.89 GB  avg 3.8 MB/s
+consumed 128.06 GB of 161.89 GB  avg 3.8 MB/s
+consumed 128.46 GB of 161.89 GB  avg 3.8 MB/s
+consumed 128.87 GB of 161.89 GB  avg 3.8 MB/s
+consumed 129.27 GB of 161.89 GB  avg 3.8 MB/s
+consumed 129.94 GB of 161.89 GB  avg 3.8 MB/s
+consumed 130.07 GB of 161.89 GB  avg 3.8 MB/s
+consumed 130.88 GB of 161.89 GB  avg 3.8 MB/s
+consumed 131.15 GB of 161.89 GB  avg 3.8 MB/s
+consumed 131.42 GB of 161.89 GB  avg 3.8 MB/s
+consumed 132.09 GB of 161.89 GB  avg 3.8 MB/s
+consumed 132.22 GB of 161.89 GB  avg 3.8 MB/s
+consumed 132.49 GB of 161.89 GB  avg 3.8 MB/s
+consumed 132.62 GB of 161.89 GB  avg 3.8 MB/s
+consumed 133.03 GB of 161.89 GB  avg 3.8 MB/s
+consumed 133.29 GB of 161.89 GB  avg 3.8 MB/s
+consumed 133.56 GB of 161.89 GB  avg 3.8 MB/s
+consumed 134.10 GB of 161.89 GB  avg 3.8 MB/s
+consumed 134.50 GB of 161.89 GB  avg 3.8 MB/s
+consumed 134.77 GB of 161.89 GB  avg 3.8 MB/s
+consumed 134.91 GB of 161.89 GB  avg 3.8 MB/s
+consumed 135.85 GB of 161.89 GB  avg 3.8 MB/s
+consumed 136.11 GB of 161.89 GB  avg 3.8 MB/s
+consumed 136.25 GB of 161.89 GB  avg 3.8 MB/s
+consumed 136.38 GB of 161.89 GB  avg 3.8 MB/s
+consumed 137.32 GB of 161.89 GB  avg 3.8 MB/s
+consumed 138.13 GB of 161.89 GB  avg 3.8 MB/s
+consumed 138.40 GB of 161.89 GB  avg 3.8 MB/s
+consumed 139.07 GB of 161.89 GB  avg 3.8 MB/s
+consumed 139.20 GB of 161.89 GB  avg 3.8 MB/s
+consumed 139.47 GB of 161.89 GB  avg 3.8 MB/s
+consumed 139.74 GB of 161.89 GB  avg 3.8 MB/s
+consumed 140.14 GB of 161.89 GB  avg 3.8 MB/s
+consumed 140.27 GB of 161.89 GB  avg 3.8 MB/s
+consumed 140.54 GB of 161.89 GB  avg 3.8 MB/s
+consumed 140.81 GB of 161.89 GB  avg 3.8 MB/s
+consumed 141.21 GB of 161.89 GB  avg 3.8 MB/s
+consumed 141.48 GB of 161.89 GB  avg 3.8 MB/s
+consumed 141.75 GB of 161.89 GB  avg 3.8 MB/s
+consumed 141.88 GB of 161.89 GB  avg 3.8 MB/s
+consumed 142.41 GB of 161.89 GB  avg 3.8 MB/s
+consumed 142.42 GB of 161.89 GB  avg 3.8 MB/s
+consumed 142.96 GB of 161.89 GB  avg 3.8 MB/s
+consumed 143.23 GB of 161.89 GB  avg 3.8 MB/s
+consumed 143.90 GB of 161.89 GB  avg 3.9 MB/s
+consumed 144.17 GB of 161.89 GB  avg 3.8 MB/s
+consumed 144.57 GB of 161.89 GB  avg 3.9 MB/s
+consumed 144.70 GB of 161.89 GB  avg 3.9 MB/s
+consumed 145.12 GB of 161.89 GB  avg 3.9 MB/s
+consumed 145.24 GB of 161.89 GB  avg 3.8 MB/s
+consumed 145.71 GB of 161.89 GB  avg 3.9 MB/s
+consumed 145.78 GB of 161.89 GB  avg 3.9 MB/s
+consumed 146.18 GB of 161.89 GB  avg 3.9 MB/s
+consumed 146.31 GB of 161.89 GB  avg 3.9 MB/s
+consumed 146.58 GB of 161.89 GB  avg 3.9 MB/s
+consumed 146.72 GB of 161.89 GB  avg 3.9 MB/s
+consumed 147.12 GB of 161.89 GB  avg 3.9 MB/s
+consumed 147.39 GB of 161.89 GB  avg 3.9 MB/s
+consumed 147.79 GB of 161.89 GB  avg 3.9 MB/s
+consumed 148.06 GB of 161.89 GB  avg 3.9 MB/s
+consumed 148.46 GB of 161.89 GB  avg 3.9 MB/s
+consumed 148.60 GB of 161.89 GB  avg 3.9 MB/s
+consumed 148.73 GB of 161.89 GB  avg 3.9 MB/s
+consumed 148.86 GB of 161.89 GB  avg 3.9 MB/s
+consumed 149.13 GB of 161.89 GB  avg 3.9 MB/s
+consumed 149.27 GB of 161.89 GB  avg 3.9 MB/s
+consumed 149.59 GB of 161.89 GB  avg 3.9 MB/s
+consumed 150.07 GB of 161.89 GB  avg 3.9 MB/s
+consumed 150.34 GB of 161.89 GB  avg 3.9 MB/s
+consumed 151.01 GB of 161.89 GB  avg 3.9 MB/s
+consumed 151.55 GB of 161.89 GB  avg 3.9 MB/s
+consumed 151.68 GB of 161.89 GB  avg 3.9 MB/s
+consumed 152.09 GB of 161.89 GB  avg 3.9 MB/s
+consumed 152.22 GB of 161.89 GB  avg 3.9 MB/s
+consumed 152.76 GB of 161.89 GB  avg 3.9 MB/s
+consumed 152.89 GB of 161.89 GB  avg 3.9 MB/s
+consumed 153.43 GB of 161.89 GB  avg 3.9 MB/s
+consumed 153.56 GB of 161.89 GB  avg 3.9 MB/s
+consumed 153.83 GB of 161.89 GB  avg 3.9 MB/s
+consumed 154.10 GB of 161.89 GB  avg 3.9 MB/s
+consumed 154.50 GB of 161.89 GB  avg 3.9 MB/s
+consumed 154.64 GB of 161.89 GB  avg 3.9 MB/s
+consumed 155.31 GB of 161.89 GB  avg 3.9 MB/s
+consumed 155.71 GB of 161.89 GB  avg 3.9 MB/s
+consumed 155.84 GB of 161.89 GB  avg 3.9 MB/s
+consumed 156.25 GB of 161.89 GB  avg 3.9 MB/s
+consumed 156.78 GB of 161.89 GB  avg 3.9 MB/s
+consumed 156.92 GB of 161.89 GB  avg 3.9 MB/s
+consumed 157.45 GB of 161.89 GB  avg 3.9 MB/s
+consumed 157.86 GB of 161.89 GB  avg 3.9 MB/s
+consumed 158.13 GB of 161.89 GB  avg 3.9 MB/s
+consumed 158.39 GB of 161.89 GB  avg 3.9 MB/s
+consumed 159.20 GB of 161.89 GB  avg 3.9 MB/s
+consumed 159.60 GB of 161.89 GB  avg 3.9 MB/s
+consumed 159.87 GB of 161.89 GB  avg 3.9 MB/s
+consumed 160.27 GB of 161.89 GB  avg 3.9 MB/s
+consumed 160.41 GB of 161.89 GB  avg 3.9 MB/s
+consumed 160.54 GB of 161.89 GB  avg 3.9 MB/s
+consumed 161.08 GB of 161.89 GB  avg 3.9 MB/s
+consumed 161.61 GB of 161.89 GB  avg 3.9 MB/s
+end 2026-10-20T05:37:17Z found=True copied=160834306675 consumed=161890570993 full=True md5=e41d313b61d595a05d4f80032df44c33 sha256=a796b7b13f653706e403f616504c9ddc4432dee39e1f6b3fabcb29e848950733

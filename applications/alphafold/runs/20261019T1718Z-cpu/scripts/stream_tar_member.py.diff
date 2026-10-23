@@ -1,0 +1,23 @@
+7,8c7,9
+< window of range files ever touches the disk, and reading stops as soon as
+< the member has been copied.
+---
+> window of range files ever touches the disk. After the member is copied the
+> rest of the archive is read to its end, so the md5 and sha256 logged on the
+> "end" line cover every archive byte (to check against RELEASE.metalink).
+25a27
+> import hashlib
+131a134
+>         self.md5, self.sha256 = hashlib.md5(), hashlib.sha256()
+154a158,159
+>                 self.md5.update(b[:n])
+>                 self.sha256.update(b[:n])
+210a216,217
+>         while stream.read(16 << 20):
+>             pass
+214c221,223
+<               f"found={found} copied={copied} consumed={stream.raw.consumed}\n")
+---
+>               f"found={found} copied={copied} consumed={stream.raw.consumed} "
+>               f"full={stream.raw.consumed == size} md5={stream.raw.md5.hexdigest()} "
+>               f"sha256={stream.raw.sha256.hexdigest()}\n")

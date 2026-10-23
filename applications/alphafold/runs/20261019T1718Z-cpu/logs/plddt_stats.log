@@ -1,0 +1,1 @@
+{"rows": 214683829, "distinct_accessions": 214683829, "null_accessions": 0, "nulls": 0, "ge50": 205620298, "lt50": 9063531, "gt90": 80002801, "between50_90": 125617497, "min": 20.03, "max": 98.81, "header": "uniprotAccession,globalMetricValue", "bytes": 3495993272, "sha256": "6068f714550a0d6c13a90d215b68486b22893b489d8203d1d6db823fe375919e", "min_2dp": 20.03, "max_2dp": 98.81}

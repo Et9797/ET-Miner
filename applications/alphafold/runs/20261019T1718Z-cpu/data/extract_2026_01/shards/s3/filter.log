@@ -1,0 +1,6 @@
+start 2026-10-20T06:29:29Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.csvacc.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s3/plddt.csv
+accessions loaded=22626710
+records_total=90506840 records_kept=22626710
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 1631980566 okt 20 08:34 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s3/shard.dat.gz
+end 2026-10-20T06:34:54Z

@@ -1,0 +1,92 @@
+{
+  "perm": 18,
+  "perm_seed": 7633550208585727287,
+  "shuffle_seed": 783299473054673898,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 451.382225918991,
+  "mine_wall_s": 437.8362425090163,
+  "process": {
+    "wall_s": 889.218498354021,
+    "cpu_s": 4251.43045,
+    "peak_rss_mb": 24585.71484375
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.051475013606250286
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63655,
+      "ms": 10961.426230031066
+    },
+    {
+      "k": 3,
+      "candidates": 2659197,
+      "frequent": 79127,
+      "ms": 84701.29718299722
+    },
+    {
+      "k": 4,
+      "candidates": 140960,
+      "frequent": 25435,
+      "ms": 266259.44833498215
+    },
+    {
+      "k": 5,
+      "candidates": 8740,
+      "frequent": 2004,
+      "ms": 56370.53808901692
+    },
+    {
+      "k": 6,
+      "candidates": 131,
+      "frequent": 25,
+      "ms": 7308.620276977308
+    }
+  ],
+  "total_itemsets": 171248,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63655,
+    "3": 79127,
+    "4": 25435,
+    "5": 2004,
+    "6": 25
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171248,
+    "sum_counts": 1072264279,
+    "sha256": "d49e0b0d7d2b6b54c838f0610c9edcc4ce9802bf4be06042722f3a8efe7a5847",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63655,
+      "3": 79127,
+      "4": 25435,
+      "5": 2004,
+      "6": 25
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-21T21:01:42Z"
+  }
+}

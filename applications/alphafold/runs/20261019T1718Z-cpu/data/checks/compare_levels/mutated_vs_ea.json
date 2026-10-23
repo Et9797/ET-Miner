@@ -1,0 +1,199 @@
+{
+  "label": "mutated",
+  "cpu": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/checks/compare_levels/mut_g0",
+  "ref": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/G0/ea/parquet",
+  "n_rows": 1000000,
+  "ref_min_count": null,
+  "cpu_min_count": null,
+  "translated": false,
+  "verdict": "mismatch",
+  "per_k": {
+    "1": {
+      "cpu": 1002,
+      "ref": 1002,
+      "both": 1002,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "2": {
+      "cpu": 12259,
+      "ref": 12259,
+      "both": 12259,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "3": {
+      "cpu": 30052,
+      "ref": 30053,
+      "both": 30052,
+      "cpu_only": 0,
+      "ref_only": 1,
+      "count_mismatch": 1
+    },
+    "4": {
+      "cpu": 36550,
+      "ref": 36550,
+      "both": 36550,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "5": {
+      "cpu": 32624,
+      "ref": 32624,
+      "both": 32624,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "6": {
+      "cpu": 24189,
+      "ref": 24189,
+      "both": 24189,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "7": {
+      "cpu": 15419,
+      "ref": 15419,
+      "both": 15419,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "8": {
+      "cpu": 8586,
+      "ref": 8586,
+      "both": 8586,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "9": {
+      "cpu": 4117,
+      "ref": 4117,
+      "both": 4117,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "10": {
+      "cpu": 1624,
+      "ref": 1624,
+      "both": 1624,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "11": {
+      "cpu": 495,
+      "ref": 495,
+      "both": 495,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "12": {
+      "cpu": 108,
+      "ref": 108,
+      "both": 108,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "13": {
+      "cpu": 15,
+      "ref": 15,
+      "both": 15,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "14": {
+      "cpu": 1,
+      "ref": 1,
+      "both": 1,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    }
+  },
+  "signature_cpu": {
+    "itemsets": 167041,
+    "sum_counts": 48389649,
+    "sha256": "75433b5164d63aab51065eb92789744de5fdb0558f266134f79b8a4c2d7b92c9",
+    "k_distribution": {
+      "1": 1002,
+      "2": 12259,
+      "3": 30052,
+      "4": 36550,
+      "5": 32624,
+      "6": 24189,
+      "7": 15419,
+      "8": 8586,
+      "9": 4117,
+      "10": 1624,
+      "11": 495,
+      "12": 108,
+      "13": 15,
+      "14": 1
+    }
+  },
+  "signature_ref": {
+    "itemsets": 167042,
+    "sum_counts": 48390414,
+    "sha256": "8a3f042ee23f70f03fd7f0274c6713ddcade2c0acd40871773875a8c00e8ef39",
+    "k_distribution": {
+      "1": 1002,
+      "2": 12259,
+      "3": 30053,
+      "4": 36550,
+      "5": 32624,
+      "6": 24189,
+      "7": 15419,
+      "8": 8586,
+      "9": 4117,
+      "10": 1624,
+      "11": 495,
+      "12": 108,
+      "13": 15,
+      "14": 1
+    }
+  },
+  "n_differing": 2,
+  "differing": [
+    {
+      "k": 3,
+      "kind": "ref_only",
+      "itemset": [
+        1,
+        7,
+        330
+      ],
+      "cpu": null,
+      "ref": 766,
+      "direct": 766,
+      "wrong": [
+        "cpu"
+      ]
+    },
+    {
+      "k": 3,
+      "kind": "count_mismatch",
+      "itemset": [
+        1,
+        7,
+        54
+      ],
+      "cpu": 73,
+      "ref": 72,
+      "direct": 72,
+      "wrong": [
+        "cpu"
+      ]
+    }
+  ]
+}

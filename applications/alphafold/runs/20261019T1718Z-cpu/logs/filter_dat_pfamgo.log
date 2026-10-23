@@ -1,0 +1,7 @@
+start 2026-10-20T05:38:10Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.reduced.dat.gz
+records_total=202556314 records_kept=158700122
+awk/pigz rc=0
+-rw-rw-r-- 1 et et  1678722670 okt 20 07:49 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/dat_pfamgo_accessions_2026_01.txt
+-rw-rw-r-- 1 et et 10580479054 okt 20 07:49 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.pfamgo.dat.gz
+accessions listed: 158700122
+end 2026-10-20T05:49:13Z

@@ -1,0 +1,204 @@
+| R1-225 | F1:96 | 22->21 independent features after GO check | k22_independent_features |  | inconclusive | the released script's GO-hierarchy criterion finds 0 redundant GO terms (independent K = 22); the paper's 21 s |
+| R1-226 | F1:96 | 0 GO parent-child pairs | k22_go_parent_child_pairs | 0 | confirmed | exact |
+| R1-227 | F1:97 | 4 min_count (verification run) | run_minc4_min_count | 4 | confirmed | exact |
+| R1-228 | F1:97 | 48M itemsets (min_count=4 run) | run_minc4_itemsets | 48,007,493 | confirmed | fresh rounds to 48 at 2 significant digits |
+| R1-229 | F1:97 | 48M transactions written (extraction log) | extract_progress_transactions_written |  | inconclusive | periodic progress line; the final count is compared under dataset_plddt_pass |
+| R1-230 | F1:97 | 769 min_count (null-model JSON) | null_min_count | 769 | confirmed | exact |
+| R1-231 | F1:98 | 8 K=22 UniProt accessions | k22_support | 8 | confirmed | exact |
+| R1-232 | F1:98 | 22 K | run_opus_kmax | 22 | confirmed | exact |
+| R1-233 | F1:99 | 15M transactions (GMiner basis) | ext_gminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-234 | F1:99 | 5.1x transactions ratio | run_opus_vs_gminer_transaction_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-235 | F1:100 | 37 references | meta_review_f1_bib_entries |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-236 | F1:108 | 231 lines (manuscript rewrite in commit diff) | meta_review_f1_commit_diff_lines |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-237 | F1:110 | 606K itemsets (expanded run, revision_notes_b3.tex) | run_v35k_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-238 | F1:110 | 4xH200 GPUs (expanded run, revision_notes_b3.tex) | run_v35k_n_gpus |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-239 | F1:110 | 16.8B itemsets (expanded run, plan) | run_v35k_16p8b_itemsets |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-240 | F1:110 | 8xH200 GPUs (expanded run, plan) | run_v35k_16p8b_n_gpus |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-241 | F1:111 | n=5 permutations (caveat) | null_permutations | 5 | confirmed | exact |
+| R1-242 | F1:111 | >3,700 Z (headline) | null_z_min_k4to6 | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-243 | F1:111 | 4 df | null_t_df | 4 | confirmed | exact |
+| R1-244 | F1:112 | Feb 2026 date (stale Dutch translation) | meta_review_f1_dutch_translation_date |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-245 | F1:113 | 8 K=22 accessions to list | k22_support | 8 | confirmed | exact |
+| R1-246 | F1:113 | ~11,000 proteins (approximate count) | pattern_k13_support | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 102 | confirmed | claimed value exists among 146 fresh values (fresh truncates to 11,000 at 2 significant digits) |
+| R1-247 | F1:113 | ~10,500 proteins (approximate count) | pattern_k12_support | [16185, 10642, 10619, 10494, 10249, 10214, 994, 860, 783, 41 | confirmed | claimed value exists among 27 fresh values (fresh rounds to 10,500 at 3 significant digits) |
+| R1-248 | F1:113 | ~16,000 proteins (approximate count) | pattern_k11_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (fresh truncates to 16,000 at 2 significant digits) |
+| R1-249 | F1:113 | 7.3 min (mining-only) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-250 | F1:122 | >=8 proteins (feature retention, OLD text) | run_opus_min_count | 8 | confirmed | exact |
+| R1-251 | F1:123 | 500 most frequent Pfam domains (proposed text) | vocab_pfam_defined | 500 | confirmed | exact |
+| R1-252 | F1:123 | 500 most frequent GO terms (proposed text) | vocab_go_defined | 500 | confirmed | exact |
+| R1-253 | F1:123 | 24,291 Pfam families observed (proposed text) | dataset_pfam_families_observed | 24,291 | confirmed | exact |
+| R1-254 | F1:123 | 25,993 GO families observed (proposed text) | dataset_go_families_observed | 25,993 | confirmed | exact |
+| R1-255 | F1:123 | 6 pLDDT confidence bins (proposed text) | vocab_plddt_defined | 6 | confirmed | exact |
+| R1-256 | F1:123 | 1,006 defined items (proposed text) | vocab_items_defined | 1,006 | confirmed | exact |
+| R1-257 | F1:123 | 8 proteins (minimum support, proposed text) | run_opus_min_count | 8 | confirmed | exact |
+| R1-258 | F1:125 | 40x reduction (cross-dataset claim to fix) | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-259 | F1:126 | 316 million non-zero entries (OLD text) | csr_nnz | 316,421,093 | confirmed | fresh rounds to 316 at 3 significant digits |
+| R1-260 | F1:126 | ~5.1 GB (OLD text) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-261 | F1:126 | 2 x 64-bit integers per COO entry (OLD text) | alg_coo_bytes_per_entry |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-262 | F1:126 | 40x reduction (OLD text) | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-263 | F1:126 | ~206 GB (OLD text) | dense_gb | 206 | confirmed | exact |
+| R1-264 | F1:126 | 1 byte per boolean entry (OLD text) | alg_dense_bytes_per_bool |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-265 | F1:127 | 76.9M proteins (mining subset, NEW text) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-266 | F1:127 | 316 million non-zero entries (NEW text) | csr_nnz | 316,421,093 | confirmed | fresh rounds to 316 at 3 significant digits |
+| R1-267 | F1:127 | ~5.1 GB (NEW text) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-268 | F1:127 | ~15x reduction (NEW text) | csr_vs_dense_subset_ratio | 15.2 | confirmed | fresh rounds to 15 at 2 significant digits |
+| R1-269 | F1:127 | ~77 GB dense of subset (NEW text) | dense_subset_gb | 77 | confirmed | exact |
+| R1-270 | F1:127 | ~206 GB dense of full set (NEW text) | dense_gb | 206 | confirmed | exact |
+| R1-271 | F1:127 | 205.6M proteins (full set, NEW text) | dataset_plddt_pass | 205,620,298 | confirmed | fresh rounds to 205.6 at 4 significant digits |
+| R1-272 | F1:127 | ~40x smaller (cross-dataset, NEW text) | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-273 | F1:127 | 2 x 64-bit integers per COO entry (NEW text) | alg_coo_bytes_per_entry |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-274 | F1:128 | 40x reduction (no longer single-dataset) | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-275 | F1:131 | 206 GB (OLD memory path) | dense_gb | 206 | confirmed | exact |
+| R1-276 | F1:131 | 5.1 GB (OLD memory path) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-277 | F1:131 | 26 GB (OLD memory path) | bitvec_gb | 25.8 | confirmed | fresh rounds to 26 at 2 significant digits |
+| R1-278 | F1:132 | 206 GB full-set dense (NEW text) | dense_gb | 206 | confirmed | exact |
+| R1-279 | F1:132 | 5.1 GB CSR of mined subset (NEW text) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-280 | F1:132 | 26 GB GPU bitvector matrix (NEW text) | bitvec_gb | 25.8 | confirmed | fresh rounds to 26 at 2 significant digits |
+| R1-281 | F1:132 | ~15x same-subset dense-to-CSR reduction (NEW text) | csr_vs_dense_subset_ratio | 15.2 | confirmed | fresh rounds to 15 at 2 significant digits |
+| R1-282 | F1:135 | 8 UniProt accessions (to obtain and list) | k22_support | 8 | confirmed | exact |
+| R1-283 | F1:135 | 8 (eight) matching proteins (proposed text) | k22_support | 8 | confirmed | exact |
+| R1-284 | F1:136 | 2025_01 UniProt release (fallback text) | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| R1-285 | F1:138 | 0.45 p bound (correct source to be stated) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-286 | F1:139 | <0.45 p (OLD caption) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-287 | F1:139 | 95% one-sided upper bound (OLD caption) | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-288 | F1:139 | 0 of 5 null runs (OLD caption) | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R1-289 | F1:140 | <0.45 p (NEW caption) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-290 | F1:140 | 95% binomial upper bound (NEW caption) | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-291 | F1:140 | 1-0.05^{1/5} bound formula (NEW caption) | null_p_bound_formula |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-292 | F1:140 | 0 of 5 null runs (NEW caption) | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R1-293 | F1:141 | <0.45 p (paper line 391) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-294 | F1:141 | 95% one-sided upper bound (paper line 391) | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-295 | F1:141 | 0 of 5 null runs (paper line 391) | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R1-296 | F1:141 | 1-0.05^{1/5} bound formula (replacement) | null_p_bound_formula |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-297 | F1:141 | <0.45 p (table cell, paper line 382) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-298 | F1:143 | 4 min_count (unverifiable run) | run_minc4_min_count | 4 | confirmed | exact |
+| R1-299 | F1:143 | 48M itemsets (unverifiable) | run_minc4_itemsets | 48,007,493 | confirmed | fresh rounds to 48 at 2 significant digits |
+| R1-300 | F1:143 | 48M transactions written during extraction | extract_progress_transactions_written |  | inconclusive | periodic progress line; the final count is compared under dataset_plddt_pass |
+| R1-301 | F1:144 | 4 min_count (OLD text) | run_minc4_min_count | 4 | confirmed | exact |
+| R1-302 | F1:144 | 48 million itemsets (OLD text) | run_minc4_itemsets | 48,007,493 | confirmed | fresh rounds to 48 at 2 significant digits |
+| R1-303 | F1:144 | 8 proteins (NEW text) | k22_support | 8 | confirmed | exact |
+| R1-304 | F1:144 | 22 vocabulary features per K=22 protein (NEW text) | k22_proteins_features_each | 22 | confirmed | exact |
+| R1-305 | F1:144 | 23 K (impossible, NEW text) | k22_impossible_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-306 | F1:146 | 13 K (highlighted pattern) | pattern_k13_k | 13 | confirmed | exact |
+| R1-307 | F1:146 | 12 K (highlighted pattern) | pattern_k12_k | 12 | confirmed | exact |
+| R1-308 | F1:146 | 11 K (highlighted pattern) | pattern_k11_k | 11 | confirmed | exact |
+| R1-309 | F1:146 | ~11,000 proteins (K=13 pattern) | pattern_k13_support | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 102 | confirmed | claimed value exists among 146 fresh values (fresh truncates to 11,000 at 2 significant digits) |
+| R1-310 | F1:146 | ~10,500 proteins (K=12 pattern) | pattern_k12_support | [16185, 10642, 10619, 10494, 10249, 10214, 994, 860, 783, 41 | confirmed | claimed value exists among 27 fresh values (fresh rounds to 10,500 at 3 significant digits) |
+| R1-311 | F1:146 | ~16,000 proteins (K=11 pattern) | pattern_k11_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (fresh truncates to 16,000 at 2 significant digits) |
+| R1-312 | F1:148 | 2025_01 UniProt/Swiss-Prot release (paper line 478) | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| R1-313 | F1:149 | 2025_01 UniProt/Swiss-Prot release (OLD) | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| R1-314 | F1:150 | 2025_01 UniProt TrEMBL release (NEW) | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| R1-315 | F1:152 | 2025_01 release string (not in any artifact) | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| R1-316 | F1:152 | February 2026 access date (softened wording) | dataset_access_date | 2026-09-02 | inconclusive | statement about when the authors accessed UniProt; not a reproducible quantity (this campaign accessed the arc |
+| R1-317 | F1:154 | n=5 permutations (scope to add to headline Z) | null_permutations | 5 | confirmed | exact |
+| R1-318 | F1:155 | >3,700 Z (OLD conclusion) | null_z_min_k4to6 | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-319 | F1:155 | 4-6 K range (OLD conclusion) | null_z_headline_k_range | 5–6 | inconclusive | random-stream-dependent permutation statistic; fresh 5–6 vs claim 4-6; fresh finite Z exceeds 3,700 only for K |
+| R1-320 | F1:155 | >=7 K (no null run reached, OLD) | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| R1-321 | F1:156 | >3,700 Z (NEW conclusion) | null_z_min_k4to6 | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-322 | F1:156 | 4-6 K range (NEW conclusion) | null_z_headline_k_range | 5–6 | inconclusive | random-stream-dependent permutation statistic; fresh 5–6 vs claim 4-6; fresh finite Z exceeds 3,700 only for K |
+| R1-323 | F1:156 | 5 permutations (NEW conclusion) | null_permutations | 5 | confirmed | exact |
+| R1-324 | F1:156 | >=7 K (NEW conclusion) | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| R1-325 | F1:158 | 7.3 minutes (paper line 120) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-326 | F1:158 | 7.3 minutes (paper line 496) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-327 | F1:158 | 63 minute feature extraction (NEW text) | extract_time_min | 9.3 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 63) |
+| R1-328 | F2:12 | 76.9 million multi-feature proteins | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-329 | F2:12 | 1,002 features | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-330 | F2:12 | 1 (single) NVIDIA H100 GPU | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| R1-331 | F2:12 | 7.3 minutes | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-332 | F2:12 | 26.8 million co-occurrence patterns | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.8 at 3 significant digits |
+| R1-333 | F2:12 | 22 K (max) | run_opus_kmax | 22 | confirmed | exact |
+| R1-334 | F2:12 | ~3 orders of magnitude transaction count vs prior single-machine GPU F | ext_prior_gpu_fim_scale_gap_orders |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-335 | F2:12 | 0.001% null-model threshold | null_support_pct | 0.001 | confirmed | exact |
+| R1-336 | F2:14 | 3 (three) ways claims outrun support | meta_review_f2_overclaim_ways |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-337 | F2:14 | 22 K (flagship biological result) | run_opus_kmax | 22 | confirmed | exact |
+| R1-338 | F2:18 | 21x speedup (Direct vs SON) | son_speedup | 61.87 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.95 (claimed 21) |
+| R1-339 | F2:18 | 95.2% SON miss rate | son_miss_rate_pct | 0 | hallucinated | exact-match rule: fresh value differs |
+| R1-340 | F2:22 | 0.001% threshold validated by null model | null_support_pct | 0.001 | confirmed | exact |
+| R1-341 | F2:22 | 22 K (headline) | run_opus_kmax | 22 | confirmed | exact |
+| R1-342 | F2:22 | 0.00001% threshold (headline result) | run_opus_support_pct | 1e-05 | confirmed | exact |
+| R1-343 | F2:23 | n = 5 permutations | null_permutations | 5 | confirmed | exact |
+| R1-344 | F2:23 | <0.45 p bound | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-345 | F2:24 | 22 K (flagship pattern) | run_opus_kmax | 22 | confirmed | exact |
+| R1-346 | F2:24 | 8 proteins (K=22) | k22_support | 8 | confirmed | exact |
+| R1-347 | F2:31 | 0.001% support (Power threshold, null model) | null_support_pct | 0.001 | confirmed | exact |
+| R1-348 | F2:31 | 769 min_count (null model) | null_min_count | 769 | confirmed | exact |
+| R1-349 | F2:31 | 9 K (distribution peak) | kdist_opus_peak_k | 9 | confirmed | exact |
+| R1-350 | F2:31 | 22 K (ceiling) | run_opus_kmax | 22 | confirmed | exact |
+| R1-351 | F2:31 | 0.00001% support (Opus threshold) | run_opus_support_pct | 1e-05 | confirmed | exact |
+| R1-352 | F2:31 | 8 min_count (Opus) | run_opus_min_count | 8 | confirmed | exact |
+| R1-353 | F2:33 | 15-22 K range (deep patterns lacking null validation) | misc_f2_deep_k_range |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-354 | F2:35 | 5 permutations (suggested Opus-threshold null) | null_permutations | 5 | confirmed | exact |
+| R1-355 | F2:35 | 8 min_count (suggested null run) | run_opus_min_count | 8 | confirmed | exact |
+| R1-356 | F2:35 | >=7 K (deep-pattern cutoff) | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| R1-357 | F2:35 | >=15 K (concentration analysis) | misc_f2_deep_k_range |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-358 | F2:37 | n = 5 permutations (heading) | null_permutations | 5 | confirmed | exact |
+| R1-359 | F2:38 | 4 df (t-statistics) | null_t_df | 4 | confirmed | exact |
+| R1-360 | F2:38 | <0.45 p (absence bound) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-361 | F2:38 | 0/5 null runs with deep patterns | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R1-362 | F2:38 | 5 (five) permutations | null_permutations | 5 | confirmed | exact |
+| R1-363 | F2:41 | <0.45 p | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-364 | F2:41 | >=7 K | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| R1-365 | F2:41 | 5 null runs | null_permutations | 5 | confirmed | exact |
+| R1-366 | F2:42 | +71,728 effect size (Z at K=6) | null_k6_z | 175,697 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-367 | F2:42 | 5 permutations | null_permutations | 5 | confirmed | exact |
+| R1-368 | F2:42 | n = 5 permutations (sigma estimate) | null_permutations | 5 | confirmed | exact |
+| R1-369 | F2:42 | 6 K (value not reproducing from rounded mu/sigma) | null_k6_z | 175,697 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-370 | F2:42 | 4-6 K range (raw null counts requested) | null_z_headline_k_range | 5–6 | inconclusive | random-stream-dependent permutation statistic; fresh 5–6 vs claim 4-6; fresh finite Z exceeds 3,700 only for K |
+| R1-371 | F2:43 | 100+ permutations needed | null_perms_for_p001 |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-372 | F2:43 | <0.01 p (target bound) | null_p_target |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-373 | F2:43 | ~130 s per permutation | null_per_perm_time_s | 18.84 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.14 (claimed 130) |
+| R1-374 | F2:43 | 100 permutations | null_perms_for_p001 |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-375 | F2:43 | ~3.6 GPU-hours | cost_null_100perm_1k_hours |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-376 | F2:43 | 1 (single) H100 | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| R1-377 | F2:45 | 22 K (heading, flagship result) | run_opus_kmax | 22 | confirmed | exact |
+| R1-378 | F2:46 | 22 K (flagship pattern) | run_opus_kmax | 22 | confirmed | exact |
+| R1-379 | F2:46 | 1 (single) itemset | kdist_opus_k22_count | 1 | confirmed | exact |
+| R1-380 | F2:46 | 8 proteins | k22_support | 8 | confirmed | exact |
+| R1-381 | F2:46 | 0 GO parent-child pairs | k22_go_parent_child_pairs | 0 | confirmed | exact |
+| R1-382 | F2:46 | 1 (one) InterPro2GO-derived link | k22_definitional_links |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-383 | F2:46 | 21 independent features | k22_independent_features |  | inconclusive | the released script's GO-hierarchy criterion finds 0 redundant GO terms (independent K = 22); the paper's 21 s |
+| R1-384 | F2:47 | 8 UniProt accessions (not listed) | k22_support | 8 | confirmed | exact |
+| R1-385 | F2:47 | 8 (eight) identifiers (supplementary table) | k22_support | 8 | confirmed | exact |
+| R1-386 | F2:48 | n = 8 proteins | k22_support | 8 | confirmed | exact |
+| R1-387 | F2:48 | 1 (single) protein family (could generate signature) | k22_n_families |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-388 | F2:50 | 8 accessions (supplementary table) | k22_support | 8 | confirmed | exact |
+| R1-389 | F2:50 | 22 K (pattern to demote) | run_opus_kmax | 22 | confirmed | exact |
+| R1-390 | F2:53 | 5.1x more transactions than prior systems | run_opus_vs_gminer_transaction_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-391 | F2:53 | 21x speedup (Direct-GPU vs SON) | son_speedup | 61.87 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.95 (claimed 21) |
+| R1-392 | F2:53 | 95.2% SON miss rate | son_miss_rate_pct | 0 | hallucinated | exact-match rule: fresh value differs |
+| R1-393 | F2:53 | 76.9M transactions | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-394 | F2:53 | 1-15M transaction slice (suggested subset comparison) | misc_f2_subset_slice_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-395 | F2:56 | 26.8 million patterns (headline) | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.8 at 3 significant digits |
+| R1-396 | F2:56 | 2^K - 2 frequent sub-itemsets per frequent K-itemset | alg_subitemsets_per_k_itemset |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-397 | F2:62 | 7.3 minutes (mining only) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-398 | F2:63 | 3 (three) distinct memory quantities coexisting | meta_review_f2_memory_quantities_count |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-399 | F2:63 | ~206 GB (naive 1-byte dense) | dense_gb | 206 | confirmed | exact |
+| R1-400 | F2:63 | 1 byte per entry (naive dense) | alg_dense_bytes_per_bool |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-401 | F2:63 | ~26 GB (bit-packed dense / on-GPU bitvector, 214M set) | bitvec_gb | 25.8 | confirmed | fresh rounds to 26 at 2 significant digits |
+| R1-402 | F2:63 | 214M set (proteins) | dataset_metadata_rows | 214,683,829 | confirmed | fresh truncates to 214 at 3 significant digits |
+| R1-403 | F2:63 | ~5.1 GB (CSR-COO) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-404 | F2:63 | ~10 GB (bit-packed dense of the 76.9M subset) | bitvec_subset_gb | 9.6 | confirmed | fresh rounds to 10 at 1 significant digits |
+| R1-405 | F2:63 | 76.9M subset (proteins) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-406 | F2:64 | 2 of 6 pLDDT bins passing support threshold | vocab_plddt_frequent | 2 | confirmed | exact |
+| R1-407 | F2:64 | 70-90 pLDDT range (medium confidence bin) | vocab_plddt_bin_medium_edges | 50–90 | hallucinated | claim numbers [70.0, 90.0] not all in fresh 50–90 |
+| R1-408 | F2:65 | ~11,000 proteins (intermediate-K count) | pattern_k13_support | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 102 | confirmed | claimed value exists among 146 fresh values (fresh truncates to 11,000 at 2 significant digits) |
+| R1-409 | F2:65 | ~10,500 proteins (intermediate-K count) | pattern_k12_support | [16185, 10642, 10619, 10494, 10249, 10214, 994, 860, 783, 41 | confirmed | claimed value exists among 27 fresh values (fresh rounds to 10,500 at 3 significant digits) |
+| R1-410 | F2:65 | ~16,000 proteins (intermediate-K count) | pattern_k11_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (fresh truncates to 16,000 at 2 significant digits) |
+| R1-411 | F2:66 | 1 (single) H100 (all experiments) | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| R1-412 | F2:68 | 0 GO parent-child pairs (K=22 set) | k22_go_parent_child_pairs | 0 | confirmed | exact |
+| R1-413 | F2:68 | 22 K | run_opus_kmax | 22 | confirmed | exact |
+| R1-414 | F2:69 | 22 K (accessions not deposited) | run_opus_kmax | 22 | confirmed | exact |
+| R1-415 | F2:75 | <0.45 p (correction present) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-416 | F2:76 | 22 K (Table 5 reference) | run_opus_kmax | 22 | confirmed | exact |
+| R1-417 | F2:77 | 768 min_count (Power) | run_power_min_count | 769 | hallucinated | exact-match rule: fresh value differs |
+| R1-418 | F2:77 | 16 min_count (Ultra) | run_ultra_min_count | 16 | confirmed | exact |
+| R1-419 | F2:78 | 15M transactions (GMiner synthetic) | ext_gminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-420 | F2:78 | 1.7M transactions (GMiner real) | ext_gminer_transactions_real |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-421 | F2:79 | 26,849,505 K-distribution column sum | run_opus_itemsets | 26,849,505 | confirmed | exact |
+| R1-422 | F2:85 | 8 min_count (Opus, requested null) | run_opus_min_count | 8 | confirmed | exact |
+| R1-423 | F2:85 | n = 5 permutations (requested) | null_permutations | 5 | confirmed | exact |
+| R1-424 | F2:85 | >=7 K (deep) | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| R1-425 | F2:85 | 0.001% threshold (null model) | null_support_pct | 0.001 | confirmed | exact |
+| R1-426 | F2:85 | 0.00001% threshold (headline) | run_opus_support_pct | 1e-05 | confirmed | exact |
+| R1-427 | F2:86 | ~130 s per permutation | null_per_perm_time_s | 18.84 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.14 (claimed 130) |
+| R1-428 | F2:86 | 100 permutations (requested) | null_perms_for_p001 |  | inconclusive | no fresh artifact for the underlying quantity |

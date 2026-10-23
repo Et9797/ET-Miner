@@ -1,0 +1,37 @@
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/test_tier_equivalence.py::test_tier1_polars_matches_oracle
+tests/test_tier_equivalence.py::test_tier2_rust_matches_oracle
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:122: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode().alias("item"))
+
+tests/test_tier_equivalence.py: 590 warnings
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:449: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    true_indices = all_indices.get_column(col_name).explode().drop_nulls().to_numpy()
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_shared_matches_oracle
+tests/test_tier_equivalence.py::test_single_gpu_sparse_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_sparse_matches_oracle
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:509: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    transactions.select(pl.col(item_col).explode())
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_legacy_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_shared_matches_oracle
+tests/test_tier_equivalence.py::test_single_gpu_sparse_matches_oracle
+tests/test_tier_equivalence.py::test_multi_gpu_sparse_matches_oracle
+  /root/projects/ET-Miner/src/et_miner/core/matrix.py:536: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+    .explode(item_col)
+
+tests/test_tier_equivalence.py::test_single_gpu_legacy_matches_oracle
+  /root/projects/ET-Miner/tests/test_tier_equivalence.py:165: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    got = _result_to_counted_set(apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True))
+
+tests/test_tier_equivalence.py::test_single_gpu_sparse_matches_oracle
+  /root/projects/ET-Miner/tests/test_tier_equivalence.py:202: UserWarning: 100% of items are frequent (min_count=600). Mining may produce combinatorially explosive results. Consider raising min_support.
+    apriori(df, min_support=SPEC.min_support, item_col="items", use_gpu=True, sparse_from_k=3)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 604 warnings in 14.81s

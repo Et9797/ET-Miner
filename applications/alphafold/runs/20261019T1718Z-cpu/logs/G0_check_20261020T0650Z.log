@@ -1,0 +1,1 @@
+{"itemsets": {"incore": 167042, "son": 167042, "ea": 167042}, "k_max": {"incore": 14, "son": 14, "ea": 14}, "compare": {"incore": "identical", "son": "identical"}, "son_chunks": 4, "exact_three_way": true, "row_order_equals_gpu": false, "pass": true}

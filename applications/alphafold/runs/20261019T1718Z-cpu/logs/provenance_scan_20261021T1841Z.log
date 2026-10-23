@@ -1,0 +1,7 @@
+scan 2026-10-21T18:41:28Z run=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu
+== BigQuery export/load/write, uploads, push (scripts/, logs/)
+== token patterns (run dir)
+== token patterns (all commits)
+== branch on remotes
+branch alphafold-cpu-reproduction: 0 remote refs; upstream: fatal: no upstream configured for branch 'alphafold-cpu-reproduction'
+result: clean

@@ -1,0 +1,4 @@
+chain start 2026-09-02T01:09:44Z release=2026_01
+stream finished 2026-09-02T01:28:44Z: -rw-r--r-- 1 root root 27116638807 Sep  2 01:28 /root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/uniprot_trembl_2026_01.reduced.dat.gz
+extraction rc=137 2026-09-02T01:46:52Z
+extraction failed — Phase 3 not started

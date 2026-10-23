@@ -1,0 +1,1 @@
+{"label": "C2_vs_GPU_opus_filtered", "verdict": "identical", "cpu_itemsets": 113405, "ref_itemsets": 113405, "n_differing": 0, "wrong": []}

@@ -1,0 +1,2 @@
+{"phase": "pass1", "chunk": 0, "n_chunks": 2, "t_s": 152.6117269929964, "metrics": {"candidates": 6125, "items": 751, "memory_gb": 3.796852736}, "utc": "2026-10-20T16:10:08Z"}
+{"phase": "pass1", "chunk": 1, "n_chunks": 2, "t_s": 289.793889270979, "metrics": {"candidates": 12245, "items": 752, "memory_gb": 3.763064832}, "utc": "2026-10-20T16:12:25Z"}

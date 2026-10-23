@@ -1,0 +1,186 @@
+........................................................................ [  4%]
+................................................ssss............ssssssss [  9%]
+sssssssssssssssssss..................................................... [ 14%]
+........................................................................ [ 19%]
+........................................................................ [ 24%]
+.......ssssssssssssssssssssssssssssssssss............................... [ 29%]
+....................s....ssss...............................ssssssssssss [ 34%]
+sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss. [ 39%]
+sssssssssssss.................................ssssssssssssssssssssssssss [ 44%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 49%]
+s.s.......................ssssssssssssssssssssssssssss...s.......ssssss. [ 54%]
+ss.ssssss.s.....ss.ssssss.sssssssssssssssssssssss....................... [ 59%]
+......................................sssss.sssss..................s.... [ 64%]
+..................s.sssss.ss............................................ [ 69%]
+............................sssssssssssssssssssssssssssssssssssssssss..s [ 74%]
+sss...........................................................s....sssss [ 79%]
+sssssssss............................................................... [ 84%]
+...........................................................sssssssssssss [ 89%]
+ssssssssssssssssssssssssssssss..................................ssssssss [ 94%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 99%]
+sssssssss                                                                [100%]
+=============================== warnings summary ===============================
+tests/test_emission_order.py::TestEmissionOrder::test_itemsets_are_emitted_in_ascending_item_id_order[kwargs1]
+  /home/et/personal-projects/ET-Miner-engine/tests/test_emission_order.py:60: DeprecationWarning: sparse= no longer selects a counting engine on the CPU: the CPU route and SON's CPU passes count from a CSR whatever its value, and the argument is ignored there. It will be removed in a future release.
+    res = apriori(_wide_frame(), min_support=0.05, **kwargs)
+
+tests/test_emission_order.py::TestMixedTierParquetJoins::test_drop1_is_route_insensitive
+tests/test_emission_order.py::TestMixedTierParquetJoins::test_self_sufficiency_is_route_insensitive
+  /home/et/personal-projects/ET-Miner-engine/tests/test_emission_order.py:119: DeprecationWarning: sparse= no longer selects a counting engine on the CPU: the CPU route and SON's CPU passes count from a CSR whatever its value, and the argument is ignored there. It will be removed in a future release.
+    res = apriori(df, min_support=0.05, max_length=k, **route)
+
+tests/test_smoke_correctness.py::TestCPUvsEfficientApriori::test_support_005
+  /home/et/personal-projects/ET-Miner-engine/src/et_miner/core/apriori.py:821: UserWarning: Large computation: 1,197,378 candidate pairs.
+    This may take several minutes.
+    return mine_cpu(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_column_popcounts.py:13: could not import 'cupy': No module named 'cupy'
+SKIPPED [1] tests/test_cross_device_copy.py:17: cupy not installed
+SKIPPED [1] tests/test_csr_warp.py:15: cupy not installed
+SKIPPED [1] tests/test_cuda_csr_bitvec.py:13: could not import 'cupy': No module named 'cupy'
+SKIPPED [1] tests/test_density_auto_gpu.py:12: cupy not installed
+SKIPPED [1] tests/test_gpu_device_affinity.py:19: could not import 'cupy': No module named 'cupy'
+SKIPPED [1] tests/test_gpu_ownership.py:25: could not import 'cupy': No module named 'cupy'
+SKIPPED [1] tests/test_k2_counting.py:15: could not import 'cupy': No module named 'cupy'
+SKIPPED [1] tests/test_kernel_input_guards.py:17: could not import 'cupy': No module named 'cupy'
+SKIPPED [1] tests/test_row_split_e2e.py:12: cupy not installed
+SKIPPED [1] tests/test_shared_kernels.py:13: cupy not installed
+SKIPPED [1] tests/test_threshold_filter.py:12: cupy not installed
+SKIPPED [1] tests/test_chunked_dense.py: no CUDA device available
+SKIPPED [3] tests/test_chunked_dense.py:381: no CUDA device available
+SKIPPED [12] tests/test_compact_reduce.py:110: no CUDA device available
+SKIPPED [6] tests/test_compact_reduce.py:124: no CUDA device available
+SKIPPED [1] tests/test_compact_reduce.py:145: no CUDA device available
+SKIPPED [1] tests/test_compact_reduce.py:163: no CUDA device available
+SKIPPED [4] tests/test_compact_reduce.py:177: needs 2 CUDA devices
+SKIPPED [1] tests/test_compact_reduce.py:198: no CUDA device available
+SKIPPED [1] tests/test_compact_reduce.py:219: no CUDA device available
+SKIPPED [1] tests/test_compact_reduce.py:242: no CUDA device available
+SKIPPED [6] tests/test_deduction.py:94: no CUDA device available
+SKIPPED [24] tests/test_deduction.py:157: no CUDA device available
+SKIPPED [1] tests/test_deduction.py:203: no CUDA device available
+SKIPPED [2] tests/test_deduction.py:254: no CUDA device available
+SKIPPED [1] tests/test_deduction.py:280: no CUDA device available
+SKIPPED [1] tests/test_emission_order.py:151: no CUDA device available
+SKIPPED [4] tests/test_esco_benchmark.py:61: no CUDA device available
+SKIPPED [36] tests/test_free_set_semantics.py:223: no CUDA device available
+SKIPPED [8] tests/test_free_set_semantics.py:257: no CUDA device available
+SKIPPED [6] tests/test_free_set_semantics.py:274: no CUDA device available
+SKIPPED [6] tests/test_free_set_semantics.py:287: no CUDA device available
+SKIPPED [14] tests/test_free_set_semantics.py:332: no CUDA device available
+SKIPPED [2] tests/test_free_set_semantics.py:369: no CUDA device available
+SKIPPED [1] tests/test_free_set_semantics.py:397: no CUDA device available
+SKIPPED [2] tests/test_free_set_semantics.py:409: no CUDA device available
+SKIPPED [6] tests/test_gpu_correctness.py:54: no CUDA device available
+SKIPPED [12] tests/test_gpu_correctness.py: no CUDA device available
+SKIPPED [3] tests/test_gpu_correctness.py:123: no CUDA device available
+SKIPPED [4] tests/test_input_layer.py:206: no CUDA device available
+SKIPPED [14] tests/test_input_layer.py:234: no CUDA device available
+SKIPPED [30] tests/test_input_layer.py:245: no CUDA device available
+SKIPPED [14] tests/test_input_layer.py:268: no CUDA device available
+SKIPPED [2] tests/test_input_layer.py:277: no CUDA device available
+SKIPPED [2] tests/test_input_layer.py:286: no CUDA device available
+SKIPPED [1] tests/test_input_layer.py:303: no CUDA device available
+SKIPPED [4] tests/test_input_layer.py:315: no CUDA device available
+SKIPPED [1] tests/test_input_layer.py:329: no CUDA device available
+SKIPPED [6] tests/test_input_layer.py:340: no CUDA device available
+SKIPPED [1] tests/test_input_layer.py:355: no CUDA device available
+SKIPPED [1] tests/test_input_layer.py:391: no CUDA device available
+SKIPPED [3] tests/test_input_layer.py:422: no CUDA device available
+SKIPPED [1] tests/test_input_layer.py:464: no CUDA device available
+SKIPPED [2] tests/test_input_layer.py:492: no CUDA device available
+SKIPPED [12] tests/test_input_layer.py:508: no CUDA device available
+SKIPPED [1] tests/test_input_layer.py:538: no CUDA device available
+SKIPPED [1] tests/test_input_layer.py:568: no CUDA device available
+SKIPPED [9] tests/test_item_dtypes.py:65: no CUDA device available
+SKIPPED [9] tests/test_item_dtypes.py:71: no CUDA device available
+SKIPPED [9] tests/test_item_dtypes.py:78: no CUDA device available
+SKIPPED [1] tests/test_item_dtypes.py:87: no CUDA device available
+SKIPPED [1] tests/test_item_dtypes.py:110: no CUDA device available
+SKIPPED [6] tests/test_item_dtypes.py:159: no CUDA device available
+SKIPPED [2] tests/test_item_dtypes.py:181: no CUDA device available
+SKIPPED [4] tests/test_k2_rows.py:49: no CUDA device available
+SKIPPED [1] tests/test_k2_rows.py:71: no CUDA device available
+SKIPPED [1] tests/test_k2_rows.py:89: no CUDA device available
+SKIPPED [1] tests/test_k2_rows.py:121: no CUDA device available
+SKIPPED [2] tests/test_k2_rows.py:198: no CUDA device available
+SKIPPED [4] tests/test_k3_rows.py:90: no CUDA device available
+SKIPPED [1] tests/test_k3_rows.py:113: no CUDA device available
+SKIPPED [1] tests/test_k3_rows.py:126: no CUDA device available
+SKIPPED [12] tests/test_k3_rows.py:197: no CUDA device available
+SKIPPED [2] tests/test_k3_rows.py:215: no CUDA device available
+SKIPPED [2] tests/test_k3_rows.py:231: no CUDA device available
+SKIPPED [1] tests/test_k3_rows.py:260: no CUDA device available
+SKIPPED [6] tests/test_k3_rows.py:274: no CUDA device available
+SKIPPED [1] tests/test_moonshots_bench.py:190: no CUDA device available
+SKIPPED [1] tests/test_moonshots_bench.py:219: no CUDA device available
+SKIPPED [1] tests/test_moonshots_bench.py:241: no CUDA device available
+SKIPPED [2] tests/test_moonshots_bench.py:263: no CUDA device available
+SKIPPED [1] tests/test_nccl_teardown.py:57: needs 2 CUDA devices
+SKIPPED [1] tests/test_nccl_teardown.py:71: needs 2 CUDA devices
+SKIPPED [1] tests/test_nccl_teardown.py:103: needs 2 CUDA devices
+SKIPPED [1] tests/test_nccl_teardown.py:116: needs 2 CUDA devices
+SKIPPED [1] tests/test_nccl_teardown.py:136: needs 2 CUDA devices
+SKIPPED [1] tests/test_optimizations_bench.py:227: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py:111: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py:144: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py:149: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py:209: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py:225: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py:248: no CUDA device available
+SKIPPED [1] tests/test_routing_contracts.py:272: could not import 'cupy': No module named 'cupy'
+SKIPPED [10] tests/test_row_order.py:54: no CUDA device available
+SKIPPED [2] tests/test_row_order.py:75: no CUDA device available
+SKIPPED [4] tests/test_row_order.py:124: no CUDA device available
+SKIPPED [24] tests/test_row_order.py:163: no CUDA device available
+SKIPPED [1] tests/test_row_order.py:196: no CUDA device available
+SKIPPED [3] tests/test_row_split_dtypes.py: no CUDA device available
+SKIPPED [1] tests/test_row_split_dtypes.py:112: no CUDA device available
+SKIPPED [1] tests/test_smoke_correctness.py: no CUDA device available
+SKIPPED [2] tests/test_son_completeness.py: no CUDA device available
+SKIPPED [3] tests/test_son_completeness.py:98: no CUDA device available
+SKIPPED [2] tests/test_son_completeness.py:115: no CUDA device available
+SKIPPED [2] tests/test_son_completeness.py:137: no CUDA device available
+SKIPPED [2] tests/test_son_completeness.py:143: no CUDA device available
+SKIPPED [1] tests/test_son_completeness.py:158: no CUDA device available
+SKIPPED [1] tests/test_son_completeness.py:171: no CUDA device available
+SKIPPED [1] tests/test_son_completeness.py:188: no CUDA device available
+SKIPPED [6] tests/test_subset_prune.py:119: no CUDA device available
+SKIPPED [6] tests/test_subset_prune.py:137: no CUDA device available
+SKIPPED [6] tests/test_subset_prune.py:157: no CUDA device available
+SKIPPED [8] tests/test_subset_prune.py:180: no CUDA device available
+SKIPPED [12] tests/test_subset_prune.py:219: no CUDA device available
+SKIPPED [4] tests/test_subset_prune.py:249: no CUDA device available
+SKIPPED [1] tests/test_subset_prune.py:267: could not import 'cupy': No module named 'cupy'
+SKIPPED [1] tests/test_tier_equivalence.py:360: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:365: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:378: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:391: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:410: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:418: no CUDA device available
+SKIPPED [8] tests/test_tier_equivalence.py:424: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:477: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:486: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:565: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:572: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:582: no CUDA device available
+SKIPPED [3] tests/test_tier_equivalence.py:588: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:597: no CUDA device available
+SKIPPED [6] tests/test_tier_equivalence.py:604: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:614: no CUDA device available
+SKIPPED [8] tests/test_tier_equivalence.py:620: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:644: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:655: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:662: no CUDA device available
+SKIPPED [3] tests/test_tier_equivalence.py:673: no CUDA device available
+SKIPPED [2] tests/test_tier_equivalence.py:698: no CUDA device available
+SKIPPED [4] tests/test_tier_equivalence.py:708: no CUDA device available
+SKIPPED [8] tests/test_tier_equivalence.py:722: no CUDA device available
+SKIPPED [1] tests/test_tier_equivalence.py:758: no CUDA device available
+SKIPPED [2] tests/test_verify_efficient_apriori.py:77: no CUDA device available
+SKIPPED [1] tests/test_verify_efficient_apriori.py: no CUDA device available
+897 passed, 564 skipped, 21 deselected, 4 warnings in 33.08s
+rc=0

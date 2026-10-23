@@ -1,0 +1,85 @@
+{
+  "label": "S1",
+  "data": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/transactions_214m_base_multi.parquet",
+  "head": null,
+  "n_rows": 76890945,
+  "min_count": 76891,
+  "min_support": 0.001,
+  "chunk_size": 40000000,
+  "chunks": 2,
+  "local_support_factor": 0.9,
+  "n_jobs": 6,
+  "load_s": 1.4432359269703738,
+  "mine_wall_s": 289.79839652898954,
+  "pass1_s": 289.793889270979,
+  "pass2_s": 0.004507258010562509,
+  "pass2_chunks_read": 0,
+  "process": {
+    "wall_s": 291.2417681979714,
+    "cpu_s": 504.307809,
+    "peak_rss_mb": 7910.96875
+  },
+  "progress": [
+    {
+      "phase": "pass1",
+      "chunk": 0,
+      "n_chunks": 2,
+      "t_s": 152.6117269929964,
+      "metrics": {
+        "candidates": 6125,
+        "items": 751,
+        "memory_gb": 3.796852736
+      },
+      "utc": "2026-10-20T16:10:08Z"
+    },
+    {
+      "phase": "pass1",
+      "chunk": 1,
+      "n_chunks": 2,
+      "t_s": 289.793889270979,
+      "metrics": {
+        "candidates": 12245,
+        "items": 752,
+        "memory_gb": 3.763064832
+      },
+      "utc": "2026-10-20T16:12:25Z"
+    }
+  ],
+  "signature": {
+    "itemsets": 5305,
+    "sum_counts": 1404722522,
+    "sha256": "fc0de1eefb529fe3aab214f2641b53985e655b74ce1201269d1d69ef39256a84",
+    "k_distribution": {
+      "1": 667,
+      "2": 1504,
+      "3": 1378,
+      "4": 884,
+      "5": 514,
+      "6": 247,
+      "7": 89,
+      "8": 20,
+      "9": 2
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-20T16:12:25Z"
+  },
+  "k_max": 9,
+  "process_end": {
+    "wall_s": 291.28147688898025,
+    "cpu_s": 504.33304599999997,
+    "peak_rss_mb": 7910.96875
+  }
+}

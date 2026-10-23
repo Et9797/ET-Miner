@@ -1,0 +1,155 @@
+[
+ {
+  "key": "wang2011",
+  "tex_line": "101, 448",
+  "claim": "Domain co-occurrence studied through pairwise network approaches; Wang et al. constructed Domain Co-occurrence Networks revealing scale-free properties; inherently pairwise (K=2); limited to individual proteomes.",
+  "verdict": "VERIFIED",
+  "quote": "A DCN is a graph consisting of all the protein domain types of a species as nodes. Two domain types (i.e. nodes) are connected by an edge if they co-exist in one protein [26]. || We analyzed the properties of the DCNs of H. sapiens, S. cerevisiae, C. elegans, D. melanogaster, and 15 plant genomes. These DCNs have the hallmark features of scale-free networks.",
+  "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC3063783/fullTextXML (DOI 10.1371/journal.pone.0017906)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/wang2011.txt",
+  "grep": [
+   "connected by an edge if they co-exist in one protein",
+   "hallmark features of scale-free networks",
+   "whole genome protein sequences of the target organism"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref 10.1371/journal.pone.0017906: Wang Z, Zhang X-C, Le MH, Xu D, Stacey G, Cheng J; PLoS ONE 6(3):e17906, 2011. All fields match.",
+  "notes": "Term used is \"Protein Domain Co-occurrence Network (DCN)\". Networks are built per organism (\"The only input data needed for constructing a domain co-occurrence network (DCN) is the whole genome protein sequences of the target organism\"), for H. sapiens, S. cerevisiae, C. elegans, D. melanogaster, 15 plant species and 398 single-chromosome prokaryotic species (wang2011.txt line 521). \"Limited to individual proteomes\" is accurate in the sense of one network per organism, but the study spans ~417 organisms, so consider \"per-proteome\" rather than \"individual proteomes\"."
+ },
+ {
+  "key": "coin2009",
+  "tex_line": "101, 448",
+  "claim": "Terrapon et al. used statistical co-occurrence for novel domain detection in Plasmodium falciparum, limited to pairs.",
+  "verdict": "VERIFIED",
+  "quote": "To this end, all Uniprot proteins with known domain composition were used to extract domain pairs showing strong co-occurrence (as assessed by a statistical test). These domain pairs are stored in a reference list of Conditionally Dependent Pairs (CDP), which is then used as follows. || Applied to P. falciparum, our method identifies 585 new Pfam domains (versus the 3 683 already known domains in the Pfam database) with an estimated error rate below 20%.",
+  "url": "https://hal-lirmm.ccsd.cnrs.fr/lirmm-00431171/file/article090911.pdf (HAL author copy of DOI 10.1093/bioinformatics/btp560; OUP returns 403)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/coin2009_flow.txt (also coin2009.txt layout, coin2009_abstract.txt PubMed)",
+  "grep": [
+   "Conditionally Dependent Pairs",
+   "Applied to P. falciparum"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref/PubMed 10.1093/bioinformatics/btp560: Bioinformatics 25(23):3077-3083, 2009 (epub 28 Sep 2009). Full author list: Nicolas Terrapon, Olivier Gascuel, Eric Marechal, Laurent Brehelin (PubMed/Crossref spell the last author \"Bréehélin\"; HAL spells \"Brehelin\"). Bib uses \"N. Terrapon et al.\" - consider listing all four authors.",
+  "notes": "Core method is pairwise (CDP list of domain pairs). Caveat: the GO-annotation step of the paper also uses larger combinations: \"We found 2 235 Pfam domain combinations associated with at least one specific GO annotation: 2 115 domain pairs, 119 domain triplets and 1 quartet.\" (coin2009_flow.txt). Full text is the HAL author manuscript, not the typeset OUP version."
+ },
+ {
+  "key": "meysman2015",
+  "tex_line": "101, 448",
+  "claim": "Meysman et al. mined spatially cohesive amino acid patterns from the PDB (3D proximity), limited to ~32K structures.",
+  "verdict": "VERIFIED",
+  "quote": "The largest set of proteins that was considered in this manner, where structures with a BLAST p-value lower than 10−80 were considered redundant, contains 32 142 protein molecules from a large variety of organisms. || Amino acids in close proximity are defined by a maximum cohesive radius of 4.5 Å for the purposes of this analysis, which corresponds to the distance between the Cα atoms of two residues that are typically considered as interacting [9].",
+  "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC4318390/fullTextXML (DOI 10.1186/s13040-015-0038-4)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/meysman2015.txt",
+  "grep": [
+   "contains 32 142 protein molecules",
+   "maximum cohesive radius of 4.5",
+   "occur frequently in close spatial proximity"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref 10.1186/s13040-015-0038-4: Meysman P, Zhou C, Cule B, Goethals B, Laukens K; BioData Mining 8(1): article 4, 2015. Matches (issue number omitted in bib, acceptable for BMC).",
+  "notes": "Also: \"In the set of 32 142 non-redundant protein structures, 185 and 260 combinations of respectively two (doublet) and three (triplet) amino acids matched these criteria.\" A second data set of 2 901 DNA-protein complexes was also mined."
+ },
+ {
+  "key": "mrzic2018",
+  "tex_line": "448",
+  "claim": "Mrzic et al. reviewed frequent subgraph mining for biomolecular data, noting that graph mining is NP-hard and scales poorly.",
+  "verdict": "NOT SUPPORTED",
+  "quote": "Frequency counting is usually the most computationally intensive part of subgraph mining algorithms. || The introduction of labels into existing solutions is however non-trivial as it cause a massive explosion of the number of subgraphs that need to be evaluated. || Sometimes the graph is simply too large to be efficiently analyzed and thus the use of sampling approaches is required.",
+  "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6122726/fullTextXML (DOI 10.1186/s13040-018-0181-9)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/mrzic2018.txt (raw XML: mrzic2018.xml)",
+  "grep": [
+   "most computationally intensive part of subgraph mining algorithms",
+   "massive explosion of the number of subgraphs",
+   "simply too large to be efficiently analyzed"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref 10.1186/s13040-018-0181-9: Mrzic A, Meysman P, Bittremieux W, Moris P, Cule B, Goethals B, Laukens K; BioData Mining 11(1): article 20, 2018. Matches.",
+  "notes": "The review IS about frequent subgraph mining for bioinformatics (verified), but the string \"NP\" occurs zero times in the full text (checked in both the stripped text and the raw XML); it never says NP-hard/NP-complete and makes no general \"scales poorly\" statement. It only says frequency counting is computationally intensive, labels cause a \"massive explosion\" of candidate subgraphs, and very large graphs may need sampling. Rephrase or cite a source that states NP-hardness of subgraph isomorphism."
+ },
+ {
+  "key": "rehwinkel2020",
+  "tex_line": "330",
+  "claim": "DEAD-box helicases such as RIG-I and MDA5 are established viral RNA sensors in innate immunity.",
+  "verdict": "PARTIAL: VERIFIED (viral RNA sensors) / NOT SUPPORTED (DEAD-box label)",
+  "quote": "Retinoic acid-inducible gene I (RIG-I)-like receptors (RLRs) are key sensors of virus infection, mediating the transcriptional induction of type I interferons and other genes that collectively establish an antiviral host response. || The three members of the RLR family have a central helicase domain and form a subfamily of SF2 helicases. || ... laboratory of genetics and physiology 2 (LGP2) — the third RIG-I-like receptor (RLR) family member — has a central DECH-box helicase domain with ATP hydrolysis activity and a carboxy-terminal domain, both involved in RNA binding and conformational rearrangements.",
+  "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC7094958/fullTextXML (PMC author manuscript of DOI 10.1038/s41577-020-0288-3)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/rehwinkel2020.txt",
+  "grep": [
+   "key sensors of virus infection",
+   "form a subfamily of SF2 helicases",
+   "central DECH-box helicase domain",
+   "not only detect viral RNA but also cellular RNAs"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref 10.1038/s41577-020-0288-3: Rehwinkel J, Gack MU; Nature Reviews Immunology 20(9):537-551, 2020. Matches.",
+  "notes": "Sensor role verified (\"these proteins not only detect viral RNA but also cellular RNAs that are unusual, mislocalized or misprocessed\"). The review never uses \"DEAD-box\" (string \"DEAD\" absent from the text); it classifies RIG-I/MDA5/LGP2 as having a \"central DECH-box helicase domain\" and as \"a subfamily of SF2 helicases\". The tex should say DECH-box / DExD/H-box (SF2) helicases, or RIG-I-like receptors, not DEAD-box."
+ },
+ {
+  "key": "wahl2009",
+  "tex_line": "338",
+  "claim": "DEAD/DEAH-box helicases are part of the core pre-mRNA splicing machinery (spliceosome).",
+  "verdict": "VERIFIED",
+  "quote": "Eight evolutionarily conserved DExD/H-type RNA-dependent ATPases/helicases act at specific steps of the splicing cycle to catalyze RNA-RNA rearrangements and RNP remodeling events. || Eight of these DExD/H-box proteins (Sub2/UAP56, Prp5, U5-100K/Prp28, Brr2/U5-200K, Prp2, Prp16, Prp22, and Prp43) are conserved between yeast and humans.",
+  "url": "http://web.archive.org/web/20221115163154id_/https://www.cell.com/cell/pdf/S0092-8674(09)00146-9.pdf (Wayback copy of the publisher PDF, DOI 10.1016/j.cell.2009.02.009; cell.com and sciencedirect return 403)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/wahl2009.txt (PDF: wahl2009_wayback_cell.pdf; PubMed abstract: wahl2009_abstract.txt)",
+  "grep": [
+   "DExD/H-type RNA-dependent",
+   "Sub2/UAP56, Prp5",
+   "reminiscent of canonical DEAD-box proteins"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref/PubMed 10.1016/j.cell.2009.02.009: Wahl MC, Will CL, Lührmann R; Cell 136(4):701-718, 20 Feb 2009. Matches.",
+  "notes": "Review uses \"DExD/H-type RNA-dependent ATPases/helicases\" / \"DExD/H-box proteins\" (which includes DEAD- and DEAH-box); it also says the spliceosomal helicases are \"reminiscent of canonical DEAD-box proteins\". Supports the tex wording \"DEAD/DEAH-box helicases ... core pre-mRNA splicing machinery\"."
+ },
+ {
+  "key": "boggon2004",
+  "tex_line": "340-343",
+  "claim": "Protein tyrosine kinase with SH2 and SH3 adaptor domains is the canonical Src-family kinase architecture.",
+  "verdict": "VERIFIED",
+  "quote": "Src family kinases are prototypical modular signaling proteins. Their conserved domain organization includes a myristoylated N-terminal segment followed by SH3, SH2, and tyrosine kinase domains, and a short C-terminal tail.",
+  "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=15489910&rettype=abstract&retmode=text (abstract; same sentence confirmed on https://www.nature.com/articles/1208081 via WebFetch)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/boggon2004_abstract.txt (and boggon2004_nature_webfetch.txt)",
+  "grep": [
+   "followed by SH3",
+   "prototypical modular signaling proteins"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref/PubMed 10.1038/sj.onc.1208081: Boggon TJ, Eck MJ; Oncogene 23(48):7918-7927, 18 Oct 2004. Matches.",
+  "notes": "Abstract only (full text paywalled at nature.com), but the abstract itself states the SH3-SH2-kinase domain organization, which is all the claim needs."
+ },
+ {
+  "key": "dillingham2008",
+  "tex_line": "350",
+  "claim": "DEAD-box helicases co-occurring with DNA repair, recombination, replication and the SOS response are consistent with bacterial RecBCD-like repair complexes.",
+  "verdict": "PARTIAL: VERIFIED (RecBCD = bacterial helicase-nuclease for DSB repair/recombination; SOS mentioned) / NOT SUPPORTED (DEAD-box link)",
+  "quote": "One key function of the RecBCD enzyme is to salvage broken replication forks via homologous, or template-directed, recombinational DNA repair. || Subsequently, it was shown that mutations that inactivate the recB or recC gene lead to defects in conjugational, transductional, and phage recombination; a loss of SOS induction; sensitivity to DNA-damaging agents that cause DSBs; and low cell viability || RecB is a 134-kDa protein containing motifs characteristic of superfamily 1 (SF1) DNA helicases toward the N terminus (115) and those characteristic of diverse families of nucleases at the C terminus (20).",
+  "url": "https://europepmc.org/articles/PMC2593567?pdf=render (PMC copy of DOI 10.1128/MMBR.00020-08; Europe PMC fullTextXML returned 404)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/dillingham2008_flow.txt (PDF: dillingham2008_epmc_pdf.pdf; layout text: dillingham2008.txt)",
+  "grep": [
+   "salvage broken replication forks",
+   "SOS induction; sensitivity to DNA-damaging agents",
+   "characteristic of superfamily 1 (SF1) DNA",
+   "regulated helicase-nuclease activity"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref/PubMed 10.1128/MMBR.00020-08: Dillingham MS, Kowalczykowski SC; Microbiology and Molecular Biology Reviews 72(4):642-671, Dec 2008. Matches (PubMed lists pages as \"642-71, Table of Contents\").",
+  "notes": "Title itself: \"RecBCD Enzyme and the Repair of Double-Stranded DNA Breaks\"; also \"the identification of RecBCD as a bipolar DNA helicase\". SOS appears only as a recB/recC mutant phenotype (\"a loss of SOS induction\"), not as a described pathway. The review classifies RecB (and RecD) as superfamily 1 (SF1) DNA helicases and never mentions DEAD-box helicases (string \"DEAD\" absent). DEAD-box (PF00270) is an SF2 family, so \"DEAD-box helicases ... consistent with RecBCD-like complexes\" is not supported by this source."
+ },
+ {
+  "key": "sauvage2008",
+  "tex_line": "352, 458",
+  "claim": "PBP domains (PF00905 transpeptidase, PF00912 transglycosylase) with peptidoglycan biosynthesis; beta-lactam antibiotics bind these exact domains / target these exact domain combinations.",
+  "verdict": "PARTIAL: VERIFIED (PBP domain composition; beta-lactams bind the transpeptidase/penicillin-binding domain) / NOT SUPPORTED (beta-lactams binding the transglycosylase domain)",
+  "quote": "The C-terminal penicillin-binding domain of both classes has a transpeptidase (TP) activity catalyzing peptide cross-linking between two adjacent glycan chains. In class A, the N-terminal domain is responsible for their glycosyltransferase activity, catalyzing the elongation of uncross-linked glycan chains. || The DD-peptidase activity of PBPs is materialized by a common penicillin-binding (PB) domain, which binds β-lactam antibiotics (figure 2).",
+  "url": "https://digital.csic.es/bitstream/10261/4779/1/Ayala_FemsMicroRev_234.pdf (CSIC author manuscript of DOI 10.1111/j.1574-6976.2008.00105.x; OUP returns 403)",
+  "file": "/tmp/claude-0/-root-projects-ET-Miner/869f5e10-2aa8-4d44-9689-d55a214e4fb0/scratchpad/citations/sauvage2008.txt (layout, line-numbered manuscript; flow text: sauvage2008_flow.txt; PDF: sauvage2008_csic.pdf)",
+  "grep": [
+   "which binds β-lactam antibiotics (figure 2)",
+   "glycosyltransferase activity, catalyzing the elongation of uncross-linked glycan chains",
+   "sensitive to β-lactam antibiotics, with which they form a stable"
+  ],
+  "bib_ok": true,
+  "bib_notes": "Crossref/PubMed 10.1111/j.1574-6976.2008.00105.x: Sauvage E, Kerff F, Terrak M, Ayala JA, Charlier P; FEMS Microbiology Reviews 32(2):234-258, Mar 2008. Matches. An erratum exists: FEMS Microbiol Rev 32(3):556 (DOI 10.1111/j.1574-6976.2008.00115.x). The CSIC author-manuscript front page lists only four authors (no Kerff); the published version has five.",
+  "notes": "Source: β-lactams bind the penicillin-binding (transpeptidase) domain (\"PBPs are to a variable degree sensitive to β-lactam antibiotics, with which they form a stable acyl-enzyme\"). The glycosyltransferase (transglycosylase) domain is described as inhibited by moenomycin, not by β-lactams. So \"beta-lactam antibiotics bind these exact domains\" (both PF00905 and PF00912) overstates: only PF00905 (transpeptidase) is the β-lactam target. Quotes are from the accepted author manuscript, not the typeset article."
+ }
+]

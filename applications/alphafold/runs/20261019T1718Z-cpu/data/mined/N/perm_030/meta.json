@@ -1,0 +1,92 @@
+{
+  "perm": 30,
+  "perm_seed": 6869218442907837546,
+  "shuffle_seed": 8130290868022069996,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 446.7247555720387,
+  "mine_wall_s": 448.6687101490097,
+  "process": {
+    "wall_s": 895.3934966590023,
+    "cpu_s": 4170.3066340000005,
+    "peak_rss_mb": 24585.8984375
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.04999298835173249
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63751,
+      "ms": 10807.624683016911
+    },
+    {
+      "k": 3,
+      "candidates": 2662219,
+      "frequent": 79133,
+      "ms": 84084.04521900229
+    },
+    {
+      "k": 4,
+      "candidates": 141087,
+      "frequent": 25431,
+      "ms": 278043.910139997
+    },
+    {
+      "k": 5,
+      "candidates": 8730,
+      "frequent": 2009,
+      "ms": 56330.25344600901
+    },
+    {
+      "k": 6,
+      "candidates": 129,
+      "frequent": 23,
+      "ms": 7281.9984529633075
+    }
+  ],
+  "total_itemsets": 171349,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63751,
+    "3": 79133,
+    "4": 25431,
+    "5": 2009,
+    "6": 23
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171349,
+    "sum_counts": 1072425541,
+    "sha256": "1164795084d9d91d9364b7c636b4ca85f9abffa1899ab266252a3e46898a9852",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63751,
+      "3": 79133,
+      "4": 25431,
+      "5": 2009,
+      "6": 23
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-21T23:59:43Z"
+  }
+}

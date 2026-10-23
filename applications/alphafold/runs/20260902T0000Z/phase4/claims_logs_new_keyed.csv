@@ -1,0 +1,691 @@
+claim_id,qkey,value,unit,category,file,line,quoted_context
+L2-001,run_ultra_support_pct,0.00002,% support (nominal),method-parameter,beyond_mining.log,2,>>> BEYOND MADMAN — 0.00002% SUPPORT
+L2-002,run_ultra_min_count_nominal,~15,min proteins (nominal),method-parameter,beyond_mining.log,3,>>> Min proteins: ~15
+L2-003,run_ultra_max_length,25,max K (max_length),method-parameter,beyond_mining.log,4,>>> Max K: 25
+L2-004,dataset_multi_feature,"76,890,945",transactions with >1 item,deterministic,beyond_mining.log,6,"Transactions with >1 item: 76,890,945"
+L2-005,run_ultra_min_count_nominal,15,min support count (script-computed),method-parameter,beyond_mining.log,7,Min support count: 15 proteins
+L2-006,meta_log_ultra_start_timestamp,"2026-02-09 06:05:03,735","timestamp (run start, Direct CSR path)",external-fact,beyond_mining.log,8,"2026-02-09 06:05:03,735 Direct CSR path: 76,890,945 transactions, min_count=16"
+L2-007,dataset_multi_feature,"76,890,945",transactions,deterministic,beyond_mining.log,8,"2026-02-09 06:05:03,735 Direct CSR path: 76,890,945 transactions, min_count=16"
+L2-008,run_ultra_min_count,16,min_count,method-parameter,beyond_mining.log,8,"2026-02-09 06:05:03,735 Direct CSR path: 76,890,945 transactions, min_count=16"
+L2-009,vocab_items_frequent,1002,frequent items (K=1),deterministic,beyond_mining.log,9,"2026-02-09 06:05:04,142 Direct CSR path: 1002 frequent items"
+L2-010,csr_nnz,"316,421,093",non-zeros (CSR nnz),deterministic,beyond_mining.log,10,"2026-02-09 06:05:04,902 Direct CSR path: 316,421,093 non-zeros"
+L2-011,kdist_ultra_k1_count,"1,002",frequent itemsets K=1,deterministic,beyond_mining.log,11,"[per-K] K=1: 1,002 candidates -> 1,002 frequent (80ms)"
+L2-012,kdist_ultra_k2_count,"60,088",frequent itemsets K=2,deterministic,beyond_mining.log,12,"[per-K] K=2: 501,501 candidates -> 60,088 frequent (1956ms)"
+L2-013,kdist_ultra_k3_count,"356,691",frequent itemsets K=3,deterministic,beyond_mining.log,13,"[per-K] K=3: 0 candidates -> 356,691 frequent (26394ms)"
+L2-014,kdist_ultra_k4_count,"894,903",frequent itemsets K=4,deterministic,beyond_mining.log,14,"[per-K] K=4: 0 candidates -> 894,903 frequent (26926ms)"
+L2-015,kdist_ultra_k5_count,"1,421,780",frequent itemsets K=5,deterministic,beyond_mining.log,15,"[per-K] K=5: 0 candidates -> 1,421,780 frequent (23562ms)"
+L2-016,kdist_ultra_k6_count,"1,794,852",frequent itemsets K=6,deterministic,beyond_mining.log,16,"[per-K] K=6: 0 candidates -> 1,794,852 frequent (14865ms)"
+L2-017,kdist_ultra_k7_count,"2,006,312",frequent itemsets K=7,deterministic,beyond_mining.log,17,"[per-K] K=7: 0 candidates -> 2,006,312 frequent (9909ms)"
+L2-018,kdist_ultra_k8_count,"2,053,858",frequent itemsets K=8,deterministic,beyond_mining.log,18,"[per-K] K=8: 0 candidates -> 2,053,858 frequent (8260ms)"
+L2-019,kdist_ultra_k9_count,"1,912,672",frequent itemsets K=9,deterministic,beyond_mining.log,19,"[per-K] K=9: 0 candidates -> 1,912,672 frequent (7559ms)"
+L2-020,kdist_ultra_k10_count,"1,587,145",frequent itemsets K=10,deterministic,beyond_mining.log,20,"[per-K] K=10: 0 candidates -> 1,587,145 frequent (6937ms)"
+L2-021,kdist_ultra_k11_count,"1,148,998",frequent itemsets K=11,deterministic,beyond_mining.log,21,"[per-K] K=11: 0 candidates -> 1,148,998 frequent (6317ms)"
+L2-022,kdist_ultra_k12_count,"712,433",frequent itemsets K=12,deterministic,beyond_mining.log,22,"[per-K] K=12: 0 candidates -> 712,433 frequent (5460ms)"
+L2-023,kdist_ultra_k13_count,"371,981",frequent itemsets K=13,deterministic,beyond_mining.log,23,"[per-K] K=13: 0 candidates -> 371,981 frequent (1803ms)"
+L2-024,kdist_ultra_k14_count,"160,675",frequent itemsets K=14,deterministic,beyond_mining.log,24,"[per-K] K=14: 0 candidates -> 160,675 frequent (796ms)"
+L2-025,kdist_ultra_k15_count,"56,221",frequent itemsets K=15,deterministic,beyond_mining.log,25,"[per-K] K=15: 0 candidates -> 56,221 frequent (277ms)"
+L2-026,kdist_ultra_k16_count,"15,501",frequent itemsets K=16,deterministic,beyond_mining.log,26,"[per-K] K=16: 0 candidates -> 15,501 frequent (80ms)"
+L2-027,kdist_ultra_k17_count,"3,236",frequent itemsets K=17,deterministic,beyond_mining.log,27,"[per-K] K=17: 0 candidates -> 3,236 frequent (26ms)"
+L2-028,kdist_ultra_k18_count,480,frequent itemsets K=18,deterministic,beyond_mining.log,28,[per-K] K=18: 0 candidates -> 480 frequent (12ms)
+L2-029,kdist_ultra_k19_count,45,frequent itemsets K=19,deterministic,beyond_mining.log,29,[per-K] K=19: 0 candidates -> 45 frequent (11ms)
+L2-030,kdist_ultra_k20_count,2,frequent itemsets K=20,deterministic,beyond_mining.log,30,[per-K] K=20: 0 candidates -> 2 frequent (13ms)
+L2-031,run_ultra_time_s,281.0,"s (total, '4.7 min')",hardware-dependent,beyond_mining.log,32,>>> COMPLETE in 281.0s (4.7 min)
+L2-032,run_ultra_itemsets,"14,558,875",itemsets (total),deterministic,beyond_mining.log,33,">>> Itemsets: 14,558,875"
+L2-033,kdist_ultra_k1_count,"1,002",itemsets K=1,deterministic,beyond_mining.log,36,"[K-dist] K=1: 1,002"
+L2-034,kdist_ultra_k2_count,"60,088",itemsets K=2,deterministic,beyond_mining.log,37,"[K-dist] K=2: 60,088"
+L2-035,kdist_ultra_k3_count,"356,691",itemsets K=3,deterministic,beyond_mining.log,38,"[K-dist] K=3: 356,691"
+L2-036,kdist_ultra_k4_count,"894,903",itemsets K=4,deterministic,beyond_mining.log,39,"[K-dist] K=4: 894,903"
+L2-037,kdist_ultra_k5_count,"1,421,780",itemsets K=5,deterministic,beyond_mining.log,40,"[K-dist] K=5: 1,421,780"
+L2-038,kdist_ultra_k6_count,"1,794,852",itemsets K=6,deterministic,beyond_mining.log,41,"[K-dist] K=6: 1,794,852"
+L2-039,kdist_ultra_k7_count,"2,006,312",itemsets K=7,deterministic,beyond_mining.log,42,"[K-dist] K=7: 2,006,312"
+L2-040,kdist_ultra_k8_count,"2,053,858",itemsets K=8,deterministic,beyond_mining.log,43,"[K-dist] K=8: 2,053,858"
+L2-041,kdist_ultra_k9_count,"1,912,672",itemsets K=9,deterministic,beyond_mining.log,44,"[K-dist] K=9: 1,912,672"
+L2-042,kdist_ultra_k10_count,"1,587,145",itemsets K=10,deterministic,beyond_mining.log,45,"[K-dist] K=10: 1,587,145"
+L2-043,kdist_ultra_k11_count,"1,148,998",itemsets K=11,deterministic,beyond_mining.log,46,"[K-dist] K=11: 1,148,998"
+L2-044,kdist_ultra_k12_count,"712,433",itemsets K=12,deterministic,beyond_mining.log,47,"[K-dist] K=12: 712,433"
+L2-045,kdist_ultra_k13_count,"371,981",itemsets K=13,deterministic,beyond_mining.log,48,"[K-dist] K=13: 371,981"
+L2-046,kdist_ultra_k14_count,"160,675",itemsets K=14,deterministic,beyond_mining.log,49,"[K-dist] K=14: 160,675"
+L2-047,kdist_ultra_k15_count,"56,221",itemsets K=15,deterministic,beyond_mining.log,50,"[K-dist] K=15: 56,221"
+L2-048,kdist_ultra_k16_count,"15,501",itemsets K=16,deterministic,beyond_mining.log,51,"[K-dist] K=16: 15,501"
+L2-049,kdist_ultra_k17_count,"3,236",itemsets K=17,deterministic,beyond_mining.log,52,"[K-dist] K=17: 3,236"
+L2-050,kdist_ultra_k18_count,480,itemsets K=18,deterministic,beyond_mining.log,53,[K-dist] K=18: 480
+L2-051,kdist_ultra_k19_count,45,itemsets K=19,deterministic,beyond_mining.log,54,[K-dist] K=19: 45
+L2-052,kdist_ultra_k20_count,2,itemsets K=20,deterministic,beyond_mining.log,55,[K-dist] K=20: 2
+L2-053,run_ultra_bytes,"49,989,864",bytes (output parquet),software,beyond_mining.log,57,">>> Saved to /root/alphafold-data/full_214m/itemsets_214m_beyond.parquet (49,989,864 bytes)"
+L2-054,run_blitz_support,1e-06,min_support (0.0001%),method-parameter,direct_mining.log,3,>>> Support: 1e-06 (0.0001%)
+L2-055,run_blitz_max_length,20,max K (max_length),method-parameter,direct_mining.log,4,>>> Max K: 20
+L2-056,dataset_plddt_pass,"205,620,298",transactions (total in parquet),deterministic,direct_mining.log,8,"Total transactions: 205,620,298"
+L2-057,dataset_multi_feature,"76,890,945",transactions with >1 item,deterministic,direct_mining.log,9,"With >1 item: 76,890,945"
+L2-058,run_blitz_min_count_nominal,76,min support count (script-computed),method-parameter,direct_mining.log,10,Min support count: 76 proteins
+L2-059,run_blitz_load_time_s,0.5,s (parquet load),hardware-dependent,direct_mining.log,11,Load time: 0.5s
+L2-060,meta_log_blitz_start_timestamp,"2026-02-09 05:46:42,182","timestamp (run start, Direct CSR path)",external-fact,direct_mining.log,14,"2026-02-09 05:46:42,182 Direct CSR path: 76,890,945 transactions, min_count=77"
+L2-061,dataset_multi_feature,"76,890,945",transactions,deterministic,direct_mining.log,14,"2026-02-09 05:46:42,182 Direct CSR path: 76,890,945 transactions, min_count=77"
+L2-062,run_blitz_min_count,77,min_count,method-parameter,direct_mining.log,14,"2026-02-09 05:46:42,182 Direct CSR path: 76,890,945 transactions, min_count=77"
+L2-063,vocab_items_frequent,1002,frequent items (K=1),deterministic,direct_mining.log,15,"2026-02-09 05:46:42,549 Direct CSR path: 1002 frequent items"
+L2-064,csr_nnz,"316,421,093",non-zeros (CSR nnz),deterministic,direct_mining.log,16,"2026-02-09 05:46:43,300 Direct CSR path: 316,421,093 non-zeros"
+L2-065,kdist_blitz_k1_count,"1,002",frequent itemsets K=1,deterministic,direct_mining.log,17,"[per-K] K=1: 1,002 candidates → 1,002 frequent (289ms)"
+L2-066,kdist_blitz_k2_count,"39,125",frequent itemsets K=2,deterministic,direct_mining.log,18,"[per-K] K=2: 501,501 candidates → 39,125 frequent (1950ms)"
+L2-067,kdist_blitz_k3_count,"184,900",frequent itemsets K=3,deterministic,direct_mining.log,19,"[per-K] K=3: 0 candidates → 184,900 frequent (25790ms)"
+L2-068,kdist_blitz_k4_count,"361,696",frequent itemsets K=4,deterministic,direct_mining.log,20,"[per-K] K=4: 0 candidates → 361,696 frequent (14559ms)"
+L2-069,kdist_blitz_k5_count,"445,661",frequent itemsets K=5,deterministic,direct_mining.log,21,"[per-K] K=5: 0 candidates → 445,661 frequent (10831ms)"
+L2-070,kdist_blitz_k6_count,"439,605",frequent itemsets K=6,deterministic,direct_mining.log,22,"[per-K] K=6: 0 candidates → 439,605 frequent (6881ms)"
+L2-071,kdist_blitz_k7_count,"387,030",frequent itemsets K=7,deterministic,direct_mining.log,23,"[per-K] K=7: 0 candidates → 387,030 frequent (5693ms)"
+L2-072,kdist_blitz_k8_count,"318,349",frequent itemsets K=8,deterministic,direct_mining.log,24,"[per-K] K=8: 0 candidates → 318,349 frequent (1701ms)"
+L2-073,kdist_blitz_k9_count,"247,680",frequent itemsets K=9,deterministic,direct_mining.log,25,"[per-K] K=9: 0 candidates → 247,680 frequent (1204ms)"
+L2-074,kdist_blitz_k10_count,"179,604",frequent itemsets K=10,deterministic,direct_mining.log,26,"[per-K] K=10: 0 candidates → 179,604 frequent (871ms)"
+L2-075,kdist_blitz_k11_count,"117,783",frequent itemsets K=11,deterministic,direct_mining.log,27,"[per-K] K=11: 0 candidates → 117,783 frequent (596ms)"
+L2-076,kdist_blitz_k12_count,"67,558",frequent itemsets K=12,deterministic,direct_mining.log,28,"[per-K] K=12: 0 candidates → 67,558 frequent (352ms)"
+L2-077,kdist_blitz_k13_count,"32,831",frequent itemsets K=13,deterministic,direct_mining.log,29,"[per-K] K=13: 0 candidates → 32,831 frequent (179ms)"
+L2-078,kdist_blitz_k14_count,"13,105",frequent itemsets K=14,deterministic,direct_mining.log,30,"[per-K] K=14: 0 candidates → 13,105 frequent (75ms)"
+L2-079,kdist_blitz_k15_count,"4,155",frequent itemsets K=15,deterministic,direct_mining.log,31,"[per-K] K=15: 0 candidates → 4,155 frequent (30ms)"
+L2-080,kdist_blitz_k16_count,"1,003",frequent itemsets K=16,deterministic,direct_mining.log,32,"[per-K] K=16: 0 candidates → 1,003 frequent (14ms)"
+L2-081,kdist_blitz_k17_count,173,frequent itemsets K=17,deterministic,direct_mining.log,33,[per-K] K=17: 0 candidates → 173 frequent (11ms)
+L2-082,kdist_blitz_k18_count,19,frequent itemsets K=18,deterministic,direct_mining.log,34,[per-K] K=18: 0 candidates → 19 frequent (12ms)
+L2-083,kdist_blitz_k19_count,1,frequent itemsets K=19,deterministic,direct_mining.log,35,[per-K] K=19: 0 candidates → 1 frequent (15ms)
+L2-084,run_blitz_time_s,119.3,"s (mining, '2.0 min')",hardware-dependent,direct_mining.log,37,>>> MINING COMPLETE in 119.3s (2.0 min)
+L2-085,run_blitz_total_time_s,120.6,"s (total, '2.0 min')",hardware-dependent,direct_mining.log,38,>>> Total time: 120.6s (2.0 min)
+L2-086,run_blitz_itemsets,"2,841,280",itemsets (total),deterministic,direct_mining.log,39,">>> Itemsets found: 2,841,280"
+L2-087,kdist_blitz_k1_count,"1,002",itemsets K=1,deterministic,direct_mining.log,42,"[K-dist] K=1: 1,002"
+L2-088,kdist_blitz_k2_count,"39,125",itemsets K=2,deterministic,direct_mining.log,43,"[K-dist] K=2: 39,125"
+L2-089,kdist_blitz_k3_count,"184,900",itemsets K=3,deterministic,direct_mining.log,44,"[K-dist] K=3: 184,900"
+L2-090,kdist_blitz_k4_count,"361,696",itemsets K=4,deterministic,direct_mining.log,45,"[K-dist] K=4: 361,696"
+L2-091,kdist_blitz_k5_count,"445,661",itemsets K=5,deterministic,direct_mining.log,46,"[K-dist] K=5: 445,661"
+L2-092,kdist_blitz_k6_count,"439,605",itemsets K=6,deterministic,direct_mining.log,47,"[K-dist] K=6: 439,605"
+L2-093,kdist_blitz_k7_count,"387,030",itemsets K=7,deterministic,direct_mining.log,48,"[K-dist] K=7: 387,030"
+L2-094,kdist_blitz_k8_count,"318,349",itemsets K=8,deterministic,direct_mining.log,49,"[K-dist] K=8: 318,349"
+L2-095,kdist_blitz_k9_count,"247,680",itemsets K=9,deterministic,direct_mining.log,50,"[K-dist] K=9: 247,680"
+L2-096,kdist_blitz_k10_count,"179,604",itemsets K=10,deterministic,direct_mining.log,51,"[K-dist] K=10: 179,604"
+L2-097,kdist_blitz_k11_count,"117,783",itemsets K=11,deterministic,direct_mining.log,52,"[K-dist] K=11: 117,783"
+L2-098,kdist_blitz_k12_count,"67,558",itemsets K=12,deterministic,direct_mining.log,53,"[K-dist] K=12: 67,558"
+L2-099,kdist_blitz_k13_count,"32,831",itemsets K=13,deterministic,direct_mining.log,54,"[K-dist] K=13: 32,831"
+L2-100,kdist_blitz_k14_count,"13,105",itemsets K=14,deterministic,direct_mining.log,55,"[K-dist] K=14: 13,105"
+L2-101,kdist_blitz_k15_count,"4,155",itemsets K=15,deterministic,direct_mining.log,56,"[K-dist] K=15: 4,155"
+L2-102,kdist_blitz_k16_count,"1,003",itemsets K=16,deterministic,direct_mining.log,57,"[K-dist] K=16: 1,003"
+L2-103,kdist_blitz_k17_count,173,itemsets K=17,deterministic,direct_mining.log,58,[K-dist] K=17: 173
+L2-104,kdist_blitz_k18_count,19,itemsets K=18,deterministic,direct_mining.log,59,[K-dist] K=18: 19
+L2-105,kdist_blitz_k19_count,1,itemsets K=19,deterministic,direct_mining.log,60,[K-dist] K=19: 1
+L2-106,run_blitz_bytes,"12,177,502",bytes (output parquet),software,direct_mining.log,63,">>> File size: 12,177,502 bytes"
+L2-107,run_power_support_pct,0.001,% support (on '214M TrEMBL'),method-parameter,extreme_mining.log,1,>>> EXTREME SUPPORT: 0.001% on 214M TrEMBL
+L2-108,dataset_plddt_pass,"205,620,298",transactions (total in parquet),deterministic,extreme_mining.log,3,"Total transactions: 205,620,298"
+L2-109,dataset_multi_feature,"76,890,945",transactions with >1 item,deterministic,extreme_mining.log,4,"With >1 item: 76,890,945"
+L2-110,run_power_min_count,768,min support count (script-computed; '0.001%'),method-parameter,extreme_mining.log,5,Min support = 0.001% = 768 proteins
+L2-111,run_power_support_pct,0.001,% support (banner),method-parameter,extreme_mining.log,7,>>> GPU-RESIDENT STREAMING APRIORI — 0.001% SUPPORT
+L2-112,run_power_son_max_length,20,max length (banner),method-parameter,extreme_mining.log,8,>>> MAX LENGTH 20 — HUNTING FOR MEGA-COMPLEXES
+L2-113,run_power_son_time_s,1085.6,s (mining),hardware-dependent,extreme_mining.log,12,Time: 1085.6s
+L2-114,run_power_son_itemsets,"22,846",itemsets (total),deterministic,extreme_mining.log,13,"Itemsets: 22,846"
+L2-115,kdist_power_son_k1_count,47,itemsets K=1,deterministic,extreme_mining.log,14,[K-dist] K=1: 47
+L2-116,kdist_power_son_k2_count,990,itemsets K=2,deterministic,extreme_mining.log,15,[K-dist] K=2: 990
+L2-117,kdist_power_son_k3_count,"3,392",itemsets K=3,deterministic,extreme_mining.log,16,"[K-dist] K=3: 3,392"
+L2-118,kdist_power_son_k4_count,"5,147",itemsets K=4,deterministic,extreme_mining.log,17,"[K-dist] K=4: 5,147"
+L2-119,kdist_power_son_k5_count,"5,024",itemsets K=5,deterministic,extreme_mining.log,18,"[K-dist] K=5: 5,024"
+L2-120,kdist_power_son_k6_count,"3,847",itemsets K=6,deterministic,extreme_mining.log,19,"[K-dist] K=6: 3,847"
+L2-121,kdist_power_son_k7_count,"2,433",itemsets K=7,deterministic,extreme_mining.log,20,"[K-dist] K=7: 2,433"
+L2-122,kdist_power_son_k8_count,"1,253",itemsets K=8,deterministic,extreme_mining.log,21,"[K-dist] K=8: 1,253"
+L2-123,kdist_power_son_k9_count,492,itemsets K=9,deterministic,extreme_mining.log,22,[K-dist] K=9: 492
+L2-124,kdist_power_son_k10_count,160,itemsets K=10,deterministic,extreme_mining.log,23,[K-dist] K=10: 160
+L2-125,kdist_power_son_k11_count,48,itemsets K=11,deterministic,extreme_mining.log,24,[K-dist] K=11: 48
+L2-126,kdist_power_son_k12_count,11,itemsets K=12,deterministic,extreme_mining.log,25,[K-dist] K=12: 11
+L2-127,kdist_power_son_k13_count,2,itemsets K=13,deterministic,extreme_mining.log,26,[K-dist] K=13: 2
+L2-128,kdist_power_son_k13_count,2,itemsets K=13,deterministic,extreme_mining.log,31,[deepest-patterns header] --- K=13 (2 itemsets) ---
+L2-129,pattern_power_son_k13_1_support_frac,0.000142,support (fraction),deterministic,extreme_mining.log,32,"[K=13 pattern] support=0.000142 (10,916 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0006260 + GO:0009432 …"
+L2-130,pattern_power_son_k13_1_support,"10,916",proteins (itemset support count),deterministic,extreme_mining.log,32,"[K=13 pattern] support=0.000142 (10,916 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0006260 + GO:0009432 …"
+L2-131,pattern_power_son_k13_2_support_frac,0.000142,support (fraction),deterministic,extreme_mining.log,34,"[K=13 pattern] support=0.000142 (10,913 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006260 + GO:0009432 …"
+L2-132,pattern_power_son_k13_2_support,"10,913",proteins (itemset support count),deterministic,extreme_mining.log,34,"[K=13 pattern] support=0.000142 (10,913 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006260 + GO:0009432 …"
+L2-133,kdist_power_son_k12_count,11,itemsets K=12,deterministic,extreme_mining.log,37,[deepest-patterns header] --- K=12 (11 itemsets) ---
+L2-134,pattern_power_son_k12_1_support_frac,0.000143,support (fraction),deterministic,extreme_mining.log,38,"[K=12 pattern] support=0.000143 (11,007 proteins) — PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0006260 + GO:0009432 …"
+L2-135,pattern_power_son_k12_1_support,"11,007",proteins (itemset support count),deterministic,extreme_mining.log,38,"[K=12 pattern] support=0.000143 (11,007 proteins) — PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0006260 + GO:0009432 …"
+L2-136,pattern_power_son_k12_2_support_frac,0.000143,support (fraction),deterministic,extreme_mining.log,40,"[K=12 pattern] support=0.000143 (10,978 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0009432 …"
+L2-137,pattern_power_son_k12_2_support,"10,978",proteins (itemset support count),deterministic,extreme_mining.log,40,"[K=12 pattern] support=0.000143 (10,978 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0009432 …"
+L2-138,pattern_power_son_k12_3_support_frac,0.000142,support (fraction),deterministic,extreme_mining.log,42,"[K=12 pattern] support=0.000142 (10,913 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0016787 + GO:0006310 + GO:0006260 + GO:0009432 + GO:0043138 …"
+L2-139,pattern_power_son_k12_3_support,"10,913",proteins (itemset support count),deterministic,extreme_mining.log,42,"[K=12 pattern] support=0.000142 (10,913 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0016787 + GO:0006310 + GO:0006260 + GO:0009432 + GO:0043138 …"
+L2-140,pattern_power_son_k12_4_support_frac,0.000142,support (fraction),deterministic,extreme_mining.log,44,"[K=12 pattern] support=0.000142 (10,912 proteins) — plddt_mean_med + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0009432 + GO:0043138 …"
+L2-141,pattern_power_son_k12_4_support,"10,912",proteins (itemset support count),deterministic,extreme_mining.log,44,"[K=12 pattern] support=0.000142 (10,912 proteins) — plddt_mean_med + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0009432 + GO:0043138 …"
+L2-142,pattern_power_son_k12_5_support_frac,0.000136,support (fraction),deterministic,extreme_mining.log,46,"[K=12 pattern] support=0.000136 (10,494 proteins) — PF00905 + PF00912 + GO:0005886 + GO:0006508 + GO:0071555 + GO:0008360 + GO:0009252 + GO:0030288 + GO:0046677 + GO:0008658 + GO:0009002 …"
+L2-143,pattern_k12_support,"10,494",proteins (itemset support count),deterministic,extreme_mining.log,46,"[K=12 pattern] support=0.000136 (10,494 proteins) — PF00905 + PF00912 + GO:0005886 + GO:0006508 + GO:0071555 + GO:0008360 + GO:0009252 + GO:0030288 + GO:0046677 + GO:0008658 + GO:0009002 …"
+L2-144,kdist_power_son_k11_count,48,itemsets K=11,deterministic,extreme_mining.log,49,[deepest-patterns header] --- K=11 (48 itemsets) ---
+L2-145,pattern_power_son_k11_1_support_frac,0.000230,support (fraction),deterministic,extreme_mining.log,50,"[K=11 pattern] support=0.000230 (17,686 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0043138 + GO:0043590"
+L2-146,pattern_power_son_k11_1_support,"17,686",proteins (itemset support count),deterministic,extreme_mining.log,50,"[K=11 pattern] support=0.000230 (17,686 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0005524 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0043138 + GO:0043590"
+L2-147,pattern_power_son_k11_2_support_frac,0.000207,support (fraction),deterministic,extreme_mining.log,52,"[K=11 pattern] support=0.000207 (15,886 proteins) — plddt_mean_med + PF00004 + PF10431 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-148,pattern_power_son_k11_2_support,"15,886",proteins (itemset support count),deterministic,extreme_mining.log,52,"[K=11 pattern] support=0.000207 (15,886 proteins) — plddt_mean_med + PF00004 + PF10431 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-149,pattern_power_son_k11_3_support_frac,0.000207,support (fraction),deterministic,extreme_mining.log,54,"[K=11 pattern] support=0.000207 (15,886 proteins) — PF00004 + PF07724 + PF10431 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-150,pattern_power_son_k11_3_support,"15,886",proteins (itemset support count),deterministic,extreme_mining.log,54,"[K=11 pattern] support=0.000207 (15,886 proteins) — PF00004 + PF07724 + PF10431 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-151,pattern_power_son_k11_4_support_frac,0.000202,support (fraction),deterministic,extreme_mining.log,56,"[K=11 pattern] support=0.000202 (15,565 proteins) — PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0043138 + GO:0043590"
+L2-152,pattern_power_son_k11_4_support,"15,565",proteins (itemset support count),deterministic,extreme_mining.log,56,"[K=11 pattern] support=0.000202 (15,565 proteins) — PF00271 + PF00270 + GO:0005524 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0043138 + GO:0043590"
+L2-153,pattern_power_son_k11_5_support_frac,0.000197,support (fraction),deterministic,extreme_mining.log,58,"[K=11 pattern] support=0.000197 (15,167 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0043138 + GO:0043590"
+L2-154,pattern_power_son_k11_5_support,"15,167",proteins (itemset support count),deterministic,extreme_mining.log,58,"[K=11 pattern] support=0.000197 (15,167 proteins) — plddt_mean_med + PF00271 + PF00270 + GO:0046872 + GO:0005737 + GO:0003677 + GO:0016787 + GO:0006281 + GO:0006310 + GO:0043138 + GO:0043590"
+L2-155,kdist_power_son_k10_count,160,itemsets K=10,deterministic,extreme_mining.log,61,[deepest-patterns header] --- K=10 (160 itemsets) ---
+L2-156,pattern_power_son_k10_1_support_frac,0.000240,support (fraction),deterministic,extreme_mining.log,62,"[K=10 pattern] support=0.000240 (18,425 proteins) — plddt_mean_med + PF00004 + PF07724 + PF10431 + PF17871 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0034605"
+L2-157,pattern_power_son_k10_1_support,"18,425",proteins (itemset support count),deterministic,extreme_mining.log,62,"[K=10 pattern] support=0.000240 (18,425 proteins) — plddt_mean_med + PF00004 + PF07724 + PF10431 + PF17871 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0034605"
+L2-158,pattern_power_son_k10_2_support_frac,0.000238,support (fraction),deterministic,extreme_mining.log,64,"[K=10 pattern] support=0.000238 (18,313 proteins) — plddt_mean_med + PF00004 + PF07724 + PF10431 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-159,pattern_power_son_k10_2_support,"18,313",proteins (itemset support count),deterministic,extreme_mining.log,64,"[K=10 pattern] support=0.000238 (18,313 proteins) — plddt_mean_med + PF00004 + PF07724 + PF10431 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-160,pattern_power_son_k10_3_support_frac,0.000216,support (fraction),deterministic,extreme_mining.log,66,"[K=10 pattern] support=0.000216 (16,614 proteins) — plddt_mean_med + PF00905 + PF00912 + GO:0005886 + GO:0006508 + GO:0071555 + GO:0009252 + GO:0008658 + GO:0009002 + GO:0008955"
+L2-161,pattern_power_son_k10_3_support,"16,614",proteins (itemset support count),deterministic,extreme_mining.log,66,"[K=10 pattern] support=0.000216 (16,614 proteins) — plddt_mean_med + PF00905 + PF00912 + GO:0005886 + GO:0006508 + GO:0071555 + GO:0009252 + GO:0008658 + GO:0009002 + GO:0008955"
+L2-162,pattern_power_son_k10_4_support_frac,0.000208,support (fraction),deterministic,extreme_mining.log,68,"[K=10 pattern] support=0.000208 (16,029 proteins) — plddt_mean_med + PF07724 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-163,pattern_power_son_k10_4_support,"16,029",proteins (itemset support count),deterministic,extreme_mining.log,68,"[K=10 pattern] support=0.000208 (16,029 proteins) — plddt_mean_med + PF07724 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0006508 + GO:0008233 + GO:0034605"
+L2-164,pattern_power_son_k10_5_support_frac,0.000207,support (fraction),deterministic,extreme_mining.log,70,"[K=10 pattern] support=0.000207 (15,936 proteins) — plddt_mean_med + PF07724 + PF10431 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0008233 + GO:0034605"
+L2-165,pattern_power_son_k10_5_support,"15,936",proteins (itemset support count),deterministic,extreme_mining.log,70,"[K=10 pattern] support=0.000207 (15,936 proteins) — plddt_mean_med + PF07724 + PF10431 + PF17871 + PF02861 + GO:0005524 + GO:0005737 + GO:0016887 + GO:0008233 + GO:0034605"
+L2-166,meta_log_opus_start_timestamp,"2026-02-09 06:42:58,031","timestamp (run start, Direct CSR path)",external-fact,godmode_mining.log,2,"2026-02-09 06:42:58,031 Direct CSR path: 76,890,945 transactions, min_count=8"
+L2-167,dataset_multi_feature,"76,890,945",transactions,deterministic,godmode_mining.log,2,"2026-02-09 06:42:58,031 Direct CSR path: 76,890,945 transactions, min_count=8"
+L2-168,run_opus_min_count,8,min_count,method-parameter,godmode_mining.log,2,"2026-02-09 06:42:58,031 Direct CSR path: 76,890,945 transactions, min_count=8"
+L2-169,vocab_items_frequent,1002,frequent items (K=1),deterministic,godmode_mining.log,3,"2026-02-09 06:42:58,411 Direct CSR path: 1002 frequent items"
+L2-170,csr_nnz,"316,421,093",non-zeros (CSR nnz),deterministic,godmode_mining.log,4,"2026-02-09 06:42:59,144 Direct CSR path: 316,421,093 non-zeros"
+L2-171,kdist_opus_k1_count,"1,002",frequent itemsets K=1,deterministic,godmode_mining.log,5,"[per-K] K=1: 1,002 frequent (84ms)"
+L2-172,kdist_opus_k2_count,"73,786",frequent itemsets K=2,deterministic,godmode_mining.log,6,"[per-K] K=2: 73,786 frequent (2064ms)"
+L2-173,kdist_opus_k3_count,"452,777",frequent itemsets K=3,deterministic,godmode_mining.log,7,"[per-K] K=3: 452,777 frequent (25596ms)"
+L2-174,kdist_opus_k4_count,"1,184,461",frequent itemsets K=4,deterministic,godmode_mining.log,8,"[per-K] K=4: 1,184,461 frequent (37356ms)"
+L2-175,kdist_opus_k5_count,"1,974,126",frequent itemsets K=5,deterministic,godmode_mining.log,9,"[per-K] K=5: 1,974,126 frequent (35019ms)"
+L2-176,kdist_opus_k6_count,"2,626,332",frequent itemsets K=6,deterministic,godmode_mining.log,10,"[per-K] K=6: 2,626,332 frequent (22660ms)"
+L2-177,kdist_opus_k7_count,"3,118,459",frequent itemsets K=7,deterministic,godmode_mining.log,11,"[per-K] K=7: 3,118,459 frequent (14854ms)"
+L2-178,kdist_opus_k8_count,"3,442,954",frequent itemsets K=8,deterministic,godmode_mining.log,12,"[per-K] K=8: 3,442,954 frequent (12055ms)"
+L2-179,kdist_opus_k9_count,"3,529,257",frequent itemsets K=9,deterministic,godmode_mining.log,13,"[per-K] K=9: 3,529,257 frequent (11446ms)"
+L2-180,kdist_opus_k10_count,"3,293,612",frequent itemsets K=10,deterministic,godmode_mining.log,14,"[per-K] K=10: 3,293,612 frequent (10911ms)"
+L2-181,kdist_opus_k11_count,"2,739,532",frequent itemsets K=11,deterministic,godmode_mining.log,15,"[per-K] K=11: 2,739,532 frequent (9730ms)"
+L2-182,kdist_opus_k12_count,"1,996,772",frequent itemsets K=12,deterministic,godmode_mining.log,16,"[per-K] K=12: 1,996,772 frequent (8309ms)"
+L2-183,kdist_opus_k13_count,"1,259,045",frequent itemsets K=13,deterministic,godmode_mining.log,17,"[per-K] K=13: 1,259,045 frequent (6571ms)"
+L2-184,kdist_opus_k14_count,"679,471",frequent itemsets K=14,deterministic,godmode_mining.log,18,"[per-K] K=14: 679,471 frequent (5326ms)"
+L2-185,kdist_opus_k15_count,"310,527",frequent itemsets K=15,deterministic,godmode_mining.log,19,"[per-K] K=15: 310,527 frequent (1836ms)"
+L2-186,kdist_opus_k16_count,"118,659",frequent itemsets K=16,deterministic,godmode_mining.log,20,"[per-K] K=16: 118,659 frequent (674ms)"
+L2-187,kdist_opus_k17_count,"37,261",frequent itemsets K=17,deterministic,godmode_mining.log,21,"[per-K] K=17: 37,261 frequent (217ms)"
+L2-188,kdist_opus_k18_count,"9,375",frequent itemsets K=18,deterministic,godmode_mining.log,22,"[per-K] K=18: 9,375 frequent (61ms)"
+L2-189,kdist_opus_k19_count,"1,818",frequent itemsets K=19,deterministic,godmode_mining.log,23,"[per-K] K=19: 1,818 frequent (18ms)"
+L2-190,kdist_opus_k20_count,255,frequent itemsets K=20,deterministic,godmode_mining.log,24,[per-K] K=20: 255 frequent (11ms)
+L2-191,kdist_opus_k21_count,23,frequent itemsets K=21,deterministic,godmode_mining.log,25,[per-K] K=21: 23 frequent (11ms)
+L2-192,kdist_opus_k22_count,1,frequent itemsets K=22,deterministic,godmode_mining.log,26,[per-K] K=22: 1 frequent (13ms)
+L2-193,run_opus_itemsets,"26,849,505",itemsets (total),deterministic,godmode_mining.log,28,">>> 26,849,505 itemsets in 440.5s"
+L2-194,run_opus_time_s,440.5,s (total),hardware-dependent,godmode_mining.log,28,">>> 26,849,505 itemsets in 440.5s"
+L2-195,run_opus_bytes,"85,131,478",bytes (output parquet),software,godmode_mining.log,29,">>> Saved: 85,131,478 bytes"
+L2-196,kdist_opus_k22_count,1,itemsets K=22,deterministic,godmode_mining.log,31,[pattern-block header] === K=22 (1 itemsets) ===
+L2-197,k22_support,8,proteins (itemset support count),deterministic,godmode_mining.log,32,"[K=22 pattern #1] #1 (8 proteins) — pLDDT: ['plddt_mean_med'] ; Pfam: ['PF00271', 'PF00270'] ; GO (19): ['GO:0005524', 'GO:0005737', 'GO:0005829', 'GO:0005634', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', …"
+L2-198,kdist_opus_k21_count,23,itemsets K=21,deterministic,godmode_mining.log,37,[pattern-block header] === K=21 (23 itemsets) ===
+L2-199,pattern_opus_k21_1_support,13,proteins (itemset support count),deterministic,godmode_mining.log,38,"[K=21 pattern #1] #1 (13 proteins) — pLDDT: ['plddt_mean_med'] ; Pfam: ['PF00271', 'PF00270'] ; GO (18): ['GO:0005524', 'GO:0046872', 'GO:0003677', 'GO:0016887', 'GO:1990904', 'GO:0005730', 'GO:0006260', 'GO:0005654', 'GO:0006397', 'GO:0045944', 'GO:0003724', 'GO:0043138', …"
+L2-200,pattern_opus_k21_2_support,8,proteins (itemset support count),deterministic,godmode_mining.log,42,"[K=21 pattern #2] #2 (8 proteins) — pLDDT: ['plddt_mean_med'] ; Pfam: ['PF00271', 'PF00270'] ; GO (18): ['GO:0005524', 'GO:0005737', 'GO:0005829', 'GO:0005634', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', …"
+L2-201,pattern_opus_k21_3_support,8,proteins (itemset support count),deterministic,godmode_mining.log,46,"[K=21 pattern #3] #3 (8 proteins) — pLDDT: ['plddt_mean_med'] ; Pfam: ['PF00271', 'PF00270'] ; GO (18): ['GO:0005524', 'GO:0005737', 'GO:0005829', 'GO:0005634', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', …"
+L2-202,kdist_opus_k20_count,255,itemsets K=20,deterministic,godmode_mining.log,51,[pattern-block header] === K=20 (255 itemsets) ===
+L2-203,pattern_opus_k20_1_support,57,proteins (itemset support count),deterministic,godmode_mining.log,52,"[K=20 pattern #1] #1 (57 proteins) — pLDDT: ['plddt_mean_med'] ; Pfam: ['PF00271', 'PF00270'] ; GO (17): ['GO:0005524', 'GO:0005829', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', 'GO:0030424', 'GO:0030425', …"
+L2-204,pattern_opus_k20_2_support,40,proteins (itemset support count),deterministic,godmode_mining.log,56,"[K=20 pattern #2] #2 (40 proteins) — pLDDT: ['plddt_mean_med'] ; GO (19): ['GO:0005886', 'GO:0005829', 'GO:0008270', 'GO:0005739', 'GO:0051301', 'GO:0005730', 'GO:0006633', 'GO:0005874', 'GO:0045944', 'GO:0005694', 'GO:0016042', 'GO:0003682', 'GO:0005813', 'GO:0043161', 'GO:0000122', 'GO:0034599', …"
+L2-205,pattern_opus_k20_3_support,15,proteins (itemset support count),deterministic,godmode_mining.log,59,"[K=20 pattern #3] #3 (15 proteins) — pLDDT: ['plddt_mean_med'] ; Pfam: ['PF00271'] ; GO (18): ['GO:0005524', 'GO:0046872', 'GO:0003677', 'GO:0016887', 'GO:1990904', 'GO:0005730', 'GO:0006260', 'GO:0005654', 'GO:0006397', 'GO:0045944', 'GO:0003724', 'GO:0043138', 'GO:0005813', …"
+L2-206,run_hmb_min_count,4,proteins (nominal min_count),method-parameter,holdmybeer.log,3,support = 4 proteins / 76.9M = 0.000005%
+L2-207,dataset_multi_feature,76.9M,transactions (rounded denominator),deterministic,holdmybeer.log,3,support = 4 proteins / 76.9M = 0.000005%
+L2-208,run_hmb_support_pct,0.000005,"% support (nominal, rounded)",method-parameter,holdmybeer.log,3,support = 4 proteins / 76.9M = 0.000005%
+L2-209,run_hmb_target_k,23+,target K,method-parameter,holdmybeer.log,4,Target: K=23+
+L2-210,run_hmb_support,0.000000052,min_support (fraction),method-parameter,holdmybeer.log,8,>>> Mining at support=0.000000052 (~4 proteins)...
+L2-211,run_hmb_min_count,~4,proteins (nominal min_count),method-parameter,holdmybeer.log,8,>>> Mining at support=0.000000052 (~4 proteins)...
+L2-212,run_hmb_itemsets,"18,935,899",itemsets (total),deterministic,holdmybeer.log,10,">>> 18,935,899 itemsets in 573.1s"
+L2-213,run_hmb_time_s,573.1,s (total),hardware-dependent,holdmybeer.log,10,">>> 18,935,899 itemsets in 573.1s"
+L2-214,run_hmb_bytes,"63,377,870",bytes (output parquet),software,holdmybeer.log,11,">>> Saved: 63,377,870 bytes"
+L2-215,kdist_hmb_k1_count,"1,002",itemsets K=1,deterministic,holdmybeer.log,14,"[K-dist] K=1: 1,002"
+L2-216,kdist_hmb_k2_count,"66,703",itemsets K=2,deterministic,holdmybeer.log,15,"[K-dist] K=2: 66,703"
+L2-217,kdist_hmb_k3_count,"403,157",itemsets K=3,deterministic,holdmybeer.log,16,"[K-dist] K=3: 403,157"
+L2-218,kdist_hmb_k4_count,"1,030,353",itemsets K=4,deterministic,holdmybeer.log,17,"[K-dist] K=4: 1,030,353"
+L2-219,kdist_hmb_k5_count,"1,664,538",itemsets K=5,deterministic,holdmybeer.log,18,"[K-dist] K=5: 1,664,538"
+L2-220,kdist_hmb_k6_count,"2,134,446",itemsets K=6,deterministic,holdmybeer.log,19,"[K-dist] K=6: 2,134,446"
+L2-221,kdist_hmb_k7_count,"2,434,007",itemsets K=7,deterministic,holdmybeer.log,20,"[K-dist] K=7: 2,434,007"
+L2-222,kdist_hmb_k8_count,"2,567,214",itemsets K=8,deterministic,holdmybeer.log,21,"[K-dist] K=8: 2,567,214"
+L2-223,kdist_hmb_k9_count,"2,493,943",itemsets K=9,deterministic,holdmybeer.log,22,"[K-dist] K=9: 2,493,943"
+L2-224,kdist_hmb_k10_count,"2,185,067",itemsets K=10,deterministic,holdmybeer.log,23,"[K-dist] K=10: 2,185,067"
+L2-225,kdist_hmb_k11_count,"1,689,219",itemsets K=11,deterministic,holdmybeer.log,24,"[K-dist] K=11: 1,689,219"
+L2-226,kdist_hmb_k12_count,"1,131,603",itemsets K=12,deterministic,holdmybeer.log,25,"[K-dist] K=12: 1,131,603"
+L2-227,kdist_hmb_k13_count,"646,988",itemsets K=13,deterministic,holdmybeer.log,26,"[K-dist] K=13: 646,988"
+L2-228,kdist_hmb_k14_count,"311,183",itemsets K=14,deterministic,holdmybeer.log,27,"[K-dist] K=14: 311,183"
+L2-229,kdist_hmb_k15_count,"123,916",itemsets K=15,deterministic,holdmybeer.log,28,"[K-dist] K=15: 123,916"
+L2-230,kdist_hmb_k16_count,"40,051",itemsets K=16,deterministic,holdmybeer.log,29,"[K-dist] K=16: 40,051"
+L2-231,kdist_hmb_k17_count,"10,227",itemsets K=17,deterministic,holdmybeer.log,30,"[K-dist] K=17: 10,227"
+L2-232,kdist_hmb_k18_count,"1,983",itemsets K=18,deterministic,holdmybeer.log,31,"[K-dist] K=18: 1,983"
+L2-233,kdist_hmb_k19_count,274,itemsets K=19,deterministic,holdmybeer.log,32,[K-dist] K=19: 274
+L2-234,kdist_hmb_k20_count,24,itemsets K=20,deterministic,holdmybeer.log,33,[K-dist] K=20: 24
+L2-235,kdist_hmb_k21_count,1,itemsets K=21,deterministic,holdmybeer.log,34,[K-dist] K=21: 1
+L2-236,run_hmb_kmax,21,K_max,deterministic,holdmybeer.log,36,>>> MAX K = 21
+L2-237,run_hmb_itemsets,"18,935,899","itemsets (total, final line; 'max K=21, 573.1s')",deterministic,holdmybeer.log,40,">>> HOLD MY BEER MODE COMPLETE. 18,935,899 itemsets, max K=21, 573.1s"
+L2-238,run_minc4_min_count,4,min_count (proteins),method-parameter,holdmybeer_real.log,3,min_count = 4 proteins (for real)
+L2-239,run_minc4_support,1.945333237480280e-08,min_support (fraction),method-parameter,holdmybeer_real.log,5,min_support = 1.945333237480280e-08
+L2-240,dataset_plddt_pass,205620298,transactions (denominator used in verify),deterministic,holdmybeer_real.log,6,verify: ceil(1.9453332374802804e-08 * 205620298) = 4
+L2-241,run_minc4_min_count,4,min_count (verified ceil),method-parameter,holdmybeer_real.log,6,verify: ceil(1.9453332374802804e-08 * 205620298) = 4
+L2-242,run_minc4_itemsets,"48,007,493",itemsets (total),deterministic,holdmybeer_real.log,8,">>> 48,007,493 itemsets in 1228.5s"
+L2-243,run_minc4_time_s,1228.5,s (total),hardware-dependent,holdmybeer_real.log,8,">>> 48,007,493 itemsets in 1228.5s"
+L2-244,run_minc4_bytes,"149,590,799",bytes (output parquet),software,holdmybeer_real.log,9,">>> Saved: 149,590,799 bytes"
+L2-245,kdist_minc4_k1_count,"1,002",itemsets K=1,deterministic,holdmybeer_real.log,12,"[K-dist] K=1: 1,002"
+L2-246,kdist_minc4_k2_count,"94,427",itemsets K=2,deterministic,holdmybeer_real.log,13,"[K-dist] K=2: 94,427"
+L2-247,kdist_minc4_k3_count,"603,403",itemsets K=3,deterministic,holdmybeer_real.log,14,"[K-dist] K=3: 603,403"
+L2-248,kdist_minc4_k4_count,"1,649,283",itemsets K=4,deterministic,holdmybeer_real.log,15,"[K-dist] K=4: 1,649,283"
+L2-249,kdist_minc4_k5_count,"2,916,124",itemsets K=5,deterministic,holdmybeer_real.log,16,"[K-dist] K=5: 2,916,124"
+L2-250,kdist_minc4_k6_count,"4,169,081",itemsets K=6,deterministic,holdmybeer_real.log,17,"[K-dist] K=6: 4,169,081"
+L2-251,kdist_minc4_k7_count,"5,318,506",itemsets K=7,deterministic,holdmybeer_real.log,18,"[K-dist] K=7: 5,318,506"
+L2-252,kdist_minc4_k8_count,"6,223,873",itemsets K=8,deterministic,holdmybeer_real.log,19,"[K-dist] K=8: 6,223,873"
+L2-253,kdist_minc4_k9_count,"6,644,170",itemsets K=9,deterministic,holdmybeer_real.log,20,"[K-dist] K=9: 6,644,170"
+L2-254,kdist_minc4_k10_count,"6,362,841",itemsets K=10,deterministic,holdmybeer_real.log,21,"[K-dist] K=10: 6,362,841"
+L2-255,kdist_minc4_k11_count,"5,373,365",itemsets K=11,deterministic,holdmybeer_real.log,22,"[K-dist] K=11: 5,373,365"
+L2-256,kdist_minc4_k12_count,"3,943,668",itemsets K=12,deterministic,holdmybeer_real.log,23,"[K-dist] K=12: 3,943,668"
+L2-257,kdist_minc4_k13_count,"2,484,117",itemsets K=13,deterministic,holdmybeer_real.log,24,"[K-dist] K=13: 2,484,117"
+L2-258,kdist_minc4_k14_count,"1,327,096",itemsets K=14,deterministic,holdmybeer_real.log,25,"[K-dist] K=14: 1,327,096"
+L2-259,kdist_minc4_k15_count,"593,694",itemsets K=15,deterministic,holdmybeer_real.log,26,"[K-dist] K=15: 593,694"
+L2-260,kdist_minc4_k16_count,"219,052",itemsets K=16,deterministic,holdmybeer_real.log,27,"[K-dist] K=16: 219,052"
+L2-261,kdist_minc4_k17_count,"65,356",itemsets K=17,deterministic,holdmybeer_real.log,28,"[K-dist] K=17: 65,356"
+L2-262,kdist_minc4_k18_count,"15,343",itemsets K=18,deterministic,holdmybeer_real.log,29,"[K-dist] K=18: 15,343"
+L2-263,kdist_minc4_k19_count,"2,722",itemsets K=19,deterministic,holdmybeer_real.log,30,"[K-dist] K=19: 2,722"
+L2-264,kdist_minc4_k20_count,342,itemsets K=20,deterministic,holdmybeer_real.log,31,[K-dist] K=20: 342
+L2-265,kdist_minc4_k21_count,27,itemsets K=21,deterministic,holdmybeer_real.log,32,[K-dist] K=21: 27
+L2-266,kdist_minc4_k22_count,1,itemsets K=22,deterministic,holdmybeer_real.log,33,[K-dist] K=22: 1
+L2-267,run_minc4_kmax,22,K_max,deterministic,holdmybeer_real.log,35,>>> MAX K = 22
+L2-268,kdist_minc4_k22_count,1,itemsets K=22,deterministic,holdmybeer_real.log,37,[pattern-block header] === K=22 (1 itemsets) ===
+L2-269,k22_support,8,proteins (itemset support count),deterministic,holdmybeer_real.log,38,"[K=22 pattern #1] #1 (8 proteins) — go_term: ['GO:0005524', 'GO:0005737', 'GO:0005829', 'GO:0005634', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', 'GO:0030424', 'GO:0030425', 'GO:0051607', 'GO:0003725', 'GO:0034605', 'GO:0016607', 'GO:0003678'] ; …"
+L2-270,kdist_minc4_k21_count,27,itemsets K=21,deterministic,holdmybeer_real.log,43,[pattern-block header] === K=21 (27 itemsets) ===
+L2-271,pattern_minc4_k21_1_support,13,proteins (itemset support count),deterministic,holdmybeer_real.log,44,"[K=21 pattern #1] #1 (13 proteins) — go_term: ['GO:0005524', 'GO:0046872', 'GO:0003677', 'GO:0016887', 'GO:1990904', 'GO:0005730', 'GO:0006260', 'GO:0005654', 'GO:0006397', 'GO:0045944', 'GO:0003724', 'GO:0043138', 'GO:0005813', 'GO:0008380', 'GO:0006417', 'GO:0003725', 'GO:0006353', 'GO:0006954'] ; pfam: …"
+L2-272,pattern_minc4_k21_2_support,8,proteins (itemset support count),deterministic,holdmybeer_real.log,48,"[K=21 pattern #2] #2 (8 proteins) — go_term: ['GO:0005524', 'GO:0005737', 'GO:0005829', 'GO:0005634', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', 'GO:0030424', 'GO:0030425', 'GO:0051607', 'GO:0003725', 'GO:0034605', 'GO:0016607'] ; pfam: …"
+L2-273,pattern_minc4_k21_3_support,8,proteins (itemset support count),deterministic,holdmybeer_real.log,52,"[K=21 pattern #3] #3 (8 proteins) — go_term: ['GO:0005524', 'GO:0005737', 'GO:0005829', 'GO:0005634', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', 'GO:0030424', 'GO:0030425', 'GO:0051607', 'GO:0003725', 'GO:0034605', 'GO:0003678'] ; pfam: …"
+L2-274,kdist_minc4_k20_count,342,itemsets K=20,deterministic,holdmybeer_real.log,57,[pattern-block header] === K=20 (342 itemsets) ===
+L2-275,pattern_minc4_k20_1_support,57,proteins (itemset support count),deterministic,holdmybeer_real.log,58,"[K=20 pattern #1] #1 (57 proteins) — go_term: ['GO:0005524', 'GO:0005829', 'GO:0016787', 'GO:0000287', 'GO:0005739', 'GO:0000978', 'GO:0030154', 'GO:0003697', 'GO:0003724', 'GO:0045087', 'GO:0030424', 'GO:0030425', 'GO:0051607', 'GO:0003725', 'GO:0034605', 'GO:0016607', 'GO:0003678'] ; pfam: ['PF00271', …"
+L2-276,pattern_minc4_k20_2_support,40,proteins (itemset support count),deterministic,holdmybeer_real.log,62,"[K=20 pattern #2] #2 (40 proteins) — go_term: ['GO:0005886', 'GO:0005829', 'GO:0008270', 'GO:0005739', 'GO:0051301', 'GO:0005730', 'GO:0006633', 'GO:0005874', 'GO:0045944', 'GO:0005694', 'GO:0016042', 'GO:0003682', 'GO:0005813', 'GO:0043161', 'GO:0000122', 'GO:0034599', 'GO:0070403', 'GO:0048471', 'GO:0043130'] ; …"
+L2-277,pattern_minc4_k20_3_support,15,proteins (itemset support count),deterministic,holdmybeer_real.log,65,"[K=20 pattern #3] #3 (15 proteins) — go_term: ['GO:0005524', 'GO:0046872', 'GO:0003677', 'GO:0016887', 'GO:1990904', 'GO:0005730', 'GO:0006260', 'GO:0005654', 'GO:0006397', 'GO:0045944', 'GO:0003724', 'GO:0043138', 'GO:0005813', 'GO:0008380', 'GO:0006417', 'GO:0003725', 'GO:0006353', 'GO:0006954'] ; pfam: …"
+L2-278,run_minc4_itemsets,"48,007,493","itemsets (total, final line; 'K=22, 1228.5s')",deterministic,holdmybeer_real.log,70,">>> DONE. 48,007,493 itemsets, K=22, 1228.5s"
+L2-279,run_madman_support_pct,0.0001,% support (on '214M TrEMBL'),method-parameter,madman_mining.log,1,>>> MADMAN SUPPORT: 0.0001% on 214M TrEMBL
+L2-280,dataset_multi_feature,"76,890,945",transactions with >1 item,deterministic,madman_mining.log,3,"With >1 item: 76,890,945"
+L2-281,run_madman_min_count,76,min support count (script-computed; '0.0001%'),method-parameter,madman_mining.log,4,Min support = 0.0001% = 76 proteins
+L2-282,run_madman_support_pct,0.0001,% support (banner),method-parameter,madman_mining.log,6,>>> GPU-RESIDENT STREAMING APRIORI — 0.0001% SUPPORT
+L2-283,run_madman_max_length,20,max length (banner),method-parameter,madman_mining.log,7,>>> MAX LENGTH 20 — ABSOLUTE MADMAN MODE
+L2-284,dataset_metadata_rows,214M,"proteins (nominal, pipeline banner)",external-fact,pipeline_214m.log,2,=== FULL 214M AlphaFold Pipeline ===
+L2-285,meta_log_pipeline_start_timestamp,Mon Feb  9 03:40:36 UTC 2026,timestamp (pipeline start banner),external-fact,pipeline_214m.log,3,=== Mon Feb 9 03:40:36 UTC 2026 ===
+L2-286,dataset_annotation_gb,150G,"file size (uniprot_trembl.dat.gz, du/ls -h style)",external-fact,pipeline_214m.log,7,TrEMBL: 150G
+L2-287,extract_csv_rows,214683830,"rows (plddt_metadata.csv, incl. header)",external-fact,pipeline_214m.log,8,pLDDT: 214683830 rows
+L2-288,meta_log_extract_start_timestamp,2026-02-09T03:40:38.963Z,timestamp (af-extract start),external-fact,pipeline_214m.log,9,[2026-02-09T03:40:38.963Z INFO af_extract] === Build Transactions from Metadata (pLDDT + annotations) ===
+L2-289,extract_progress_dat_parsed,100K → 202500K,"DAT records parsed (2025 periodic lines, step [100] K, 2026-02-09T03:40:40.224Z → 2026-02-09T04:36:18.840Z)",external-fact,pipeline_214m.log,11–2035,[consolidated periodic] first: [2026-02-09T03:40:40.224Z INFO af_extract::annotations] Parsed 100K DAT records... … last: [2026-02-09T04:36:18.840Z INFO af_extract::annotations] Parsed 202500K DAT records...
+L2-290,extract_dat_records,202556314,annotation records loaded from DAT,external-fact,pipeline_214m.log,2036,"[2026-02-09T04:36:19.489Z INFO af_extract::annotations] Loaded 202556314 annotations (25475 Pfam domains, 26536 GO terms)"
+L2-291,extract_dat_pfam_unique,25475,distinct Pfam domains in DAT,external-fact,pipeline_214m.log,2036,"[2026-02-09T04:36:19.489Z INFO af_extract::annotations] Loaded 202556314 annotations (25475 Pfam domains, 26536 GO terms)"
+L2-292,extract_dat_go_unique,26536,distinct GO terms in DAT,external-fact,pipeline_214m.log,2036,"[2026-02-09T04:36:19.489Z INFO af_extract::annotations] Loaded 202556314 annotations (25475 Pfam domains, 26536 GO terms)"
+L2-293,extract_csv_accession_col_index,0,CSV column index (Accession = 'accession'),software,pipeline_214m.log,2038,[2026-02-09T04:36:19.489Z INFO af_extract] Accession column: 'accession' (index 0)
+L2-294,extract_csv_plddt_col_index,1,CSV column index (pLDDT = 'mean_plddt'),software,pipeline_214m.log,2039,[2026-02-09T04:36:19.489Z INFO af_extract] pLDDT column: 'mean_plddt' (index 1)
+L2-295,extract_progress_csv_read,9566439,proteins passed pLDDT filter after 10M rows,deterministic,pipeline_214m.log,2040,[pLDDT CSV progress] [2026-02-09T04:36:21.257Z INFO af_extract] Read 10M rows (9566439 passed filter)...
+L2-296,extract_progress_csv_read,19130885,proteins passed pLDDT filter after 20M rows,deterministic,pipeline_214m.log,2041,[pLDDT CSV progress] [2026-02-09T04:36:23.043Z INFO af_extract] Read 20M rows (19130885 passed filter)...
+L2-297,extract_progress_csv_read,28709742,proteins passed pLDDT filter after 30M rows,deterministic,pipeline_214m.log,2042,[pLDDT CSV progress] [2026-02-09T04:36:24.853Z INFO af_extract] Read 30M rows (28709742 passed filter)...
+L2-298,extract_progress_csv_read,38287797,proteins passed pLDDT filter after 40M rows,deterministic,pipeline_214m.log,2043,[pLDDT CSV progress] [2026-02-09T04:36:26.648Z INFO af_extract] Read 40M rows (38287797 passed filter)...
+L2-299,extract_progress_csv_read,47865323,proteins passed pLDDT filter after 50M rows,deterministic,pipeline_214m.log,2044,[pLDDT CSV progress] [2026-02-09T04:36:28.480Z INFO af_extract] Read 50M rows (47865323 passed filter)...
+L2-300,extract_progress_csv_read,57442488,proteins passed pLDDT filter after 60M rows,deterministic,pipeline_214m.log,2045,[pLDDT CSV progress] [2026-02-09T04:36:30.545Z INFO af_extract] Read 60M rows (57442488 passed filter)...
+L2-301,extract_progress_csv_read,67021898,proteins passed pLDDT filter after 70M rows,deterministic,pipeline_214m.log,2046,[pLDDT CSV progress] [2026-02-09T04:36:32.427Z INFO af_extract] Read 70M rows (67021898 passed filter)...
+L2-302,extract_progress_csv_read,76600156,proteins passed pLDDT filter after 80M rows,deterministic,pipeline_214m.log,2047,[pLDDT CSV progress] [2026-02-09T04:36:34.393Z INFO af_extract] Read 80M rows (76600156 passed filter)...
+L2-303,extract_progress_csv_read,86178558,proteins passed pLDDT filter after 90M rows,deterministic,pipeline_214m.log,2048,[pLDDT CSV progress] [2026-02-09T04:36:36.295Z INFO af_extract] Read 90M rows (86178558 passed filter)...
+L2-304,extract_progress_csv_read,95756671,proteins passed pLDDT filter after 100M rows,deterministic,pipeline_214m.log,2049,[pLDDT CSV progress] [2026-02-09T04:36:38.212Z INFO af_extract] Read 100M rows (95756671 passed filter)...
+L2-305,extract_progress_csv_read,105334770,proteins passed pLDDT filter after 110M rows,deterministic,pipeline_214m.log,2050,[pLDDT CSV progress] [2026-02-09T04:36:40.093Z INFO af_extract] Read 110M rows (105334770 passed filter)...
+L2-306,extract_progress_csv_read,114912567,proteins passed pLDDT filter after 120M rows,deterministic,pipeline_214m.log,2051,[pLDDT CSV progress] [2026-02-09T04:36:41.959Z INFO af_extract] Read 120M rows (114912567 passed filter)...
+L2-307,extract_progress_csv_read,124492183,proteins passed pLDDT filter after 130M rows,deterministic,pipeline_214m.log,2052,[pLDDT CSV progress] [2026-02-09T04:36:43.844Z INFO af_extract] Read 130M rows (124492183 passed filter)...
+L2-308,extract_progress_csv_read,134070226,proteins passed pLDDT filter after 140M rows,deterministic,pipeline_214m.log,2053,[pLDDT CSV progress] [2026-02-09T04:36:45.758Z INFO af_extract] Read 140M rows (134070226 passed filter)...
+L2-309,extract_progress_csv_read,143648378,proteins passed pLDDT filter after 150M rows,deterministic,pipeline_214m.log,2054,[pLDDT CSV progress] [2026-02-09T04:36:47.702Z INFO af_extract] Read 150M rows (143648378 passed filter)...
+L2-310,extract_progress_csv_read,153228159,proteins passed pLDDT filter after 160M rows,deterministic,pipeline_214m.log,2055,[pLDDT CSV progress] [2026-02-09T04:36:49.552Z INFO af_extract] Read 160M rows (153228159 passed filter)...
+L2-311,extract_progress_csv_read,162806075,proteins passed pLDDT filter after 170M rows,deterministic,pipeline_214m.log,2056,[pLDDT CSV progress] [2026-02-09T04:36:51.414Z INFO af_extract] Read 170M rows (162806075 passed filter)...
+L2-312,extract_progress_csv_read,172385565,proteins passed pLDDT filter after 180M rows,deterministic,pipeline_214m.log,2057,[pLDDT CSV progress] [2026-02-09T04:36:53.274Z INFO af_extract] Read 180M rows (172385565 passed filter)...
+L2-313,extract_progress_csv_read,181963510,proteins passed pLDDT filter after 190M rows,deterministic,pipeline_214m.log,2058,[pLDDT CSV progress] [2026-02-09T04:36:55.195Z INFO af_extract] Read 190M rows (181963510 passed filter)...
+L2-314,extract_progress_csv_read,191542750,proteins passed pLDDT filter after 200M rows,deterministic,pipeline_214m.log,2059,[pLDDT CSV progress] [2026-02-09T04:36:57.172Z INFO af_extract] Read 200M rows (191542750 passed filter)...
+L2-315,extract_progress_csv_read,201120299,proteins passed pLDDT filter after 210M rows,deterministic,pipeline_214m.log,2060,[pLDDT CSV progress] [2026-02-09T04:36:59.041Z INFO af_extract] Read 210M rows (201120299 passed filter)...
+L2-316,dataset_metadata_rows,214683829,"rows read (plddt_metadata.csv, data rows)",external-fact,pipeline_214m.log,2061,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-317,dataset_plddt_pass,205620298,proteins passed pLDDT filter,deterministic,pipeline_214m.log,2061,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-318,extract_min_plddt,50,min pLDDT threshold (>=),method-parameter,pipeline_214m.log,2061,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-319,extract_plddt_skipped,9063531,proteins skipped (pLDDT < 50),deterministic,pipeline_214m.log,2061,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-320,dataset_plddt_pass,205620298,proteins (frequency counting),deterministic,pipeline_214m.log,2062,[2026-02-09T04:36:59.926Z INFO af_extract] Counting Pfam/GO frequencies across 205620298 proteins...
+L2-321,dataset_pfam_families_observed,24291,unique Pfam among pLDDT-passing proteins,deterministic,pipeline_214m.log,2063,"[2026-02-09T04:39:56.574Z INFO af_extract] Frequencies: 24291 unique Pfam, 25993 unique GO from 205620298 proteins"
+L2-322,dataset_go_families_observed,25993,unique GO among pLDDT-passing proteins,deterministic,pipeline_214m.log,2063,"[2026-02-09T04:39:56.574Z INFO af_extract] Frequencies: 24291 unique Pfam, 25993 unique GO from 205620298 proteins"
+L2-323,vocab_plddt_defined,6,pLDDT bins (items),method-parameter,pipeline_214m.log,2064,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-324,vocab_pfam_defined,500,top Pfam kept (--top-pfam),method-parameter,pipeline_214m.log,2064,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-325,vocab_go_defined,500,top GO kept (--top-go),method-parameter,pipeline_214m.log,2064,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-326,vocab_items_defined,1006,total items (vocabulary),deterministic,pipeline_214m.log,2064,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-327,vocab_items_defined,1006,items in item mapping,deterministic,pipeline_214m.log,2065,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Saved item mapping: 1006 items to /root/alphafold-data/full_214m/item_mapping_214m.parquet
+L2-328,extract_progress_transactions_written,1M → 205M,"transactions written (205 periodic lines, step [1] M, 2026-02-09T04:39:57.791Z → 2026-02-09T04:43:35.342Z)",deterministic,pipeline_214m.log,2066–2270,[consolidated periodic] first: [2026-02-09T04:39:57.791Z INFO af_extract::transaction] Written 1M transactions... … last: [2026-02-09T04:43:35.342Z INFO af_extract::transaction] Written 205M transactions...
+L2-329,dataset_plddt_pass,205620298,transactions written (parquet rows),deterministic,pipeline_214m.log,2271,[2026-02-09T04:43:35.994Z INFO af_extract::transaction] Written 205620298 transactions to /root/alphafold-data/full_214m/transactions_214m.parquet
+L2-330,meta_log_extract_end_timestamp,2026-02-09T04:43:35.999Z,timestamp (af-extract Results banner = end of Step 1 binary),external-fact,pipeline_214m.log,2272,[2026-02-09T04:43:35.999Z INFO af_extract] === Results ===
+L2-331,dataset_plddt_pass,205620298,transactions (af-extract summary),deterministic,pipeline_214m.log,2273,[2026-02-09T04:43:35.999Z INFO af_extract] Transactions: 205620298
+L2-332,vocab_items_defined,1006,total items (af-extract summary),deterministic,pipeline_214m.log,2274,[2026-02-09T04:43:35.999Z INFO af_extract] Total items: 1006
+L2-333,extract_time_s,3777.0,s (af-extract build-from-metadata self-timed),hardware-dependent,pipeline_214m.log,2277,[2026-02-09T04:43:35.999Z INFO af_extract] Time: 3777.0s (54440 proteins/sec)
+L2-334,extract_proteins_per_s,54440,proteins/sec (af-extract throughput),hardware-dependent,pipeline_214m.log,2277,[2026-02-09T04:43:35.999Z INFO af_extract] Time: 3777.0s (54440 proteins/sec)
+L2-335,extract_wall_real_s,65m31.040s,real time (bash `time` of Step 1),hardware-dependent,pipeline_214m.log,2279,real 65m31.040s
+L2-336,extract_wall_user_s,62m38.750s,user time (bash `time` of Step 1),hardware-dependent,pipeline_214m.log,2280,user 62m38.750s
+L2-337,extract_wall_sys_s,2m52.144s,sys time (bash `time` of Step 1),hardware-dependent,pipeline_214m.log,2281,sys 2m52.144s
+L2-338,dataset_plddt_pass,"205,620,298",transactions (Step 2 data stats),deterministic,pipeline_214m.log,2286,"Total transactions: 205,620,298"
+L2-339,vocab_items_defined,1006,total items (Step 2 data stats),deterministic,pipeline_214m.log,2287,Total items: 1006
+L2-340,extract_items_mean,2.2,items per transaction (mean),deterministic,pipeline_214m.log,2289,Mean: 2.2
+L2-341,extract_items_max,46,items per transaction (max),deterministic,pipeline_214m.log,2290,Max: 46
+L2-342,dataset_multi_feature,"76,890,945",transactions with >1 item ('37.4%'),deterministic,pipeline_214m.log,2291,"With >1 item: 76,890,945 (37.4%)"
+L2-343,dataset_multi_feature,"76,890,945",transactions mined (Step 3),deterministic,pipeline_214m.log,2294,"Mining 76,890,945 annotated proteins..."
+L2-344,run_base_son_time_s,113.9,s (Step 3 mining),hardware-dependent,pipeline_214m.log,2297,Time: 113.9s
+L2-345,run_base_itemsets,"5,305","itemsets (total, Step 3)",deterministic,pipeline_214m.log,2298,"Itemsets: 5,305"
+L2-346,kdist_base_son_k1_count,667,itemsets K=1,deterministic,pipeline_214m.log,2299,[K-dist] K=1: 667
+L2-347,kdist_base_son_k2_count,"1,504",itemsets K=2,deterministic,pipeline_214m.log,2300,"[K-dist] K=2: 1,504"
+L2-348,kdist_base_son_k3_count,"1,378",itemsets K=3,deterministic,pipeline_214m.log,2301,"[K-dist] K=3: 1,378"
+L2-349,kdist_base_son_k4_count,884,itemsets K=4,deterministic,pipeline_214m.log,2302,[K-dist] K=4: 884
+L2-350,kdist_base_son_k5_count,514,itemsets K=5,deterministic,pipeline_214m.log,2303,[K-dist] K=5: 514
+L2-351,kdist_base_son_k6_count,247,itemsets K=6,deterministic,pipeline_214m.log,2304,[K-dist] K=6: 247
+L2-352,kdist_base_son_k7_count,89,itemsets K=7,deterministic,pipeline_214m.log,2305,[K-dist] K=7: 89
+L2-353,kdist_base_son_k8_count,20,itemsets K=8,deterministic,pipeline_214m.log,2306,[K-dist] K=8: 20
+L2-354,kdist_base_son_k9_count,2,itemsets K=9,deterministic,pipeline_214m.log,2307,[K-dist] K=9: 2
+L2-355,extract_rules_count,"53,447",association rules generated,deterministic,pipeline_214m.log,2311,"Generated 53,447 rules in 0.2s"
+L2-356,extract_rules_time_s,0.2,s (rule generation),hardware-dependent,pipeline_214m.log,2311,"Generated 53,447 rules in 0.2s"
+L2-357,extract_rules_toplift_1_conf,0.998,confidence,deterministic,pipeline_214m.log,2314,[TOP 30 BY LIFT] conf=0.998 lift= 969x PF01554 => GO:0015297 + GO:0042910
+L2-358,extract_rules_max_lift,969,lift (x),deterministic,pipeline_214m.log,2314,[TOP 30 BY LIFT] conf=0.998 lift= 969x PF01554 => GO:0015297 + GO:0042910
+L2-359,extract_rules_toplift_2_conf,0.999,confidence,deterministic,pipeline_214m.log,2315,[TOP 30 BY LIFT] conf=0.999 lift= 969x GO:0015297 + GO:0042910 => PF01554
+L2-360,extract_rules_toplift_2_lift,969,lift (x),deterministic,pipeline_214m.log,2315,[TOP 30 BY LIFT] conf=0.999 lift= 969x GO:0015297 + GO:0042910 => PF01554
+L2-361,extract_rules_toplift_3_conf,1.000,confidence,deterministic,pipeline_214m.log,2316,[TOP 30 BY LIFT] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-362,extract_rules_toplift_3_lift,921,lift (x),deterministic,pipeline_214m.log,2316,[TOP 30 BY LIFT] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-363,extract_rules_toplift_4_conf,0.945,confidence,deterministic,pipeline_214m.log,2317,[TOP 30 BY LIFT] conf=0.945 lift= 921x GO:0004129 + GO:0005507 => PF00116
+L2-364,extract_rules_toplift_4_lift,921,lift (x),deterministic,pipeline_214m.log,2317,[TOP 30 BY LIFT] conf=0.945 lift= 921x GO:0004129 + GO:0005507 => PF00116
+L2-365,extract_rules_toplift_5_conf,0.963,confidence,deterministic,pipeline_214m.log,2318,[TOP 30 BY LIFT] conf=0.963 lift= 845x plddt_mean_med + GO:0043952 => GO:0005886 + GO:0065002
+L2-366,extract_rules_toplift_5_lift,845,lift (x),deterministic,pipeline_214m.log,2318,[TOP 30 BY LIFT] conf=0.963 lift= 845x plddt_mean_med + GO:0043952 => GO:0005886 + GO:0065002
+L2-367,extract_rules_toplift_6_conf,0.938,confidence,deterministic,pipeline_214m.log,2319,[TOP 30 BY LIFT] conf=0.938 lift= 845x GO:0005886 + GO:0065002 => plddt_mean_med + GO:0043952
+L2-368,extract_rules_toplift_6_lift,845,lift (x),deterministic,pipeline_214m.log,2319,[TOP 30 BY LIFT] conf=0.938 lift= 845x GO:0005886 + GO:0065002 => plddt_mean_med + GO:0043952
+L2-369,extract_rules_toplift_7_conf,0.940,confidence,deterministic,pipeline_214m.log,2320,[TOP 30 BY LIFT] conf=0.940 lift= 835x GO:0043952 => plddt_mean_med + GO:0005886 + GO:0065002
+L2-370,extract_rules_toplift_7_lift,835,lift (x),deterministic,pipeline_214m.log,2320,[TOP 30 BY LIFT] conf=0.940 lift= 835x GO:0043952 => plddt_mean_med + GO:0005886 + GO:0065002
+L2-371,extract_rules_toplift_8_conf,0.949,confidence,deterministic,pipeline_214m.log,2321,[TOP 30 BY LIFT] conf=0.949 lift= 835x plddt_mean_med + GO:0005886 + GO:0065002 => GO:0043952
+L2-372,extract_rules_toplift_8_lift,835,lift (x),deterministic,pipeline_214m.log,2321,[TOP 30 BY LIFT] conf=0.949 lift= 835x plddt_mean_med + GO:0005886 + GO:0065002 => GO:0043952
+L2-373,extract_rules_toplift_9_conf,0.951,confidence,deterministic,pipeline_214m.log,2322,[TOP 30 BY LIFT] conf=0.951 lift= 834x GO:0043952 => GO:0005886 + GO:0065002
+L2-374,extract_rules_toplift_9_lift,834,lift (x),deterministic,pipeline_214m.log,2322,[TOP 30 BY LIFT] conf=0.951 lift= 834x GO:0043952 => GO:0005886 + GO:0065002
+L2-375,extract_rules_toplift_10_conf,0.949,confidence,deterministic,pipeline_214m.log,2323,[TOP 30 BY LIFT] conf=0.949 lift= 834x GO:0005886 + GO:0065002 => GO:0043952
+L2-376,extract_rules_toplift_10_lift,834,lift (x),deterministic,pipeline_214m.log,2323,[TOP 30 BY LIFT] conf=0.949 lift= 834x GO:0005886 + GO:0065002 => GO:0043952
+L2-377,extract_rules_toplift_11_conf,0.856,confidence,deterministic,pipeline_214m.log,2324,[TOP 30 BY LIFT] conf=0.856 lift= 827x PF00849 => GO:0003723 + GO:0000455
+L2-378,extract_rules_toplift_11_lift,827,lift (x),deterministic,pipeline_214m.log,2324,[TOP 30 BY LIFT] conf=0.856 lift= 827x PF00849 => GO:0003723 + GO:0000455
+L2-379,extract_rules_toplift_12_conf,0.992,confidence,deterministic,pipeline_214m.log,2325,[TOP 30 BY LIFT] conf=0.992 lift= 827x GO:0003723 + GO:0000455 => PF00849
+L2-380,extract_rules_toplift_12_lift,827,lift (x),deterministic,pipeline_214m.log,2325,[TOP 30 BY LIFT] conf=0.992 lift= 827x GO:0003723 + GO:0000455 => PF00849
+L2-381,extract_rules_toplift_13_conf,0.902,confidence,deterministic,pipeline_214m.log,2326,[TOP 30 BY LIFT] conf=0.902 lift= 816x GO:0003677 + GO:0000786 => GO:0046982 + GO:0030527
+L2-382,extract_rules_toplift_13_lift,816,lift (x),deterministic,pipeline_214m.log,2326,[TOP 30 BY LIFT] conf=0.902 lift= 816x GO:0003677 + GO:0000786 => GO:0046982 + GO:0030527
+L2-383,extract_rules_toplift_14_conf,0.986,confidence,deterministic,pipeline_214m.log,2327,[TOP 30 BY LIFT] conf=0.986 lift= 816x GO:0046982 + GO:0030527 => GO:0003677 + GO:0000786
+L2-384,extract_rules_toplift_14_lift,816,lift (x),deterministic,pipeline_214m.log,2327,[TOP 30 BY LIFT] conf=0.986 lift= 816x GO:0046982 + GO:0030527 => GO:0003677 + GO:0000786
+L2-385,extract_rules_toplift_15_conf,0.945,confidence,deterministic,pipeline_214m.log,2328,[TOP 30 BY LIFT] conf=0.945 lift= 809x PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-386,extract_rules_toplift_15_lift,809,lift (x),deterministic,pipeline_214m.log,2328,[TOP 30 BY LIFT] conf=0.945 lift= 809x PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-387,extract_rules_toplift_16_conf,0.983,confidence,deterministic,pipeline_214m.log,2329,[TOP 30 BY LIFT] conf=0.983 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-388,extract_rules_toplift_16_lift,809,lift (x),deterministic,pipeline_214m.log,2329,[TOP 30 BY LIFT] conf=0.983 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-389,extract_rules_toplift_17_conf,0.940,confidence,deterministic,pipeline_214m.log,2330,[TOP 30 BY LIFT] conf=0.940 lift= 809x PF13853 => plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984
+L2-390,extract_rules_toplift_17_lift,809,lift (x),deterministic,pipeline_214m.log,2330,[TOP 30 BY LIFT] conf=0.940 lift= 809x PF13853 => plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984
+L2-391,extract_rules_toplift_18_conf,0.983,confidence,deterministic,pipeline_214m.log,2331,[TOP 30 BY LIFT] conf=0.983 lift= 809x plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-392,extract_rules_toplift_18_lift,809,lift (x),deterministic,pipeline_214m.log,2331,[TOP 30 BY LIFT] conf=0.983 lift= 809x plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-393,extract_rules_toplift_19_conf,0.945,confidence,deterministic,pipeline_214m.log,2332,[TOP 30 BY LIFT] conf=0.945 lift= 809x plddt_mean_med + PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-394,extract_rules_toplift_19_lift,809,lift (x),deterministic,pipeline_214m.log,2332,[TOP 30 BY LIFT] conf=0.945 lift= 809x plddt_mean_med + PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-395,extract_rules_toplift_20_conf,0.978,confidence,deterministic,pipeline_214m.log,2333,[TOP 30 BY LIFT] conf=0.978 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => plddt_mean_med + PF13853
+L2-396,extract_rules_toplift_20_lift,809,lift (x),deterministic,pipeline_214m.log,2333,[TOP 30 BY LIFT] conf=0.978 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => plddt_mean_med + PF13853
+L2-397,extract_rules_toplift_21_conf,0.960,confidence,deterministic,pipeline_214m.log,2334,[TOP 30 BY LIFT] conf=0.960 lift= 802x GO:0000455 => PF00849 + GO:0003723
+L2-398,extract_rules_toplift_21_lift,802,lift (x),deterministic,pipeline_214m.log,2334,[TOP 30 BY LIFT] conf=0.960 lift= 802x GO:0000455 => PF00849 + GO:0003723
+L2-399,extract_rules_toplift_22_conf,0.857,confidence,deterministic,pipeline_214m.log,2335,[TOP 30 BY LIFT] conf=0.857 lift= 802x PF00849 + GO:0003723 => GO:0000455
+L2-400,extract_rules_toplift_22_lift,802,lift (x),deterministic,pipeline_214m.log,2335,[TOP 30 BY LIFT] conf=0.857 lift= 802x PF00849 + GO:0003723 => GO:0000455
+L2-401,extract_rules_toplift_23_conf,0.856,confidence,deterministic,pipeline_214m.log,2336,[TOP 30 BY LIFT] conf=0.856 lift= 801x PF00849 => GO:0000455
+L2-402,extract_rules_toplift_23_lift,801,lift (x),deterministic,pipeline_214m.log,2336,[TOP 30 BY LIFT] conf=0.856 lift= 801x PF00849 => GO:0000455
+L2-403,extract_rules_toplift_24_conf,0.960,confidence,deterministic,pipeline_214m.log,2337,[TOP 30 BY LIFT] conf=0.960 lift= 801x GO:0000455 => PF00849
+L2-404,extract_rules_toplift_24_lift,801,lift (x),deterministic,pipeline_214m.log,2337,[TOP 30 BY LIFT] conf=0.960 lift= 801x GO:0000455 => PF00849
+L2-405,extract_rules_toplift_25_conf,0.967,confidence,deterministic,pipeline_214m.log,2338,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0005524 + GO:0016887
+L2-406,extract_rules_toplift_25_lift,792,lift (x),deterministic,pipeline_214m.log,2338,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0005524 + GO:0016887
+L2-407,extract_rules_toplift_26_conf,0.967,confidence,deterministic,pipeline_214m.log,2339,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0005524 + GO:0015833 => PF08352 + GO:0016887
+L2-408,extract_rules_toplift_26_lift,792,lift (x),deterministic,pipeline_214m.log,2339,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0005524 + GO:0015833 => PF08352 + GO:0016887
+L2-409,extract_rules_toplift_27_conf,0.967,confidence,deterministic,pipeline_214m.log,2340,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0016887
+L2-410,extract_rules_toplift_27_lift,792,lift (x),deterministic,pipeline_214m.log,2340,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0016887
+L2-411,extract_rules_toplift_28_conf,0.990,confidence,deterministic,pipeline_214m.log,2341,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0005524 + GO:0015833
+L2-412,extract_rules_toplift_28_lift,792,lift (x),deterministic,pipeline_214m.log,2341,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0005524 + GO:0015833
+L2-413,extract_rules_toplift_29_conf,0.990,confidence,deterministic,pipeline_214m.log,2342,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0005524 + GO:0016887 => PF00005 + GO:0015833
+L2-414,extract_rules_toplift_29_lift,792,lift (x),deterministic,pipeline_214m.log,2342,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0005524 + GO:0016887 => PF00005 + GO:0015833
+L2-415,extract_rules_toplift_30_conf,0.990,confidence,deterministic,pipeline_214m.log,2343,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0015833
+L2-416,extract_rules_toplift_30_lift,792,lift (x),deterministic,pipeline_214m.log,2343,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0015833
+L2-417,extract_rules_toplift_3_conf,1.000,confidence,deterministic,pipeline_214m.log,2346,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-418,extract_rules_toplift_3_lift,921,lift (x),deterministic,pipeline_214m.log,2346,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-419,extract_rules_topconf_2_conf,1.000,confidence,deterministic,pipeline_214m.log,2347,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 + GO:0071555 => GO:0008658
+L2-420,extract_rules_topconf_2_lift,776,lift (x),deterministic,pipeline_214m.log,2347,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 + GO:0071555 => GO:0008658
+L2-421,extract_rules_topconf_3_conf,1.000,confidence,deterministic,pipeline_214m.log,2348,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 => GO:0008658
+L2-422,extract_rules_topconf_3_lift,776,lift (x),deterministic,pipeline_214m.log,2348,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 => GO:0008658
+L2-423,extract_rules_topconf_4_conf,1.000,confidence,deterministic,pipeline_214m.log,2349,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-424,extract_rules_topconf_4_lift,735,lift (x),deterministic,pipeline_214m.log,2349,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-425,extract_rules_topconf_5_conf,1.000,confidence,deterministic,pipeline_214m.log,2350,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-426,extract_rules_topconf_5_lift,735,lift (x),deterministic,pipeline_214m.log,2350,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-427,extract_rules_topconf_6_conf,1.000,confidence,deterministic,pipeline_214m.log,2351,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-428,extract_rules_topconf_6_lift,734,lift (x),deterministic,pipeline_214m.log,2351,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-429,extract_rules_topconf_7_conf,1.000,confidence,deterministic,pipeline_214m.log,2352,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-430,extract_rules_topconf_7_lift,734,lift (x),deterministic,pipeline_214m.log,2352,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-431,extract_rules_topconf_8_conf,1.000,confidence,deterministic,pipeline_214m.log,2353,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-432,extract_rules_topconf_8_lift,734,lift (x),deterministic,pipeline_214m.log,2353,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-433,extract_rules_topconf_9_conf,1.000,confidence,deterministic,pipeline_214m.log,2354,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-434,extract_rules_topconf_9_lift,734,lift (x),deterministic,pipeline_214m.log,2354,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-435,extract_rules_topconf_10_conf,1.000,confidence,deterministic,pipeline_214m.log,2355,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-436,extract_rules_topconf_10_lift,681,lift (x),deterministic,pipeline_214m.log,2355,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-437,extract_rules_topconf_11_conf,1.000,confidence,deterministic,pipeline_214m.log,2356,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-438,extract_rules_topconf_11_lift,681,lift (x),deterministic,pipeline_214m.log,2356,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-439,extract_rules_topconf_12_conf,1.000,confidence,deterministic,pipeline_214m.log,2357,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-440,extract_rules_topconf_12_lift,681,lift (x),deterministic,pipeline_214m.log,2357,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-441,extract_rules_topconf_13_conf,1.000,confidence,deterministic,pipeline_214m.log,2358,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-442,extract_rules_topconf_13_lift,681,lift (x),deterministic,pipeline_214m.log,2358,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-443,extract_rules_topconf_14_conf,1.000,confidence,deterministic,pipeline_214m.log,2359,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-444,extract_rules_topconf_14_lift,681,lift (x),deterministic,pipeline_214m.log,2359,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-445,extract_rules_topconf_15_conf,1.000,confidence,deterministic,pipeline_214m.log,2360,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-446,extract_rules_topconf_15_lift,681,lift (x),deterministic,pipeline_214m.log,2360,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-447,extract_rules_topconf_16_conf,1.000,confidence,deterministic,pipeline_214m.log,2361,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-448,extract_rules_topconf_16_lift,681,lift (x),deterministic,pipeline_214m.log,2361,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-449,extract_rules_topconf_17_conf,1.000,confidence,deterministic,pipeline_214m.log,2362,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-450,extract_rules_topconf_17_lift,663,lift (x),deterministic,pipeline_214m.log,2362,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-451,extract_rules_topconf_18_conf,1.000,confidence,deterministic,pipeline_214m.log,2363,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-452,extract_rules_topconf_18_lift,663,lift (x),deterministic,pipeline_214m.log,2363,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-453,extract_rules_topconf_19_conf,1.000,confidence,deterministic,pipeline_214m.log,2364,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-454,extract_rules_topconf_19_lift,663,lift (x),deterministic,pipeline_214m.log,2364,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-455,extract_rules_topconf_20_conf,1.000,confidence,deterministic,pipeline_214m.log,2365,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-456,extract_rules_topconf_20_lift,663,lift (x),deterministic,pipeline_214m.log,2365,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-457,extract_rules_count,"53,447",association rules (summary),deterministic,pipeline_214m.log,2368,"Total rules: 53,447"
+L2-458,extract_rules_conf_ge99,"12,776",rules with confidence >= 99%,deterministic,pipeline_214m.log,2369,"Confidence >= 99%: 12,776"
+L2-459,extract_rules_conf_ge90,"31,775",rules with confidence >= 90%,deterministic,pipeline_214m.log,2370,"Confidence >= 90%: 31,775"
+L2-460,extract_rules_lift_ge5,"51,126",rules with lift >= 5.0,deterministic,pipeline_214m.log,2371,"Lift >= 5.0: 51,126"
+L2-461,extract_rules_lift_ge100,"40,428",rules with lift >= 100,deterministic,pipeline_214m.log,2372,"Lift >= 100: 40,428"
+L2-462,extract_rules_cross_domain,"45,286",cross-domain rules (Pfam<=>GO),deterministic,pipeline_214m.log,2373,"Cross-domain (Pfam<=>GO): 45,286"
+L2-463,meta_log_pipeline_end_timestamp,Mon Feb  9 04:48:08 UTC 2026,timestamp (pipeline end banner),external-fact,pipeline_214m.log,2376,=== PIPELINE COMPLETE — Mon Feb 9 04:48:08 UTC 2026 ===
+L2-464,run_super_support_pct,0.01,% support (on '214M TrEMBL'),method-parameter,ultra_mining.log,1,>>> ULTRA LOW SUPPORT: 0.01% on 214M TrEMBL
+L2-465,dataset_plddt_pass,"205,620,298",transactions (total in parquet),deterministic,ultra_mining.log,3,"Total transactions: 205,620,298"
+L2-466,dataset_multi_feature,"76,890,945",transactions with >1 item,deterministic,ultra_mining.log,4,"With >1 item: 76,890,945"
+L2-467,run_super_min_count,"7,689",min support count (script-computed; '0.01%'),method-parameter,ultra_mining.log,5,"Min support = 0.01% = 7,689 proteins"
+L2-468,run_super_support_pct,0.01,% support (banner),method-parameter,ultra_mining.log,7,>>> GPU-RESIDENT STREAMING APRIORI — 0.01% SUPPORT
+L2-469,hw_gpu_model,H100s (plural),GPU name (only hardware string in any log),hardware-dependent,ultra_mining.log,8,>>> RELEASING THE H100s...
+L2-470,run_super_son_time_s,257.6,s (mining),hardware-dependent,ultra_mining.log,12,Time: 257.6s
+L2-471,run_super_itemsets,"51,124",itemsets (total),deterministic,ultra_mining.log,13,"Itemsets: 51,124"
+L2-472,kdist_super_son_k1_count,455,itemsets K=1,deterministic,ultra_mining.log,14,[K-dist] K=1: 455
+L2-473,kdist_super_son_k2_count,"4,152",itemsets K=2,deterministic,ultra_mining.log,15,"[K-dist] K=2: 4,152"
+L2-474,kdist_super_son_k3_count,"8,936",itemsets K=3,deterministic,ultra_mining.log,16,"[K-dist] K=3: 8,936"
+L2-475,kdist_super_son_k4_count,"10,191",itemsets K=4,deterministic,ultra_mining.log,17,"[K-dist] K=4: 10,191"
+L2-476,kdist_super_son_k5_count,"9,153",itemsets K=5,deterministic,ultra_mining.log,18,"[K-dist] K=5: 9,153"
+L2-477,kdist_super_son_k6_count,"7,177",itemsets K=6,deterministic,ultra_mining.log,19,"[K-dist] K=6: 7,177"
+L2-478,kdist_super_son_k7_count,"5,217",itemsets K=7,deterministic,ultra_mining.log,20,"[K-dist] K=7: 5,217"
+L2-479,kdist_super_son_k8_count,"3,208",itemsets K=8,deterministic,ultra_mining.log,21,"[K-dist] K=8: 3,208"
+L2-480,kdist_super_son_k9_count,"1,651",itemsets K=9,deterministic,ultra_mining.log,22,"[K-dist] K=9: 1,651"
+L2-481,kdist_super_son_k10_count,707,itemsets K=10,deterministic,ultra_mining.log,23,[K-dist] K=10: 707
+L2-482,kdist_super_son_k11_count,222,itemsets K=11,deterministic,ultra_mining.log,24,[K-dist] K=11: 222
+L2-483,kdist_super_son_k12_count,48,itemsets K=12,deterministic,ultra_mining.log,25,[K-dist] K=12: 48
+L2-484,kdist_super_son_k13_count,7,itemsets K=13,deterministic,ultra_mining.log,26,[K-dist] K=13: 7
+L2-485,pattern_super_son_k2_1_support_frac,0.07093,support (fraction),deterministic,ultra_mining.log,32,"[K=2 pattern] support=0.07093 (5,453,948 proteins) — plddt_mean_high + GO:0046872"
+L2-486,pattern_super_son_k2_1_support,"5,453,948",proteins (itemset support count),deterministic,ultra_mining.log,32,"[K=2 pattern] support=0.07093 (5,453,948 proteins) — plddt_mean_high + GO:0046872"
+L2-487,pattern_super_son_k2_2_support_frac,0.05538,support (fraction),deterministic,ultra_mining.log,34,"[K=2 pattern] support=0.05538 (4,257,942 proteins) — plddt_mean_med + GO:0005737"
+L2-488,pattern_super_son_k2_2_support,"4,257,942",proteins (itemset support count),deterministic,ultra_mining.log,34,"[K=2 pattern] support=0.05538 (4,257,942 proteins) — plddt_mean_med + GO:0005737"
+L2-489,pattern_super_son_k2_3_support_frac,0.04204,support (fraction),deterministic,ultra_mining.log,36,"[K=2 pattern] support=0.04204 (3,232,658 proteins) — plddt_mean_high + GO:0005524"
+L2-490,pattern_super_son_k2_3_support,"3,232,658",proteins (itemset support count),deterministic,ultra_mining.log,36,"[K=2 pattern] support=0.04204 (3,232,658 proteins) — plddt_mean_high + GO:0005524"
+L2-491,pattern_super_son_k1_1_support_frac,0.10739,support (fraction),deterministic,ultra_mining.log,40,"[K=1 pattern] support=0.10739 (8,257,363 proteins) — GO:0005737"
+L2-492,pattern_super_son_k1_1_support,"8,257,363",proteins (itemset support count),deterministic,ultra_mining.log,40,"[K=1 pattern] support=0.10739 (8,257,363 proteins) — GO:0005737"
+L2-493,pattern_super_son_k1_2_support_frac,0.08286,support (fraction),deterministic,ultra_mining.log,42,"[K=1 pattern] support=0.08286 (6,370,846 proteins) — GO:0005829"
+L2-494,pattern_super_son_k1_2_support,"6,370,846",proteins (itemset support count),deterministic,ultra_mining.log,42,"[K=1 pattern] support=0.08286 (6,370,846 proteins) — GO:0005829"
+L2-495,pattern_super_son_k1_3_support_frac,0.06854,support (fraction),deterministic,ultra_mining.log,44,"[K=1 pattern] support=0.06854 (5,270,392 proteins) — GO:0003677"
+L2-496,pattern_super_son_k1_3_support,"5,270,392",proteins (itemset support count),deterministic,ultra_mining.log,44,"[K=1 pattern] support=0.06854 (5,270,392 proteins) — GO:0003677"
+L2-497,download_size_gib,149GiB,aria2c total size (uniprot_trembl.dat.gz),external-fact,watcher.log,4,"[aria2c progress line, 2612 bytes, 45 snapshots / 25 distinct] first: [145G] 62GiB/149GiB(42%) CN:16 DL:50MiB ETA:29m13s"
+L2-498,download_progress_first,62GiB/149GiB (42%),"first snapshot (DL 50MiB/s, ETA 29m13s)",hardware-dependent,watcher.log,4,[aria2c first snapshot] [145G] 62GiB/149GiB(42%) CN:16 DL:50MiB ETA:29m13s
+L2-499,download_progress_last,145GiB/149GiB (97%),"last snapshot (DL 55MiB/s, ETA 1m18s); no 100% snapshot present",hardware-dependent,watcher.log,4,[aria2c last snapshot] [150G] 145GiB/149GiB(97%) CN:16 DL:55MiB ETA:1m18s
+L2-500,download_connections,16,aria2c connections (CN),method-parameter,watcher.log,4,[aria2c] CN:16 in all 45 snapshots
+L2-501,download_speed_mib_s,26–100,MiB/s download rate range across snapshots,hardware-dependent,watcher.log,4,"[aria2c] DL values observed: 26, 39, 44, 46, 47, 48, 50, 54, 55, 56, 57, 60, 63, 64, 66, 67, 69, 73, 77, 100 MiB"
+L2-502,download_disk_usage_bracket,145G → 150G,disk usage bracket ([NNNG] prefix) first → last,hardware-dependent,watcher.log,4,"[aria2c] bracket prefix values: 145, 146, 147, 148, 149, 150"
+L2-503,download_snapshot_count,45 / 25 (CR-separated segments: 46),snapshots (total / consecutive-distinct),software,watcher.log,4,[aria2c] 62GiB(42%) DL:50MiB ETA:29m13s ; 66GiB(44%) DL:57MiB ETA:24m53s ; 70GiB(47%) DL:66MiB ETA:20m24s ; 73GiB(49%) DL:50MiB ETA:25m29s ; 76GiB(51%) DL:46MiB ETA:26m59s ; 83GiB(55%) DL:64MiB ETA:17m26s ; …
+L2-504,dataset_annotation_gb,150G,file size (downloaded uniprot_trembl.dat.gz),external-fact,watcher.log,6,>>> aria2c FINISHED! File size: 150G
+L2-505,meta_log_pipeline_start_timestamp,Mon Feb  9 03:40:36 UTC 2026,timestamp (watcher hand-off to pipeline),external-fact,watcher.log,7,>>> Starting full pipeline at Mon Feb 9 03:40:36 UTC 2026
+L2-506,dataset_metadata_rows,214M,"proteins (nominal, pipeline banner)",external-fact,watcher.log,11,=== FULL 214M AlphaFold Pipeline ===
+L2-507,meta_log_pipeline_start_timestamp,Mon Feb  9 03:40:36 UTC 2026,timestamp (pipeline start banner),external-fact,watcher.log,12,=== Mon Feb 9 03:40:36 UTC 2026 ===
+L2-508,dataset_annotation_gb,150G,"file size (uniprot_trembl.dat.gz, du/ls -h style)",external-fact,watcher.log,16,TrEMBL: 150G
+L2-509,extract_csv_rows,214683830,"rows (plddt_metadata.csv, incl. header)",external-fact,watcher.log,17,pLDDT: 214683830 rows
+L2-510,meta_log_extract_start_timestamp,2026-02-09T03:40:38.963Z,timestamp (af-extract start),external-fact,watcher.log,18,[2026-02-09T03:40:38.963Z INFO af_extract] === Build Transactions from Metadata (pLDDT + annotations) ===
+L2-511,extract_progress_dat_parsed,100K → 202500K,"DAT records parsed (2025 periodic lines, step [100] K, 2026-02-09T03:40:40.224Z → 2026-02-09T04:36:18.840Z)",external-fact,watcher.log,20–2044,[consolidated periodic] first: [2026-02-09T03:40:40.224Z INFO af_extract::annotations] Parsed 100K DAT records... … last: [2026-02-09T04:36:18.840Z INFO af_extract::annotations] Parsed 202500K DAT records...
+L2-512,extract_dat_records,202556314,annotation records loaded from DAT,external-fact,watcher.log,2045,"[2026-02-09T04:36:19.489Z INFO af_extract::annotations] Loaded 202556314 annotations (25475 Pfam domains, 26536 GO terms)"
+L2-513,extract_dat_pfam_unique,25475,distinct Pfam domains in DAT,external-fact,watcher.log,2045,"[2026-02-09T04:36:19.489Z INFO af_extract::annotations] Loaded 202556314 annotations (25475 Pfam domains, 26536 GO terms)"
+L2-514,extract_dat_go_unique,26536,distinct GO terms in DAT,external-fact,watcher.log,2045,"[2026-02-09T04:36:19.489Z INFO af_extract::annotations] Loaded 202556314 annotations (25475 Pfam domains, 26536 GO terms)"
+L2-515,extract_csv_accession_col_index,0,CSV column index (Accession = 'accession'),software,watcher.log,2047,[2026-02-09T04:36:19.489Z INFO af_extract] Accession column: 'accession' (index 0)
+L2-516,extract_csv_plddt_col_index,1,CSV column index (pLDDT = 'mean_plddt'),software,watcher.log,2048,[2026-02-09T04:36:19.489Z INFO af_extract] pLDDT column: 'mean_plddt' (index 1)
+L2-517,extract_progress_csv_read,9566439,proteins passed pLDDT filter after 10M rows,deterministic,watcher.log,2049,[pLDDT CSV progress] [2026-02-09T04:36:21.257Z INFO af_extract] Read 10M rows (9566439 passed filter)...
+L2-518,extract_progress_csv_read,19130885,proteins passed pLDDT filter after 20M rows,deterministic,watcher.log,2050,[pLDDT CSV progress] [2026-02-09T04:36:23.043Z INFO af_extract] Read 20M rows (19130885 passed filter)...
+L2-519,extract_progress_csv_read,28709742,proteins passed pLDDT filter after 30M rows,deterministic,watcher.log,2051,[pLDDT CSV progress] [2026-02-09T04:36:24.853Z INFO af_extract] Read 30M rows (28709742 passed filter)...
+L2-520,extract_progress_csv_read,38287797,proteins passed pLDDT filter after 40M rows,deterministic,watcher.log,2052,[pLDDT CSV progress] [2026-02-09T04:36:26.648Z INFO af_extract] Read 40M rows (38287797 passed filter)...
+L2-521,extract_progress_csv_read,47865323,proteins passed pLDDT filter after 50M rows,deterministic,watcher.log,2053,[pLDDT CSV progress] [2026-02-09T04:36:28.480Z INFO af_extract] Read 50M rows (47865323 passed filter)...
+L2-522,extract_progress_csv_read,57442488,proteins passed pLDDT filter after 60M rows,deterministic,watcher.log,2054,[pLDDT CSV progress] [2026-02-09T04:36:30.545Z INFO af_extract] Read 60M rows (57442488 passed filter)...
+L2-523,extract_progress_csv_read,67021898,proteins passed pLDDT filter after 70M rows,deterministic,watcher.log,2055,[pLDDT CSV progress] [2026-02-09T04:36:32.427Z INFO af_extract] Read 70M rows (67021898 passed filter)...
+L2-524,extract_progress_csv_read,76600156,proteins passed pLDDT filter after 80M rows,deterministic,watcher.log,2056,[pLDDT CSV progress] [2026-02-09T04:36:34.393Z INFO af_extract] Read 80M rows (76600156 passed filter)...
+L2-525,extract_progress_csv_read,86178558,proteins passed pLDDT filter after 90M rows,deterministic,watcher.log,2057,[pLDDT CSV progress] [2026-02-09T04:36:36.295Z INFO af_extract] Read 90M rows (86178558 passed filter)...
+L2-526,extract_progress_csv_read,95756671,proteins passed pLDDT filter after 100M rows,deterministic,watcher.log,2058,[pLDDT CSV progress] [2026-02-09T04:36:38.212Z INFO af_extract] Read 100M rows (95756671 passed filter)...
+L2-527,extract_progress_csv_read,105334770,proteins passed pLDDT filter after 110M rows,deterministic,watcher.log,2059,[pLDDT CSV progress] [2026-02-09T04:36:40.093Z INFO af_extract] Read 110M rows (105334770 passed filter)...
+L2-528,extract_progress_csv_read,114912567,proteins passed pLDDT filter after 120M rows,deterministic,watcher.log,2060,[pLDDT CSV progress] [2026-02-09T04:36:41.959Z INFO af_extract] Read 120M rows (114912567 passed filter)...
+L2-529,extract_progress_csv_read,124492183,proteins passed pLDDT filter after 130M rows,deterministic,watcher.log,2061,[pLDDT CSV progress] [2026-02-09T04:36:43.844Z INFO af_extract] Read 130M rows (124492183 passed filter)...
+L2-530,extract_progress_csv_read,134070226,proteins passed pLDDT filter after 140M rows,deterministic,watcher.log,2062,[pLDDT CSV progress] [2026-02-09T04:36:45.758Z INFO af_extract] Read 140M rows (134070226 passed filter)...
+L2-531,extract_progress_csv_read,143648378,proteins passed pLDDT filter after 150M rows,deterministic,watcher.log,2063,[pLDDT CSV progress] [2026-02-09T04:36:47.702Z INFO af_extract] Read 150M rows (143648378 passed filter)...
+L2-532,extract_progress_csv_read,153228159,proteins passed pLDDT filter after 160M rows,deterministic,watcher.log,2064,[pLDDT CSV progress] [2026-02-09T04:36:49.552Z INFO af_extract] Read 160M rows (153228159 passed filter)...
+L2-533,extract_progress_csv_read,162806075,proteins passed pLDDT filter after 170M rows,deterministic,watcher.log,2065,[pLDDT CSV progress] [2026-02-09T04:36:51.414Z INFO af_extract] Read 170M rows (162806075 passed filter)...
+L2-534,extract_progress_csv_read,172385565,proteins passed pLDDT filter after 180M rows,deterministic,watcher.log,2066,[pLDDT CSV progress] [2026-02-09T04:36:53.274Z INFO af_extract] Read 180M rows (172385565 passed filter)...
+L2-535,extract_progress_csv_read,181963510,proteins passed pLDDT filter after 190M rows,deterministic,watcher.log,2067,[pLDDT CSV progress] [2026-02-09T04:36:55.195Z INFO af_extract] Read 190M rows (181963510 passed filter)...
+L2-536,extract_progress_csv_read,191542750,proteins passed pLDDT filter after 200M rows,deterministic,watcher.log,2068,[pLDDT CSV progress] [2026-02-09T04:36:57.172Z INFO af_extract] Read 200M rows (191542750 passed filter)...
+L2-537,extract_progress_csv_read,201120299,proteins passed pLDDT filter after 210M rows,deterministic,watcher.log,2069,[pLDDT CSV progress] [2026-02-09T04:36:59.041Z INFO af_extract] Read 210M rows (201120299 passed filter)...
+L2-538,dataset_metadata_rows,214683829,"rows read (plddt_metadata.csv, data rows)",external-fact,watcher.log,2070,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-539,dataset_plddt_pass,205620298,proteins passed pLDDT filter,deterministic,watcher.log,2070,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-540,extract_min_plddt,50,min pLDDT threshold (>=),method-parameter,watcher.log,2070,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-541,extract_plddt_skipped,9063531,proteins skipped (pLDDT < 50),deterministic,watcher.log,2070,"[2026-02-09T04:36:59.926Z INFO af_extract] Read 214683829 rows: 205620298 passed pLDDT filter (>= 50), 9063531 skipped"
+L2-542,dataset_plddt_pass,205620298,proteins (frequency counting),deterministic,watcher.log,2071,[2026-02-09T04:36:59.926Z INFO af_extract] Counting Pfam/GO frequencies across 205620298 proteins...
+L2-543,dataset_pfam_families_observed,24291,unique Pfam among pLDDT-passing proteins,deterministic,watcher.log,2072,"[2026-02-09T04:39:56.574Z INFO af_extract] Frequencies: 24291 unique Pfam, 25993 unique GO from 205620298 proteins"
+L2-544,dataset_go_families_observed,25993,unique GO among pLDDT-passing proteins,deterministic,watcher.log,2072,"[2026-02-09T04:39:56.574Z INFO af_extract] Frequencies: 24291 unique Pfam, 25993 unique GO from 205620298 proteins"
+L2-545,vocab_plddt_defined,6,pLDDT bins (items),method-parameter,watcher.log,2073,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-546,vocab_pfam_defined,500,top Pfam kept (--top-pfam),method-parameter,watcher.log,2073,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-547,vocab_go_defined,500,top GO kept (--top-go),method-parameter,watcher.log,2073,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-548,vocab_items_defined,1006,total items (vocabulary),deterministic,watcher.log,2073,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Item encoding: 6 pLDDT + 500 Pfam + 500 GO = 1006 total items
+L2-549,vocab_items_defined,1006,items in item mapping,deterministic,watcher.log,2074,[2026-02-09T04:39:56.577Z INFO af_extract::transaction] Saved item mapping: 1006 items to /root/alphafold-data/full_214m/item_mapping_214m.parquet
+L2-550,extract_progress_transactions_written,1M → 205M,"transactions written (205 periodic lines, step [1] M, 2026-02-09T04:39:57.791Z → 2026-02-09T04:43:35.342Z)",deterministic,watcher.log,2075–2279,[consolidated periodic] first: [2026-02-09T04:39:57.791Z INFO af_extract::transaction] Written 1M transactions... … last: [2026-02-09T04:43:35.342Z INFO af_extract::transaction] Written 205M transactions...
+L2-551,dataset_plddt_pass,205620298,transactions written (parquet rows),deterministic,watcher.log,2280,[2026-02-09T04:43:35.994Z INFO af_extract::transaction] Written 205620298 transactions to /root/alphafold-data/full_214m/transactions_214m.parquet
+L2-552,meta_log_extract_end_timestamp,2026-02-09T04:43:35.999Z,timestamp (af-extract Results banner = end of Step 1 binary),external-fact,watcher.log,2281,[2026-02-09T04:43:35.999Z INFO af_extract] === Results ===
+L2-553,dataset_plddt_pass,205620298,transactions (af-extract summary),deterministic,watcher.log,2282,[2026-02-09T04:43:35.999Z INFO af_extract] Transactions: 205620298
+L2-554,vocab_items_defined,1006,total items (af-extract summary),deterministic,watcher.log,2283,[2026-02-09T04:43:35.999Z INFO af_extract] Total items: 1006
+L2-555,extract_time_s,3777.0,s (af-extract build-from-metadata self-timed),hardware-dependent,watcher.log,2286,[2026-02-09T04:43:35.999Z INFO af_extract] Time: 3777.0s (54440 proteins/sec)
+L2-556,extract_proteins_per_s,54440,proteins/sec (af-extract throughput),hardware-dependent,watcher.log,2286,[2026-02-09T04:43:35.999Z INFO af_extract] Time: 3777.0s (54440 proteins/sec)
+L2-557,extract_wall_real_s,65m31.040s,real time (bash `time` of Step 1),hardware-dependent,watcher.log,2288,real 65m31.040s
+L2-558,extract_wall_user_s,62m38.750s,user time (bash `time` of Step 1),hardware-dependent,watcher.log,2289,user 62m38.750s
+L2-559,extract_wall_sys_s,2m52.144s,sys time (bash `time` of Step 1),hardware-dependent,watcher.log,2290,sys 2m52.144s
+L2-560,dataset_plddt_pass,"205,620,298",transactions (Step 2 data stats),deterministic,watcher.log,2295,"Total transactions: 205,620,298"
+L2-561,vocab_items_defined,1006,total items (Step 2 data stats),deterministic,watcher.log,2296,Total items: 1006
+L2-562,extract_items_mean,2.2,items per transaction (mean),deterministic,watcher.log,2298,Mean: 2.2
+L2-563,extract_items_max,46,items per transaction (max),deterministic,watcher.log,2299,Max: 46
+L2-564,dataset_multi_feature,"76,890,945",transactions with >1 item ('37.4%'),deterministic,watcher.log,2300,"With >1 item: 76,890,945 (37.4%)"
+L2-565,dataset_multi_feature,"76,890,945",transactions mined (Step 3),deterministic,watcher.log,2303,"Mining 76,890,945 annotated proteins..."
+L2-566,run_base_son_time_s,113.9,s (Step 3 mining),hardware-dependent,watcher.log,2306,Time: 113.9s
+L2-567,run_base_itemsets,"5,305","itemsets (total, Step 3)",deterministic,watcher.log,2307,"Itemsets: 5,305"
+L2-568,kdist_base_son_k1_count,667,itemsets K=1,deterministic,watcher.log,2308,[K-dist] K=1: 667
+L2-569,kdist_base_son_k2_count,"1,504",itemsets K=2,deterministic,watcher.log,2309,"[K-dist] K=2: 1,504"
+L2-570,kdist_base_son_k3_count,"1,378",itemsets K=3,deterministic,watcher.log,2310,"[K-dist] K=3: 1,378"
+L2-571,kdist_base_son_k4_count,884,itemsets K=4,deterministic,watcher.log,2311,[K-dist] K=4: 884
+L2-572,kdist_base_son_k5_count,514,itemsets K=5,deterministic,watcher.log,2312,[K-dist] K=5: 514
+L2-573,kdist_base_son_k6_count,247,itemsets K=6,deterministic,watcher.log,2313,[K-dist] K=6: 247
+L2-574,kdist_base_son_k7_count,89,itemsets K=7,deterministic,watcher.log,2314,[K-dist] K=7: 89
+L2-575,kdist_base_son_k8_count,20,itemsets K=8,deterministic,watcher.log,2315,[K-dist] K=8: 20
+L2-576,kdist_base_son_k9_count,2,itemsets K=9,deterministic,watcher.log,2316,[K-dist] K=9: 2
+L2-577,extract_rules_count,"53,447",association rules generated,deterministic,watcher.log,2320,"Generated 53,447 rules in 0.2s"
+L2-578,extract_rules_time_s,0.2,s (rule generation),hardware-dependent,watcher.log,2320,"Generated 53,447 rules in 0.2s"
+L2-579,extract_rules_toplift_1_conf,0.998,confidence,deterministic,watcher.log,2323,[TOP 30 BY LIFT] conf=0.998 lift= 969x PF01554 => GO:0015297 + GO:0042910
+L2-580,extract_rules_max_lift,969,lift (x),deterministic,watcher.log,2323,[TOP 30 BY LIFT] conf=0.998 lift= 969x PF01554 => GO:0015297 + GO:0042910
+L2-581,extract_rules_toplift_2_conf,0.999,confidence,deterministic,watcher.log,2324,[TOP 30 BY LIFT] conf=0.999 lift= 969x GO:0015297 + GO:0042910 => PF01554
+L2-582,extract_rules_toplift_2_lift,969,lift (x),deterministic,watcher.log,2324,[TOP 30 BY LIFT] conf=0.999 lift= 969x GO:0015297 + GO:0042910 => PF01554
+L2-583,extract_rules_toplift_3_conf,1.000,confidence,deterministic,watcher.log,2325,[TOP 30 BY LIFT] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-584,extract_rules_toplift_3_lift,921,lift (x),deterministic,watcher.log,2325,[TOP 30 BY LIFT] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-585,extract_rules_toplift_4_conf,0.945,confidence,deterministic,watcher.log,2326,[TOP 30 BY LIFT] conf=0.945 lift= 921x GO:0004129 + GO:0005507 => PF00116
+L2-586,extract_rules_toplift_4_lift,921,lift (x),deterministic,watcher.log,2326,[TOP 30 BY LIFT] conf=0.945 lift= 921x GO:0004129 + GO:0005507 => PF00116
+L2-587,extract_rules_toplift_5_conf,0.963,confidence,deterministic,watcher.log,2327,[TOP 30 BY LIFT] conf=0.963 lift= 845x plddt_mean_med + GO:0043952 => GO:0005886 + GO:0065002
+L2-588,extract_rules_toplift_5_lift,845,lift (x),deterministic,watcher.log,2327,[TOP 30 BY LIFT] conf=0.963 lift= 845x plddt_mean_med + GO:0043952 => GO:0005886 + GO:0065002
+L2-589,extract_rules_toplift_6_conf,0.938,confidence,deterministic,watcher.log,2328,[TOP 30 BY LIFT] conf=0.938 lift= 845x GO:0005886 + GO:0065002 => plddt_mean_med + GO:0043952
+L2-590,extract_rules_toplift_6_lift,845,lift (x),deterministic,watcher.log,2328,[TOP 30 BY LIFT] conf=0.938 lift= 845x GO:0005886 + GO:0065002 => plddt_mean_med + GO:0043952
+L2-591,extract_rules_toplift_7_conf,0.940,confidence,deterministic,watcher.log,2329,[TOP 30 BY LIFT] conf=0.940 lift= 835x GO:0043952 => plddt_mean_med + GO:0005886 + GO:0065002
+L2-592,extract_rules_toplift_7_lift,835,lift (x),deterministic,watcher.log,2329,[TOP 30 BY LIFT] conf=0.940 lift= 835x GO:0043952 => plddt_mean_med + GO:0005886 + GO:0065002
+L2-593,extract_rules_toplift_8_conf,0.949,confidence,deterministic,watcher.log,2330,[TOP 30 BY LIFT] conf=0.949 lift= 835x plddt_mean_med + GO:0005886 + GO:0065002 => GO:0043952
+L2-594,extract_rules_toplift_8_lift,835,lift (x),deterministic,watcher.log,2330,[TOP 30 BY LIFT] conf=0.949 lift= 835x plddt_mean_med + GO:0005886 + GO:0065002 => GO:0043952
+L2-595,extract_rules_toplift_9_conf,0.951,confidence,deterministic,watcher.log,2331,[TOP 30 BY LIFT] conf=0.951 lift= 834x GO:0043952 => GO:0005886 + GO:0065002
+L2-596,extract_rules_toplift_9_lift,834,lift (x),deterministic,watcher.log,2331,[TOP 30 BY LIFT] conf=0.951 lift= 834x GO:0043952 => GO:0005886 + GO:0065002
+L2-597,extract_rules_toplift_10_conf,0.949,confidence,deterministic,watcher.log,2332,[TOP 30 BY LIFT] conf=0.949 lift= 834x GO:0005886 + GO:0065002 => GO:0043952
+L2-598,extract_rules_toplift_10_lift,834,lift (x),deterministic,watcher.log,2332,[TOP 30 BY LIFT] conf=0.949 lift= 834x GO:0005886 + GO:0065002 => GO:0043952
+L2-599,extract_rules_toplift_11_conf,0.856,confidence,deterministic,watcher.log,2333,[TOP 30 BY LIFT] conf=0.856 lift= 827x PF00849 => GO:0003723 + GO:0000455
+L2-600,extract_rules_toplift_11_lift,827,lift (x),deterministic,watcher.log,2333,[TOP 30 BY LIFT] conf=0.856 lift= 827x PF00849 => GO:0003723 + GO:0000455
+L2-601,extract_rules_toplift_12_conf,0.992,confidence,deterministic,watcher.log,2334,[TOP 30 BY LIFT] conf=0.992 lift= 827x GO:0003723 + GO:0000455 => PF00849
+L2-602,extract_rules_toplift_12_lift,827,lift (x),deterministic,watcher.log,2334,[TOP 30 BY LIFT] conf=0.992 lift= 827x GO:0003723 + GO:0000455 => PF00849
+L2-603,extract_rules_toplift_13_conf,0.902,confidence,deterministic,watcher.log,2335,[TOP 30 BY LIFT] conf=0.902 lift= 816x GO:0003677 + GO:0000786 => GO:0046982 + GO:0030527
+L2-604,extract_rules_toplift_13_lift,816,lift (x),deterministic,watcher.log,2335,[TOP 30 BY LIFT] conf=0.902 lift= 816x GO:0003677 + GO:0000786 => GO:0046982 + GO:0030527
+L2-605,extract_rules_toplift_14_conf,0.986,confidence,deterministic,watcher.log,2336,[TOP 30 BY LIFT] conf=0.986 lift= 816x GO:0046982 + GO:0030527 => GO:0003677 + GO:0000786
+L2-606,extract_rules_toplift_14_lift,816,lift (x),deterministic,watcher.log,2336,[TOP 30 BY LIFT] conf=0.986 lift= 816x GO:0046982 + GO:0030527 => GO:0003677 + GO:0000786
+L2-607,extract_rules_toplift_15_conf,0.945,confidence,deterministic,watcher.log,2337,[TOP 30 BY LIFT] conf=0.945 lift= 809x PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-608,extract_rules_toplift_15_lift,809,lift (x),deterministic,watcher.log,2337,[TOP 30 BY LIFT] conf=0.945 lift= 809x PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-609,extract_rules_toplift_16_conf,0.983,confidence,deterministic,watcher.log,2338,[TOP 30 BY LIFT] conf=0.983 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-610,extract_rules_toplift_16_lift,809,lift (x),deterministic,watcher.log,2338,[TOP 30 BY LIFT] conf=0.983 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-611,extract_rules_toplift_17_conf,0.940,confidence,deterministic,watcher.log,2339,[TOP 30 BY LIFT] conf=0.940 lift= 809x PF13853 => plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984
+L2-612,extract_rules_toplift_17_lift,809,lift (x),deterministic,watcher.log,2339,[TOP 30 BY LIFT] conf=0.940 lift= 809x PF13853 => plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984
+L2-613,extract_rules_toplift_18_conf,0.983,confidence,deterministic,watcher.log,2340,[TOP 30 BY LIFT] conf=0.983 lift= 809x plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-614,extract_rules_toplift_18_lift,809,lift (x),deterministic,watcher.log,2340,[TOP 30 BY LIFT] conf=0.983 lift= 809x plddt_mean_med + GO:0005886 + GO:0004930 + GO:0004984 => PF13853
+L2-615,extract_rules_toplift_19_conf,0.945,confidence,deterministic,watcher.log,2341,[TOP 30 BY LIFT] conf=0.945 lift= 809x plddt_mean_med + PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-616,extract_rules_toplift_19_lift,809,lift (x),deterministic,watcher.log,2341,[TOP 30 BY LIFT] conf=0.945 lift= 809x plddt_mean_med + PF13853 => GO:0005886 + GO:0004930 + GO:0004984
+L2-617,extract_rules_toplift_20_conf,0.978,confidence,deterministic,watcher.log,2342,[TOP 30 BY LIFT] conf=0.978 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => plddt_mean_med + PF13853
+L2-618,extract_rules_toplift_20_lift,809,lift (x),deterministic,watcher.log,2342,[TOP 30 BY LIFT] conf=0.978 lift= 809x GO:0005886 + GO:0004930 + GO:0004984 => plddt_mean_med + PF13853
+L2-619,extract_rules_toplift_21_conf,0.960,confidence,deterministic,watcher.log,2343,[TOP 30 BY LIFT] conf=0.960 lift= 802x GO:0000455 => PF00849 + GO:0003723
+L2-620,extract_rules_toplift_21_lift,802,lift (x),deterministic,watcher.log,2343,[TOP 30 BY LIFT] conf=0.960 lift= 802x GO:0000455 => PF00849 + GO:0003723
+L2-621,extract_rules_toplift_22_conf,0.857,confidence,deterministic,watcher.log,2344,[TOP 30 BY LIFT] conf=0.857 lift= 802x PF00849 + GO:0003723 => GO:0000455
+L2-622,extract_rules_toplift_22_lift,802,lift (x),deterministic,watcher.log,2344,[TOP 30 BY LIFT] conf=0.857 lift= 802x PF00849 + GO:0003723 => GO:0000455
+L2-623,extract_rules_toplift_23_conf,0.856,confidence,deterministic,watcher.log,2345,[TOP 30 BY LIFT] conf=0.856 lift= 801x PF00849 => GO:0000455
+L2-624,extract_rules_toplift_23_lift,801,lift (x),deterministic,watcher.log,2345,[TOP 30 BY LIFT] conf=0.856 lift= 801x PF00849 => GO:0000455
+L2-625,extract_rules_toplift_24_conf,0.960,confidence,deterministic,watcher.log,2346,[TOP 30 BY LIFT] conf=0.960 lift= 801x GO:0000455 => PF00849
+L2-626,extract_rules_toplift_24_lift,801,lift (x),deterministic,watcher.log,2346,[TOP 30 BY LIFT] conf=0.960 lift= 801x GO:0000455 => PF00849
+L2-627,extract_rules_toplift_25_conf,0.967,confidence,deterministic,watcher.log,2347,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0005524 + GO:0016887
+L2-628,extract_rules_toplift_25_lift,792,lift (x),deterministic,watcher.log,2347,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0005524 + GO:0016887
+L2-629,extract_rules_toplift_26_conf,0.967,confidence,deterministic,watcher.log,2348,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0005524 + GO:0015833 => PF08352 + GO:0016887
+L2-630,extract_rules_toplift_26_lift,792,lift (x),deterministic,watcher.log,2348,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0005524 + GO:0015833 => PF08352 + GO:0016887
+L2-631,extract_rules_toplift_27_conf,0.967,confidence,deterministic,watcher.log,2349,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0016887
+L2-632,extract_rules_toplift_27_lift,792,lift (x),deterministic,watcher.log,2349,[TOP 30 BY LIFT] conf=0.967 lift= 792x PF00005 + GO:0015833 => PF08352 + GO:0016887
+L2-633,extract_rules_toplift_28_conf,0.990,confidence,deterministic,watcher.log,2350,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0005524 + GO:0015833
+L2-634,extract_rules_toplift_28_lift,792,lift (x),deterministic,watcher.log,2350,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0005524 + GO:0015833
+L2-635,extract_rules_toplift_29_conf,0.990,confidence,deterministic,watcher.log,2351,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0005524 + GO:0016887 => PF00005 + GO:0015833
+L2-636,extract_rules_toplift_29_lift,792,lift (x),deterministic,watcher.log,2351,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0005524 + GO:0016887 => PF00005 + GO:0015833
+L2-637,extract_rules_toplift_30_conf,0.990,confidence,deterministic,watcher.log,2352,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0015833
+L2-638,extract_rules_toplift_30_lift,792,lift (x),deterministic,watcher.log,2352,[TOP 30 BY LIFT] conf=0.990 lift= 792x PF08352 + GO:0016887 => PF00005 + GO:0015833
+L2-639,extract_rules_toplift_3_conf,1.000,confidence,deterministic,watcher.log,2355,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-640,extract_rules_toplift_3_lift,921,lift (x),deterministic,watcher.log,2355,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 921x PF00116 => GO:0004129 + GO:0005507
+L2-641,extract_rules_topconf_2_conf,1.000,confidence,deterministic,watcher.log,2356,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 + GO:0071555 => GO:0008658
+L2-642,extract_rules_topconf_2_lift,776,lift (x),deterministic,watcher.log,2356,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 + GO:0071555 => GO:0008658
+L2-643,extract_rules_topconf_3_conf,1.000,confidence,deterministic,watcher.log,2357,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 => GO:0008658
+L2-644,extract_rules_topconf_3_lift,776,lift (x),deterministic,watcher.log,2357,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 776x PF00905 => GO:0008658
+L2-645,extract_rules_topconf_4_conf,1.000,confidence,deterministic,watcher.log,2358,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-646,extract_rules_topconf_4_lift,735,lift (x),deterministic,watcher.log,2358,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-647,extract_rules_topconf_5_conf,1.000,confidence,deterministic,watcher.log,2359,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-648,extract_rules_topconf_5_lift,735,lift (x),deterministic,watcher.log,2359,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 735x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0006397 + GO:0008033
+L2-649,extract_rules_topconf_6_conf,1.000,confidence,deterministic,watcher.log,2360,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-650,extract_rules_topconf_6_lift,734,lift (x),deterministic,watcher.log,2360,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-651,extract_rules_topconf_7_conf,1.000,confidence,deterministic,watcher.log,2361,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-652,extract_rules_topconf_7_lift,734,lift (x),deterministic,watcher.log,2361,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-653,extract_rules_topconf_8_conf,1.000,confidence,deterministic,watcher.log,2362,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-654,extract_rules_topconf_8_lift,734,lift (x),deterministic,watcher.log,2362,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x plddt_mean_med + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-655,extract_rules_topconf_9_conf,1.000,confidence,deterministic,watcher.log,2363,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-656,extract_rules_topconf_9_lift,734,lift (x),deterministic,watcher.log,2363,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 734x PF01824 + PF01348 + GO:0009507 => GO:0003723 + GO:0006397 + GO:0008033
+L2-657,extract_rules_topconf_10_conf,1.000,confidence,deterministic,watcher.log,2364,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-658,extract_rules_topconf_10_lift,681,lift (x),deterministic,watcher.log,2364,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-659,extract_rules_topconf_11_conf,1.000,confidence,deterministic,watcher.log,2365,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-660,extract_rules_topconf_11_lift,681,lift (x),deterministic,watcher.log,2365,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-661,extract_rules_topconf_12_conf,1.000,confidence,deterministic,watcher.log,2366,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-662,extract_rules_topconf_12_lift,681,lift (x),deterministic,watcher.log,2366,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-663,extract_rules_topconf_13_conf,1.000,confidence,deterministic,watcher.log,2367,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-664,extract_rules_topconf_13_lift,681,lift (x),deterministic,watcher.log,2367,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-665,extract_rules_topconf_14_conf,1.000,confidence,deterministic,watcher.log,2368,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-666,extract_rules_topconf_14_lift,681,lift (x),deterministic,watcher.log,2368,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-667,extract_rules_topconf_15_conf,1.000,confidence,deterministic,watcher.log,2369,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-668,extract_rules_topconf_15_lift,681,lift (x),deterministic,watcher.log,2369,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01348 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-669,extract_rules_topconf_16_conf,1.000,confidence,deterministic,watcher.log,2370,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-670,extract_rules_topconf_16_lift,681,lift (x),deterministic,watcher.log,2370,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 681x PF01824 + GO:0003723 + GO:0009507 => plddt_mean_med + GO:0006397 + GO:0008033
+L2-671,extract_rules_topconf_17_conf,1.000,confidence,deterministic,watcher.log,2371,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-672,extract_rules_topconf_17_lift,663,lift (x),deterministic,watcher.log,2371,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-673,extract_rules_topconf_18_conf,1.000,confidence,deterministic,watcher.log,2372,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-674,extract_rules_topconf_18_lift,663,lift (x),deterministic,watcher.log,2372,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 + GO:0006397 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-675,extract_rules_topconf_19_conf,1.000,confidence,deterministic,watcher.log,2373,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-676,extract_rules_topconf_19_lift,663,lift (x),deterministic,watcher.log,2373,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-677,extract_rules_topconf_20_conf,1.000,confidence,deterministic,watcher.log,2374,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-678,extract_rules_topconf_20_lift,663,lift (x),deterministic,watcher.log,2374,[TOP 20 BY CONFIDENCE] conf=1.000 lift= 663x PF01824 + PF01348 + GO:0009507 => plddt_mean_med + GO:0003723 + GO:0008033
+L2-679,extract_rules_count,"53,447",association rules (summary),deterministic,watcher.log,2377,"Total rules: 53,447"
+L2-680,extract_rules_conf_ge99,"12,776",rules with confidence >= 99%,deterministic,watcher.log,2378,"Confidence >= 99%: 12,776"
+L2-681,extract_rules_conf_ge90,"31,775",rules with confidence >= 90%,deterministic,watcher.log,2379,"Confidence >= 90%: 31,775"
+L2-682,extract_rules_lift_ge5,"51,126",rules with lift >= 5.0,deterministic,watcher.log,2380,"Lift >= 5.0: 51,126"
+L2-683,extract_rules_lift_ge100,"40,428",rules with lift >= 100,deterministic,watcher.log,2381,"Lift >= 100: 40,428"
+L2-684,extract_rules_cross_domain,"45,286",cross-domain rules (Pfam<=>GO),deterministic,watcher.log,2382,"Cross-domain (Pfam<=>GO): 45,286"
+L2-685,meta_log_pipeline_end_timestamp,Mon Feb  9 04:48:08 UTC 2026,timestamp (pipeline end banner),external-fact,watcher.log,2385,=== PIPELINE COMPLETE — Mon Feb 9 04:48:08 UTC 2026 ===
+L2-686,run_minc3_min_count,3,min_count (proteins),method-parameter,yolo.log,2,YOLO MODE — min_count = 3
+L2-687,run_minc3_target_k,23,target K,method-parameter,yolo.log,3,The DEFINITIVE answer to K=23
+L2-688,run_minc3_support,1.458999928110210e-08,min_support (fraction),method-parameter,yolo.log,5,min_support = 1.458999928110210e-08
+L2-689,dataset_plddt_pass,205620298,transactions (denominator used in verify),deterministic,yolo.log,6,verify: ceil(1.4589999281102103e-08 * 205620298) = 3
+L2-690,run_minc3_min_count,3,min_count (verified ceil),method-parameter,yolo.log,6,verify: ceil(1.4589999281102103e-08 * 205620298) = 3

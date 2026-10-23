@@ -1,0 +1,8 @@
+start 2026-09-02T00:07:12Z src=gs://public-datasets-deepmind-alphafold-v4/proteomes/proteome-tax_id-9606-12_v4.tar
+Copying gs://public-datasets-deepmind-alphafold-v4/proteomes/proteome-tax_id-9606-12_v4.tar to file:///root/projects/ET-Miner/runs/20260902T0000Z/phase2/bwtest/proteome-tax_id-9606-12_v4.tar
+  
+................
+
+Average throughput: 317.4MiB/s
+end rc=0 bytes=730406912 seconds=4.7 MB/s=156.6 Mbit/s=1253
+end 2026-09-02T00:07:17Z

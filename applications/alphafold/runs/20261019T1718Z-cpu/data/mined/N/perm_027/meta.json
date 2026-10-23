@@ -1,0 +1,92 @@
+{
+  "perm": 27,
+  "perm_seed": 404018428470862364,
+  "shuffle_seed": 66024818916009804,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 444.56658574199537,
+  "mine_wall_s": 433.918483504036,
+  "process": {
+    "wall_s": 878.4851017369656,
+    "cpu_s": 4217.644904,
+    "peak_rss_mb": 24585.69140625
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.049322028644382954
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63701,
+      "ms": 10756.58609898528
+    },
+    {
+      "k": 3,
+      "candidates": 2662516,
+      "frequent": 79161,
+      "ms": 83786.84431902366
+    },
+    {
+      "k": 4,
+      "candidates": 141136,
+      "frequent": 25412,
+      "ms": 266683.30798496027
+    },
+    {
+      "k": 5,
+      "candidates": 8720,
+      "frequent": 1989,
+      "ms": 53575.75204601744
+    },
+    {
+      "k": 6,
+      "candidates": 134,
+      "frequent": 22,
+      "ms": 7076.07155398
+    }
+  ],
+  "total_itemsets": 171287,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63701,
+    "3": 79161,
+    "4": 25412,
+    "5": 1989,
+    "6": 22
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171287,
+    "sum_counts": 1072394991,
+    "sha256": "9fee34eada1607a3df9b5eadc225804db38451302e7b80da05e5ecf8b16afd04",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63701,
+      "3": 79161,
+      "4": 25412,
+      "5": 1989,
+      "6": 22
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-21T23:15:23Z"
+  }
+}

@@ -1,0 +1,8 @@
+{"phase": "pass1", "chunk": 0, "n_chunks": 4, "t_s": 1.7819538240437396, "metrics": {"candidates": 183376, "items": 1002, "memory_gb": 0.275546112}, "utc": "2026-10-20T15:58:25Z"}
+{"phase": "pass1", "chunk": 1, "n_chunks": 4, "t_s": 3.4704132479964755, "metrics": {"candidates": 360227, "items": 1002, "memory_gb": 0.27025408}, "utc": "2026-10-20T15:58:27Z"}
+{"phase": "pass1", "chunk": 2, "n_chunks": 4, "t_s": 5.191355321032461, "metrics": {"candidates": 539160, "items": 1002, "memory_gb": 0.294449152}, "utc": "2026-10-20T15:58:29Z"}
+{"phase": "pass1", "chunk": 3, "n_chunks": 4, "t_s": 6.8945038160309196, "metrics": {"candidates": 717158, "items": 1002, "memory_gb": 0.304345088}, "utc": "2026-10-20T15:58:31Z"}
+{"phase": "pass2", "chunk": 0, "n_chunks": 4, "t_s": 7.542942762025632, "metrics": {"counted": 1, "memory_gb": 0.347889664}, "utc": "2026-10-20T15:58:31Z"}
+{"phase": "pass2", "chunk": 1, "n_chunks": 4, "t_s": 8.083713616011664, "metrics": {"counted": 2, "memory_gb": 0.339779584}, "utc": "2026-10-20T15:58:32Z"}
+{"phase": "pass2", "chunk": 2, "n_chunks": 4, "t_s": 8.616370839998126, "metrics": {"counted": 3, "memory_gb": 0.345776128}, "utc": "2026-10-20T15:58:32Z"}
+{"phase": "pass2", "chunk": 3, "n_chunks": 4, "t_s": 9.142678436008282, "metrics": {"counted": 4, "memory_gb": 0.341712896}, "utc": "2026-10-20T15:58:33Z"}

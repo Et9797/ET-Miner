@@ -1,0 +1,45 @@
+>>> ULTRA LOW SUPPORT: 0.01% on 214M TrEMBL
+>>> Loading data...
+Total transactions: 205,620,298
+With >1 item: 76,890,945
+Min support = 0.01% = 7,689 proteins
+
+>>> GPU-RESIDENT STREAMING APRIORI — 0.01% SUPPORT
+>>> RELEASING THE H100s...
+
+
+=== ULTRA LOW SUPPORT RESULTS ===
+Time: 257.6s
+Itemsets: 51,124
+  K=1: 455
+  K=2: 4,152
+  K=3: 8,936
+  K=4: 10,191
+  K=5: 9,153
+  K=6: 7,177
+  K=7: 5,217
+  K=8: 3,208
+  K=9: 1,651
+  K=10: 707
+  K=11: 222
+  K=12: 48
+  K=13: 7
+Saved: /root/alphafold-data/full_214m/itemsets_214m_ultra.parquet
+
+=== DEEPEST PATTERNS ===
+
+--- K=2 (top 3) ---
+  support=0.07093 (5,453,948 proteins)
+    plddt_mean_high + GO:0046872
+  support=0.05538 (4,257,942 proteins)
+    plddt_mean_med + GO:0005737
+  support=0.04204 (3,232,658 proteins)
+    plddt_mean_high + GO:0005524
+
+--- K=1 (top 3) ---
+  support=0.10739 (8,257,363 proteins)
+    GO:0005737
+  support=0.08286 (6,370,846 proteins)
+    GO:0005829
+  support=0.06854 (5,270,392 proteins)
+    GO:0003677

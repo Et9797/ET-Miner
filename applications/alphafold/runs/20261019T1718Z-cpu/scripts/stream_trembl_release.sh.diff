@@ -1,0 +1,17 @@
+2c2
+< REL=$1; TB=$2
+---
+> R=$(cd "$1" && pwd); REL=$2; TB=$3
+4,5c4
+< D=/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data
+< S=/root/projects/ET-Miner/runs/20260902T0000Z/phase2/scripts
+---
+> D=$R/data
+8,10c7,9
+< python3 $S/stream_tar_member.py "$URL" uniprot_trembl.dat.gz \
+<     --chunk-mib 256 --parallel 16 --window 8 \
+<     --workdir $D/stream_work_$REL --log $D/stream_trembl_$REL.log \
+---
+> python3 "$R/scripts/stream_tar_member.py" "$URL" uniprot_trembl.dat.gz \
+>     --chunk-mib "${CHUNK_MIB:-128}" --parallel "${PARALLEL:-8}" --window "${WINDOW:-8}" \
+>     --workdir "$D/stream_work_$REL" --log "$R/logs/stream_trembl_${REL}_progress.log" \

@@ -1,0 +1,181 @@
+| R1-623 | F3:96 | 8 proteins (mining result support count) | k22_support | 8 | confirmed | exact |
+| R1-624 | F3:96 | 3 proteins identified (analysis script fallback heuristic) | k22_script_identified_proteins | 8 | inconclusive | the reviewer describes the fallback heuristic of the old run (3 proteins from a name-mismatched feature list); |
+| R1-625 | F3:96 | 8 UniProt accessions (must be named) | k22_support | 8 | confirmed | exact |
+| R1-626 | F3:98 | 6/10 severity (M6) | meta_review_f3_severity_major6 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-627 | F3:100 | 0.1% support (wave 3) | run_v35k_wave3_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-628 | F3:100 | 109,225 min_count (wave 3, 0.1%) | run_v35k_wave3_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-629 | F3:100 | 10 K reached (wave 3) | run_v35k_wave3_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-630 | F3:104 | 1,164 itemsets at K=1 (wave 3) | kdist_v35k_wave3_k1_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-631 | F3:104 | 0.3 s cumulative at K=1 (wave 3) | run_v35k_wave3_k1_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-632 | F3:105 | 8,554 itemsets at K=2 (wave 3) | kdist_v35k_wave3_k2_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-633 | F3:105 | 1.2 s cumulative at K=2 (wave 3) | run_v35k_wave3_k2_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-634 | F3:106 | 28,804 itemsets at K=3 (wave 3) | kdist_v35k_wave3_k3_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-635 | F3:106 | 2.0 s cumulative at K=3 (wave 3) | run_v35k_wave3_k3_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-636 | F3:107 | 88,561 itemsets at K=4 (wave 3) | kdist_v35k_wave3_k4_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-637 | F3:107 | 5.3 s cumulative at K=4 (wave 3) | run_v35k_wave3_k4_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-638 | F3:108 | 280,784 itemsets at K=5 (wave 3) | kdist_v35k_wave3_k5_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-639 | F3:108 | 17.5 s cumulative at K=5 (wave 3) | run_v35k_wave3_k5_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-640 | F3:109 | 835,466 itemsets at K=6 (wave 3) | kdist_v35k_wave3_k6_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-641 | F3:109 | 52.1 s cumulative at K=6 (wave 3) | run_v35k_wave3_k6_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-642 | F3:110 | 2,207,022 itemsets at K=7 (wave 3) | kdist_v35k_wave3_k7_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-643 | F3:110 | 145.3 s cumulative at K=7 (wave 3) | run_v35k_wave3_k7_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-644 | F3:111 | 5,063,845 itemsets at K=8 (wave 3) | kdist_v35k_wave3_k8_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-645 | F3:111 | 348.5 s cumulative at K=8 (wave 3) | run_v35k_wave3_k8_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-646 | F3:112 | 10,041,611 itemsets at K=9 (wave 3) | kdist_v35k_wave3_k9_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-647 | F3:112 | 743.4 s cumulative at K=9 (wave 3) | run_v35k_wave3_k9_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-648 | F3:113 | 12.5M locally frequent candidates at K=10 (wave 3) | kdist_v35k_wave3_k10_locally_frequent |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-649 | F3:113 | >743 s at K=10 (still running) | run_v35k_wave3_k10_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-650 | F3:115 | 30x more itemsets per K-level (0.1% vs 0.001% run) | run_v35k_wave3_vs_v35k_itemsets_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-651 | F3:115 | 0.001% support (comparison run) | run_v35k_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-652 | F3:115 | 2.2M itemsets at K=7 (0.1% run) | kdist_v35k_wave3_k7_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-653 | F3:115 | 64K itemsets at K=7 (0.001% run) | kdist_v35k_k7_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-654 | F3:115 | 10 K (distribution still growing) | run_v35k_wave3_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-655 | F3:117 | hundreds of millions itemsets (projected if wave 3 completes) | run_v35k_wave3_itemsets_projected |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-656 | F3:117 | 12+ minutes at K=9 | run_v35k_wave3_k9_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-657 | F3:119 | 1,093 min_count (power test) | run_v35k_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-658 | F3:119 | 586 s (K=2 level at min_count=1,093) | run_v35k_power_k2_time_s |  | inconclusive | not measured in this campaign |
+| R1-659 | F3:119 | 1.2 s (K=2 level at min_count=109,225) | run_v35k_wave3_k2_cum_time_s |  | inconclusive | not measured in this campaign |
+| R1-660 | F3:119 | 109,225 min_count | run_v35k_wave3_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-661 | F3:119 | 902K frequent pairs (min_count=1,093) | kdist_v35k_power_k2_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-662 | F3:119 | 8.5K frequent pairs (min_count=109,225) | kdist_v35k_wave3_k2_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-663 | F3:119 | >=3 K (candidate space) | misc_v35k_power_candidate_space_k |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-664 | F3:119 | 4 K reached (power test) | run_v35k_power_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-665 | F3:119 | 17.4M itemsets at K=4 (power test) | kdist_v35k_power_k4_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-666 | F3:121 | 606K itemsets at 0.001% support | run_v35k_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-667 | F3:121 | 0.001% support | run_v35k_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-668 | F3:121 | 0.1% support | run_v35k_wave3_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-669 | F3:121 | 10M+ itemsets at K=9 (0.1% run) | kdist_v35k_wave3_k9_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-670 | F3:121 | 9 K | run_v35k_wave3_last_complete_k |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-671 | F3:129 | 2 permutations (35K) | run_v35k_null_permutations |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-672 | F3:129 | 5 permutations (1K) | null_permutations | 5 | confirmed | exact |
+| R1-673 | F3:133 | 22 -> 17 K drop | run_v35k_vs_opus_kmax_change |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-674 | F3:139 | 26.8M itemsets (provenance gap) | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.8 at 3 significant digits |
+| R1-675 | F3:141 | 7.3 minute claim (mining vs total pipeline) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-676 | F3:143 | 8 vs 3 K=22 proteins (heading, retained from v1) | k22_script_identified_proteins | 8 | inconclusive | the reviewer describes the fallback heuristic of the old run (3 proteins from a name-mismatched feature list); |
+| R1-677 | F3:143 | 22 K (heading) | run_opus_kmax | 22 | confirmed | exact |
+| R1-678 | F3:151 | 3/10 severity (m1) | meta_review_f3_severity_minor1 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-679 | F3:153 | 606,319 itemsets (run 1) | run_v35k_run1_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-680 | F3:153 | 606,293 itemsets (run 2) | run_v35k_run2_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-681 | F3:153 | 606,263 itemsets (run 3) | run_v35k_run3_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-682 | F3:153 | 17 / 16 / 17 K_max per run | run_v35k_kmax_per_run |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-683 | F3:153 | 2, 0, 1 itemsets at K=17 per run | kdist_v35k_k17_count_per_run |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-684 | F3:153 | 152 itemsets at K=16 (stable across runs) | kdist_v35k_k16_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-685 | F3:155 | 16-17 K_max (recommended reporting) | run_v35k_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-686 | F3:157 | 5/10 severity (m2) | meta_review_f3_severity_minor2 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-687 | F3:159 | 247 Pfam items (Table 1) | vocab_v1_pfam |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-688 | F3:159 | 302 GO:MF items (Table 1) | vocab_v1_go_mf |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-689 | F3:159 | 289 GO:BP items (Table 1) | vocab_v1_go_bp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-690 | F3:159 | 161 GO:CC items (Table 1) | vocab_v1_go_cc |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-691 | F3:159 | 3 pLDDT items (Table 1) | vocab_v1_plddt |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-692 | F3:159 | 34,920 features (35K vocabulary) | vocab_v35k_items |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-693 | F3:159 | 34,920 frequent items at K=1 (35K logs) | kdist_v35k_k1_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-694 | F3:162 | 1,093-2,000 proteins per feature (hypothetical) | misc_v35k_hypothetical_feature_support_range |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-695 | F3:163 | 1,002 original features | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-696 | F3:165 | 5/10 severity (m3) | meta_review_f3_severity_minor3 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-697 | F3:167 | 4 GPUs (row-splitting) | run_v35k_n_gpus |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-698 | F3:167 | 27,307 local_min_count (wave 3) | run_v35k_wave3_local_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-699 | F3:167 | 109,225 global min_count (wave 3) | run_v35k_wave3_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-700 | F3:167 | 14,800 locally frequent K=2 (union) | kdist_v35k_wave3_k2_locally_frequent |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-701 | F3:167 | 8,554 globally frequent K=2 | kdist_v35k_wave3_k2_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-702 | F3:167 | 42% candidates pruned by global recount | run_v35k_wave3_k2_local_prune_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-703 | F3:169 | 1/4 fraction of transactions per GPU | run_v35k_gpu_row_fraction |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-704 | F3:169 | 95.2% SON miss rate (1K analysis) | son_miss_rate_pct | 0 | hallucinated | exact-match rule: fresh value differs |
+| R1-705 | F3:169 | global/4 local_min_count formula | alg_local_min_count_rule |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-706 | F3:173 | 4/10 severity (m4) | meta_review_f3_severity_minor4 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-707 | F3:175 | 1,002 features | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-708 | F3:175 | 34,920 features | vocab_v35k_items |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-709 | F3:177 | ~60% of all proteins annotated GO:0005515 protein binding | ext_go_protein_binding_prevalence_pct |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-710 | F3:177 | millions trivial co-occurrences | misc_go_protein_binding_trivial_cooccurrences |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-711 | F3:179 | <2x min_count median feature frequency (hypothetical) | misc_v35k_hypothetical_median_feature_frequency |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-712 | F3:181 | 21.4x speedup (1K SON comparison) | son_speedup | 61.87 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.89 (claimed 21.4) |
+| R1-713 | F3:181 | 2/10 severity (m5, current) | meta_review_f3_severity_minor5 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-714 | F3:181 | 4/10 severity (m5, v1) | meta_review_f3_severity_minor5_v1 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-715 | F3:183 | 21.4x speedup | son_speedup | 61.87 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.89 (claimed 21.4) |
+| R1-716 | F3:183 | 95.2% SON miss rate | son_miss_rate_pct | 0 | hallucinated | exact-match rule: fresh value differs |
+| R1-717 | F3:185 | 3/10 severity (m6) | meta_review_f3_severity_minor6 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-718 | F3:187 | 7 K (35K distribution peak) | kdist_v35k_peak_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-719 | F3:187 | 64,400 itemsets at K=7 (35K) | kdist_v35k_k7_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-720 | F3:187 | 9 K (1K distribution peak) | kdist_opus_peak_k | 9 | confirmed | exact |
+| R1-721 | F3:189 | 3/10 severity (m7) | meta_review_f3_severity_minor7 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-722 | F3:191 | ~611 proteins (approximate count) | pattern_k17_support | 611 | confirmed | exact |
+| R1-723 | F3:191 | ~11,000 proteins (approximate count) | pattern_k13_support | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 102 | confirmed | claimed value exists among 146 fresh values (fresh truncates to 11,000 at 2 significant digits) |
+| R1-724 | F3:193 | 4/10 severity (m8) | meta_review_f3_severity_minor8 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-725 | F3:195 | 606K itemsets (35K, likely redundant) | run_v35k_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-726 | F3:197 | 3/10 severity (m9) | meta_review_f3_severity_minor9 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-727 | F3:201 | 2/10 severity (m10) | meta_review_f3_severity_minor10 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-728 | F3:205 | 3/10 severity (m11, current) | meta_review_f3_severity_minor11 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-729 | F3:205 | 5/10 severity (m11, v1) | meta_review_f3_severity_minor11_v1 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-730 | F3:207 | 4xH200 GPUs (35K results) | run_v35k_n_gpus |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-731 | F3:207 | 8.9-12.9 s (bitvector build time across runs) | run_v35k_bitvec_build_time_s |  | inconclusive | not measured in this campaign |
+| R1-732 | F3:207 | 1 GPU (baseline missing) | hw_gpu_count | 2 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.00 (claimed 1) |
+| R1-733 | F3:209 | 4/10 severity (m12) | meta_review_f3_severity_minor12 |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-734 | F3:213 | 1,002 features (1K Opus row) | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-735 | F3:213 | 76.9M transactions (1K Opus row) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-736 | F3:213 | 0.00001% threshold (1K Opus row) | run_opus_support_pct | 1e-05 | confirmed | exact |
+| R1-737 | F3:213 | 8 min_count (1K Opus row) | run_opus_min_count | 8 | confirmed | exact |
+| R1-738 | F3:213 | 1xH100 GPUs (1K Opus row) | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| R1-739 | F3:213 | 7.3 min (1K Opus row) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-740 | F3:213 | 26.8M itemsets (1K Opus row) | run_opus_itemsets | 26,849,505 | confirmed | fresh rounds to 26.8 at 3 significant digits |
+| R1-741 | F3:214 | 34,920 features (35K Base row) | vocab_v35k_items |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-742 | F3:214 | 109.2M transactions (35K Base row) | run_v35k_n_transactions |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-743 | F3:214 | 0.001% threshold (35K Base row) | run_v35k_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-744 | F3:214 | 1,093 min_count (35K Base row) | run_v35k_min_count |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-745 | F3:214 | 4xH200 GPUs (35K Base row) | run_v35k_n_gpus |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-746 | F3:214 | 10.9 min (35K Base row) | run_v35k_time_min |  | inconclusive | not measured in this campaign |
+| R1-747 | F3:214 | 606K itemsets (35K Base row) | run_v35k_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-748 | F3:216 | 4x more GPUs (35K vs 1K) | run_v35k_vs_opus_gpu_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-749 | F3:216 | 100x higher threshold (35K vs 1K) | run_v35k_vs_opus_support_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-750 | F3:216 | 50% longer runtime (35K vs 1K) | run_v35k_vs_opus_time_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-751 | F3:216 | 35x more features / larger bitvectors | vocab_v35k_expansion_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-752 | F3:224 | ~119 GB bitvector matrix per GPU (35K) | mem_v35k_bitvec_per_gpu_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-753 | F3:224 | 4 GPUs (row-splitting required) | run_v35k_n_gpus |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-754 | F3:228 | 9 K (peak, 1K) | kdist_opus_peak_k | 9 | confirmed | exact |
+| R1-755 | F3:228 | 7 K (peak, 35K) | kdist_v35k_peak_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-756 | F3:236 | 2 (two) vocabulary scales demonstrated | meta_review_f3_vocab_scales |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-757 | F3:236 | 2 (two) hardware configurations (1xH100, 4xH200) | meta_review_f3_hardware_configs |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-758 | F3:236 | 0.1% support (wave 3) | run_v35k_wave3_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-759 | F3:236 | tens of millions itemsets (wave 3 projection) | run_v35k_wave3_itemsets_projected |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-760 | F3:240 | 175 GB (SON bitvec) | mem_v35k_son_bitvec_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-761 | F3:240 | 40M chunk (SON) | run_v35k_son_chunk_size |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-762 | F3:244 | 0.0046% CV (triplicate) | run_v35k_itemsets_cv_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-763 | F3:248 | 5 perms (1K null) | null_permutations | 5 | confirmed | exact |
+| R1-764 | F3:248 | 2 perms (35K null) | run_v35k_null_permutations |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-765 | F3:248 | 2 K (depleted in both nulls) | null_depleted_k | [2, 3] | confirmed | claimed value exists among 2 fresh values (exact) |
+| R1-766 | F3:248 | >=3 K (enriched, 35K) | run_v35k_null_enriched_from_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-767 | F3:248 | >=4 K (enriched, 1K) | null_enriched_from_k | 4 | confirmed | exact |
+| R1-768 | F3:258 | 100+ null-model permutations (both scales) | null_perms_for_p001 |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-769 | F3:262 | 100 perms (35K) | run_v35k_null_perms_requested |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-770 | F3:262 | ~655 s per perm (35K) | run_v35k_null_per_perm_time_s |  | inconclusive | not measured in this campaign |
+| R1-771 | F3:262 | 4 GPUs | run_v35k_n_gpus |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-772 | F3:262 | ~4.5 hours (100 perms, 35K) | cost_null_100perm_v35k_hours |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-773 | F3:262 | 200 perms (35K) | run_v35k_null_perms_requested |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-774 | F3:262 | ~9 hours (200 perms, 35K) | cost_null_200perm_v35k_hours |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-775 | F3:263 | 100 perms (1K) | null_perms_for_p001 |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-776 | F3:263 | ~86 s per perm (1K) | null_per_perm_time_s | 18.84 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.22 (claimed 86) |
+| R1-777 | F3:263 | 1 GPU (1K null) | hw_gpu_count | 2 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.00 (claimed 1) |
+| R1-778 | F3:263 | ~2.4 hours (100 perms, 1K) | cost_null_100perm_1k_hours |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-779 | F3:267 | ~$50-100 USD (cloud H200 cost for permutations) | cost_null_perms_cloud_usd |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-780 | F3:271 | 8 min_count (controlled 35K run) | run_opus_min_count | 8 | confirmed | exact |
+| R1-781 | F3:271 | 1 (single) GPU | hw_gpu_count | 2 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.00 (claimed 1) |
+| R1-782 | F3:271 | ~119 GB (bitvector to fit on H200) | mem_v35k_bitvec_per_gpu_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-783 | F3:271 | ~17 K_max (if unchanged at low threshold) | misc_v35k_minc8_hypothetical_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-784 | F3:271 | 22 K_max (if it rises toward) | misc_v35k_minc8_hypothetical_kmax |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-785 | F3:279 | 0.1% support (wave 3) | run_v35k_wave3_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-786 | F3:279 | millions itemsets per K-level | run_v35k_wave3_itemsets_per_level |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-787 | F3:279 | 0.001% support (power test) | run_v35k_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-788 | F3:279 | 900K+ frequent pairs (0.001%) | kdist_v35k_power_k2_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-789 | F3:279 | 17M+ K=4 itemsets (0.001%) | kdist_v35k_power_k4_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-790 | F3:279 | 4xH200 GPUs (feasibility) | run_v35k_n_gpus |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-791 | F3:281 | 8 K=22 proteins to name (heading) | k22_support | 8 | confirmed | exact |
+| R1-792 | F3:281 | 22 K (heading) | run_opus_kmax | 22 | confirmed | exact |
+| R1-793 | F3:283 | 8 K=22 proteins (to name) | k22_support | 8 | confirmed | exact |
+| R1-794 | F3:283 | 22 K | run_opus_kmax | 22 | confirmed | exact |
+| R1-795 | F3:283 | 8-vs-3 K=22 protein count discrepancy | k22_script_identified_proteins | 8 | inconclusive | the reviewer describes the fallback heuristic of the old run (3 proteins from a name-mismatched feature list); |
+| R1-796 | F3:287 | 606K itemsets (raw, 35K) | run_v35k_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-797 | F3:287 | 50K-100K closed itemsets (projected) | run_v35k_closed_itemsets |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-798 | F3:291 | 42% K=2 candidates pruned by locally-frequent union | run_v35k_wave3_k2_local_prune_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-799 | F3:291 | >=5 K (pruning analysis requested) | misc_f3_prune_analysis_k |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-800 | F3:299 | 109M transactions (35K) | run_v35k_n_transactions |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-801 | F3:299 | 76.9M transactions (1K) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-802 | F3:309 | 1,002 original features | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-803 | F3:309 | 34,920 features (35K) | vocab_v35k_items |  | inconclusive | statement about the original setup; not verifiable by re-execution |

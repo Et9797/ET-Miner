@@ -1,0 +1,15 @@
+{
+  "features": [
+    "PF00270",
+    "GO:0003724",
+    "GO:0045087"
+  ],
+  "item_ids": [
+    23,
+    677,
+    766
+  ],
+  "source": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/C3/parquet/k3.parquet",
+  "count": 1234,
+  "support": 1.604870378430126e-05
+}

@@ -1,0 +1,36 @@
+/root/projects/ET-Miner/runs/20260902T0000Z/phase2/scripts/extract_stats.py:78: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+  .select(pl.col("items").explode().alias("item")).group_by("item").len()
+/root/projects/ET-Miner/runs/20260902T0000Z/phase2/scripts/extract_stats.py:83: DeprecationWarning: In Polars 2.0, the default behavior for `empty_as_null` will change to `False`. To keep the current behavior, explicitly set `empty_as_null=True`.
+  sup_all = (lf.select(pl.col("items").explode().alias("item")).group_by("item").len()
+{
+  "n_run_rows": 90506840,
+  "n_csv_rows_full": 214683829,
+  "n_csv_pass_full": 205620298,
+  "n_csv_skipped_full": 9063531,
+  "full_csv": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/plddt_metadata_storageapi.csv",
+  "reconstruction": "proteins with pLDDT >= min but without any Pfam/GO DAT record are single-item transactions by construction; totals below include them",
+  "n_transactions_total": 205620298,
+  "n_outside_run_single_item": 115113458,
+  "n_multi_feature": 76890945,
+  "n_single_feature": 128729353,
+  "n_zero_feature": 0,
+  "items_per_txn_mean_all": 2.164914895707427,
+  "items_per_txn_max": 46,
+  "nnz_all": 445150446,
+  "nnz_multi": 316421093,
+  "items_per_txn_mean_multi": 4.115193186922075,
+  "pct_multi_feature": 37.39462774244204,
+  "pct_single_feature": 62.60537225755796,
+  "n_multi_written": 76890945,
+  "n_items_defined": 1006,
+  "items_per_category": {
+    "plddt_mean": 3,
+    "pfam": 500,
+    "go_term": 500,
+    "plddt_fraction": 3
+  },
+  "n_items_with_support_ge8_multi": 1002,
+  "n_items_present_multi": 1002,
+  "n_items_present_all": 1002,
+  "elapsed_s": 16.33763360977173
+}

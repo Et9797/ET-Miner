@@ -1,0 +1,93 @@
+{
+ "cpu": {
+  "k": 22,
+  "features": [
+   "GO:0000287",
+   "GO:0000978",
+   "GO:0003678",
+   "GO:0003697",
+   "GO:0003724",
+   "GO:0003725",
+   "GO:0005524",
+   "GO:0005634",
+   "GO:0005737",
+   "GO:0005739",
+   "GO:0005829",
+   "GO:0016607",
+   "GO:0016787",
+   "GO:0030154",
+   "GO:0030424",
+   "GO:0030425",
+   "GO:0034605",
+   "GO:0045087",
+   "GO:0051607",
+   "PF00270",
+   "PF00271",
+   "plddt_mean_med"
+  ],
+  "proteins": [
+   "A0A1D5PHB6",
+   "A0A5F8HEV5",
+   "F6Q4S1",
+   "F6U0V1",
+   "F7EPL6",
+   "G3SKQ4",
+   "H2QNM0",
+   "M3VK01"
+  ],
+  "n_proteins": 8,
+  "n_parent_child_pairs": 0,
+  "k_independent": 22
+ },
+ "gpu": {
+  "k": 22,
+  "features": [
+   "GO:0000287",
+   "GO:0000978",
+   "GO:0003678",
+   "GO:0003697",
+   "GO:0003724",
+   "GO:0003725",
+   "GO:0005524",
+   "GO:0005634",
+   "GO:0005737",
+   "GO:0005739",
+   "GO:0005829",
+   "GO:0016607",
+   "GO:0016787",
+   "GO:0030154",
+   "GO:0030424",
+   "GO:0030425",
+   "GO:0034605",
+   "GO:0045087",
+   "GO:0051607",
+   "PF00270",
+   "PF00271",
+   "plddt_mean_med"
+  ],
+  "proteins": [
+   "A0A1D5PHB6",
+   "A0A5F8HEV5",
+   "F6Q4S1",
+   "F6U0V1",
+   "F7EPL6",
+   "G3SKQ4",
+   "H2QNM0",
+   "M3VK01"
+  ],
+  "n_proteins": 8,
+  "n_parent_child_pairs": 0,
+  "k_independent": 22
+ },
+ "equal": {
+  "k": true,
+  "features": true,
+  "proteins": true,
+  "n_proteins": true,
+  "n_parent_child_pairs": true,
+  "k_independent": true
+ },
+ "cpu_json": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/A1/k22/analysis_deepest_itemset_20261021_151347.json",
+ "gpu_json": "/home/et/personal-projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/exp/analysis_deepest_itemset_20260902_062222.json",
+ "verdict": "identical"
+}

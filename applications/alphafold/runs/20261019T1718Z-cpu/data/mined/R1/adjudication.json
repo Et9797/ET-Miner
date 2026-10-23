@@ -1,0 +1,55 @@
+{
+  "n": 76890945,
+  "min_confidence": 0.5,
+  "gpu_itemsets": 5305,
+  "gpu_itemsets_not_ascending": 1623,
+  "counts": {
+    "exact_cpu": {
+      "n_rules": 53447,
+      "lift_ge5": 51126,
+      "lift_ge100": 40428,
+      "confidence_ties": 0,
+      "cross_domain": 50977
+    },
+    "main_cpu": {
+      "n_rules": 53447,
+      "lift_ge5": 51126,
+      "lift_ge100": 40428,
+      "lift_zero": 0,
+      "cross_domain": 50977,
+      "max_lift": 968.9956430284116
+    },
+    "main_gpu_stored": {
+      "n_rules": 53447,
+      "lift_ge5": 51126,
+      "lift_ge100": 40428,
+      "lift_zero": 0,
+      "cross_domain": 50977,
+      "max_lift": 968.9956430284118
+    },
+    "branch_gpu_stored": {
+      "n_rules": 29540,
+      "lift_ge5": 17499,
+      "lift_ge100": 9283,
+      "lift_zero": 10502,
+      "cross_domain": 27072,
+      "max_lift": 968.9956430284118
+    },
+    "branch_cpu": {
+      "n_rules": 53447,
+      "lift_ge5": 51126,
+      "lift_ge100": 40428,
+      "lift_zero": 0,
+      "cross_domain": 50977,
+      "max_lift": 968.9956430284116
+    }
+  },
+  "rule_set_equal_to_exact": {
+    "exact_cpu": true,
+    "main_cpu": true,
+    "main_gpu_stored": true,
+    "branch_gpu_stored": false,
+    "branch_cpu": true
+  },
+  "branch_gpu_stored_subset_of_exact": true
+}

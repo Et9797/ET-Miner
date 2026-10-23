@@ -1,0 +1,2555 @@
+{
+ "hw_gpu_model": {
+  "value": "NVIDIA GeForce RTX 3090",
+  "unit": "model",
+  "artifact": "nvidia-smi",
+  "command": "nvidia-smi --query-gpu=name",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": "this box"
+ },
+ "hw_gpu_count": {
+  "value": 2,
+  "unit": "GPUs",
+  "artifact": "nvidia-smi",
+  "command": "nvidia-smi --query-gpu=name",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "hw_gpu_vram_gb": {
+  "value": 24,
+  "unit": "GB",
+  "artifact": "nvidia-smi",
+  "command": "nvidia-smi --query-gpu=memory.total",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "hw_host_ram_gb": {
+  "value": 69.6,
+  "unit": "GiB",
+  "artifact": "/sys/fs/cgroup/memory.max",
+  "command": "cat /sys/fs/cgroup/memory.max",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": "container cgroup limit"
+ },
+ "sw_python": {
+  "value": "3.10.13",
+  "unit": "version",
+  "artifact": ".venv/bin/python",
+  "command": "python --version",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "sw_cupy": {
+  "value": "14.1.1",
+  "unit": "version",
+  "artifact": ".venv",
+  "command": "python -c 'import cupy'",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "sw_numpy": {
+  "value": "2.2.6",
+  "unit": "version",
+  "artifact": ".venv",
+  "command": "python -c 'import numpy'",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "sw_polars": {
+  "value": "1.43.2",
+  "unit": "version",
+  "artifact": ".venv",
+  "command": "python -c 'import polars'",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "sw_cuda": {
+  "value": "driver CUDA 13.2 (driver 595.71.05); nvcc release 12.1",
+  "unit": "version",
+  "artifact": "nvidia-smi / nvcc",
+  "command": "nvidia-smi; nvcc --version",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "sw_os": {
+  "value": "Ubuntu 22.04.3 LTS",
+  "unit": "os",
+  "artifact": "/etc/os-release",
+  "command": "cat /etc/os-release",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "dataset_uniprot_release": {
+  "value": "2026_01",
+  "unit": "release",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/stream_trembl_2026_01.log",
+  "command": "release fingerprint: old log 202,556,314 records == TrEMBL 2026_01 entry count (RESULTS.md U-005); data streamed from previous_releases/release-2026_01",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": "the paper states 2025_01; the data actually used (and used here) is 2026_01"
+ },
+ "dataset_access_date": {
+  "value": "2026-09-02",
+  "unit": "date",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/stream_trembl_2026_01.log",
+  "command": "campaign download date",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "dataset_annotation_gb": {
+  "value": 149.8,
+  "unit": "GiB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/stream_trembl_2026_01.log",
+  "command": "tar member size of uniprot_trembl.dat.gz (2026_01) = 160,834,306,675 B",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": "= 160.8 GB decimal; the paper's '150 GB' is the GiB figure (aria2c convention in the old watcher log)"
+ },
+ "dataset_metadata_rows": {
+  "value": 214683829,
+  "unit": "rows",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/bq/metadata_counts.csv",
+  "command": "bq query COUNT(*) on bigquery-public-data.deepmind_alphafold.metadata",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "dataset_metadata_accessions": {
+  "value": 214683829,
+  "unit": "accessions",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/bq/metadata_counts.csv",
+  "command": "COUNT(DISTINCT uniprotAccession)",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "dataset_plddt_pass_bq": {
+  "value": 205620298,
+  "unit": "rows",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/bq/metadata_counts.csv",
+  "command": "COUNTIF(globalMetricValue >= 50)",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": ""
+ },
+ "misc_row_split_gpus": {
+  "value": 2,
+  "unit": "GPUs",
+  "artifact": "PROGRESS.md",
+  "command": "campaign configuration",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": "all mining on 2\u00d7RTX 3090 (row-split) unless noted"
+ },
+ "download_size_gib": {
+  "value": 149.8,
+  "unit": "GiB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/data/stream_trembl_2026_01.log",
+  "command": "tar member size of uniprot_trembl.dat.gz (2026_01) = 160,834,306,675 B",
+  "utc": "2026-09-02T01:18:45Z",
+  "note": "alias: TrEMBL 2026_01 dat.gz member size in GiB"
+ },
+ "dataset_plddt_pass": {
+  "value": 266668,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "transactions written by af-extract (pLDDT >= 50)"
+ },
+ "dataset_multi_feature": {
+  "value": 190377,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ">=2 items"
+ },
+ "dataset_multi_feature_pct": {
+  "value": 71.4,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "dataset_single_feature": {
+  "value": 76291,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "dataset_single_feature_pct": {
+  "value": 28.6,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "extract_items_mean": {
+  "value": 3.22,
+  "unit": "items/protein",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "over all pLDDT-passing transactions"
+ },
+ "extract_items_mean_multi": {
+  "value": 4.11,
+  "unit": "items/protein",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "extract_items_max": {
+  "value": 15,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "csr_nnz": {
+  "value": 781631,
+  "unit": "non-zeros",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "sum of items over the >=2-item subset"
+ },
+ "csr_nnz_all": {
+  "value": 857922,
+  "unit": "non-zeros",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_items_defined": {
+  "value": 1006,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_pfam_defined": {
+  "value": 500,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_go_defined": {
+  "value": 500,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_plddt_defined": {
+  "value": 6,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_items_frequent": {
+  "value": 1002,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "items with count >= 8 in the >=2-item subset"
+ },
+ "dataset_max_features_per_protein": {
+  "value": 15,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "dense_gb": {
+  "value": 0.3,
+  "unit": "GB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "266668 proteins \u00d7 1002 items \u00d7 1 B (paper's dense-boolean convention)"
+ },
+ "dense_subset_gb": {
+  "value": 0.2,
+  "unit": "GB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "190377 \u00d7 1002 \u00d7 1 B"
+ },
+ "bitvec_gb": {
+  "value": 0.0,
+  "unit": "GB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "1002 \u00d7 ceil(266668/64) \u00d7 8 B"
+ },
+ "bitvec_subset_gb": {
+  "value": 0.0,
+  "unit": "GB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "1002 \u00d7 ceil(190377/64) \u00d7 8 B"
+ },
+ "csr_bytes_gb": {
+  "value": 0.01,
+  "unit": "GB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "781631 non-zeros \u00d7 16 B (two 64-bit ints per entry, paper's COO convention)"
+ },
+ "csr_h2d_transfer_gb": {
+  "value": 0.01,
+  "unit": "GB",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "781631 \u00d7 8 B column indices (paper: '~3 GB'); with int32 indices it would be 0.0 GB"
+ },
+ "csr_vs_dense_full_ratio": {
+  "value": 21.4,
+  "unit": "\u00d7",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "dense_gb / csr_bytes_gb"
+ },
+ "csr_vs_dense_subset_ratio": {
+  "value": 15.3,
+  "unit": "\u00d7",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "dense_subset_gb / csr_bytes_gb"
+ },
+ "mem_items_per_txn_214m": {
+  "value": 3.22,
+  "unit": "items/protein",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "mean items per pLDDT-passing protein"
+ },
+ "mem_items_per_txn_multi": {
+  "value": 4.11,
+  "unit": "items/protein",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/stats.json",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_pfam_frequent": {
+  "value": 500,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/item_support_multi.parquet",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_go_frequent": {
+  "value": 500,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/item_support_multi.parquet",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_plddt_frequent": {
+  "value": 2,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/item_support_multi.parquet",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": ""
+ },
+ "vocab_items_present_multi": {
+  "value": 1002,
+  "unit": "items",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/item_support_multi.parquet",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "items with count >= 1 in the >=2-item subset"
+ },
+ "doc_notebook_rank1_item_support_pct": {
+  "value": 54.5,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/item_support_multi.parquet",
+  "command": "phase2/scripts/run_af_extract.sh + extract_stats.py",
+  "utc": "2026-09-02T00:51:35Z",
+  "note": "most frequent item / n_multi"
+ },
+ "misc_row_split_exact": {
+  "value": "GREEN (86,123 itemsets identical)",
+  "unit": "gate",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/validate_row_split.log",
+  "command": "validate_row_split.py --subset-size 1000000 --min-count 50 --n-gpus 2",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_opus_k1_count": {
+  "value": 1002,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k1_pct": {
+  "value": 0.78,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k2_count": {
+  "value": 7375,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k2_pct": {
+  "value": 5.74,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k3_count": {
+  "value": 17329,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k3_pct": {
+  "value": 13.48,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k4_count": {
+  "value": 23446,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k4_pct": {
+  "value": 18.24,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k5_count": {
+  "value": 24050,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k5_pct": {
+  "value": 18.71,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k6_count": {
+  "value": 20706,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k6_pct": {
+  "value": 16.11,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k7_count": {
+  "value": 15518,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k7_pct": {
+  "value": 12.07,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k8_count": {
+  "value": 10086,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k8_pct": {
+  "value": 7.85,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k9_count": {
+  "value": 5527,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k9_pct": {
+  "value": 4.3,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k10_count": {
+  "value": 2444,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k10_pct": {
+  "value": 1.9,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k11_count": {
+  "value": 824,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k11_pct": {
+  "value": 0.64,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k12_count": {
+  "value": 196,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k12_pct": {
+  "value": 0.15,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k13_count": {
+  "value": 29,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k13_pct": {
+  "value": 0.02,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_k14_count": {
+  "value": 2,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_k14_pct": {
+  "value": 0.0,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_opus_peak_k": {
+  "value": 5,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_peak_count": {
+  "value": 24050,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_opus_peak_pct": {
+  "value": 18.71,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "run_opus_kmax": {
+  "value": 14,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "run_opus_itemsets": {
+  "value": 128534,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "run_opus_time_s": {
+  "value": 6.76,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "2x RTX 3090 row-split"
+ },
+ "run_opus_time_min": {
+  "value": 0.1,
+  "unit": "min",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "run_opus_n_transactions": {
+  "value": 190377,
+  "unit": "transactions",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "run_opus_min_count": {
+  "value": 20,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "ceil(min_support\u00b7n)"
+ },
+ "run_opus_support": {
+  "value": 0.0001,
+  "unit": "fraction",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "run_opus_support_pct": {
+  "value": 0.01,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "run_opus_min_count_nominal": {
+  "value": 19,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "floor(min_support\u00b7n), the old scripts' printed value"
+ },
+ "run_opus_max_length": {
+  "value": 50,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/mining_meta_0.0001_20260902_005206.json",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "cap used here (never binding)"
+ },
+ "run_opus_bytes": {
+  "value": 900926,
+  "unit": "bytes",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "run_mining.py --support 0.0001 --max-length 50 --use-gpu --n-gpus 2 --parquet-flush",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "total size of the per-K parquet files (zstd); not comparable with the old single-file parquet"
+ },
+ "k22_n_itemsets_at_kmax": {
+  "value": 2,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "itemsets at K=14"
+ },
+ "k22_support": {
+  "value": 40,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": "support 0.0002101094144775892 \u00d7 n 190377"
+ },
+ "k22_n_features": {
+  "value": 14,
+  "unit": "features",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "k22_features": {
+  "value": [
+   "plddt_mean_med",
+   "PF00562",
+   "PF04560",
+   "PF04566",
+   "PF04567",
+   "PF04565",
+   "PF04561",
+   "GO:0005737",
+   "GO:0003677",
+   "GO:0008270",
+   "GO:0003899",
+   "GO:0000428",
+   "GO:0006351",
+   "GO:0032549"
+  ],
+  "unit": "ids",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "k22_n_pfam": {
+  "value": 6,
+  "unit": "features",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "k22_n_go": {
+  "value": 7,
+  "unit": "features",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "k22_n_plddt": {
+  "value": 1,
+  "unit": "features",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "k22_plddt_feature": {
+  "value": [
+   "plddt_mean_med"
+  ],
+  "unit": "id",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet",
+  "command": "decode of /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet/frequent_k14.parquet via item_mapping_214m_base.parquet",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "kdist_power_direct_k1_count": {
+  "value": 1002,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k1_pct": {
+  "value": 0.78,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k2_count": {
+  "value": 7375,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k2_pct": {
+  "value": 5.74,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k3_count": {
+  "value": 17329,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k3_pct": {
+  "value": 13.48,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k4_count": {
+  "value": 23446,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k4_pct": {
+  "value": 18.24,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k5_count": {
+  "value": 24050,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k5_pct": {
+  "value": 18.71,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k6_count": {
+  "value": 20706,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k6_pct": {
+  "value": 16.11,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k7_count": {
+  "value": 15518,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k7_pct": {
+  "value": 12.07,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k8_count": {
+  "value": 10086,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k8_pct": {
+  "value": 7.85,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k9_count": {
+  "value": 5527,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k9_pct": {
+  "value": 4.3,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k10_count": {
+  "value": 2444,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k10_pct": {
+  "value": 1.9,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k11_count": {
+  "value": 824,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k11_pct": {
+  "value": 0.64,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k12_count": {
+  "value": 196,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k12_pct": {
+  "value": 0.15,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k13_count": {
+  "value": 29,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k13_pct": {
+  "value": 0.02,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_k14_count": {
+  "value": 2,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_k14_pct": {
+  "value": 0.0,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_direct_peak_k": {
+  "value": 5,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_peak_count": {
+  "value": 24050,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_direct_peak_pct": {
+  "value": 18.71,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_direct_kmax": {
+  "value": 14,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_direct_itemsets": {
+  "value": 128534,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k1_count": {
+  "value": 1002,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k1_pct": {
+  "value": 0.78,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k2_count": {
+  "value": 7375,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k2_pct": {
+  "value": 5.74,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k3_count": {
+  "value": 17329,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k3_pct": {
+  "value": 13.48,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k4_count": {
+  "value": 23446,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k4_pct": {
+  "value": 18.24,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k5_count": {
+  "value": 24050,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k5_pct": {
+  "value": 18.71,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k6_count": {
+  "value": 20706,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k6_pct": {
+  "value": 16.11,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k7_count": {
+  "value": 15518,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k7_pct": {
+  "value": 12.07,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k8_count": {
+  "value": 10086,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k8_pct": {
+  "value": 7.85,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k9_count": {
+  "value": 5527,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k9_pct": {
+  "value": 4.3,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k10_count": {
+  "value": 2444,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k10_pct": {
+  "value": 1.9,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k11_count": {
+  "value": 824,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k11_pct": {
+  "value": 0.64,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k12_count": {
+  "value": 196,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k12_pct": {
+  "value": 0.15,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k13_count": {
+  "value": 29,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k13_pct": {
+  "value": 0.02,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_k14_count": {
+  "value": 2,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_k14_pct": {
+  "value": 0.0,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_power_son_peak_k": {
+  "value": 5,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_peak_count": {
+  "value": 24050,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_power_son_peak_pct": {
+  "value": 18.71,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_son_kmax": {
+  "value": 14,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_son_itemsets": {
+  "value": 128534,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_itemsets": {
+  "value": 128534,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON (paper Table 2 Power row method)"
+ },
+ "run_power_kmax": {
+  "value": 14,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON"
+ },
+ "run_power_time_s": {
+  "value": 583.82,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON, this box"
+ },
+ "run_power_time_min": {
+  "value": 9.73,
+  "unit": "min",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON, this box"
+ },
+ "run_power_son_time_s": {
+  "value": 583.82,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_direct_time_s": {
+  "value": 2.37,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_min_count": {
+  "value": 20,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "ceil(min_support\u00b7n) as computed by the script"
+ },
+ "run_power_direct_min_count": {
+  "value": 20,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_support_pct": {
+  "value": 0.01,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_n_transactions": {
+  "value": 190377,
+  "unit": "transactions",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_son_chunk_size": {
+  "value": 100000,
+  "unit": "transactions",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_son_local_factor": {
+  "value": 0.9,
+  "unit": "factor",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_power_son_itemset_match": {
+  "value": true,
+  "unit": "bool",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON itemset count equals direct count?"
+ },
+ "run_power_son_itemset_diff": {
+  "value": 0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "direct \u2212 SON"
+ },
+ "run_power_direct_vs_son_itemset_ratio": {
+  "value": 1.0,
+  "unit": "\u00d7",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "direct / SON itemsets"
+ },
+ "son_speedup": {
+  "value": 246.34,
+  "unit": "\u00d7",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON time / direct time, this box"
+ },
+ "son_miss_rate_pct": {
+  "value": 0.0,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_direct_vs_son_20260902_010225.json",
+  "command": "experiment_direct_vs_son.py --min-support 0.0001 --runs 1 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "1 \u2212 SON/direct itemsets"
+ },
+ "null_min_count": {
+  "value": 20,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_support_pct": {
+  "value": 0.0105,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_permutations": {
+  "value": 2,
+  "unit": "permutations",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_seed": {
+  "value": 42,
+  "unit": "seed",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_n_transactions": {
+  "value": 190377,
+  "unit": "transactions",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k1_bio": {
+  "value": 1002,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k1_mean": {
+  "value": 1002.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k1_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k1_z": {
+  "value": 0.0,
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k1_p": {
+  "value": 1.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k2_bio": {
+  "value": 7375,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k2_mean": {
+  "value": 8411.5,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k2_std": {
+  "value": 67.2,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k2_z": {
+  "value": -15.43,
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k2_p": {
+  "value": 1.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k3_bio": {
+  "value": 17329,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k3_mean": {
+  "value": 5172.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k3_std": {
+  "value": 38.2,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k3_z": {
+  "value": 318.38,
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k3_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k4_bio": {
+  "value": 23446,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k4_mean": {
+  "value": 955.5,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k4_std": {
+  "value": 19.1,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k4_z": {
+  "value": 1178.01,
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k4_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k5_bio": {
+  "value": 24050,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k5_mean": {
+  "value": 30.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k5_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k5_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k5_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k6_bio": {
+  "value": 20706,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k6_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k6_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k6_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k6_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k7_bio": {
+  "value": 15518,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k7_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k7_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k7_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k7_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k8_bio": {
+  "value": 10086,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k8_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k8_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k8_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k8_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k9_bio": {
+  "value": 5527,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k9_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k9_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k9_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k9_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k10_bio": {
+  "value": 2444,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k10_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k10_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k10_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k10_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k11_bio": {
+  "value": 824,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k11_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k11_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k11_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k11_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k12_bio": {
+  "value": 196,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k12_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k12_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k12_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k12_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k13_bio": {
+  "value": 29,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k13_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k13_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k13_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k13_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k14_bio": {
+  "value": 2,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k14_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k14_std": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k14_z": {
+  "value": "inf",
+  "unit": "Z",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_k14_p": {
+  "value": 0.0,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_kmax": {
+  "value": 5,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "highest K with any null itemset"
+ },
+ "null_bio_kmax": {
+  "value": 14,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_bio_total": {
+  "value": 128534,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_kge7_bio": {
+  "value": 34626,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "sum of real counts K>=7"
+ },
+ "null_kge7_mean": {
+  "value": 0.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_p_bound_kge7": {
+  "value": 0.776,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "rule-of-three-style bound 1\u22120.05^(1/n) valid only if no null itemset at K>=7"
+ },
+ "null_support": {
+  "value": 0.0001050547072387946,
+  "unit": "fraction",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_p_bound_rule_of_three": {
+  "value": 1.5,
+  "unit": "p",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "3/n permutations"
+ },
+ "null_depleted_k": {
+  "value": 2,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "K levels where real < null mean"
+ },
+ "null_mean_total": {
+  "value": 15571.0,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_ratio": {
+  "value": 8.25,
+  "unit": "\u00d7",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_avg_perm_time_s": {
+  "value": 0.77,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_per_perm_time_s": {
+  "value": 0.77,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_total_gpu_s": {
+  "value": 1.54,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "null_total_time_s": {
+  "value": 2.93,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "wall-clock incl. real re-mining"
+ },
+ "null_real_mining_s": {
+  "value": null,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "experiment_null_model.py --min-count 20 --runs 2 --seed 42 --n-gpus 2 --perm-per-gpu",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k1_count": {
+  "value": 638,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k1_pct": {
+  "value": 6.77,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k2_count": {
+  "value": 1658,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k2_pct": {
+  "value": 17.59,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k3_count": {
+  "value": 1823,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k3_pct": {
+  "value": 19.34,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k4_count": {
+  "value": 1479,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k4_pct": {
+  "value": 15.69,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k5_count": {
+  "value": 1200,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k5_pct": {
+  "value": 12.73,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k6_count": {
+  "value": 1027,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k6_pct": {
+  "value": 10.9,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k7_count": {
+  "value": 806,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k7_pct": {
+  "value": 8.55,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k8_count": {
+  "value": 496,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k8_pct": {
+  "value": 5.26,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k9_count": {
+  "value": 220,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k9_pct": {
+  "value": 2.33,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k10_count": {
+  "value": 66,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k10_pct": {
+  "value": 0.7,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k11_count": {
+  "value": 12,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k11_pct": {
+  "value": 0.13,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_k12_count": {
+  "value": 1,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_k12_pct": {
+  "value": 0.01,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "100\u00b7count/total"
+ },
+ "kdist_base_son_peak_k": {
+  "value": 3,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_peak_count": {
+  "value": 1823,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_base_son_peak_pct": {
+  "value": 19.34,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_base_son_kmax": {
+  "value": 12,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "alias of run_base_kmax"
+ },
+ "run_base_son_itemsets": {
+  "value": 9426,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "alias of run_base_itemsets"
+ },
+ "run_base_itemsets": {
+  "value": 9426,
+  "unit": "itemsets",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON"
+ },
+ "run_base_kmax": {
+  "value": 12,
+  "unit": "K",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON"
+ },
+ "run_base_time_s": {
+  "value": 67.23,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "SON, this box"
+ },
+ "run_base_time_min": {
+  "value": 1.12,
+  "unit": "min",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_base_min_count": {
+  "value": 191,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "ceil(s\u00b7n)"
+ },
+ "run_base_support_pct": {
+  "value": 0.1,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_base_n_transactions": {
+  "value": 190377,
+  "unit": "transactions",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "run_base_son_time_s": {
+  "value": 67.23,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "alias of run_base_time_s"
+ },
+ "run_base_son_min_count": {
+  "value": 191,
+  "unit": "proteins",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": "alias of run_base_min_count"
+ },
+ "extract_rules_time_s": {
+  "value": 1.04,
+  "unit": "s",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "extract_rules_count": {
+  "value": 92511,
+  "unit": "rules",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9) + generate_rules(min_confidence=0.5)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "extract_rules_max_lift": {
+  "value": 966.3807106598985,
+  "unit": "lift",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/son_base.json",
+  "command": "son_run.py --min-support 0.001 (chunk 100000, factor 0.9)",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ },
+ "kdist_opus_pct_sum": {
+  "value": 100.0,
+  "unit": "%",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/opus/parquet",
+  "command": "sum of per-K percentages",
+  "utc": "2026-09-02T00:52:06Z",
+  "note": ""
+ },
+ "null_kmax_bio_ratio": {
+  "value": 2.8,
+  "unit": "\u00d7",
+  "artifact": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/p3test/exp/experiment_null_model_20260902_010233.json",
+  "command": "run_opus_kmax / null_kmax",
+  "utc": "2026-09-02T01:14:48Z",
+  "note": ""
+ }
+}

@@ -1,0 +1,178 @@
+| L2-188 | godmode_mining.log:22 | 9,375 frequent itemsets K=18 | kdist_opus_k18_count | 9,375 | confirmed | exact |
+| L2-189 | godmode_mining.log:23 | 1,818 frequent itemsets K=19 | kdist_opus_k19_count | 1,818 | confirmed | exact |
+| L2-190 | godmode_mining.log:24 | 255 frequent itemsets K=20 | kdist_opus_k20_count | 255 | confirmed | exact |
+| L2-191 | godmode_mining.log:25 | 23 frequent itemsets K=21 | kdist_opus_k21_count | 23 | confirmed | exact |
+| L2-192 | godmode_mining.log:26 | 1 frequent itemsets K=22 | kdist_opus_k22_count | 1 | confirmed | exact |
+| L2-193 | godmode_mining.log:28 | 26,849,505 itemsets (total) | run_opus_itemsets | 26,849,505 | confirmed | exact |
+| L2-194 | godmode_mining.log:28 | 440.5 s (total) | run_opus_time_s | 2,637.07 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 5.99 (claimed 440.5) |
+| L2-195 | godmode_mining.log:29 | 85,131,478 bytes (output parquet) | run_opus_bytes | 132,601,428 | inconclusive | size of the old single-file result parquet; this campaign flushes per-K zstd parquets — sizes are not comparab |
+| L2-196 | godmode_mining.log:31 | 1 itemsets K=22 | kdist_opus_k22_count | 1 | confirmed | exact |
+| L2-197 | godmode_mining.log:32 | 8 proteins (itemset support count) | k22_support | 8 | confirmed | exact |
+| L2-198 | godmode_mining.log:37 | 23 itemsets K=21 | kdist_opus_k21_count | 23 | confirmed | exact |
+| L2-199 | godmode_mining.log:38 | 13 proteins (itemset support count) | pattern_opus_k21_1_support | 13 | confirmed | exact |
+| L2-200 | godmode_mining.log:42 | 8 proteins (itemset support count) | pattern_opus_k21_2_support | 8 | confirmed | exact |
+| L2-201 | godmode_mining.log:46 | 8 proteins (itemset support count) | pattern_opus_k21_3_support | 8 | confirmed | exact |
+| L2-202 | godmode_mining.log:51 | 255 itemsets K=20 | kdist_opus_k20_count | 255 | confirmed | exact |
+| L2-203 | godmode_mining.log:52 | 57 proteins (itemset support count) | pattern_opus_k20_1_support | 57 | confirmed | exact |
+| L2-204 | godmode_mining.log:56 | 40 proteins (itemset support count) | pattern_opus_k20_2_support | 40 | confirmed | exact |
+| L2-205 | godmode_mining.log:59 | 15 proteins (itemset support count) | pattern_opus_k20_3_support | 15 | confirmed | exact |
+| L2-206 | holdmybeer.log:3 | 4 proteins (nominal min_count) | run_hmb_min_count |  | inconclusive | no fresh artifact for the underlying quantity |
+| L2-207 | holdmybeer.log:3 | 76.9M transactions (rounded denominator) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| L2-208 | holdmybeer.log:3 | 0.000005 % support (nominal, rounded) | run_hmb_support_pct |  | inconclusive | holdmybeer run: threshold ambiguous (4/76.9M applied to the 205.6M-row file); not reproduced |
+| L2-209 | holdmybeer.log:4 | 23+ target K | run_hmb_target_k |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| L2-210 | holdmybeer.log:8 | 0.000000052 min_support (fraction) | run_hmb_support |  | inconclusive | holdmybeer run not reproduced (ambiguous denominator, log-only run without a paper row) |
+| L2-211 | holdmybeer.log:8 | ~4 proteins (nominal min_count) | run_hmb_min_count |  | inconclusive | no fresh artifact for the underlying quantity |
+| L2-212 | holdmybeer.log:10 | 18,935,899 itemsets (total) | run_hmb_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-213 | holdmybeer.log:10 | 573.1 s (total) | run_hmb_time_s |  | inconclusive | not measured in this campaign |
+| L2-214 | holdmybeer.log:11 | 63,377,870 bytes (output parquet) | run_hmb_bytes |  | inconclusive | old result-file size; not comparable (different writer/codec) |
+| L2-215 | holdmybeer.log:14 | 1,002 itemsets K=1 | kdist_hmb_k1_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-216 | holdmybeer.log:15 | 66,703 itemsets K=2 | kdist_hmb_k2_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-217 | holdmybeer.log:16 | 403,157 itemsets K=3 | kdist_hmb_k3_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-218 | holdmybeer.log:17 | 1,030,353 itemsets K=4 | kdist_hmb_k4_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-219 | holdmybeer.log:18 | 1,664,538 itemsets K=5 | kdist_hmb_k5_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-220 | holdmybeer.log:19 | 2,134,446 itemsets K=6 | kdist_hmb_k6_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-221 | holdmybeer.log:20 | 2,434,007 itemsets K=7 | kdist_hmb_k7_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-222 | holdmybeer.log:21 | 2,567,214 itemsets K=8 | kdist_hmb_k8_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-223 | holdmybeer.log:22 | 2,493,943 itemsets K=9 | kdist_hmb_k9_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-224 | holdmybeer.log:23 | 2,185,067 itemsets K=10 | kdist_hmb_k10_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-225 | holdmybeer.log:24 | 1,689,219 itemsets K=11 | kdist_hmb_k11_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-226 | holdmybeer.log:25 | 1,131,603 itemsets K=12 | kdist_hmb_k12_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-227 | holdmybeer.log:26 | 646,988 itemsets K=13 | kdist_hmb_k13_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-228 | holdmybeer.log:27 | 311,183 itemsets K=14 | kdist_hmb_k14_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-229 | holdmybeer.log:28 | 123,916 itemsets K=15 | kdist_hmb_k15_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-230 | holdmybeer.log:29 | 40,051 itemsets K=16 | kdist_hmb_k16_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-231 | holdmybeer.log:30 | 10,227 itemsets K=17 | kdist_hmb_k17_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-232 | holdmybeer.log:31 | 1,983 itemsets K=18 | kdist_hmb_k18_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-233 | holdmybeer.log:32 | 274 itemsets K=19 | kdist_hmb_k19_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-234 | holdmybeer.log:33 | 24 itemsets K=20 | kdist_hmb_k20_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-235 | holdmybeer.log:34 | 1 itemsets K=21 | kdist_hmb_k21_count |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-236 | holdmybeer.log:36 | 21 K_max | run_hmb_kmax |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-237 | holdmybeer.log:40 | 18,935,899 itemsets (total, final line; 'max K=21, 573.1s') | run_hmb_itemsets |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-238 | holdmybeer_real.log:3 | 4 min_count (proteins) | run_minc4_min_count | 4 | confirmed | exact |
+| L2-239 | holdmybeer_real.log:5 | 1.945333237480280e-08 min_support (fraction) | run_minc4_support | 4.552e-08 | inconclusive | nominal fraction quoted with the 205,620,298 denominator; the applied threshold is compared under run_minc4_mi |
+| L2-240 | holdmybeer_real.log:6 | 205620298 transactions (denominator used in verify) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-241 | holdmybeer_real.log:6 | 4 min_count (verified ceil) | run_minc4_min_count | 4 | confirmed | exact |
+| L2-242 | holdmybeer_real.log:8 | 48,007,493 itemsets (total) | run_minc4_itemsets | 48,007,493 | confirmed | exact |
+| L2-243 | holdmybeer_real.log:8 | 1228.5 s (total) | run_minc4_time_s | 4,536.92 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 3.69 (claimed 1228.5) |
+| L2-244 | holdmybeer_real.log:9 | 149,590,799 bytes (output parquet) | run_minc4_bytes | 227,026,874 | inconclusive | old result-file size; not comparable (different writer/codec) |
+| L2-245 | holdmybeer_real.log:12 | 1,002 itemsets K=1 | kdist_minc4_k1_count | 1,002 | confirmed | exact |
+| L2-246 | holdmybeer_real.log:13 | 94,427 itemsets K=2 | kdist_minc4_k2_count | 94,427 | confirmed | exact |
+| L2-247 | holdmybeer_real.log:14 | 603,403 itemsets K=3 | kdist_minc4_k3_count | 603,403 | confirmed | exact |
+| L2-248 | holdmybeer_real.log:15 | 1,649,283 itemsets K=4 | kdist_minc4_k4_count | 1,649,283 | confirmed | exact |
+| L2-249 | holdmybeer_real.log:16 | 2,916,124 itemsets K=5 | kdist_minc4_k5_count | 2,916,124 | confirmed | exact |
+| L2-250 | holdmybeer_real.log:17 | 4,169,081 itemsets K=6 | kdist_minc4_k6_count | 4,169,081 | confirmed | exact |
+| L2-251 | holdmybeer_real.log:18 | 5,318,506 itemsets K=7 | kdist_minc4_k7_count | 5,318,506 | confirmed | exact |
+| L2-252 | holdmybeer_real.log:19 | 6,223,873 itemsets K=8 | kdist_minc4_k8_count | 6,223,873 | confirmed | exact |
+| L2-253 | holdmybeer_real.log:20 | 6,644,170 itemsets K=9 | kdist_minc4_k9_count | 6,644,170 | confirmed | exact |
+| L2-254 | holdmybeer_real.log:21 | 6,362,841 itemsets K=10 | kdist_minc4_k10_count | 6,362,841 | confirmed | exact |
+| L2-255 | holdmybeer_real.log:22 | 5,373,365 itemsets K=11 | kdist_minc4_k11_count | 5,373,365 | confirmed | exact |
+| L2-256 | holdmybeer_real.log:23 | 3,943,668 itemsets K=12 | kdist_minc4_k12_count | 3,943,668 | confirmed | exact |
+| L2-257 | holdmybeer_real.log:24 | 2,484,117 itemsets K=13 | kdist_minc4_k13_count | 2,484,117 | confirmed | exact |
+| L2-258 | holdmybeer_real.log:25 | 1,327,096 itemsets K=14 | kdist_minc4_k14_count | 1,327,096 | confirmed | exact |
+| L2-259 | holdmybeer_real.log:26 | 593,694 itemsets K=15 | kdist_minc4_k15_count | 593,694 | confirmed | exact |
+| L2-260 | holdmybeer_real.log:27 | 219,052 itemsets K=16 | kdist_minc4_k16_count | 219,052 | confirmed | exact |
+| L2-261 | holdmybeer_real.log:28 | 65,356 itemsets K=17 | kdist_minc4_k17_count | 65,356 | confirmed | exact |
+| L2-262 | holdmybeer_real.log:29 | 15,343 itemsets K=18 | kdist_minc4_k18_count | 15,343 | confirmed | exact |
+| L2-263 | holdmybeer_real.log:30 | 2,722 itemsets K=19 | kdist_minc4_k19_count | 2,722 | confirmed | exact |
+| L2-264 | holdmybeer_real.log:31 | 342 itemsets K=20 | kdist_minc4_k20_count | 342 | confirmed | exact |
+| L2-265 | holdmybeer_real.log:32 | 27 itemsets K=21 | kdist_minc4_k21_count | 27 | confirmed | exact |
+| L2-266 | holdmybeer_real.log:33 | 1 itemsets K=22 | kdist_minc4_k22_count | 1 | confirmed | exact |
+| L2-267 | holdmybeer_real.log:35 | 22 K_max | run_minc4_kmax | 22 | confirmed | exact |
+| L2-268 | holdmybeer_real.log:37 | 1 itemsets K=22 | kdist_minc4_k22_count | 1 | confirmed | exact |
+| L2-269 | holdmybeer_real.log:38 | 8 proteins (itemset support count) | k22_support | 8 | confirmed | exact |
+| L2-270 | holdmybeer_real.log:43 | 27 itemsets K=21 | kdist_minc4_k21_count | 27 | confirmed | exact |
+| L2-271 | holdmybeer_real.log:44 | 13 proteins (itemset support count) | pattern_minc4_k21_1_support | 13 | confirmed | exact |
+| L2-272 | holdmybeer_real.log:48 | 8 proteins (itemset support count) | pattern_minc4_k21_2_support | 8 | confirmed | exact |
+| L2-273 | holdmybeer_real.log:52 | 8 proteins (itemset support count) | pattern_minc4_k21_3_support | 8 | confirmed | exact |
+| L2-274 | holdmybeer_real.log:57 | 342 itemsets K=20 | kdist_minc4_k20_count | 342 | confirmed | exact |
+| L2-275 | holdmybeer_real.log:58 | 57 proteins (itemset support count) | pattern_minc4_k20_1_support | 57 | confirmed | exact |
+| L2-276 | holdmybeer_real.log:62 | 40 proteins (itemset support count) | pattern_minc4_k20_2_support | 40 | confirmed | exact |
+| L2-277 | holdmybeer_real.log:65 | 15 proteins (itemset support count) | pattern_minc4_k20_3_support | 15 | confirmed | exact |
+| L2-278 | holdmybeer_real.log:70 | 48,007,493 itemsets (total, final line; 'K=22, 1228.5s') | run_minc4_itemsets | 48,007,493 | confirmed | exact |
+| L2-279 | madman_mining.log:1 | 0.0001 % support (on '214M TrEMBL') | run_madman_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| L2-280 | madman_mining.log:3 | 76,890,945 transactions with >1 item | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-281 | madman_mining.log:4 | 76 min support count (script-computed; '0.0001%') | run_madman_min_count |  | inconclusive | aborted old run (madman_mining.log ends after its banner); not reproduced |
+| L2-282 | madman_mining.log:6 | 0.0001 % support (banner) | run_madman_support_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| L2-283 | madman_mining.log:7 | 20 max length (banner) | run_madman_max_length |  | inconclusive | aborted old run; not reproduced |
+| L2-284 | pipeline_214m.log:2 | 214M proteins (nominal, pipeline banner) | dataset_metadata_rows | 214,683,829 | confirmed | fresh truncates to 214 at 3 significant digits |
+| L2-285 | pipeline_214m.log:3 | Mon Feb  9 03:40:36 UTC 2026 timestamp (pipeline start banner) | meta_log_pipeline_start_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-286 | pipeline_214m.log:7 | 150G file size (uniprot_trembl.dat.gz, du/ls -h style) | dataset_annotation_gb | 149.8 | confirmed | fresh rounds to 150 at 2 significant digits |
+| L2-287 | pipeline_214m.log:8 | 214683830 rows (plddt_metadata.csv, incl. header) | extract_csv_rows | 214,683,830 | confirmed | exact |
+| L2-288 | pipeline_214m.log:9 | 2026-02-09T03:40:38.963Z timestamp (af-extract start) | meta_log_extract_start_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-289 | pipeline_214m.log:11–2035 | 100K → 202500K DAT records parsed (2025 periodic lines, step [100] K,  | extract_progress_dat_parsed |  | inconclusive | periodic progress line of the old extraction (suppressed in this campaign's log); the final record count is co |
+| L2-290 | pipeline_214m.log:2036 | 202556314 annotation records loaded from DAT | extract_dat_records | 202,556,314 | confirmed | exact |
+| L2-291 | pipeline_214m.log:2036 | 25475 distinct Pfam domains in DAT | extract_dat_pfam_unique | 25,475 | confirmed | exact |
+| L2-292 | pipeline_214m.log:2036 | 26536 distinct GO terms in DAT | extract_dat_go_unique | 26,536 | confirmed | exact |
+| L2-293 | pipeline_214m.log:2038 | 0 CSV column index (Accession = 'accession') | extract_csv_accession_col_index |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| L2-294 | pipeline_214m.log:2039 | 1 CSV column index (pLDDT = 'mean_plddt') | extract_csv_plddt_col_index |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| L2-295 | pipeline_214m.log:2040 | 9566439 proteins passed pLDDT filter after 10M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-296 | pipeline_214m.log:2041 | 19130885 proteins passed pLDDT filter after 20M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-297 | pipeline_214m.log:2042 | 28709742 proteins passed pLDDT filter after 30M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-298 | pipeline_214m.log:2043 | 38287797 proteins passed pLDDT filter after 40M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-299 | pipeline_214m.log:2044 | 47865323 proteins passed pLDDT filter after 50M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-300 | pipeline_214m.log:2045 | 57442488 proteins passed pLDDT filter after 60M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-301 | pipeline_214m.log:2046 | 67021898 proteins passed pLDDT filter after 70M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-302 | pipeline_214m.log:2047 | 76600156 proteins passed pLDDT filter after 80M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-303 | pipeline_214m.log:2048 | 86178558 proteins passed pLDDT filter after 90M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-304 | pipeline_214m.log:2049 | 95756671 proteins passed pLDDT filter after 100M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-305 | pipeline_214m.log:2050 | 105334770 proteins passed pLDDT filter after 110M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-306 | pipeline_214m.log:2051 | 114912567 proteins passed pLDDT filter after 120M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-307 | pipeline_214m.log:2052 | 124492183 proteins passed pLDDT filter after 130M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-308 | pipeline_214m.log:2053 | 134070226 proteins passed pLDDT filter after 140M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-309 | pipeline_214m.log:2054 | 143648378 proteins passed pLDDT filter after 150M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-310 | pipeline_214m.log:2055 | 153228159 proteins passed pLDDT filter after 160M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-311 | pipeline_214m.log:2056 | 162806075 proteins passed pLDDT filter after 170M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-312 | pipeline_214m.log:2057 | 172385565 proteins passed pLDDT filter after 180M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-313 | pipeline_214m.log:2058 | 181963510 proteins passed pLDDT filter after 190M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-314 | pipeline_214m.log:2059 | 191542750 proteins passed pLDDT filter after 200M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-315 | pipeline_214m.log:2060 | 201120299 proteins passed pLDDT filter after 210M rows | extract_progress_csv_read | 214,683,829 | inconclusive | periodic progress line of the CSV reader; only its final value (214,683,829 rows read) is a reproducible quant |
+| L2-316 | pipeline_214m.log:2061 | 214683829 rows read (plddt_metadata.csv, data rows) | dataset_metadata_rows | 214,683,829 | confirmed | exact |
+| L2-317 | pipeline_214m.log:2061 | 205620298 proteins passed pLDDT filter | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-318 | pipeline_214m.log:2061 | 50 min pLDDT threshold (>=) | extract_min_plddt | 50 | confirmed | exact |
+| L2-319 | pipeline_214m.log:2061 | 9063531 proteins skipped (pLDDT < 50) | extract_plddt_skipped | 9,063,531 | confirmed | exact |
+| L2-320 | pipeline_214m.log:2062 | 205620298 proteins (frequency counting) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-321 | pipeline_214m.log:2063 | 24291 unique Pfam among pLDDT-passing proteins | dataset_pfam_families_observed | 24,291 | confirmed | exact |
+| L2-322 | pipeline_214m.log:2063 | 25993 unique GO among pLDDT-passing proteins | dataset_go_families_observed | 25,993 | confirmed | exact |
+| L2-323 | pipeline_214m.log:2064 | 6 pLDDT bins (items) | vocab_plddt_defined | 6 | confirmed | exact |
+| L2-324 | pipeline_214m.log:2064 | 500 top Pfam kept (--top-pfam) | vocab_pfam_defined | 500 | confirmed | exact |
+| L2-325 | pipeline_214m.log:2064 | 500 top GO kept (--top-go) | vocab_go_defined | 500 | confirmed | exact |
+| L2-326 | pipeline_214m.log:2064 | 1006 total items (vocabulary) | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-327 | pipeline_214m.log:2065 | 1006 items in item mapping | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-328 | pipeline_214m.log:2066–2270 | 1M → 205M transactions written (205 periodic lines, step [1] M, 2026-0 | extract_progress_transactions_written |  | inconclusive | periodic progress line; the final count is compared under dataset_plddt_pass |
+| L2-329 | pipeline_214m.log:2271 | 205620298 transactions written (parquet rows) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-330 | pipeline_214m.log:2272 | 2026-02-09T04:43:35.999Z timestamp (af-extract Results banner = end of | meta_log_extract_end_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-331 | pipeline_214m.log:2273 | 205620298 transactions (af-extract summary) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-332 | pipeline_214m.log:2274 | 1006 total items (af-extract summary) | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-333 | pipeline_214m.log:2277 | 3777.0 s (af-extract build-from-metadata self-timed) | extract_time_s | 555.7 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 3777) |
+| L2-334 | pipeline_214m.log:2277 | 54440 proteins/sec (af-extract throughput) | extract_proteins_per_s | 162,865 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.99 (claimed 54440) |
+| L2-335 | pipeline_214m.log:2279 | 65m31.040s real time (bash `time` of Step 1) | extract_wall_real_s | 622 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 9.57 (claimed 65) |
+| L2-336 | pipeline_214m.log:2280 | 62m38.750s user time (bash `time` of Step 1) | extract_wall_user_s |  | inconclusive | user CPU time of the old run; not measured here |
+| L2-337 | pipeline_214m.log:2281 | 2m52.144s sys time (bash `time` of Step 1) | extract_wall_sys_s |  | inconclusive | system CPU time of the old run; not measured here |
+| L2-338 | pipeline_214m.log:2286 | 205,620,298 transactions (Step 2 data stats) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-339 | pipeline_214m.log:2287 | 1006 total items (Step 2 data stats) | vocab_items_defined | 1,006 | confirmed | exact |
+| L2-340 | pipeline_214m.log:2289 | 2.2 items per transaction (mean) | extract_items_mean | 2.1649 | confirmed | fresh rounds to 2.2 at 1 decimals |
+| L2-341 | pipeline_214m.log:2290 | 46 items per transaction (max) | extract_items_max | 46 | confirmed | exact |
+| L2-342 | pipeline_214m.log:2291 | 76,890,945 transactions with >1 item ('37.4%') | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-343 | pipeline_214m.log:2294 | 76,890,945 transactions mined (Step 3) | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-344 | pipeline_214m.log:2297 | 113.9 s (Step 3 mining) | run_base_son_time_s | 779.6 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.84 (claimed 113.9) |
+| L2-345 | pipeline_214m.log:2298 | 5,305 itemsets (total, Step 3) | run_base_itemsets | 5,305 | confirmed | exact |
+| L2-346 | pipeline_214m.log:2299 | 667 itemsets K=1 | kdist_base_son_k1_count | 667 | confirmed | exact |
+| L2-347 | pipeline_214m.log:2300 | 1,504 itemsets K=2 | kdist_base_son_k2_count | 1,504 | confirmed | exact |
+| L2-348 | pipeline_214m.log:2301 | 1,378 itemsets K=3 | kdist_base_son_k3_count | 1,378 | confirmed | exact |
+| L2-349 | pipeline_214m.log:2302 | 884 itemsets K=4 | kdist_base_son_k4_count | 884 | confirmed | exact |
+| L2-350 | pipeline_214m.log:2303 | 514 itemsets K=5 | kdist_base_son_k5_count | 514 | confirmed | exact |
+| L2-351 | pipeline_214m.log:2304 | 247 itemsets K=6 | kdist_base_son_k6_count | 247 | confirmed | exact |
+| L2-352 | pipeline_214m.log:2305 | 89 itemsets K=7 | kdist_base_son_k7_count | 89 | confirmed | exact |
+| L2-353 | pipeline_214m.log:2306 | 20 itemsets K=8 | kdist_base_son_k8_count | 20 | confirmed | exact |
+| L2-354 | pipeline_214m.log:2307 | 2 itemsets K=9 | kdist_base_son_k9_count | 2 | confirmed | exact |
+| L2-355 | pipeline_214m.log:2311 | 53,447 association rules generated | extract_rules_count | 29,540 | hallucinated | exact-match rule: fresh value differs |
+| L2-356 | pipeline_214m.log:2311 | 0.2 s (rule generation) | extract_rules_time_s | 0.19 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.95 (claimed 0.2); value |
+| L2-357 | pipeline_214m.log:2314 | 0.998 confidence | extract_rules_toplift_1_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-358 | pipeline_214m.log:2314 | 969 lift (x) | extract_rules_max_lift | 968.996 | confirmed | fresh rounds to 969 at 3 significant digits |
+| L2-359 | pipeline_214m.log:2315 | 0.999 confidence | extract_rules_toplift_2_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-360 | pipeline_214m.log:2315 | 969 lift (x) | extract_rules_toplift_2_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-361 | pipeline_214m.log:2316 | 1.000 confidence | extract_rules_toplift_3_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-362 | pipeline_214m.log:2316 | 921 lift (x) | extract_rules_toplift_3_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-363 | pipeline_214m.log:2317 | 0.945 confidence | extract_rules_toplift_4_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-364 | pipeline_214m.log:2317 | 921 lift (x) | extract_rules_toplift_4_lift |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| L2-365 | pipeline_214m.log:2318 | 0.963 confidence | extract_rules_toplift_5_conf |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |

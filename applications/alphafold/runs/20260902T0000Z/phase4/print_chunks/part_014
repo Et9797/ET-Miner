@@ -1,0 +1,225 @@
+|---|---|---|---|---|---|---|
+| R1-001 | F1:7 | 9 verification buckets | meta_review_f1_verification_buckets |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-002 | F1:7 | 73 claims adjudicated | meta_review_f1_claims_adjudicated |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-003 | F1:11 | 62 claims CONFIRMED | meta_review_f1_claims_confirmed |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-004 | F1:12 | 4 claims DISCREPANT | meta_review_f1_claims_discrepant |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-005 | F1:13 | 7 claims UNVERIFIABLE | meta_review_f1_claims_unverifiable |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-006 | F1:15 | 6/6 campaign-table rows verified | meta_review_f1_campaign_rows_verified |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-007 | F1:15 | 22 K-distribution rows | run_opus_kmax | 22 | confirmed | exact |
+| R1-008 | F1:15 | 8/8 K-distribution checks passed | meta_review_f1_kdist_checks |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-009 | F1:15 | 6/6 Direct-vs-SON checks passed | meta_review_f1_direct_vs_son_checks |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-010 | F1:15 | 247 Pfam items (v1 Table 1) | vocab_v1_pfam |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-011 | F1:15 | 752 GO items (v1 Table 1) | vocab_v1_go |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-012 | F1:15 | 3 pLDDT items (v1 Table 1) | vocab_v1_plddt |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-013 | F1:15 | 500 Pfam items (verified) | vocab_pfam_defined | 500 | confirmed | exact |
+| R1-014 | F1:15 | 500 GO items (verified) | vocab_go_defined | 500 | confirmed | exact |
+| R1-015 | F1:15 | 6 pLDDT bins (verified) | vocab_plddt_defined | 6 | confirmed | exact |
+| R1-016 | F1:15 | 1,006 total items | vocab_items_defined | 1,006 | confirmed | exact |
+| R1-017 | F1:19 | >=8 proteins (feature-retention cutoff, paper wording) | run_opus_min_count | 8 | confirmed | exact |
+| R1-018 | F1:19 | 500 top-N Pfam frequency cap | vocab_pfam_defined | 500 | confirmed | exact |
+| R1-019 | F1:19 | 500 top-N GO frequency cap | vocab_go_defined | 500 | confirmed | exact |
+| R1-020 | F1:19 | 24,291 unique Pfam terms | dataset_pfam_families_observed | 24,291 | confirmed | exact |
+| R1-021 | F1:19 | 25,993 unique GO terms | dataset_go_families_observed | 25,993 | confirmed | exact |
+| R1-022 | F1:19 | >=8 mining min-support (proteins) | run_opus_min_count | 8 | confirmed | exact |
+| R1-023 | F1:20 | 40x memory reduction (dense to CSR) | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-024 | F1:20 | 5.1 GB (CSR) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-025 | F1:20 | 76.9M proteins (mined subset) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-026 | F1:20 | 206 GB (dense) | dense_gb | 206 | confirmed | exact |
+| R1-027 | F1:20 | 205.6M proteins (full set) | dataset_plddt_pass | 205,620,298 | confirmed | fresh rounds to 205.6 at 4 significant digits |
+| R1-028 | F1:20 | ~15x memory reduction (same dataset) | csr_vs_dense_subset_ratio | 15.2 | confirmed | fresh rounds to 15 at 2 significant digits |
+| R1-029 | F1:21 | 8 proteins (K=22 accessions) | k22_support | 8 | confirmed | exact |
+| R1-030 | F1:21 | 22 K (deepest itemset) | run_opus_kmax | 22 | confirmed | exact |
+| R1-031 | F1:22 | <0.45 p (upper bound) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-032 | F1:22 | 95% one-sided confidence level | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-033 | F1:22 | 1-0.05^(1/5)=0.451 exact binomial bound | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.451 at 3 decimals; compound claim text — only the number matching this quantity is judged he |
+| R1-034 | F1:22 | 3/5=0.60 rule-of-three bound | null_p_bound_rule_of_three | 0.6 | confirmed | exact; compound claim text — only the number matching this quantity is judged here |
+| R1-035 | F1:24 | 4 min_count (verification run) | run_minc4_min_count | 4 | confirmed | exact |
+| R1-036 | F1:30 | >=8 support cutoff (heading) | run_opus_min_count | 8 | confirmed | exact |
+| R1-037 | F1:31 | >=8 proteins (feature retention) | run_opus_min_count | 8 | confirmed | exact |
+| R1-038 | F1:32 | 24291 unique Pfam | dataset_pfam_families_observed | 24,291 | confirmed | exact |
+| R1-039 | F1:32 | 25993 unique GO | dataset_go_families_observed | 25,993 | confirmed | exact |
+| R1-040 | F1:32 | 205620298 proteins | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| R1-041 | F1:32 | 6 pLDDT items | vocab_plddt_defined | 6 | confirmed | exact |
+| R1-042 | F1:32 | 500 Pfam items | vocab_pfam_defined | 500 | confirmed | exact |
+| R1-043 | F1:32 | 500 GO items | vocab_go_defined | 500 | confirmed | exact |
+| R1-044 | F1:32 | 1006 total items | vocab_items_defined | 1,006 | confirmed | exact |
+| R1-045 | F1:32 | top-500 per-type frequency cap | vocab_pfam_defined | 500 | confirmed | exact |
+| R1-046 | F1:32 | >=8 mining min_count | run_opus_min_count | 8 | confirmed | exact |
+| R1-047 | F1:33 | 205.6M proteins | dataset_plddt_pass | 205,620,298 | confirmed | fresh rounds to 205.6 at 4 significant digits |
+| R1-048 | F1:33 | >500 Pfam/GO families occurring in >=8 proteins | dataset_pfam_go_families_ge8 |  | inconclusive | no fresh artifact for this quantity (step not run or did not complete) |
+| R1-049 | F1:33 | >=8 proteins | run_opus_min_count | 8 | confirmed | exact |
+| R1-050 | F1:36 | 40x reduction (heading) | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-051 | F1:37 | 316 million non-zero entries | csr_nnz | 316,421,093 | confirmed | fresh rounds to 316 at 3 significant digits |
+| R1-052 | F1:37 | ~5.1 GB (coordinate format) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-053 | F1:37 | 40x reduction | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-054 | F1:37 | ~206 GB (naive dense) | dense_gb | 206 | confirmed | exact |
+| R1-055 | F1:38 | 316,421,093 non-zeros | csr_nnz | 316,421,093 | confirmed | exact |
+| R1-056 | F1:38 | 5.1 GB (CSR) | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-057 | F1:38 | 76,890,945 transactions (subset) | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| R1-058 | F1:38 | 206 GB dense (full set) | dense_gb | 206 | confirmed | exact |
+| R1-059 | F1:38 | 205.6M proteins (full set) | dataset_plddt_pass | 205,620,298 | confirmed | fresh rounds to 205.6 at 4 significant digits |
+| R1-060 | F1:38 | 205,620,298 transactions | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| R1-061 | F1:38 | 1002 items (dense columns) | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-062 | F1:38 | 1 byte per dense entry | alg_dense_bytes_per_bool |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-063 | F1:38 | 206 GB (computed) | dense_gb | 206 | confirmed | exact |
+| R1-064 | F1:38 | 76.9M transactions (subset) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-065 | F1:38 | 77 GB dense (subset) | dense_subset_gb | 77 | confirmed | exact |
+| R1-066 | F1:38 | 5.06 GB (CSR) | csr_bytes_gb | 5.06 | confirmed | exact |
+| R1-067 | F1:38 | ~15x reduction (same subset) | csr_vs_dense_subset_ratio | 15.2 | confirmed | fresh rounds to 15 at 2 significant digits |
+| R1-068 | F1:38 | 40x reduction | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-069 | F1:39 | 40x reduction | csr_vs_dense_full_ratio | 40.7 | confirmed | fresh rounds to 40 at 1 significant digits |
+| R1-070 | F1:39 | 1.4x reduction (bit-packed, appendix) | mem_ratio_214m |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-071 | F1:39 | 7.8x reduction (at 0.01% density, appendix) | mem_ratio_0p01pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-072 | F1:39 | 0.01% density | mem_density_0p01pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-073 | F1:40 | 316,421,093 nz | csr_nnz | 316,421,093 | confirmed | exact |
+| R1-074 | F1:40 | 76,890,945 txns | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| R1-075 | F1:40 | 205,620,298 total transactions | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| R1-076 | F1:42 | 8 K=22 accessions (heading) | k22_support | 8 | confirmed | exact |
+| R1-077 | F1:42 | 22 K (heading) | run_opus_kmax | 22 | confirmed | exact |
+| R1-078 | F1:43 | 8 (eight) matching proteins (K=22) | k22_support | 8 | confirmed | exact |
+| R1-079 | F1:45 | 8 IDs (K=22 proteins) | k22_support | 8 | confirmed | exact |
+| R1-080 | F1:49 | <0.45 p (heading) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-081 | F1:50 | <0.45 p | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-082 | F1:50 | 95% one-sided upper bound | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-083 | F1:50 | 0 of 5 null runs reaching K>=7 | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R1-084 | F1:51 | 0/5 null runs reaching K>=7 | null_perms_reaching_kge7 | 0 | confirmed | exact |
+| R1-085 | F1:51 | >=7 K (deep-pattern cutoff) | null_kmax | 6 | confirmed | claim states that K >= 7 is absent; fresh K_max = 6 |
+| R1-086 | F1:51 | 1-0.05^(1/5)=0.4507 exact binomial 95% bound | null_p_bound_kge7 | 0.4507 | confirmed | exact; compound claim text — only the number matching this quantity is judged here |
+| R1-087 | F1:51 | 95% confidence level | null_p_bound_confidence_pct |  | inconclusive | statement about the original setup; not verifiable by re-execution |
+| R1-088 | F1:51 | 3/5=0.60 rule-of-three bound | null_p_bound_rule_of_three | 0.6 | confirmed | exact; compound claim text — only the number matching this quantity is judged here |
+| R1-089 | F1:51 | 0.45 p bound (paper value contrasted with rule of three) | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-090 | F1:52 | 0.45 p bound | null_p_bound_kge7 | 0.4507 | confirmed | fresh rounds to 0.45 at 2 decimals |
+| R1-091 | F1:61 | 7 confirmed dataset/vocabulary claims | meta_review_f1_confirmed_dataset_vocab |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-092 | F1:62 | 214M proteins | dataset_metadata_rows | 214,683,829 | confirmed | fresh truncates to 214 at 3 significant digits |
+| R1-093 | F1:62 | 214,683,829 rows read | dataset_metadata_rows | 214,683,829 | confirmed | exact |
+| R1-094 | F1:63 | 205,620,298 proteins processed | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| R1-095 | F1:64 | 150 GB (input data) | dataset_annotation_gb | 149.8 | confirmed | fresh rounds to 150 at 2 significant digits |
+| R1-096 | F1:64 | 63 min (feature extraction) | extract_time_min | 9.3 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 63) |
+| R1-097 | F1:64 | 150G TrEMBL size (log) | dataset_annotation_gb | 149.8 | confirmed | fresh rounds to 150 at 2 significant digits |
+| R1-098 | F1:64 | 3777.0 s (af_extract) | extract_time_s | 555.7 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 3777) |
+| R1-099 | F1:64 | 62.95 min (af_extract) | extract_time_min | 9.3 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.15 (claimed 62.95) |
+| R1-100 | F1:65 | 8 min-support | run_opus_min_count | 8 | confirmed | exact |
+| R1-101 | F1:65 | 1,002 frequent single items | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-102 | F1:66 | 1,006 items | vocab_items_defined | 1,006 | confirmed | exact |
+| R1-103 | F1:66 | 6 pLDDT items | vocab_plddt_defined | 6 | confirmed | exact |
+| R1-104 | F1:66 | 500 Pfam items | vocab_pfam_defined | 500 | confirmed | exact |
+| R1-105 | F1:66 | 500 GO items | vocab_go_defined | 500 | confirmed | exact |
+| R1-106 | F1:67 | 1,002 items passing min-support | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-107 | F1:67 | 1,000 Pfam/GO items passing | vocab_pfam_go_frequent |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-108 | F1:67 | 2 pLDDT bins passing | vocab_plddt_frequent | 2 | confirmed | exact |
+| R1-109 | F1:67 | 2 (two) pLDDT labels in decoded patterns | vocab_plddt_frequent | 2 | confirmed | exact |
+| R1-110 | F1:68 | 76,890,945 multi-feature proteins | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| R1-111 | F1:68 | 37.4% fraction multi-feature | dataset_multi_feature_pct | 37.3946 | confirmed | fresh rounds to 37.4 at 1 decimals |
+| R1-112 | F1:70 | 6 confirmed memory claims | meta_review_f1_confirmed_memory |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-113 | F1:70 | 206 GB dense | dense_gb | 206 | confirmed | exact |
+| R1-114 | F1:70 | 316M nz | csr_nnz | 316,421,093 | confirmed | fresh rounds to 316 at 3 significant digits |
+| R1-115 | F1:70 | 5.1 GB coordinate | csr_bytes_gb | 5.06 | confirmed | fresh rounds to 5.1 at 1 decimals |
+| R1-116 | F1:70 | ~26 GB bit-packed | bitvec_gb | 25.8 | confirmed | fresh rounds to 26 at 2 significant digits |
+| R1-117 | F1:70 | ~3 GB H2D transfer | csr_h2d_transfer_gb | 2.53 | confirmed | fresh rounds to 3 at 1 significant digits |
+| R1-118 | F1:70 | ~264 B (metadata over 22 K-levels) | alg_pcie_bytes_total |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-119 | F1:70 | 22 K-levels | run_opus_kmax | 22 | confirmed | exact |
+| R1-120 | F1:70 | 214M row label (appendix memory table) | dataset_metadata_rows | 214,683,829 | confirmed | fresh truncates to 214 at 3 significant digits |
+| R1-121 | F1:70 | 27 GB (appendix 214M row) | mem_dense_214m_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-122 | F1:70 | 19 GB (appendix 214M row) | mem_csr_214m_gb |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-123 | F1:70 | 1.4x ratio (appendix 214M row) | mem_ratio_214m |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-124 | F1:72 | 6/6 campaign rows verified | meta_review_f1_campaign_rows_verified |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-125 | F1:72 | 0.1% support (Base) | run_base_support_pct | 0.1 | confirmed | exact |
+| R1-126 | F1:72 | 76,891 min_count (Base) | run_base_min_count | 76,891 | confirmed | exact |
+| R1-127 | F1:72 | 5,305 itemsets (Base) | run_base_itemsets | 5,305 | confirmed | exact |
+| R1-128 | F1:72 | 9 K max (Base) | run_base_kmax | 9 | confirmed | exact |
+| R1-129 | F1:72 | 1.9 min (Base) | run_base_time_min | 12.99 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.84 (claimed 1.9) |
+| R1-130 | F1:72 | 0.01% support (Super) | run_super_support_pct | 0.01 | confirmed | exact |
+| R1-131 | F1:72 | 7,689 min_count (Super) | run_super_min_count | 7,690 | hallucinated | exact-match rule: fresh value differs |
+| R1-132 | F1:72 | 51,124 itemsets (Super) | run_super_itemsets | 113,405 | hallucinated | exact-match rule: fresh value differs |
+| R1-133 | F1:72 | 13 K max (Super) | run_super_kmax | 14 | hallucinated | exact-match rule: fresh value differs |
+| R1-134 | F1:72 | 4.3 min (Super) | run_super_time_min | 23.77 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 5.53 (claimed 4.3) |
+| R1-135 | F1:72 | 0.001% support (Power) | run_power_support_pct | 0.001 | confirmed | exact |
+| R1-136 | F1:72 | 768 min_count (Power) | run_power_min_count | 769 | hallucinated | exact-match rule: fresh value differs |
+| R1-137 | F1:72 | 22,846 itemsets (Power) | run_power_itemsets | 475,865 | hallucinated | exact-match rule: fresh value differs |
+| R1-138 | F1:72 | 13 K max (Power) | run_power_kmax | 14 | hallucinated | exact-match rule: fresh value differs |
+| R1-139 | F1:72 | 18.1 min (Power) | run_power_time_min | 94.56 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 5.22 (claimed 18.1) |
+| R1-140 | F1:72 | 0.0001% support (Blitz) | run_blitz_support_pct | 0.0001 | confirmed | exact |
+| R1-141 | F1:72 | 77 min_count (Blitz) | run_blitz_min_count | 77 | confirmed | exact |
+| R1-142 | F1:72 | 2,841,280 itemsets (Blitz) | run_blitz_itemsets | 2,841,280 | confirmed | exact |
+| R1-143 | F1:72 | 19 K max (Blitz) | run_blitz_kmax | 19 | confirmed | exact |
+| R1-144 | F1:72 | 2.0 min (Blitz) | run_blitz_time_min | 4.59 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.29 (claimed 2) |
+| R1-145 | F1:72 | 0.00002% support (Ultra) | run_ultra_support_pct | 2e-05 | confirmed | exact |
+| R1-146 | F1:72 | 16 min_count (Ultra) | run_ultra_min_count | 16 | confirmed | exact |
+| R1-147 | F1:72 | 14,558,875 itemsets (Ultra) | run_ultra_itemsets | 14,558,875 | confirmed | exact |
+| R1-148 | F1:72 | 20 K max (Ultra) | run_ultra_kmax | 20 | confirmed | exact |
+| R1-149 | F1:72 | 4.7 min (Ultra) | run_ultra_time_min | 11.52 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.45 (claimed 4.7) |
+| R1-150 | F1:72 | 0.00001% support (Opus) | run_opus_support_pct | 1e-05 | confirmed | exact |
+| R1-151 | F1:72 | 8 min_count (Opus) | run_opus_min_count | 8 | confirmed | exact |
+| R1-152 | F1:72 | 26,849,505 itemsets (Opus) | run_opus_itemsets | 26,849,505 | confirmed | exact |
+| R1-153 | F1:72 | 22 K max (Opus) | run_opus_kmax | 22 | confirmed | exact |
+| R1-154 | F1:72 | 7.3 min (Opus) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-155 | F1:74 | 8/8 K-distribution checks passed | meta_review_f1_kdist_checks |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-156 | F1:74 | 26,849,505 total itemsets | run_opus_itemsets | 26,849,505 | confirmed | exact |
+| R1-157 | F1:74 | 9 K (distribution peak) | kdist_opus_peak_k | 9 | confirmed | exact |
+| R1-158 | F1:74 | 3,529,257 itemsets at K=9 | kdist_opus_peak_count | 3,529,257 | confirmed | exact |
+| R1-159 | F1:74 | 13.14% share of itemsets at K=9 | kdist_opus_peak_pct | 13.1446 | confirmed | fresh rounds to 13.14 at 2 decimals |
+| R1-160 | F1:74 | 1,002 itemsets at K=1 | kdist_opus_k1_count | 1,002 | confirmed | exact |
+| R1-161 | F1:74 | 73,786 itemsets at K=2 | kdist_opus_k2_count | 73,786 | confirmed | exact |
+| R1-162 | F1:74 | 1 itemsets at K=22 | kdist_opus_k22_count | 1 | confirmed | exact |
+| R1-163 | F1:74 | 8 proteins supporting K=22 | k22_support | 8 | confirmed | exact |
+| R1-164 | F1:74 | 3..21 K rows verified | meta_review_f1_kdist_rows_range |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-165 | F1:74 | 100.0% sum of K-distribution percentages | kdist_opus_pct_sum | 100 | confirmed | exact |
+| R1-166 | F1:76 | 2 K=22 composition checks | meta_review_f1_confirmed_k22_composition |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-167 | F1:76 | 22 features (K=22 itemset) | k22_n_features | 22 | confirmed | exact |
+| R1-168 | F1:76 | 2 Pfam features in K=22 | k22_n_pfam | 2 | confirmed | exact |
+| R1-169 | F1:76 | 8 GO:MF features in K=22 | k22_n_go_mf | 8 | confirmed | exact |
+| R1-170 | F1:76 | 4 GO:BP features in K=22 | k22_n_go_bp | 4 | confirmed | exact |
+| R1-171 | F1:76 | 7 GO:CC features in K=22 | k22_n_go_cc | 7 | confirmed | exact |
+| R1-172 | F1:76 | 1 pLDDT feature in K=22 | k22_n_plddt | 1 | confirmed | exact |
+| R1-173 | F1:78 | 17 confirmed null-model claims | meta_review_f1_confirmed_null_model |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-174 | F1:78 | 5 permutations | null_permutations | 5 | confirmed | exact |
+| R1-175 | F1:78 | 42 seed | null_seed | 42 | confirmed | exact |
+| R1-176 | F1:78 | 662 s (null model total) | null_total_time_s | 107.56 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.16 (claimed 662) |
+| R1-177 | F1:78 | 769 min_count (null model) | null_min_count | 769 | confirmed | exact |
+| R1-178 | F1:78 | -987 Z at K=2 | null_k2_z | -1,359.13 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-179 | F1:78 | -143 Z at K=3 | null_k3_z | -118.93 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-180 | F1:78 | +3,791 Z at K=4 | null_k4_z | 3,048.06 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-181 | F1:78 | +7,402 Z at K=5 | null_k5_z | 9,917.14 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-182 | F1:78 | +71,728 Z at K=6 | null_k6_z | 175,697 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-183 | F1:78 | 3 K (null-model peak) | null_peak_k |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-184 | F1:78 | 46.2% null share at K=3 | null_peak_pct |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-185 | F1:78 | 6 K (null max depth) | null_kmax | 6 | confirmed | exact |
+| R1-186 | F1:78 | 22 mean null itemsets at K=6 | null_k6_mean | 21.8 | confirmed | fresh rounds to 22 at 2 significant digits |
+| R1-187 | F1:78 | 1.1 std null itemsets at K=6 | null_k6_std | 0.4 | inconclusive | random-stream-dependent permutation statistic (transaction row order and RNG differ from the original run; sam |
+| R1-188 | F1:78 | 88,745 biological itemsets at K>=7 | null_kge7_bio | 88,745 | confirmed | exact |
+| R1-189 | F1:78 | 475,865 real_total itemsets (0.001%) | run_power_direct_itemsets | 475,865 | confirmed | exact |
+| R1-190 | F1:78 | 14 K max (real, 0.001%) | run_power_direct_kmax | 14 | confirmed | exact |
+| R1-191 | F1:78 | 1,002 K=1 itemsets preserved under permutation | null_k1_mean | 1,002 | confirmed | exact |
+| R1-192 | F1:78 | ~130 s per permutation | null_per_perm_time_s | 18.84 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 0.14 (claimed 130) |
+| R1-193 | F1:78 | n=5 permutations (t-statistic basis) | null_permutations | 5 | confirmed | exact |
+| R1-194 | F1:78 | 4 df (t-statistics) | null_t_df | 4 | confirmed | exact |
+| R1-195 | F1:80 | 6/6 Direct-vs-SON checks passed | meta_review_f1_direct_vs_son_checks |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-196 | F1:80 | 475,865 itemsets (Direct) | run_power_direct_itemsets | 475,865 | confirmed | exact |
+| R1-197 | F1:80 | 50.7 s (Direct) | run_power_direct_time_s | 91.7 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 1.81 (claimed 50.7) |
+| R1-198 | F1:80 | 22,846 itemsets (SON) | run_power_son_itemsets | 475,865 | hallucinated | exact-match rule: fresh value differs |
+| R1-199 | F1:80 | 1,085.6 s (SON) | run_power_son_time_s | 5,673.71 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 5.23 (claimed 1085.6) |
+| R1-200 | F1:80 | 21x speedup (Direct vs SON) | son_speedup | 61.87 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.95 (claimed 21) |
+| R1-201 | F1:80 | 95.2% SON miss rate | son_miss_rate_pct | 0 | hallucinated | exact-match rule: fresh value differs |
+| R1-202 | F1:82 | 3 confirmed scale-comparison claims | meta_review_f1_confirmed_scale_comparison |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-203 | F1:82 | 5.1x transactions ratio vs GMiner | run_opus_vs_gminer_transaction_ratio |  | inconclusive | no fresh artifact for the underlying quantity |
+| R1-204 | F1:82 | 76.9M transactions (ET-miner) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-205 | F1:82 | 15M transactions (GMiner) | ext_gminer_transactions |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-206 | F1:82 | 62.6% proteins excluded (single-feature) | dataset_single_feature_pct | 62.6054 | confirmed | fresh rounds to 62.6 at 1 decimals |
+| R1-207 | F1:82 | 128.7M proteins excluded | dataset_single_feature | 128,729,353 | confirmed | fresh rounds to 128.7 at 4 significant digits |
+| R1-208 | F1:82 | 76.9M transactions (ET-miner row) | dataset_multi_feature | 76,890,945 | confirmed | fresh rounds to 76.9 at 3 significant digits |
+| R1-209 | F1:82 | 1,002 items (ET-miner row) | vocab_items_frequent | 1,002 | confirmed | exact |
+| R1-210 | F1:82 | 22 K (ET-miner row) | run_opus_kmax | 22 | confirmed | exact |
+| R1-211 | F1:82 | 1xH100 GPU count/model | hw_gpu_model | NVIDIA GeForce RTX 3090 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB) |
+| R1-212 | F1:82 | 7.3 min (ET-miner row) | run_opus_time_min | 44 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 6.03 (claimed 7.3) |
+| R1-213 | F1:84 | 7 confirmed citation claims | meta_review_f1_confirmed_citations |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-214 | F1:84 | 47 \cite commands | meta_review_f1_cite_commands |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-215 | F1:84 | 37 unique citation keys | meta_review_f1_unique_cite_keys |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-216 | F1:84 | 37 bibliography entries | meta_review_f1_bib_entries |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-217 | F1:84 | 0 (zero) cross-paper tool contamination | meta_review_f1_cross_paper_contamination |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-218 | F1:94 | 2025_01 UniProt release | dataset_uniprot_release | 2026_01 | hallucinated | exact-match rule: fresh value differs |
+| R1-219 | F1:94 | Feb 2026 run date (log) | meta_log_pipeline_start_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| R1-220 | F1:95 | 22 K | run_opus_kmax | 22 | confirmed | exact |
+| R1-221 | F1:95 | 8 proteins (K=22) | k22_support | 8 | confirmed | exact |
+| R1-222 | F1:95 | 19 K max in decoded_top_k_patterns.txt | pattern_k19_k | 19 | confirmed | exact |
+| R1-223 | F1:95 | 187 proteins (K=19 pattern in decoded file) | pattern_k19_support | 187 | confirmed | exact |
+| R1-224 | F1:95 | >=20 K (no artifact contains any) | meta_review_f1_artifact_kge20_absent |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |

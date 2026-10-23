@@ -1,0 +1,24 @@
+{"label": "C1_vs_GPU_opus_filtered", "verdict": "identical", "cpu_itemsets": 5305, "ref_itemsets": 5305, "n_differing": 0, "wrong": []}
+	Command being timed: "./run_py.sh compare.py ../data/mined/C1/parquet ../../20260902T0000Z/phase3/2026_01/opus/parquet --n 76890945 --ref-min-count 76891 --threshold 76891 --data ../data/extract_2026_01/transactions_214m_base_multi.parquet --translate ../../20260902T0000Z/phase2/extract_2026_01/item_mapping_214m_base.parquet ../data/extract_2026_01/item_mapping_214m_base.parquet --out ../data/mined/C1/cmp_gpu_opus.json --label C1_vs_GPU_opus_filtered"
+	User time (seconds): 3.70
+	System time (seconds): 0.62
+	Percent of CPU this job got: 166%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.59
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 471120
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 31
+	Minor (reclaiming a frame) page faults: 194516
+	Voluntary context switches: 3330
+	Involuntary context switches: 329
+	Swaps: 0
+	File system inputs: 127696
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

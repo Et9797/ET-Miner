@@ -1,0 +1,164 @@
+| kdist_opus_k20_pct | 100 x kdist_opus_k20_count / run_opus_itemsets. | <0.01 | 0.0009 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k21_count | Frequent itemsets of length K=21 in the Opus run (tab:kdist). | 23 | 23 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k21_pct | 100 x kdist_opus_k21_count / run_opus_itemsets. | <0.01 | 0.0001 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k22_count | Frequent itemsets of length K=22 in the Opus run (tab:kdist). The single deepest itemset ( | 1 | 1 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k22_pct | 100 x kdist_opus_k22_count / run_opus_itemsets. | <0.01 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k2_count | Frequent itemsets of length K=2 in the Opus run (tab:kdist). | 73,786 | 73,786 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k2_pct | 100 x kdist_opus_k2_count / run_opus_itemsets. | 0.27 | 0.2748 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k3_count | Frequent itemsets of length K=3 in the Opus run (tab:kdist). | 452,777 | 452,777 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k3_pct | 100 x kdist_opus_k3_count / run_opus_itemsets. | 1.69 | 1.6864 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k4_count | Frequent itemsets of length K=4 in the Opus run (tab:kdist). | 1,184,461 | 1,184,461 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k4_pct | 100 x kdist_opus_k4_count / run_opus_itemsets. | 4.41 | 4.4115 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k5_count | Frequent itemsets of length K=5 in the Opus run (tab:kdist). | 1,974,126 | 1,974,126 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k5_pct | 100 x kdist_opus_k5_count / run_opus_itemsets. | 7.35 | 7.3526 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k6_count | Frequent itemsets of length K=6 in the Opus run (tab:kdist). | 2,626,332 | 2,626,332 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k6_pct | 100 x kdist_opus_k6_count / run_opus_itemsets. | 9.78 | 9.7817 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k7_count | Frequent itemsets of length K=7 in the Opus run (tab:kdist). | 3,118,459 | 3,118,459 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k7_pct | 100 x kdist_opus_k7_count / run_opus_itemsets. | 11.61 | 11.6146 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k8_count | Frequent itemsets of length K=8 in the Opus run (tab:kdist). | 3,442,954 | 3,442,954 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k8_pct | 100 x kdist_opus_k8_count / run_opus_itemsets. | 12.82 | 12.8232 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k9_count | Frequent itemsets of length K=9 in the Opus run (tab:kdist). | 3,529,257 | 3,529,257 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_k9_pct | 100 x kdist_opus_k9_count / run_opus_itemsets. | 13.14 | 13.1446 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_peak_count | Itemset count at the peak K (3,529,257; '3.53M'/'3.53 million' are rounded variants). Coin | 3,529,257 / 3.53M / 3.53 million | 3,529,257 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_peak_k | argmax over K of the Opus K-distribution (9). | 9 | 9 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| kdist_opus_peak_pct | Share of all Opus itemsets at the peak K (13.14). Coincides with kdist_opus_k9_pct while t | 13.14 | 13.1446 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| mem_items_per_txn_214m | Items per transaction assumed for the 'AlphaFold proteome, Actual' row (~10). Cf. csr_nnz  | ~10 | 2.16 | hallucinated | runs/20260902T0000Z/phase2/extract_2026_01/stats.json |
+| null_enriched_from_k | Smallest K from which biological counts exceed the null mean and stay enriched (4; stated  | >=4 / 4 | 4 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k1_bio | Biological (unshuffled) itemsets at K=1 from the exhaustive Direct run at 0.001% (tab:null | 1,002 | 1,002 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k1_mean | Mean null-model itemsets at K=1 over the 5 permutations. Equals vocab_items_frequent: marg | 1,002 | 1,002 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k1_p | p-value reported for K=1 (1.0, depleted/preserved). | 1.0 | 1 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k1_std | Standard deviation of null-model itemsets at K=1 over the 5 permutations. | 0.0 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k1_z | (null_k1_bio - null_k1_mean) / null_k1_std; the paper calls it Z but notes it is a t-stati | 0.0 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k2_bio | Biological (unshuffled) itemsets at K=2 from the exhaustive Direct run at 0.001% (tab:null | 22,019 | 22,019 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k2_mean | Mean null-model itemsets at K=2 over the 5 permutations. | 63,702 | 63,704.8 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k2_p | p-value reported for K=2 (1.0, depleted/preserved). | 1.0 | 1 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k2_std | Standard deviation of null-model itemsets at K=2 over the 5 permutations. | 42.2 | 30.7 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k2_z | (null_k2_bio - null_k2_mean) / null_k2_std; the paper calls it Z but notes it is a t-stati | -987 | -1,359.13 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k3_bio | Biological (unshuffled) itemsets at K=3 from the exhaustive Direct run at 0.001% (tab:null | 73,205 | 73,205 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k3_mean | Mean null-model itemsets at K=3 over the 5 permutations. | 79,134 | 79,117.4 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k3_p | p-value reported for K=3 (1.0, depleted/preserved). | 1.0 | 1 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k3_std | Standard deviation of null-model itemsets at K=3 over the 5 permutations. | 41.5 | 49.7 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k3_z | (null_k3_bio - null_k3_mean) / null_k3_std; the paper calls it Z but notes it is a t-stati | -143 | -118.93 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k4_bio | Biological (unshuffled) itemsets at K=4 from the exhaustive Direct run at 0.001% (tab:null | 108,059 | 108,059 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k4_mean | Mean null-model itemsets at K=4 over the 5 permutations. | 25,468 | 25,412.2 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k4_p | p-value reported for K=4 (~0, enriched). | ~0 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k4_std | Standard deviation of null-model itemsets at K=4 over the 5 permutations. | 21.8 | 27.1 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k4_z | (null_k4_bio - null_k4_mean) / null_k4_std; the paper calls it Z but notes it is a t-stati | +3,791 | 3,048.06 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k5_bio | Biological (unshuffled) itemsets at K=5 from the exhaustive Direct run at 0.001% (tab:null | 104,239 | 104,239 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k5_mean | Mean null-model itemsets at K=5 over the 5 permutations. | 1,992 | 1,991.4 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k5_p | p-value reported for K=5 (~0, enriched). | ~0 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k5_std | Standard deviation of null-model itemsets at K=5 over the 5 permutations. | 13.8 | 10.3 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k5_z | (null_k5_bio - null_k5_mean) / null_k5_std; the paper calls it Z but notes it is a t-stati | +7,402 | 9,917.14 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k6_bio | Biological (unshuffled) itemsets at K=6 from the exhaustive Direct run at 0.001% (tab:null | 78,596 | 78,596 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k6_mean | Mean null-model itemsets at K=6 over the 5 permutations. | 22 | 21.8 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k6_p | p-value reported for K=6 (~0, enriched). | ~0 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k6_std | Standard deviation of null-model itemsets at K=6 over the 5 permutations. | 1.1 | 0.4 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_k6_z | (null_k6_bio - null_k6_mean) / null_k6_std; the paper calls it Z but notes it is a t-stati | +71,728 | 175,697 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_kge7_bio | Biological itemsets at K>=7 (sum over K=7..14) from the exhaustive Direct run at 0.001% (8 | 88,745 | 88,745 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_kge7_mean | Mean null-model itemsets at K>=7 (0; no permutation produced any). | 0 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_kmax | Deepest K produced by any null permutation (6). Statements 'no null run reached K>=7 / can | 6 / >=7 | 6 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_min_count | min_count at the null-model threshold = ceil(0.00001 x dataset_multi_feature) = 769. NOTE: | 769 | 769 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_p_bound_kge7 | One-sided binomial 95% upper bound for 0 of 5 permutations reaching K>=7: 1-0.05^(1/5) = 0 | <0.45 | 0.4507 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_per_perm_time_s | Runtime of one permutation = one full mining run at 0.001% (~130 s; 662/5 = 132.4). | ~130 | 18.84 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_perms_reaching_kge7 | Number of permutations that produced any itemset at K>=7 ('0 of 5'). | 0 of 5 | 0 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_permutations | Number of Fisher-Yates feature-column permutations (5). | 5 | 5 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_seed | Random seed of the permutations (42). | 42 | 42 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_support_pct | Support threshold used for the permutation null model (0.001%, the 'Power' threshold). | 0.001 / Power threshold (0.001%) | 0.001 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_t_df | Degrees of freedom of the t-statistics = null_permutations - 1 (4). | 4 | 4 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_total_time_s | Total runtime of the 5 null-model permutations (662 s). | 662 | 107.56 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_z_headline_k_range | K range over which the headline Z>3,700 holds (4-6). | 4–6 | 5–6 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| null_z_min_k4to6 | Headline: min(null_k4_z, null_k5_z, null_k6_z) > 3,700 (table values +3,791 / +7,402 / +71 | >3,700 | 3,048.06 | inconclusive | runs/20260902T0000Z/phase3/2026_01/exp/experiment_null_model_20260902_070216.json |
+| pattern_k11_k | Length of the 'AAA+ ATPase Proteasome Complex' pattern (11); also the bottom of the highli | 11 | 11 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k11.parquet |
+| pattern_k11_support | Supporting proteins of the K=11 pattern (~16,000; order-of-magnitude estimate). | ~16,000 | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 16190, 16186, 16185, 16041, 15977, 15936, 15887, 15886, 15565, 15490, 15239, 15210, 15192, 15168, 15167, 13872…] | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k11.parquet |
+| pattern_k12_k | Length of the 'Bacterial Cell Wall Synthase' pattern (12). | 12 | 12 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k12.parquet |
+| pattern_k12_member_1 | Named member of the K=12 pattern: PF00905 (transpeptidase). | PF00905 | PF00905 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k12.parquet |
+| pattern_k12_member_2 | Named member of the K=12 pattern: PF00912 (transglycosylase). | PF00912 | PF00912 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k12.parquet |
+| pattern_k12_support | Supporting proteins of the K=12 pattern (~10,500; order-of-magnitude estimate). | ~10,500 | [16185, 10642, 10619, 10494, 10249, 10214, 994, 860, 783, 411, 401, 392, 326, 291, 281, 280, 255, 244, 179, 174, 172, 105, 99, 98…] | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k12.parquet |
+| pattern_k13_k | Length of the 'Helicase-Recombinase DNA Repair Module' pattern (13). No member ids given. | 13 | 13 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k13.parquet |
+| pattern_k13_support | Supporting proteins of the K=13 pattern (~11,000; order-of-magnitude estimate). | ~11,000 | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 10214, 2500, 919, 745, 675, 672, 668, 665, 664, 628, 627, 617, 615, 614, 613, 612…] | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k13.parquet |
+| pattern_k17_k | Length of the 'Receptor Tyrosine Kinase Signaling Hub' pattern (17; also '17-feature combi | 17 | 17 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k17.parquet |
+| pattern_k17_member_1 | Named member of the K=17 pattern: PF07714 (protein tyrosine kinase). | PF07714 | PF07714 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k17.parquet |
+| pattern_k17_member_2 | Named member of the K=17 pattern: PF00017 (SH2). | PF00017 | PF00017 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k17.parquet |
+| pattern_k17_member_3 | Named member of the K=17 pattern: PF00018 (SH3). | PF00018 | PF00018 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k17.parquet |
+| pattern_k17_support | Supporting proteins of the K=17 pattern (~611; order-of-magnitude estimate per footnote l. | ~611 | 611 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k17.parquet |
+| pattern_k19_k | Length of the 'RNA Spliceosome Processing Hub' pattern (19); also the top of the highlight | 19 | 19 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k19.parquet |
+| pattern_k19_support | Supporting proteins of the K=19 pattern (187; the only highlighted count given without a t | 187 | 187 | confirmed | runs/20260902T0000Z/phase3/2026_01/blitz/parquet/frequent_k19.parquet |
+| pattern_n_highlighted | Number of intermediate-K patterns highlighted in the Results (5). | 5 | 5 | inconclusive | runs/20260902T0000Z/phase3/2026_01/blitz/parquet |
+| run_base_itemsets | Frequent itemsets found by the Base run. | 5,305 | 5,305 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json |
+| run_base_kmax | Maximum itemset length reached by the Base run. | 9 | 9 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json |
+| run_base_min_count | Minimum protein count of the Base run = ceil(support x dataset_multi_feature). | 76,891 | 76,891 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json |
+| run_base_support_pct | Support threshold of the Base run (the parameter set for the run). | 0.1 | 0.1 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json |
+| run_base_time_min | Wall-clock mining time of the Base run in minutes. | 1.9 | 12.99 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/son_base.json |
+| run_blitz_itemsets | Frequent itemsets found by the Blitz run. | 2,841,280 | 2,841,280 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_blitz_kmax | Maximum itemset length reached by the Blitz run. | 19 | 19 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_blitz_min_count | Minimum protein count of the Blitz run = ceil(support x dataset_multi_feature). | 77 | 77 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_blitz_support_pct | Support threshold of the Blitz run (the parameter set for the run). | 0.0001 | 0.0001 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_blitz_time_min | Wall-clock mining time of the Blitz run in minutes. | 2.0 | 4.59 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_blitz_vs_power_itemset_ratio | run_blitz_itemsets / run_power_itemsets (124x). | 124× | 5.97 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_opus_itemsets | Frequent itemsets found by the Opus run. '26.8 million'/'26.8M'/'millions' are rounded var | 26.8 million / 26,849,505 / 26.8M / millions | 26,849,505 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| run_opus_kmax | Maximum itemset length reached by the Opus run. Also cited as the number of K-levels/itera | 22 | 22 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/parquet |
+| run_opus_min_count | Minimum protein count of the Opus run (the actual threshold; support % is nominal). | 8 | 8 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json |
+| run_opus_support_pct | Support threshold of the Opus run (nominal/rounded: 100 x min_count / dataset_multi_featur | 0.00001 | 1e-05 | confirmed | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json |
+| run_opus_time_min | Wall-clock mining time of the Opus run in minutes (headline 'mining only' time). | 7.3 | 44 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/opus/mining_meta_1e-07_20260902_060905.json |
+| run_power_direct_itemsets | Exhaustive Direct CSR->GPU run at 0.001% support (min_count 769): frequent itemsets (475,8 | 475,865 | 475,865 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_direct_kmax | Maximum K of the exhaustive Direct CSR->GPU run at 0.001% (14). | 14 | 14 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_direct_time_s | Wall-clock time of the exhaustive Direct CSR->GPU run at 0.001% (50.7 s). | 50.7 | 91.7 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_itemsets | Frequent itemsets found by the Power run (Streaming SON, i.e. lossy; the exhaustive count  | 22,846 | 475,865 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_kmax | Maximum itemset length reached by the Power run (SON; the exhaustive Direct run at this th | 13 | 14 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_min_count | Minimum protein count of the Power run = ceil(support x dataset_multi_feature). NOTE: 768  | 768 | 769 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_son_itemsets | Streaming-SON itemsets at 0.001% as quoted in the Direct-vs-SON comparison (22,846). ALIAS | 22,846 | 475,865 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_son_time_s | Streaming-SON wall-clock at 0.001% in seconds (1,085.6 s). ALIAS of run_power_time_min x 6 | 1,085.6 | 5,673.71 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_support_pct | Support threshold of the Power run (the parameter set for the run). | 0.001 | 0.001 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_power_time_min | Wall-clock mining time of the Power run in minutes. Same run as run_power_son_time_s (1,08 | 18.1 | 94.56 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| run_super_itemsets | Frequent itemsets found by the Super run. | 51,124 | 113,405 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json |
+| run_super_kmax | Maximum itemset length reached by the Super run. | 13 | 14 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json |
+| run_super_min_count | Minimum protein count of the Super run = ceil(support x dataset_multi_feature). | 7,689 | 7,690 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json |
+| run_super_support_pct | Support threshold of the Super run (the parameter set for the run). | 0.01 | 0.01 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json |
+| run_super_time_min | Wall-clock mining time of the Super run in minutes. | 4.3 | 23.77 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/son_super.json |
+| run_ultra_itemsets | Frequent itemsets found by the Ultra run. | 14,558,875 | 14,558,875 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_ultra_kmax | Maximum itemset length reached by the Ultra run. | 20 | 20 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_ultra_min_count | Minimum protein count of the Ultra run (the actual threshold; support % is nominal). | 16 | 16 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_ultra_support_pct | Support threshold of the Ultra run (nominal/rounded: 100 x min_count / dataset_multi_featu | 0.00002 | 2e-05 | confirmed | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| run_ultra_time_min | Wall-clock mining time of the Ultra run in minutes. | 4.7 | 11.52 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_full_campaign_20260902_091611.json |
+| son_miss_rate_pct | 100 x (1 - run_power_son_itemsets / run_power_direct_itemsets) (95.2). | 95.2 | 0 | hallucinated | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| son_speedup | Controlled same-support speedup = run_power_son_time_s / run_power_direct_time_s (21x). | 21× | 61.87 | expected-hardware-deviation | runs/20260902T0000Z/phase3/2026_01/exp/experiment_direct_vs_son_20260902_083831.json |
+| sw_cuda | CUDA version. | 12.4 | driver CUDA 13.2 (driver 595.71.05); nvcc release 12.1 | inconclusive | nvidia-smi / nvcc |
+| sw_cupy | CuPy version. | 13.0 | 14.1.1 | inconclusive | .venv |
+| sw_numpy | NumPy version. | 1.26 | 2.2.6 | inconclusive | .venv |
+| sw_os | Operating system (Ubuntu) version. | 22.04 | Ubuntu 22.04.3 LTS | inconclusive | /etc/os-release |
+| sw_python | Python version. | 3.10 | 3.10.13 | inconclusive | .venv/bin/python |
+| vocab_go_defined | Number of most-frequent GO terms admitted to the vocabulary. | 500 | 500 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/stats.json |
+| vocab_go_frequent | GO vocabulary items that pass the support threshold. | 500 | 500 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet |
+| vocab_items_defined | Defined vocabulary size = vocab_pfam_defined + vocab_go_defined + vocab_plddt_defined (1,0 | 1,006 | 1,006 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/stats.json |
+| vocab_items_frequent | Items passing the mining support threshold (1,002 = 500 Pfam + 500 GO + 2 pLDDT bins); als | 1,002 | 1,002 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/stats.json |
+| vocab_pfam_defined | Number of most-frequent Pfam domains admitted to the vocabulary. | 500 | 500 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/stats.json |
+| vocab_pfam_frequent | Pfam vocabulary items that pass the support threshold. | 500 | 500 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet |
+| vocab_plddt_bin_medium_edges | Edges of the 'Medium confidence' pLDDT bin (70-90); the only bin edges stated anywhere in  | 70–90 | 50–90 | hallucinated | runs/20260902T0000Z/phase2/extract_2026_01/plddt_bin_edges.json |
+| vocab_plddt_defined | Number of pLDDT confidence bins defined. | 6 | 6 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/stats.json |
+| vocab_plddt_frequent | pLDDT bins that pass the support threshold. | 2 | 2 | confirmed | runs/20260902T0000Z/phase2/extract_2026_01/item_support_multi.parquet |
+
+## 3. Key inconsistencies (from INCONSISTENCIES.md)
+
+- I-001 — min_count 768 vs 769 for the same support and N (verified)
+- I-002 — "89,566 itemsets at K ≥ 7" vs JSON sum 88,745 (verified)
+- I-003 — three different mining runs conflated as "the" base214m result (reported-by logs subagent; partially verified)
+- I-004 — protein count: 76,890,945 vs "214M" vs "76.9M of 205.6M" (reported-by logs subagent)
+- I-005 — surviving timings are all 2×RTX 3090 bench runs; AlphaFold timings exist only as H100/H200 prose (reported-by logs subagent)
+- Operational hazard (not a discrepancy)
+- I-006 — the paper's stated UniProt release (2025_01) does not match the release actually used (2026_01) (verified)
+- I-007 — experiment scripts import modules that no longer exist (verified; fixed for this campaign)
+- I-008 — the surviving mining logs were not produced by any script in the repo (reported-by pipeline subagent; spot-checked)
+- I-009 — the runbook's `bq query --format=csv --max_rows=300000000` export route does not work in practice (verified)
+- I-010 — `experiment_null_model.py` cannot run on 24 GB GPUs without releasing cached GPU memory (verified; one-line fix applied)
+- I-011 — the committed SON implementation is exact at 0.001 %, contradicting the paper's lossy-SON numbers (verified)
+- I-012 — association-rule counts of the old pipeline step do not follow from the released rule generator (verified)
+
+## 4. Every extracted claim (source → fresh value → verdict)
+
+Columns: claim ID | source file:line | claimed value [unit] | quantity key | fresh value | verdict | note. Contexts are in CLAIMS.md.
+
+
+### 4.logs
+
+| ID | source | claimed | qkey | fresh | verdict | note |
+|---|---|---|---|---|---|---|

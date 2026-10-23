@@ -1,0 +1,92 @@
+{
+  "perm": 5,
+  "perm_seed": 8998527916616952262,
+  "shuffle_seed": 988353130512510425,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 451.5351724300417,
+  "mine_wall_s": 452.0417846250348,
+  "process": {
+    "wall_s": 903.576987582026,
+    "cpu_s": 4304.702776,
+    "peak_rss_mb": 24585.390625
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.05011301254853606
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63718,
+      "ms": 10732.165533991065
+    },
+    {
+      "k": 3,
+      "candidates": 2662054,
+      "frequent": 79173,
+      "ms": 87939.05561201973
+    },
+    {
+      "k": 4,
+      "candidates": 141325,
+      "frequent": 25457,
+      "ms": 279024.7635280248
+    },
+    {
+      "k": 5,
+      "candidates": 8760,
+      "frequent": 1994,
+      "ms": 55006.94800703786
+    },
+    {
+      "k": 6,
+      "candidates": 135,
+      "frequent": 24,
+      "ms": 7130.587471998297
+    }
+  ],
+  "total_itemsets": 171368,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63718,
+    "3": 79173,
+    "4": 25457,
+    "5": 1994,
+    "6": 24
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171368,
+    "sum_counts": 1072373636,
+    "sha256": "e1aa823eb504fbccce6e0aafeb23752532c674671ccdac1cd82ee8ab6495570b",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63718,
+      "3": 79173,
+      "4": 25457,
+      "5": 1994,
+      "6": 24
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-21T17:43:09Z"
+  }
+}

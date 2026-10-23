@@ -1,0 +1,79 @@
+{
+  "experiment": "direct_gpu_vs_son_triplicate",
+  "timestamp": "2026-09-02T21:51:08.245343+00:00",
+  "parameters": {
+    "min_support": 1e-05,
+    "support_pct": "0.0010%",
+    "n_transactions": 76890945,
+    "min_count": 769,
+    "n_runs": 1,
+    "chunk_size": 40000000,
+    "local_support_factor": 0.9
+  },
+  "direct_gpu_runs": [
+    {
+      "run": 1,
+      "itemsets": 475865,
+      "time_seconds": 62.25,
+      "max_k": 14,
+      "k_distribution": {
+        "1": 1002,
+        "2": 22019,
+        "3": 73205,
+        "4": 108059,
+        "5": 104239,
+        "6": 78596,
+        "7": 48699,
+        "8": 25011,
+        "9": 10508,
+        "10": 3488,
+        "11": 869,
+        "12": 152,
+        "13": 17,
+        "14": 1
+      }
+    }
+  ],
+  "son_runs": [
+    {
+      "run": 1,
+      "itemsets": 475865,
+      "time_seconds": 6151.06,
+      "max_k": 14,
+      "k_distribution": {
+        "1": 1002,
+        "2": 22019,
+        "3": 73205,
+        "4": 108059,
+        "5": 104239,
+        "6": 78596,
+        "7": 48699,
+        "8": 25011,
+        "9": 10508,
+        "10": 3488,
+        "11": 869,
+        "12": 152,
+        "13": 17,
+        "14": 1
+      }
+    }
+  ],
+  "aggregate": {
+    "direct_gpu": {
+      "mean_itemsets": 475865.0,
+      "std_itemsets": NaN,
+      "cv_itemsets_pct": NaN,
+      "mean_time_seconds": 62.25,
+      "std_time_seconds": NaN
+    },
+    "son": {
+      "mean_itemsets": 475865.0,
+      "std_itemsets": NaN,
+      "cv_itemsets_pct": NaN,
+      "mean_time_seconds": 6151.06,
+      "std_time_seconds": NaN
+    },
+    "speedup": 98.81,
+    "miss_rate_pct": 0.0
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "perm": 76,
+  "perm_seed": 2707924455580344322,
+  "shuffle_seed": 2697802818305892330,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 435.80841744598,
+  "mine_wall_s": 437.37394054897595,
+  "process": {
+    "wall_s": 873.1823857859708,
+    "cpu_s": 4121.478616,
+    "peak_rss_mb": 24585.84375
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.04875101149082184
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63722,
+      "ms": 10644.519910041708
+    },
+    {
+      "k": 3,
+      "candidates": 2663887,
+      "frequent": 79139,
+      "ms": 84260.81372902263
+    },
+    {
+      "k": 4,
+      "candidates": 141090,
+      "frequent": 25455,
+      "ms": 267476.3494859799
+    },
+    {
+      "k": 5,
+      "candidates": 8749,
+      "frequent": 1991,
+      "ms": 55809.61576499976
+    },
+    {
+      "k": 6,
+      "candidates": 128,
+      "frequent": 21,
+      "ms": 7040.413024951704
+    }
+  ],
+  "total_itemsets": 171330,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63722,
+    "3": 79139,
+    "4": 25455,
+    "5": 1991,
+    "6": 21
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171330,
+    "sum_counts": 1072409238,
+    "sha256": "5678f0e2037c33f2125f9d9cabf2b9c9daa29d3c91b35ff5090bb2b2e4791bf2",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63722,
+      "3": 79139,
+      "4": 25455,
+      "5": 1991,
+      "6": 21
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-22T11:15:58Z"
+  }
+}

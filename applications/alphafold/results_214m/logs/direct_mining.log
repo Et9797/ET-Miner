@@ -1,0 +1,64 @@
+============================================================
+>>> DIRECT GPU MINING — NO STREAMING, NO DENSE MATRIX
+>>> Support: 1e-06 (0.0001%)
+>>> Max K: 20
+============================================================
+
+>>> Loading Parquet...
+    Total transactions: 205,620,298
+    With >1 item: 76,890,945
+    Min support count: 76 proteins
+    Load time: 0.5s
+
+>>> GPU-RESIDENT APRIORI — DIRECT PATH (no streaming)
+2026-02-09 05:46:42,182 Direct CSR path: 76,890,945 transactions, min_count=77
+2026-02-09 05:46:42,549 Direct CSR path: 1002 frequent items
+2026-02-09 05:46:43,300 Direct CSR path: 316,421,093 non-zeros
+  K=1: 1,002 candidates → 1,002 frequent (289ms)
+  K=2: 501,501 candidates → 39,125 frequent (1950ms)
+  K=3: 0 candidates → 184,900 frequent (25790ms)
+  K=4: 0 candidates → 361,696 frequent (14559ms)
+  K=5: 0 candidates → 445,661 frequent (10831ms)
+  K=6: 0 candidates → 439,605 frequent (6881ms)
+  K=7: 0 candidates → 387,030 frequent (5693ms)
+  K=8: 0 candidates → 318,349 frequent (1701ms)
+  K=9: 0 candidates → 247,680 frequent (1204ms)
+  K=10: 0 candidates → 179,604 frequent (871ms)
+  K=11: 0 candidates → 117,783 frequent (596ms)
+  K=12: 0 candidates → 67,558 frequent (352ms)
+  K=13: 0 candidates → 32,831 frequent (179ms)
+  K=14: 0 candidates → 13,105 frequent (75ms)
+  K=15: 0 candidates → 4,155 frequent (30ms)
+  K=16: 0 candidates → 1,003 frequent (14ms)
+  K=17: 0 candidates → 173 frequent (11ms)
+  K=18: 0 candidates → 19 frequent (12ms)
+  K=19: 0 candidates → 1 frequent (15ms)
+
+>>> MINING COMPLETE in 119.3s (2.0 min)
+>>> Total time: 120.6s (2.0 min)
+>>> Itemsets found: 2,841,280
+
+>>> K-distribution:
+    K=1: 1,002
+    K=2: 39,125
+    K=3: 184,900
+    K=4: 361,696
+    K=5: 445,661
+    K=6: 439,605
+    K=7: 387,030
+    K=8: 318,349
+    K=9: 247,680
+    K=10: 179,604
+    K=11: 117,783
+    K=12: 67,558
+    K=13: 32,831
+    K=14: 13,105
+    K=15: 4,155
+    K=16: 1,003
+    K=17: 173
+    K=18: 19
+    K=19: 1
+
+>>> Saved to /root/alphafold-data/full_214m/itemsets_214m_direct.parquet
+>>> File size: 12,177,502 bytes
+============================================================

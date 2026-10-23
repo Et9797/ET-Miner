@@ -1,0 +1,31 @@
+start 2026-09-02T00:34:10Z url=https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2025_01/knowledgebase/knowledgebase-docs-only2025_01.tar.gz size=345581195 member=docs/keywlist.txt
+member uniprot.xsd size=55045
+member docs size=0
+member docs/ptmlist.txt size=233173
+member docs/keywlist.xsd size=1819
+member docs/humchr07.txt size=176780
+member docs/dicty.txt size=317685
+member docs/sp_soon.htm size=0
+member docs/yeast14.txt size=84579
+member docs/mgdtosp.txt size=988261
+member docs/humchr08.txt size=130792
+member docs/protspot.txt size=34150
+member docs/enzuser.txt size=11596
+member docs/humchr06.txt size=194108
+member docs/yeast6.txt size=29127
+member docs/pdbtosp.txt size=14875849
+member docs/tisslist.txt size=80324
+member docs/yeast7.txt size=113443
+member docs/jourlist.txt size=1128616
+member docs/humchry.txt size=10418
+member docs/intein.txt size=7825
+member docs/plasmid.txt size=17290
+member docs/fly.txt size=254852
+member docs/userman.htm size=311175
+member docs/yeast3.txt size=39235
+member docs/humchr15.txt size=107338
+member docs/humdisease.txt size=4516736
+member docs/acindex.txt size=18724089
+member docs/extradom.txt size=10399
+member docs/keywlist.txt size=658441
+end 2026-09-02T00:34:12Z found=True copied=658441 consumed=16777216

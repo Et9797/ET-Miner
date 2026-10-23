@@ -1,0 +1,740 @@
+{
+ "../20260902T0000Z/phase3/2026_01/single_gpu/full_campaign_1gpu.log": {
+  "Base": [
+   {
+    "k": 1,
+    "candidates": 667,
+    "frequent": 667,
+    "s": 0.0
+   },
+   {
+    "k": 2,
+    "candidates": 222111,
+    "frequent": 1504,
+    "s": 0.4
+   },
+   {
+    "k": 3,
+    "candidates": 109306,
+    "frequent": 1378,
+    "s": 0.4
+   },
+   {
+    "k": 4,
+    "candidates": 4677,
+    "frequent": 884,
+    "s": 0.3
+   },
+   {
+    "k": 5,
+    "candidates": 688,
+    "frequent": 514,
+    "s": 0.2
+   },
+   {
+    "k": 6,
+    "candidates": 262,
+    "frequent": 247,
+    "s": 0.2
+   },
+   {
+    "k": 7,
+    "candidates": 89,
+    "frequent": 89,
+    "s": 0.2
+   },
+   {
+    "k": 8,
+    "candidates": 20,
+    "frequent": 20,
+    "s": 0.2
+   },
+   {
+    "k": 9,
+    "candidates": 2,
+    "frequent": 2,
+    "s": 0.1
+   }
+  ],
+  "Super": [
+   {
+    "k": 1,
+    "candidates": 1002,
+    "frequent": 1002,
+    "s": 0.2
+   },
+   {
+    "k": 2,
+    "candidates": 501501,
+    "frequent": 9151,
+    "s": 0.8
+   },
+   {
+    "k": 3,
+    "candidates": 1005655,
+    "frequent": 19663,
+    "s": 1.7
+   },
+   {
+    "k": 4,
+    "candidates": 261895,
+    "frequent": 22638,
+    "s": 2.1
+   },
+   {
+    "k": 5,
+    "candidates": 56985,
+    "frequent": 20439,
+    "s": 2.6
+   },
+   {
+    "k": 6,
+    "candidates": 22866,
+    "frequent": 16105,
+    "s": 2.4
+   },
+   {
+    "k": 7,
+    "candidates": 12757,
+    "frequent": 11419,
+    "s": 1.9
+   },
+   {
+    "k": 8,
+    "candidates": 7401,
+    "frequent": 7121,
+    "s": 1.3
+   },
+   {
+    "k": 9,
+    "candidates": 3798,
+    "frequent": 3718,
+    "s": 0.8
+   },
+   {
+    "k": 10,
+    "candidates": 1561,
+    "frequent": 1543,
+    "s": 0.4
+   },
+   {
+    "k": 11,
+    "candidates": 485,
+    "frequent": 483,
+    "s": 0.2
+   },
+   {
+    "k": 12,
+    "candidates": 107,
+    "frequent": 107,
+    "s": 0.1
+   },
+   {
+    "k": 13,
+    "candidates": 15,
+    "frequent": 15,
+    "s": 0.1
+   },
+   {
+    "k": 14,
+    "candidates": 1,
+    "frequent": 1,
+    "s": 0.1
+   }
+  ],
+  "Power": [
+   {
+    "k": 1,
+    "candidates": 1002,
+    "frequent": 1002,
+    "s": 0.0
+   },
+   {
+    "k": 2,
+    "candidates": 501501,
+    "frequent": 22019,
+    "s": 0.8
+   },
+   {
+    "k": 3,
+    "candidates": 1855572,
+    "frequent": 73205,
+    "s": 2.8
+   },
+   {
+    "k": 4,
+    "candidates": 1506134,
+    "frequent": 108059,
+    "s": 5.8
+   },
+   {
+    "k": 5,
+    "candidates": 583529,
+    "frequent": 104239,
+    "s": 9.0
+   },
+   {
+    "k": 6,
+    "candidates": 186587,
+    "frequent": 78596,
+    "s": 9.4
+   },
+   {
+    "k": 7,
+    "candidates": 77638,
+    "frequent": 48699,
+    "s": 7.4
+   },
+   {
+    "k": 8,
+    "candidates": 32966,
+    "frequent": 25011,
+    "s": 4.7
+   },
+   {
+    "k": 9,
+    "candidates": 12519,
+    "frequent": 10508,
+    "s": 2.3
+   },
+   {
+    "k": 10,
+    "candidates": 3914,
+    "frequent": 3488,
+    "s": 0.9
+   },
+   {
+    "k": 11,
+    "candidates": 927,
+    "frequent": 869,
+    "s": 0.3
+   },
+   {
+    "k": 12,
+    "candidates": 155,
+    "frequent": 152,
+    "s": 0.1
+   },
+   {
+    "k": 13,
+    "candidates": 17,
+    "frequent": 17,
+    "s": 0.1
+   },
+   {
+    "k": 14,
+    "candidates": 1,
+    "frequent": 1,
+    "s": 0.1
+   }
+  ],
+  "Blitz": [
+   {
+    "k": 1,
+    "candidates": 1002,
+    "frequent": 1002,
+    "s": 0.0
+   },
+   {
+    "k": 2,
+    "candidates": 501501,
+    "frequent": 39125,
+    "s": 0.9
+   },
+   {
+    "k": 3,
+    "candidates": 3166342,
+    "frequent": 184900,
+    "s": 4.5
+   },
+   {
+    "k": 4,
+    "candidates": 4777345,
+    "frequent": 361696,
+    "s": 12.5
+   },
+   {
+    "k": 5,
+    "candidates": 3037012,
+    "frequent": 445661,
+    "s": 24.9
+   },
+   {
+    "k": 6,
+    "candidates": 1263744,
+    "frequent": 439605,
+    "s": 34.4
+   },
+   {
+    "k": 7,
+    "candidates": 629087,
+    "frequent": 387030,
+    "s": 37.0
+   },
+   {
+    "k": 8,
+    "candidates": 388672,
+    "frequent": 318349,
+    "s": 34.3
+   },
+   {
+    "k": 9,
+    "candidates": 265470,
+    "frequent": 247680,
+    "s": 28.7
+   },
+   {
+    "k": 10,
+    "candidates": 183438,
+    "frequent": 179604,
+    "s": 22.2
+   },
+   {
+    "k": 11,
+    "candidates": 118447,
+    "frequent": 117783,
+    "s": 15.9
+   },
+   {
+    "k": 12,
+    "candidates": 67638,
+    "frequent": 67558,
+    "s": 10.4
+   },
+   {
+    "k": 13,
+    "candidates": 32836,
+    "frequent": 32831,
+    "s": 5.8
+   },
+   {
+    "k": 14,
+    "candidates": 13105,
+    "frequent": 13105,
+    "s": 2.6
+   },
+   {
+    "k": 15,
+    "candidates": 4155,
+    "frequent": 4155,
+    "s": 1.6
+   },
+   {
+    "k": 16,
+    "candidates": 1003,
+    "frequent": 1003,
+    "s": 0.3
+   },
+   {
+    "k": 17,
+    "candidates": 173,
+    "frequent": 173,
+    "s": 0.1
+   },
+   {
+    "k": 18,
+    "candidates": 19,
+    "frequent": 19,
+    "s": 0.1
+   },
+   {
+    "k": 19,
+    "candidates": 1,
+    "frequent": 1,
+    "s": 0.1
+   }
+  ],
+  "Ultra": [
+   {
+    "k": 1,
+    "candidates": 1002,
+    "frequent": 1002,
+    "s": 0.0
+   },
+   {
+    "k": 2,
+    "candidates": 501501,
+    "frequent": 60088,
+    "s": 0.9
+   },
+   {
+    "k": 3,
+    "candidates": 5334089,
+    "frequent": 356691,
+    "s": 6.7
+   },
+   {
+    "k": 4,
+    "candidates": 10789453,
+    "frequent": 894903,
+    "s": 23.1
+   },
+   {
+    "k": 5,
+    "candidates": 9100811,
+    "frequent": 1421780,
+    "s": 57.9
+   },
+   {
+    "k": 6,
+    "candidates": 5011200,
+    "frequent": 1794852,
+    "s": 106.5
+   },
+   {
+    "k": 7,
+    "candidates": 3065588,
+    "frequent": 2006312,
+    "s": 151.9
+   },
+   {
+    "k": 8,
+    "candidates": 2379595,
+    "frequent": 2053858,
+    "s": 178.2
+   },
+   {
+    "k": 9,
+    "candidates": 2003749,
+    "frequent": 1912672,
+    "s": 222.9
+   },
+   {
+    "k": 10,
+    "candidates": 1610499,
+    "frequent": 1587145,
+    "s": 172.9
+   },
+   {
+    "k": 11,
+    "candidates": 1154547,
+    "frequent": 1148998,
+    "s": 144.6
+   },
+   {
+    "k": 12,
+    "candidates": 713608,
+    "frequent": 712433,
+    "s": 107.3
+   },
+   {
+    "k": 13,
+    "candidates": 372180,
+    "frequent": 371981,
+    "s": 61.9
+   },
+   {
+    "k": 14,
+    "candidates": 160697,
+    "frequent": 160675,
+    "s": 30.0
+   },
+   {
+    "k": 15,
+    "candidates": 56222,
+    "frequent": 56221,
+    "s": 12.2
+   },
+   {
+    "k": 16,
+    "candidates": 15501,
+    "frequent": 15501,
+    "s": 4.0
+   },
+   {
+    "k": 17,
+    "candidates": 3236,
+    "frequent": 3236,
+    "s": 1.1
+   },
+   {
+    "k": 18,
+    "candidates": 480,
+    "frequent": 480,
+    "s": 0.2
+   },
+   {
+    "k": 19,
+    "candidates": 45,
+    "frequent": 45,
+    "s": 0.1
+   },
+   {
+    "k": 20,
+    "candidates": 2,
+    "frequent": 2,
+    "s": 0.1
+   }
+  ],
+  "Opus": [
+   {
+    "k": 1,
+    "candidates": 1002,
+    "frequent": 1002,
+    "s": 0.0
+   },
+   {
+    "k": 2,
+    "candidates": 501501,
+    "frequent": 73786,
+    "s": 0.9
+   },
+   {
+    "k": 3,
+    "candidates": 7151097,
+    "frequent": 452777,
+    "s": 8.5
+   },
+   {
+    "k": 4,
+    "candidates": 15450673,
+    "frequent": 1184461,
+    "s": 29.7
+   },
+   {
+    "k": 5,
+    "candidates": 13800022,
+    "frequent": 1974126,
+    "s": 75.6
+   },
+   {
+    "k": 6,
+    "candidates": 8045174,
+    "frequent": 2626332,
+    "s": 144.1
+   },
+   {
+    "k": 7,
+    "candidates": 5006188,
+    "frequent": 3118459,
+    "s": 217.3
+   },
+   {
+    "k": 8,
+    "candidates": 4033307,
+    "frequent": 3442954,
+    "s": 276.5
+   },
+   {
+    "k": 9,
+    "candidates": 3697577,
+    "frequent": 3529257,
+    "s": 312.5
+   },
+   {
+    "k": 10,
+    "candidates": 3341726,
+    "frequent": 3293612,
+    "s": 324.4
+   },
+   {
+    "k": 11,
+    "candidates": 2755768,
+    "frequent": 2739532,
+    "s": 303.5
+   },
+   {
+    "k": 12,
+    "candidates": 2003045,
+    "frequent": 1996772,
+    "s": 255.4
+   },
+   {
+    "k": 13,
+    "candidates": 1261325,
+    "frequent": 1259045,
+    "s": 183.9
+   },
+   {
+    "k": 14,
+    "candidates": 680128,
+    "frequent": 679471,
+    "s": 110.5
+   },
+   {
+    "k": 15,
+    "candidates": 310661,
+    "frequent": 310527,
+    "s": 57.5
+   },
+   {
+    "k": 16,
+    "candidates": 118676,
+    "frequent": 118659,
+    "s": 24.7
+   },
+   {
+    "k": 17,
+    "candidates": 37262,
+    "frequent": 37261,
+    "s": 8.7
+   },
+   {
+    "k": 18,
+    "candidates": 9375,
+    "frequent": 9375,
+    "s": 2.4
+   },
+   {
+    "k": 19,
+    "candidates": 1818,
+    "frequent": 1818,
+    "s": 0.6
+   },
+   {
+    "k": 20,
+    "candidates": 255,
+    "frequent": 255,
+    "s": 0.2
+   },
+   {
+    "k": 21,
+    "candidates": 23,
+    "frequent": 23,
+    "s": 0.1
+   },
+   {
+    "k": 22,
+    "candidates": 1,
+    "frequent": 1,
+    "s": 0.1
+   }
+  ]
+ },
+ "../20260902T0000Z/phase3/2026_01/minc4_mining.log": {
+  "all": [
+   {
+    "k": 1,
+    "candidates": 1002,
+    "frequent": 1002,
+    "s": 0.4
+   },
+   {
+    "k": 2,
+    "candidates": 501501,
+    "frequent": 94427,
+    "s": 0.6
+   },
+   {
+    "k": 3,
+    "candidates": 10275529,
+    "frequent": 603403,
+    "s": 9.3
+   },
+   {
+    "k": 4,
+    "candidates": 23484365,
+    "frequent": 1649283,
+    "s": 348.5
+   },
+   {
+    "k": 5,
+    "candidates": 22203427,
+    "frequent": 2916124,
+    "s": 1042.6
+   },
+   {
+    "k": 6,
+    "candidates": 13912871,
+    "frequent": 4169081,
+    "s": 1260.3
+   },
+   {
+    "k": 7,
+    "candidates": 9081564,
+    "frequent": 5318506,
+    "s": 979.4
+   },
+   {
+    "k": 8,
+    "candidates": 7538368,
+    "frequent": 6223873,
+    "s": 503.9
+   },
+   {
+    "k": 9,
+    "candidates": 7074028,
+    "frequent": 6644170,
+    "s": 192.8
+   },
+   {
+    "k": 10,
+    "candidates": 6497043,
+    "frequent": 6362841,
+    "s": 71.9
+   },
+   {
+    "k": 11,
+    "candidates": 5415551,
+    "frequent": 5373365,
+    "s": 39.6
+   },
+   {
+    "k": 12,
+    "candidates": 3956938,
+    "frequent": 3943668,
+    "s": 27.3
+   },
+   {
+    "k": 13,
+    "candidates": 2487961,
+    "frequent": 2484117,
+    "s": 17.7
+   },
+   {
+    "k": 14,
+    "candidates": 1328022,
+    "frequent": 1327096,
+    "s": 9.8
+   },
+   {
+    "k": 15,
+    "candidates": 593860,
+    "frequent": 593694,
+    "s": 4.6
+   },
+   {
+    "k": 16,
+    "candidates": 219071,
+    "frequent": 219052,
+    "s": 1.8
+   },
+   {
+    "k": 17,
+    "candidates": 65357,
+    "frequent": 65356,
+    "s": 0.6
+   },
+   {
+    "k": 18,
+    "candidates": 15343,
+    "frequent": 15343,
+    "s": 0.1
+   },
+   {
+    "k": 19,
+    "candidates": 2722,
+    "frequent": 2722,
+    "s": 0.0
+   },
+   {
+    "k": 20,
+    "candidates": 342,
+    "frequent": 342,
+    "s": 0.0
+   },
+   {
+    "k": 21,
+    "candidates": 27,
+    "frequent": 27,
+    "s": 0.0
+   },
+   {
+    "k": 22,
+    "candidates": 1,
+    "frequent": 1,
+    "s": 0.0
+   }
+  ]
+ }
+}

@@ -1,0 +1,42 @@
+{
+  "n_transactions_total": 266668,
+  "n_multi_feature": 190377,
+  "n_single_feature": 76291,
+  "n_zero_feature": 0,
+  "items_per_txn_mean_all": 3.21719141404293,
+  "items_per_txn_max": 15,
+  "nnz_all": 857922,
+  "nnz_multi": 781631,
+  "items_per_txn_mean_multi": 4.105700793688313,
+  "pct_multi_feature": 71.39101804490977,
+  "pct_single_feature": 28.608981955090226,
+  "items_per_txn_histogram": {
+    "1": 76291,
+    "2": 34120,
+    "3": 55304,
+    "4": 36454,
+    "5": 24861,
+    "6": 18864,
+    "7": 10895,
+    "8": 5180,
+    "9": 2365,
+    "10": 1262,
+    "11": 505,
+    "12": 447,
+    "13": 36,
+    "14": 83,
+    "15": 1
+  },
+  "n_multi_written": 190377,
+  "n_items_defined": 1006,
+  "items_per_category": {
+    "plddt_mean": 3,
+    "go_term": 500,
+    "plddt_fraction": 3,
+    "pfam": 500
+  },
+  "n_items_with_support_ge8_multi": 1002,
+  "n_items_present_multi": 1002,
+  "n_items_present_all": 1002,
+  "elapsed_s": 0.17049264907836914
+}

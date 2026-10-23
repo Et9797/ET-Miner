@@ -1,0 +1,168 @@
+{
+  "label": "C3G_vs_C3",
+  "cpu": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/C3G/parquet",
+  "ref": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/C3/parquet",
+  "n_rows": 76890945,
+  "ref_min_count": null,
+  "cpu_min_count": null,
+  "translated": false,
+  "verdict": "identical",
+  "per_k": {
+    "1": {
+      "cpu": 1002,
+      "ref": 1002,
+      "both": 1002,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "2": {
+      "cpu": 22019,
+      "ref": 22019,
+      "both": 22019,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "3": {
+      "cpu": 73205,
+      "ref": 73205,
+      "both": 73205,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "4": {
+      "cpu": 108059,
+      "ref": 108059,
+      "both": 108059,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "5": {
+      "cpu": 104239,
+      "ref": 104239,
+      "both": 104239,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "6": {
+      "cpu": 78596,
+      "ref": 78596,
+      "both": 78596,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "7": {
+      "cpu": 48699,
+      "ref": 48699,
+      "both": 48699,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "8": {
+      "cpu": 25011,
+      "ref": 25011,
+      "both": 25011,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "9": {
+      "cpu": 10508,
+      "ref": 10508,
+      "both": 10508,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "10": {
+      "cpu": 3488,
+      "ref": 3488,
+      "both": 3488,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "11": {
+      "cpu": 869,
+      "ref": 869,
+      "both": 869,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "12": {
+      "cpu": 152,
+      "ref": 152,
+      "both": 152,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "13": {
+      "cpu": 17,
+      "ref": 17,
+      "both": 17,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "14": {
+      "cpu": 1,
+      "ref": 1,
+      "both": 1,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    }
+  },
+  "signature_cpu": {
+    "itemsets": 475865,
+    "sum_counts": 4179763775,
+    "sha256": "3e0250034439b237b799938c5127f87741a433e936a0d644f096ec17d376967b",
+    "k_distribution": {
+      "1": 1002,
+      "2": 22019,
+      "3": 73205,
+      "4": 108059,
+      "5": 104239,
+      "6": 78596,
+      "7": 48699,
+      "8": 25011,
+      "9": 10508,
+      "10": 3488,
+      "11": 869,
+      "12": 152,
+      "13": 17,
+      "14": 1
+    }
+  },
+  "signature_ref": {
+    "itemsets": 475865,
+    "sum_counts": 4179763775,
+    "sha256": "3e0250034439b237b799938c5127f87741a433e936a0d644f096ec17d376967b",
+    "k_distribution": {
+      "1": 1002,
+      "2": 22019,
+      "3": 73205,
+      "4": 108059,
+      "5": 104239,
+      "6": 78596,
+      "7": 48699,
+      "8": 25011,
+      "9": 10508,
+      "10": 3488,
+      "11": 869,
+      "12": 152,
+      "13": 17,
+      "14": 1
+    }
+  },
+  "n_differing": 0,
+  "differing": []
+}

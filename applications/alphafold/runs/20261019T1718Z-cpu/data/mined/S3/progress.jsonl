@@ -1,0 +1,4 @@
+{"phase": "pass1", "chunk": 0, "n_chunks": 2, "t_s": 15188.728591591003, "metrics": {"candidates": 524194, "items": 1002, "memory_gb": 3.853869056}, "utc": "2026-10-20T22:33:48Z"}
+{"phase": "pass1", "chunk": 1, "n_chunks": 2, "t_s": 29422.176934018964, "metrics": {"candidates": 1058825, "items": 1002, "memory_gb": 3.891101696}, "utc": "2026-10-21T02:31:01Z"}
+{"phase": "pass2", "chunk": 0, "n_chunks": 2, "t_s": 29436.89735358098, "metrics": {"counted": 1, "memory_gb": 3.891822592}, "utc": "2026-10-21T02:31:16Z"}
+{"phase": "pass2", "chunk": 1, "n_chunks": 2, "t_s": 29450.287737579958, "metrics": {"counted": 2, "memory_gb": 3.899531264}, "utc": "2026-10-21T02:31:30Z"}

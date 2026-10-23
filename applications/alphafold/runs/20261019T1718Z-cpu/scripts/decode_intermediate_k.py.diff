@@ -1,0 +1,24 @@
+--- ../../20260902T0000Z/phase4/decode_intermediate_k.py	2026-10-19 19:16:18.500519857 +0200
++++ decode_intermediate_k.py	2026-10-21 07:18:01.174083794 +0200
+@@ -16,9 +16,9 @@
+ 
+ import polars as pl
+ 
+-ROOT = Path(__file__).resolve().parents[3]
+-PARQ = ROOT / "runs/20260902T0000Z/phase3/2026_01/blitz/parquet"
+-MAP = ROOT / "runs/20260902T0000Z/phase2/extract_2026_01/item_mapping_214m_base.parquet"
++ROOT = Path(__file__).resolve().parents[1]
++PARQ = ROOT / "data/mined/C4/parquet"
++MAP = ROOT / "data/extract_2026_01/item_mapping_214m_base.parquet"
+ N_TXN = 76_890_945  # mining subset (RESULTS X-011)
+ 
+ PATTERNS = {
+@@ -35,7 +35,7 @@
+     ids = {v: k for k, v in names.items()}
+     out = {}
+     for k, pats in PATTERNS.items():
+-        df = pl.read_parquet(PARQ / f"frequent_k{k}.parquet").with_columns((pl.col("support") * N_TXN).round().cast(pl.Int64).alias("count"))
++        df = pl.read_parquet(PARQ / f"k{k}.parquet").with_columns((pl.col("support") * N_TXN).round().cast(pl.Int64).alias("count"))
+         top = df.sort("count", descending=True).row(0, named=True)
+         rec = {"itemsets": df.height, "level_max": top["count"], "level_max_members": [names[i] for i in top["itemset"]], "patterns": {}}
+         for label, groups in pats.items():

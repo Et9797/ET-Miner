@@ -1,0 +1,4 @@
+2026-10-20 17:58:07.196 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-20 17:58:07.196 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-10-20 17:58:07.381 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 1000000 rows, 1002 frequent items, 4115533 entries
+{"label": "G0_incore_r2", "itemsets": 167042, "k_max": 14, "mine_wall_s": 3.04, "peak_rss_mb": 491}

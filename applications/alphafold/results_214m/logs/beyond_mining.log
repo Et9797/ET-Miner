@@ -1,0 +1,57 @@
+============================================================
+>>> BEYOND MADMAN — 0.00002% SUPPORT
+>>> Min proteins: ~15
+>>> Max K: 25
+============================================================
+Transactions with >1 item: 76,890,945
+Min support count: 15 proteins
+2026-02-09 06:05:03,735 Direct CSR path: 76,890,945 transactions, min_count=16
+2026-02-09 06:05:04,142 Direct CSR path: 1002 frequent items
+2026-02-09 06:05:04,902 Direct CSR path: 316,421,093 non-zeros
+  K=1: 1,002 candidates -> 1,002 frequent (80ms)
+  K=2: 501,501 candidates -> 60,088 frequent (1956ms)
+  K=3: 0 candidates -> 356,691 frequent (26394ms)
+  K=4: 0 candidates -> 894,903 frequent (26926ms)
+  K=5: 0 candidates -> 1,421,780 frequent (23562ms)
+  K=6: 0 candidates -> 1,794,852 frequent (14865ms)
+  K=7: 0 candidates -> 2,006,312 frequent (9909ms)
+  K=8: 0 candidates -> 2,053,858 frequent (8260ms)
+  K=9: 0 candidates -> 1,912,672 frequent (7559ms)
+  K=10: 0 candidates -> 1,587,145 frequent (6937ms)
+  K=11: 0 candidates -> 1,148,998 frequent (6317ms)
+  K=12: 0 candidates -> 712,433 frequent (5460ms)
+  K=13: 0 candidates -> 371,981 frequent (1803ms)
+  K=14: 0 candidates -> 160,675 frequent (796ms)
+  K=15: 0 candidates -> 56,221 frequent (277ms)
+  K=16: 0 candidates -> 15,501 frequent (80ms)
+  K=17: 0 candidates -> 3,236 frequent (26ms)
+  K=18: 0 candidates -> 480 frequent (12ms)
+  K=19: 0 candidates -> 45 frequent (11ms)
+  K=20: 0 candidates -> 2 frequent (13ms)
+
+>>> COMPLETE in 281.0s (4.7 min)
+>>> Itemsets: 14,558,875
+
+>>> K-distribution:
+    K=1: 1,002
+    K=2: 60,088
+    K=3: 356,691
+    K=4: 894,903
+    K=5: 1,421,780
+    K=6: 1,794,852
+    K=7: 2,006,312
+    K=8: 2,053,858
+    K=9: 1,912,672
+    K=10: 1,587,145
+    K=11: 1,148,998
+    K=12: 712,433
+    K=13: 371,981
+    K=14: 160,675
+    K=15: 56,221
+    K=16: 15,501
+    K=17: 3,236
+    K=18: 480
+    K=19: 45
+    K=20: 2
+
+>>> Saved to /root/alphafold-data/full_214m/itemsets_214m_beyond.parquet (49,989,864 bytes)

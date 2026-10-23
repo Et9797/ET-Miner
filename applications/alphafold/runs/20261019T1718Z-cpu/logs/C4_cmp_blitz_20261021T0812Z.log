@@ -1,0 +1,1 @@
+{"label": "C4_vs_GPU_blitz", "verdict": "identical", "cpu_itemsets": 2841280, "ref_itemsets": 2841280, "n_differing": 0, "wrong": []}

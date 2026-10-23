@@ -1,0 +1,61 @@
+2026-10-21T08:17:09Z skip G0_incore (done)
+2026-10-21T08:17:09Z skip G0_son (done)
+2026-10-21T08:17:09Z skip G0_ea (done)
+2026-10-21T08:17:09Z skip G0_cmp_incore (done)
+2026-10-21T08:17:09Z skip G0_cmp_son (done)
+2026-10-21T08:17:09Z skip G0_check (done)
+2026-10-21T08:17:09Z skip C1 (done)
+2026-10-21T08:17:09Z skip C2 (done)
+2026-10-21T08:17:09Z skip C3 (done)
+2026-10-21T08:17:09Z skip P1T (done)
+2026-10-21T08:17:09Z skip C1_cmp (done)
+2026-10-21T08:17:09Z skip C2_cmp (done)
+2026-10-21T08:17:09Z skip C3_cmp (done)
+2026-10-21T08:17:09Z skip G0_incore_r2 (done)
+2026-10-21T08:17:09Z skip G0_incore_r3 (done)
+2026-10-21T08:17:09Z skip G0_son_r2 (done)
+2026-10-21T08:17:09Z skip G0_son_r3 (done)
+2026-10-21T08:17:09Z skip C1_r2 (done)
+2026-10-21T08:17:09Z skip C1_r3 (done)
+2026-10-21T08:17:09Z skip R1 (done)
+2026-10-21T08:17:09Z skip R1_r2 (done)
+2026-10-21T08:17:09Z skip R1_r3 (done)
+2026-10-21T08:17:09Z skip S1 (done)
+2026-10-21T08:17:09Z skip S1_cmp_C1 (done)
+2026-10-21T08:17:09Z skip S1_cmp_gpu (done)
+2026-10-21T08:17:09Z skip S1_r2 (done)
+2026-10-21T08:17:09Z skip S1_r3 (done)
+2026-10-21T08:17:09Z skip S2 (done)
+2026-10-21T08:17:09Z skip S2_cmp_C2 (done)
+2026-10-21T08:17:09Z skip S2_cmp_gpu (done)
+2026-10-21T08:17:09Z skip S3 (done)
+2026-10-21T08:17:09Z skip S3_cmp_C3 (done)
+2026-10-21T08:17:09Z skip S3_cmp_gpu (done)
+2026-10-21T08:17:09Z skip N5 (done)
+2026-10-21T08:17:09Z skip N5_verdict (done)
+2026-10-21T08:17:09Z skip C3G (done)
+2026-10-21T08:17:09Z skip C3G_cmp_C3 (done)
+2026-10-21T08:17:09Z skip C4 (done)
+2026-10-21T08:17:09Z skip C4_cmp (done)
+2026-10-21T08:17:09Z skip C4_cmp_blitz (done)
+2026-10-21T08:17:09Z start C6 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C6_20261021T0817Z.log
+2026-10-21T13:12:02Z done C6
+2026-10-21T13:12:02Z start C6_cmp log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C6_cmp_20261021T1312Z.log
+2026-10-21T13:13:34Z done C6_cmp
+2026-10-21T13:13:34Z start A1_k22 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/A1_k22_20261021T1313Z.log
+2026-10-21T13:13:47Z done A1_k22
+2026-10-21T13:13:47Z start A1_k22_check log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/A1_k22_check_20261021T1313Z.log
+2026-10-21T13:13:47Z done A1_k22_check
+2026-10-21T13:13:47Z start A1_p026_c6 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/A1_p026_c6_20261021T1313Z.log
+2026-10-21T13:13:47Z done A1_p026_c6
+2026-10-21T13:13:47Z skip A1_decode (done)
+2026-10-21T13:13:47Z skip A1_p026 (done)
+2026-10-21T13:13:47Z start C5 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C5_20261021T1313Z.log
+2026-10-21T17:27:18Z done C5
+2026-10-21T17:27:18Z start C5_cmp log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C5_cmp_20261021T1727Z.log
+2026-10-21T17:28:05Z done C5_cmp
+2026-10-21T17:28:05Z start N100 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/N100_20261021T1728Z.log
+2026-10-22T16:55:06Z done N100
+2026-10-22T16:55:06Z start N100_verdict log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/N100_verdict_20261022T1655Z.log
+2026-10-22T16:55:07Z done N100_verdict
+2026-10-22T16:55:07Z queue end

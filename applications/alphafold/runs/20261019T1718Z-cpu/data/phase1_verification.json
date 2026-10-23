@@ -1,0 +1,692 @@
+{
+  "checks": [
+    {
+      "id": "M-001",
+      "fresh": 214683829,
+      "expected": 214683829,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-002",
+      "fresh": 214683829,
+      "expected": 214683829,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-003",
+      "fresh": 205620298,
+      "expected": 205620298,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-004",
+      "fresh": 0,
+      "expected": 0,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-005",
+      "fresh": [
+        20.03,
+        98.81
+      ],
+      "expected": [
+        20.03,
+        98.81
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-006",
+      "fresh": [
+        214683829,
+        "uniprotAccession,globalMetricValue"
+      ],
+      "expected": [
+        214683829,
+        "uniprotAccession,globalMetricValue"
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-006 sha256",
+      "fresh": "6068f714",
+      "expected": "e089f052",
+      "match": false,
+      "required": false,
+      "note": "row order of 16 parallel streams varies; not expected to match"
+    },
+    {
+      "id": "M-007",
+      "fresh": [
+        205620298,
+        9063531
+      ],
+      "expected": [
+        205620298,
+        9063531
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-008",
+      "fresh": 80002801,
+      "expected": 80002801,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "M-009",
+      "fresh": 125617497,
+      "expected": 125617497,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "U-007",
+      "fresh": 160834306675,
+      "expected": 160834306675,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "U-009",
+      "fresh": [
+        160834306675,
+        161890570993
+      ],
+      "expected": [
+        160834306675,
+        161890570993
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-016",
+      "fresh": [
+        202556314,
+        25475,
+        26536,
+        232694948,
+        436931915
+      ],
+      "expected": [
+        202556314,
+        25475,
+        26536,
+        232694948,
+        436931915
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-001",
+      "fresh": 202556314,
+      "expected": 202556314,
+      "match": true,
+      "required": true,
+      "note": "from count_dat.sh (X-016)"
+    },
+    {
+      "id": "X-002",
+      "fresh": [
+        25475,
+        26536
+      ],
+      "expected": [
+        25475,
+        26536
+      ],
+      "match": true,
+      "required": true,
+      "note": "from count_dat.sh (X-016)"
+    },
+    {
+      "id": "X-005",
+      "fresh": [
+        158700122,
+        158700122,
+        202556314
+      ],
+      "expected": [
+        158700122,
+        158700122,
+        202556314
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-006",
+      "fresh": 90506840,
+      "expected": 90506840,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-007",
+      "fresh": 90506840,
+      "expected": 90506840,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-008",
+      "fresh": [
+        24291,
+        25993,
+        1006
+      ],
+      "expected": [
+        24291,
+        25993,
+        1006
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-009",
+      "fresh": 90506840,
+      "expected": 90506840,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "shards",
+      "fresh": [
+        true
+      ],
+      "expected": [
+        true
+      ],
+      "match": true,
+      "required": true,
+      "note": "per shard: DAT records loaded == shard rows == CSV rows read, 0 skipped"
+    },
+    {
+      "id": "stats.items_per_category",
+      "fresh": {
+        "plddt_mean": 3,
+        "plddt_fraction": 3,
+        "pfam": 500,
+        "go_term": 500
+      },
+      "expected": {
+        "plddt_mean": 3,
+        "pfam": 500,
+        "go_term": 500,
+        "plddt_fraction": 3
+      },
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.items_per_txn_histogram",
+      "fresh": {
+        "1": 128729353,
+        "2": 16588361,
+        "3": 17840950,
+        "4": 16007527,
+        "5": 10554413,
+        "6": 6801712,
+        "7": 3740314,
+        "8": 3484528,
+        "9": 1221451,
+        "10": 354125,
+        "11": 143957,
+        "12": 102523,
+        "13": 26944,
+        "14": 17763,
+        "15": 2926,
+        "16": 913,
+        "17": 1607,
+        "18": 325,
+        "19": 392,
+        "20": 141,
+        "21": 41,
+        "22": 13,
+        "23": 6,
+        "24": 4,
+        "25": 2,
+        "26": 1,
+        "27": 1,
+        "28": 3,
+        "39": 1,
+        "46": 1
+      },
+      "expected": {
+        "1": 128729353,
+        "2": 16588361,
+        "3": 17840950,
+        "4": 16007527,
+        "5": 10554413,
+        "6": 6801712,
+        "7": 3740314,
+        "8": 3484528,
+        "9": 1221451,
+        "10": 354125,
+        "11": 143957,
+        "12": 102523,
+        "13": 26944,
+        "14": 17763,
+        "15": 2926,
+        "16": 913,
+        "17": 1607,
+        "18": 325,
+        "19": 392,
+        "20": 141,
+        "21": 41,
+        "22": 13,
+        "23": 6,
+        "24": 4,
+        "25": 2,
+        "26": 1,
+        "27": 1,
+        "28": 3,
+        "39": 1,
+        "46": 1
+      },
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.items_per_txn_max",
+      "fresh": 46,
+      "expected": 46,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.items_per_txn_mean_all",
+      "fresh": 2.164914895707427,
+      "expected": 2.164914895707427,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.items_per_txn_mean_multi",
+      "fresh": 4.115193186922075,
+      "expected": 4.115193186922075,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_csv_pass_full",
+      "fresh": 205620298,
+      "expected": 205620298,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_csv_rows_full",
+      "fresh": 214683829,
+      "expected": 214683829,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_csv_skipped_full",
+      "fresh": 9063531,
+      "expected": 9063531,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_items_defined",
+      "fresh": 1006,
+      "expected": 1006,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_items_present_all",
+      "fresh": 1002,
+      "expected": 1002,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_items_present_multi",
+      "fresh": 1002,
+      "expected": 1002,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_items_with_support_ge8_multi",
+      "fresh": 1002,
+      "expected": 1002,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_multi_feature",
+      "fresh": 76890945,
+      "expected": 76890945,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_multi_written",
+      "fresh": 76890945,
+      "expected": 76890945,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_outside_run_single_item",
+      "fresh": 115113458,
+      "expected": 115113458,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_run_rows",
+      "fresh": 90506840,
+      "expected": 90506840,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_single_feature",
+      "fresh": 128729353,
+      "expected": 128729353,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_transactions_total",
+      "fresh": 205620298,
+      "expected": 205620298,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.n_zero_feature",
+      "fresh": 0,
+      "expected": 0,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.nnz_all",
+      "fresh": 445150446,
+      "expected": 445150446,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.nnz_multi",
+      "fresh": 316421093,
+      "expected": 316421093,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.pct_multi_feature",
+      "fresh": 37.39462774244204,
+      "expected": 37.39462774244204,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.pct_single_feature",
+      "fresh": 62.60537225755796,
+      "expected": 62.60537225755796,
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "stats.reconstruction",
+      "fresh": "proteins with pLDDT >= min but without any Pfam/GO DAT record are single-item transactions by construction; totals below include them",
+      "expected": "proteins with pLDDT >= min but without any Pfam/GO DAT record are single-item transactions by construction; totals below include them",
+      "match": true,
+      "required": true,
+      "note": "X-010..X-015"
+    },
+    {
+      "id": "X-011",
+      "fresh": 76890945,
+      "expected": 76890945,
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-014",
+      "fresh": [
+        316421093,
+        445150446
+      ],
+      "expected": [
+        316421093,
+        445150446
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "X-015",
+      "fresh": [
+        1006,
+        1002
+      ],
+      "expected": [
+        1006,
+        1002
+      ],
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "mapping feature set",
+      "fresh": 0,
+      "expected": 0,
+      "match": true,
+      "required": true,
+      "note": "a different feature set is data drift"
+    },
+    {
+      "id": "mapping ids",
+      "fresh": 2,
+      "expected": 0,
+      "match": false,
+      "required": false,
+      "note": "ids of equal-count features are randomly ordered by af-extract; GPU tables are translated if > 0"
+    },
+    {
+      "id": "item_support_all",
+      "fresh": [
+        1002,
+        0
+      ],
+      "expected": [
+        1002,
+        0
+      ],
+      "match": true,
+      "required": true,
+      "note": "per-feature protein counts by feature_name"
+    },
+    {
+      "id": "item_support_multi",
+      "fresh": [
+        1002,
+        0
+      ],
+      "expected": [
+        1002,
+        0
+      ],
+      "match": true,
+      "required": true,
+      "note": "per-feature protein counts by feature_name"
+    },
+    {
+      "id": "plddt_bin_edges.json",
+      "fresh": {
+        "plddt_mean_low": {
+          "item_id": 0,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        },
+        "plddt_mean_med": {
+          "item_id": 1,
+          "n_proteins": 55232428,
+          "min_plddt": 50.0,
+          "max_plddt": 90.0
+        },
+        "plddt_mean_high": {
+          "item_id": 2,
+          "n_proteins": 35274412,
+          "min_plddt": 90.01,
+          "max_plddt": 98.81
+        },
+        "plddt_frac_high_low": {
+          "item_id": 3,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        },
+        "plddt_frac_high_med": {
+          "item_id": 4,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        },
+        "plddt_frac_high_high": {
+          "item_id": 5,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        }
+      },
+      "expected": {
+        "plddt_mean_low": {
+          "item_id": 0,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        },
+        "plddt_mean_med": {
+          "item_id": 1,
+          "n_proteins": 55232428,
+          "min_plddt": 50.0,
+          "max_plddt": 90.0
+        },
+        "plddt_mean_high": {
+          "item_id": 2,
+          "n_proteins": 35274412,
+          "min_plddt": 90.01,
+          "max_plddt": 98.81
+        },
+        "plddt_frac_high_low": {
+          "item_id": 3,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        },
+        "plddt_frac_high_med": {
+          "item_id": 4,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        },
+        "plddt_frac_high_high": {
+          "item_id": 5,
+          "n_proteins": 0,
+          "min_plddt": null,
+          "max_plddt": null
+        }
+      },
+      "match": true,
+      "required": true,
+      "note": ""
+    },
+    {
+      "id": "sha256 transactions_214m_base.parquet",
+      "fresh": "86ee18220a2a336be30f49bb59d3b202d2ad2ad76cf90969314dbfdd1bb82cdf",
+      "expected": "3cbf518a6d391be188a8f446f8fe8450d616cab024f4fecb2b83790e4811fe23",
+      "match": false,
+      "required": false,
+      "note": "row order follows the joined CSV, whose order is not reproducible; bytes also depend on the writer"
+    },
+    {
+      "id": "sha256 transactions_214m_base_multi.parquet",
+      "fresh": "81867413dc5f53efa93978c0dc549cdeb57df653ecb0ccee6bfacf498e8ffaa1",
+      "expected": "17a51ca4f2892efdfc415f1367bf1f9711ffd400be44d1a05dda3420e9eb8912",
+      "match": false,
+      "required": false,
+      "note": "row order follows the joined CSV, whose order is not reproducible; bytes also depend on the writer"
+    }
+  ],
+  "required_failed": [],
+  "mapping_moved": [
+    {
+      "item_id": 458,
+      "feature_name": "PF08544",
+      "feature_category": "pfam",
+      "item_id_cpu": 459
+    },
+    {
+      "item_id": 459,
+      "feature_name": "PF01841",
+      "feature_category": "pfam",
+      "item_id_cpu": 458
+    }
+  ],
+  "data_drift": false
+}

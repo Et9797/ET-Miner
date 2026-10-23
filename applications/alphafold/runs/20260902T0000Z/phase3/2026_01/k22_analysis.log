@@ -1,0 +1,65 @@
+2026-09-02 06:22:00.800 | INFO     | __main__:resolve_deepest_itemset:91 - Resolving deepest itemset from /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet
+2026-09-02 06:22:00.805 | INFO     | __main__:resolve_deepest_itemset:104 -   Deepest itemset: K=22, support=1.040e-07, item_ids=[1, 13, 23, 507, 509, 510, 513, 519, 529, 533, 569, 632, 651, 677, 766, 784, 795, 850, 887, 917, 965, 966]
+2026-09-02 06:22:00.806 | INFO     | __main__:resolve_deepest_itemset:125 -   Resolved 22 features (19 GO terms)
+2026-09-02 06:22:00.806 | INFO     | __main__:main:514 - Analyzing 22 features: deepest itemset from /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet/frequent_k22.parquet
+2026-09-02 06:22:00.807 | INFO     | __main__:find_itemset_proteins:151 - 
+============================================================
+2026-09-02 06:22:00.807 | INFO     | __main__:find_itemset_proteins:152 - Part 1: K=22 Protein Identification
+2026-09-02 06:22:00.807 | INFO     | __main__:find_itemset_proteins:153 - ============================================================
+2026-09-02 06:22:00.807 | INFO     | __main__:find_itemset_proteins:156 - Loading /root/projects/ET-Miner/runs/20260902T0000Z/phase2/extract_2026_01/transactions_214m_base.parquet...
+2026-09-02 06:22:02.529 | INFO     | __main__:find_itemset_proteins:160 -   Loaded 90,506,840 proteins in 1.7s
+2026-09-02 06:22:02.530 | INFO     | __main__:find_itemset_proteins:171 -   Filtering for proteins with all 22 target item_ids (direct)...
+2026-09-02 06:22:13.724 | INFO     | __main__:analyze_go_hierarchy:295 - 
+============================================================
+2026-09-02 06:22:13.724 | INFO     | __main__:analyze_go_hierarchy:296 - Part 2: GO Hierarchy Analysis
+2026-09-02 06:22:13.724 | INFO     | __main__:analyze_go_hierarchy:297 - ============================================================
+2026-09-02 06:22:13.782 | INFO     | __main__:analyze_go_hierarchy:307 -   Loading Gene Ontology (go.obo)...
+2026-09-02 06:22:13.782 | INFO     | __main__:analyze_go_hierarchy:314 -   Using cached /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/exp/go.obo
+2026-09-02 06:22:22.184 | INFO     | __main__:analyze_go_hierarchy:332 -   Loaded 48351 ontology terms
+2026-09-02 06:22:22.185 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0005524: ATP binding (molecular_function)
+2026-09-02 06:22:22.185 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0005737: cytoplasm (cellular_component)
+2026-09-02 06:22:22.185 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0005829: cytosol (cellular_component)
+2026-09-02 06:22:22.185 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0005634: nucleus (cellular_component)
+2026-09-02 06:22:22.185 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0016787: hydrolase activity (molecular_function)
+2026-09-02 06:22:22.186 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0000287: magnesium ion binding (molecular_function)
+2026-09-02 06:22:22.186 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0005739: mitochondrion (cellular_component)
+2026-09-02 06:22:22.186 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0000978: RNA polymerase II cis-regulatory region sequence-specific DNA binding (molecular_function)
+2026-09-02 06:22:22.186 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0030154: cell differentiation (biological_process)
+2026-09-02 06:22:22.186 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0003697: single-stranded DNA binding (molecular_function)
+2026-09-02 06:22:22.186 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0003724: RNA helicase activity (molecular_function)
+2026-09-02 06:22:22.187 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0045087: innate immune response (biological_process)
+2026-09-02 06:22:22.187 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0030424: axon (cellular_component)
+2026-09-02 06:22:22.187 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0030425: dendrite (cellular_component)
+2026-09-02 06:22:22.187 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0051607: defense response to virus (biological_process)
+2026-09-02 06:22:22.187 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0003725: double-stranded RNA binding (molecular_function)
+2026-09-02 06:22:22.187 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0034605: cellular response to heat (biological_process)
+2026-09-02 06:22:22.187 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0016607: nuclear speck (cellular_component)
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:346 -     GO:0003678: DNA helicase activity (molecular_function)
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:383 - 
+  GO hierarchy analysis:
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:384 -     Total features in itemset: 22
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:385 -     GO terms:               19
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:386 -     Non-GO features:        3
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:387 -     Parent-child pairs:     0
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:388 -     Redundant GO terms:     0
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:389 -     Independent GO terms:   19
+2026-09-02 06:22:22.188 | INFO     | __main__:analyze_go_hierarchy:390 -     Independent K:          22
+2026-09-02 06:22:22.315 | INFO     | __main__:emit_accession_table:468 -   Accession table (8 proteins) written to /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/exp/accessions_deepest_itemset_20260902_062222.tsv
+
+Results saved to /root/projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/exp/analysis_deepest_itemset_20260902_062222.json
+
+============================================================
+Summary
+============================================================
+  K=22 proteins found: 8
+    H2QNM0 (22 features)
+    F6Q4S1 (22 features)
+    G3SKQ4 (22 features)
+    A0A1D5PHB6 (22 features)
+    F6U0V1 (22 features)
+    A0A5F8HEV5 (22 features)
+    M3VK01 (22 features)
+    F7EPL6 (22 features)
+  GO parent-child pairs: 0
+  Independent K: 22 (raw K=22, 0 redundant GO terms)
+k22 rerun rc=0 2026-09-02T06:22:22Z

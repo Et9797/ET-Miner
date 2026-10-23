@@ -1,0 +1,194 @@
+| L-947 | bench/README.md:31 | ~30-60 min run_smoke.sh duration | doc_bench_readme_smoke_duration |  | inconclusive | not measured in this campaign |
+| L-948 | bench/README.md:33 | ~2-4 h run_full.sh duration | doc_bench_readme_full_duration |  | inconclusive | not measured in this campaign |
+
+### 4.logs_new
+
+| ID | source | claimed | qkey | fresh | verdict | note |
+|---|---|---|---|---|---|---|
+| L2-001 | beyond_mining.log:2 | 0.00002 % support (nominal) | run_ultra_support_pct | 2e-05 | confirmed | exact |
+| L2-002 | beyond_mining.log:3 | ~15 min proteins (nominal) | run_ultra_min_count_nominal |  | inconclusive | no fresh artifact for the underlying quantity |
+| L2-003 | beyond_mining.log:4 | 25 max K (max_length) | run_ultra_max_length |  | inconclusive | old run's length cap (non-binding: K_max 20 < 25); this campaign used --max-length 50, also non-binding |
+| L2-004 | beyond_mining.log:6 | 76,890,945 transactions with >1 item | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-005 | beyond_mining.log:7 | 15 min support count (script-computed) | run_ultra_min_count_nominal |  | inconclusive | no fresh artifact for the underlying quantity |
+| L2-006 | beyond_mining.log:8 | 2026-02-09 06:05:03,735 timestamp (run start, Direct CSR path) | meta_log_ultra_start_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-007 | beyond_mining.log:8 | 76,890,945 transactions | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-008 | beyond_mining.log:8 | 16 min_count | run_ultra_min_count | 16 | confirmed | exact |
+| L2-009 | beyond_mining.log:9 | 1002 frequent items (K=1) | vocab_items_frequent | 1,002 | confirmed | exact |
+| L2-010 | beyond_mining.log:10 | 316,421,093 non-zeros (CSR nnz) | csr_nnz | 316,421,093 | confirmed | exact |
+| L2-011 | beyond_mining.log:11 | 1,002 frequent itemsets K=1 | kdist_ultra_k1_count | 1,002 | confirmed | exact |
+| L2-012 | beyond_mining.log:12 | 60,088 frequent itemsets K=2 | kdist_ultra_k2_count | 60,088 | confirmed | exact |
+| L2-013 | beyond_mining.log:13 | 356,691 frequent itemsets K=3 | kdist_ultra_k3_count | 356,691 | confirmed | exact |
+| L2-014 | beyond_mining.log:14 | 894,903 frequent itemsets K=4 | kdist_ultra_k4_count | 894,903 | confirmed | exact |
+| L2-015 | beyond_mining.log:15 | 1,421,780 frequent itemsets K=5 | kdist_ultra_k5_count | 1,421,780 | confirmed | exact |
+| L2-016 | beyond_mining.log:16 | 1,794,852 frequent itemsets K=6 | kdist_ultra_k6_count | 1,794,852 | confirmed | exact |
+| L2-017 | beyond_mining.log:17 | 2,006,312 frequent itemsets K=7 | kdist_ultra_k7_count | 2,006,312 | confirmed | exact |
+| L2-018 | beyond_mining.log:18 | 2,053,858 frequent itemsets K=8 | kdist_ultra_k8_count | 2,053,858 | confirmed | exact |
+| L2-019 | beyond_mining.log:19 | 1,912,672 frequent itemsets K=9 | kdist_ultra_k9_count | 1,912,672 | confirmed | exact |
+| L2-020 | beyond_mining.log:20 | 1,587,145 frequent itemsets K=10 | kdist_ultra_k10_count | 1,587,145 | confirmed | exact |
+| L2-021 | beyond_mining.log:21 | 1,148,998 frequent itemsets K=11 | kdist_ultra_k11_count | 1,148,998 | confirmed | exact |
+| L2-022 | beyond_mining.log:22 | 712,433 frequent itemsets K=12 | kdist_ultra_k12_count | 712,433 | confirmed | exact |
+| L2-023 | beyond_mining.log:23 | 371,981 frequent itemsets K=13 | kdist_ultra_k13_count | 371,981 | confirmed | exact |
+| L2-024 | beyond_mining.log:24 | 160,675 frequent itemsets K=14 | kdist_ultra_k14_count | 160,675 | confirmed | exact |
+| L2-025 | beyond_mining.log:25 | 56,221 frequent itemsets K=15 | kdist_ultra_k15_count | 56,221 | confirmed | exact |
+| L2-026 | beyond_mining.log:26 | 15,501 frequent itemsets K=16 | kdist_ultra_k16_count | 15,501 | confirmed | exact |
+| L2-027 | beyond_mining.log:27 | 3,236 frequent itemsets K=17 | kdist_ultra_k17_count | 3,236 | confirmed | exact |
+| L2-028 | beyond_mining.log:28 | 480 frequent itemsets K=18 | kdist_ultra_k18_count | 480 | confirmed | exact |
+| L2-029 | beyond_mining.log:29 | 45 frequent itemsets K=19 | kdist_ultra_k19_count | 45 | confirmed | exact |
+| L2-030 | beyond_mining.log:30 | 2 frequent itemsets K=20 | kdist_ultra_k20_count | 2 | confirmed | exact |
+| L2-031 | beyond_mining.log:32 | 281.0 s (total, '4.7 min') | run_ultra_time_s | 691 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.46 (claimed 281) |
+| L2-032 | beyond_mining.log:33 | 14,558,875 itemsets (total) | run_ultra_itemsets | 14,558,875 | confirmed | exact |
+| L2-033 | beyond_mining.log:36 | 1,002 itemsets K=1 | kdist_ultra_k1_count | 1,002 | confirmed | exact |
+| L2-034 | beyond_mining.log:37 | 60,088 itemsets K=2 | kdist_ultra_k2_count | 60,088 | confirmed | exact |
+| L2-035 | beyond_mining.log:38 | 356,691 itemsets K=3 | kdist_ultra_k3_count | 356,691 | confirmed | exact |
+| L2-036 | beyond_mining.log:39 | 894,903 itemsets K=4 | kdist_ultra_k4_count | 894,903 | confirmed | exact |
+| L2-037 | beyond_mining.log:40 | 1,421,780 itemsets K=5 | kdist_ultra_k5_count | 1,421,780 | confirmed | exact |
+| L2-038 | beyond_mining.log:41 | 1,794,852 itemsets K=6 | kdist_ultra_k6_count | 1,794,852 | confirmed | exact |
+| L2-039 | beyond_mining.log:42 | 2,006,312 itemsets K=7 | kdist_ultra_k7_count | 2,006,312 | confirmed | exact |
+| L2-040 | beyond_mining.log:43 | 2,053,858 itemsets K=8 | kdist_ultra_k8_count | 2,053,858 | confirmed | exact |
+| L2-041 | beyond_mining.log:44 | 1,912,672 itemsets K=9 | kdist_ultra_k9_count | 1,912,672 | confirmed | exact |
+| L2-042 | beyond_mining.log:45 | 1,587,145 itemsets K=10 | kdist_ultra_k10_count | 1,587,145 | confirmed | exact |
+| L2-043 | beyond_mining.log:46 | 1,148,998 itemsets K=11 | kdist_ultra_k11_count | 1,148,998 | confirmed | exact |
+| L2-044 | beyond_mining.log:47 | 712,433 itemsets K=12 | kdist_ultra_k12_count | 712,433 | confirmed | exact |
+| L2-045 | beyond_mining.log:48 | 371,981 itemsets K=13 | kdist_ultra_k13_count | 371,981 | confirmed | exact |
+| L2-046 | beyond_mining.log:49 | 160,675 itemsets K=14 | kdist_ultra_k14_count | 160,675 | confirmed | exact |
+| L2-047 | beyond_mining.log:50 | 56,221 itemsets K=15 | kdist_ultra_k15_count | 56,221 | confirmed | exact |
+| L2-048 | beyond_mining.log:51 | 15,501 itemsets K=16 | kdist_ultra_k16_count | 15,501 | confirmed | exact |
+| L2-049 | beyond_mining.log:52 | 3,236 itemsets K=17 | kdist_ultra_k17_count | 3,236 | confirmed | exact |
+| L2-050 | beyond_mining.log:53 | 480 itemsets K=18 | kdist_ultra_k18_count | 480 | confirmed | exact |
+| L2-051 | beyond_mining.log:54 | 45 itemsets K=19 | kdist_ultra_k19_count | 45 | confirmed | exact |
+| L2-052 | beyond_mining.log:55 | 2 itemsets K=20 | kdist_ultra_k20_count | 2 | confirmed | exact |
+| L2-053 | beyond_mining.log:57 | 49,989,864 bytes (output parquet) | run_ultra_bytes |  | inconclusive | old result-file size; not comparable (different writer/codec) |
+| L2-054 | direct_mining.log:3 | 1e-06 min_support (0.0001%) | run_blitz_support | 1e-06 | confirmed | exact |
+| L2-055 | direct_mining.log:4 | 20 max K (max_length) | run_blitz_max_length | 50 | inconclusive | old run's length cap (non-binding: K_max 19 < 20); this campaign used --max-length 50 |
+| L2-056 | direct_mining.log:8 | 205,620,298 transactions (total in parquet) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-057 | direct_mining.log:9 | 76,890,945 transactions with >1 item | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-058 | direct_mining.log:10 | 76 min support count (script-computed) | run_blitz_min_count_nominal | 76 | confirmed | exact |
+| L2-059 | direct_mining.log:11 | 0.5 s (parquet load) | run_blitz_load_time_s |  | inconclusive | not measured in this campaign |
+| L2-060 | direct_mining.log:14 | 2026-02-09 05:46:42,182 timestamp (run start, Direct CSR path) | meta_log_blitz_start_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-061 | direct_mining.log:14 | 76,890,945 transactions | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-062 | direct_mining.log:14 | 77 min_count | run_blitz_min_count | 77 | confirmed | exact |
+| L2-063 | direct_mining.log:15 | 1002 frequent items (K=1) | vocab_items_frequent | 1,002 | confirmed | exact |
+| L2-064 | direct_mining.log:16 | 316,421,093 non-zeros (CSR nnz) | csr_nnz | 316,421,093 | confirmed | exact |
+| L2-065 | direct_mining.log:17 | 1,002 frequent itemsets K=1 | kdist_blitz_k1_count | 1,002 | confirmed | exact |
+| L2-066 | direct_mining.log:18 | 39,125 frequent itemsets K=2 | kdist_blitz_k2_count | 39,125 | confirmed | exact |
+| L2-067 | direct_mining.log:19 | 184,900 frequent itemsets K=3 | kdist_blitz_k3_count | 184,900 | confirmed | exact |
+| L2-068 | direct_mining.log:20 | 361,696 frequent itemsets K=4 | kdist_blitz_k4_count | 361,696 | confirmed | exact |
+| L2-069 | direct_mining.log:21 | 445,661 frequent itemsets K=5 | kdist_blitz_k5_count | 445,661 | confirmed | exact |
+| L2-070 | direct_mining.log:22 | 439,605 frequent itemsets K=6 | kdist_blitz_k6_count | 439,605 | confirmed | exact |
+| L2-071 | direct_mining.log:23 | 387,030 frequent itemsets K=7 | kdist_blitz_k7_count | 387,030 | confirmed | exact |
+| L2-072 | direct_mining.log:24 | 318,349 frequent itemsets K=8 | kdist_blitz_k8_count | 318,349 | confirmed | exact |
+| L2-073 | direct_mining.log:25 | 247,680 frequent itemsets K=9 | kdist_blitz_k9_count | 247,680 | confirmed | exact |
+| L2-074 | direct_mining.log:26 | 179,604 frequent itemsets K=10 | kdist_blitz_k10_count | 179,604 | confirmed | exact |
+| L2-075 | direct_mining.log:27 | 117,783 frequent itemsets K=11 | kdist_blitz_k11_count | 117,783 | confirmed | exact |
+| L2-076 | direct_mining.log:28 | 67,558 frequent itemsets K=12 | kdist_blitz_k12_count | 67,558 | confirmed | exact |
+| L2-077 | direct_mining.log:29 | 32,831 frequent itemsets K=13 | kdist_blitz_k13_count | 32,831 | confirmed | exact |
+| L2-078 | direct_mining.log:30 | 13,105 frequent itemsets K=14 | kdist_blitz_k14_count | 13,105 | confirmed | exact |
+| L2-079 | direct_mining.log:31 | 4,155 frequent itemsets K=15 | kdist_blitz_k15_count | 4,155 | confirmed | exact |
+| L2-080 | direct_mining.log:32 | 1,003 frequent itemsets K=16 | kdist_blitz_k16_count | 1,003 | confirmed | exact |
+| L2-081 | direct_mining.log:33 | 173 frequent itemsets K=17 | kdist_blitz_k17_count | 173 | confirmed | exact |
+| L2-082 | direct_mining.log:34 | 19 frequent itemsets K=18 | kdist_blitz_k18_count | 19 | confirmed | exact |
+| L2-083 | direct_mining.log:35 | 1 frequent itemsets K=19 | kdist_blitz_k19_count | 1 | confirmed | exact |
+| L2-084 | direct_mining.log:37 | 119.3 s (mining, '2.0 min') | run_blitz_time_s | 275.7 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 2.31 (claimed 119.3) |
+| L2-085 | direct_mining.log:38 | 120.6 s (total, '2.0 min') | run_blitz_total_time_s |  | inconclusive | not measured in this campaign |
+| L2-086 | direct_mining.log:39 | 2,841,280 itemsets (total) | run_blitz_itemsets | 2,841,280 | confirmed | exact |
+| L2-087 | direct_mining.log:42 | 1,002 itemsets K=1 | kdist_blitz_k1_count | 1,002 | confirmed | exact |
+| L2-088 | direct_mining.log:43 | 39,125 itemsets K=2 | kdist_blitz_k2_count | 39,125 | confirmed | exact |
+| L2-089 | direct_mining.log:44 | 184,900 itemsets K=3 | kdist_blitz_k3_count | 184,900 | confirmed | exact |
+| L2-090 | direct_mining.log:45 | 361,696 itemsets K=4 | kdist_blitz_k4_count | 361,696 | confirmed | exact |
+| L2-091 | direct_mining.log:46 | 445,661 itemsets K=5 | kdist_blitz_k5_count | 445,661 | confirmed | exact |
+| L2-092 | direct_mining.log:47 | 439,605 itemsets K=6 | kdist_blitz_k6_count | 439,605 | confirmed | exact |
+| L2-093 | direct_mining.log:48 | 387,030 itemsets K=7 | kdist_blitz_k7_count | 387,030 | confirmed | exact |
+| L2-094 | direct_mining.log:49 | 318,349 itemsets K=8 | kdist_blitz_k8_count | 318,349 | confirmed | exact |
+| L2-095 | direct_mining.log:50 | 247,680 itemsets K=9 | kdist_blitz_k9_count | 247,680 | confirmed | exact |
+| L2-096 | direct_mining.log:51 | 179,604 itemsets K=10 | kdist_blitz_k10_count | 179,604 | confirmed | exact |
+| L2-097 | direct_mining.log:52 | 117,783 itemsets K=11 | kdist_blitz_k11_count | 117,783 | confirmed | exact |
+| L2-098 | direct_mining.log:53 | 67,558 itemsets K=12 | kdist_blitz_k12_count | 67,558 | confirmed | exact |
+| L2-099 | direct_mining.log:54 | 32,831 itemsets K=13 | kdist_blitz_k13_count | 32,831 | confirmed | exact |
+| L2-100 | direct_mining.log:55 | 13,105 itemsets K=14 | kdist_blitz_k14_count | 13,105 | confirmed | exact |
+| L2-101 | direct_mining.log:56 | 4,155 itemsets K=15 | kdist_blitz_k15_count | 4,155 | confirmed | exact |
+| L2-102 | direct_mining.log:57 | 1,003 itemsets K=16 | kdist_blitz_k16_count | 1,003 | confirmed | exact |
+| L2-103 | direct_mining.log:58 | 173 itemsets K=17 | kdist_blitz_k17_count | 173 | confirmed | exact |
+| L2-104 | direct_mining.log:59 | 19 itemsets K=18 | kdist_blitz_k18_count | 19 | confirmed | exact |
+| L2-105 | direct_mining.log:60 | 1 itemsets K=19 | kdist_blitz_k19_count | 1 | confirmed | exact |
+| L2-106 | direct_mining.log:63 | 12,177,502 bytes (output parquet) | run_blitz_bytes | 22,256,172 | inconclusive | old result-file size; not comparable (different writer/codec) |
+| L2-107 | extreme_mining.log:1 | 0.001 % support (on '214M TrEMBL') | run_power_support_pct | 0.001 | confirmed | exact |
+| L2-108 | extreme_mining.log:3 | 205,620,298 transactions (total in parquet) | dataset_plddt_pass | 205,620,298 | confirmed | exact |
+| L2-109 | extreme_mining.log:4 | 76,890,945 transactions with >1 item | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-110 | extreme_mining.log:5 | 768 min support count (script-computed; '0.001%') | run_power_min_count | 769 | hallucinated | exact-match rule: fresh value differs |
+| L2-111 | extreme_mining.log:7 | 0.001 % support (banner) | run_power_support_pct | 0.001 | confirmed | exact |
+| L2-112 | extreme_mining.log:8 | 20 max length (banner) | run_power_son_max_length |  | inconclusive | old SON run's length cap (non-binding: K_max 13 < 20); this campaign's SON run is uncapped |
+| L2-113 | extreme_mining.log:12 | 1085.6 s (mining) | run_power_son_time_s | 5,673.71 | expected-hardware-deviation | hardware-dependent; this box = 2×RTX 3090 (paper: H100 80 GB); ratio fresh/claimed = 5.23 (claimed 1085.6) |
+| L2-114 | extreme_mining.log:13 | 22,846 itemsets (total) | run_power_son_itemsets | 475,865 | hallucinated | exact-match rule: fresh value differs |
+| L2-115 | extreme_mining.log:14 | 47 itemsets K=1 | kdist_power_son_k1_count | 1,002 | hallucinated | exact-match rule: fresh value differs |
+| L2-116 | extreme_mining.log:15 | 990 itemsets K=2 | kdist_power_son_k2_count | 22,019 | hallucinated | exact-match rule: fresh value differs |
+| L2-117 | extreme_mining.log:16 | 3,392 itemsets K=3 | kdist_power_son_k3_count | 73,205 | hallucinated | exact-match rule: fresh value differs |
+| L2-118 | extreme_mining.log:17 | 5,147 itemsets K=4 | kdist_power_son_k4_count | 108,059 | hallucinated | exact-match rule: fresh value differs |
+| L2-119 | extreme_mining.log:18 | 5,024 itemsets K=5 | kdist_power_son_k5_count | 104,239 | hallucinated | exact-match rule: fresh value differs |
+| L2-120 | extreme_mining.log:19 | 3,847 itemsets K=6 | kdist_power_son_k6_count | 78,596 | hallucinated | exact-match rule: fresh value differs |
+| L2-121 | extreme_mining.log:20 | 2,433 itemsets K=7 | kdist_power_son_k7_count | 48,699 | hallucinated | exact-match rule: fresh value differs |
+| L2-122 | extreme_mining.log:21 | 1,253 itemsets K=8 | kdist_power_son_k8_count | 25,011 | hallucinated | exact-match rule: fresh value differs |
+| L2-123 | extreme_mining.log:22 | 492 itemsets K=9 | kdist_power_son_k9_count | 10,508 | hallucinated | exact-match rule: fresh value differs |
+| L2-124 | extreme_mining.log:23 | 160 itemsets K=10 | kdist_power_son_k10_count | 3,488 | hallucinated | exact-match rule: fresh value differs |
+| L2-125 | extreme_mining.log:24 | 48 itemsets K=11 | kdist_power_son_k11_count | 869 | hallucinated | exact-match rule: fresh value differs |
+| L2-126 | extreme_mining.log:25 | 11 itemsets K=12 | kdist_power_son_k12_count | 152 | hallucinated | exact-match rule: fresh value differs |
+| L2-127 | extreme_mining.log:26 | 2 itemsets K=13 | kdist_power_son_k13_count | 17 | hallucinated | exact-match rule: fresh value differs |
+| L2-128 | extreme_mining.log:31 | 2 itemsets K=13 | kdist_power_son_k13_count | 17 | hallucinated | exact-match rule: fresh value differs |
+| L2-129 | extreme_mining.log:32 | 0.000142 support (fraction) | pattern_power_son_k13_1_support_frac | [0.00014983558857288072, 0.0001427736386904856, 0.0001424354 | confirmed | claimed value exists among 146 fresh values (fresh rounds to 0.000142 at 3 significant digits) |
+| L2-130 | extreme_mining.log:32 | 10,916 proteins (itemset support count) | pattern_power_son_k13_1_support | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 102 | confirmed | claimed value exists among 146 fresh values (exact) |
+| L2-131 | extreme_mining.log:34 | 0.000142 support (fraction) | pattern_power_son_k13_2_support_frac | [0.00014983558857288072, 0.0001427736386904856, 0.0001424354 | confirmed | claimed value exists among 146 fresh values (fresh rounds to 0.000142 at 3 significant digits) |
+| L2-132 | extreme_mining.log:34 | 10,913 proteins (itemset support count) | pattern_power_son_k13_2_support | [11521, 10978, 10952, 10941, 10916, 10915, 10913, 10912, 102 | confirmed | claimed value exists among 146 fresh values (exact) |
+| L2-133 | extreme_mining.log:37 | 11 itemsets K=12 | kdist_power_son_k12_count | 152 | hallucinated | exact-match rule: fresh value differs |
+| L2-134 | extreme_mining.log:38 | 0.000143 support (fraction) | pattern_power_son_k12_1_support_frac | [0.00021049292605260608, 0.00020660430171589125, 0.000197253 | confirmed | claimed value exists among 338 fresh values (fresh rounds to 0.000143 at 3 significant digits) |
+| L2-135 | extreme_mining.log:38 | 11,007 proteins (itemset support count) | pattern_power_son_k12_1_support | [16185, 15886, 15167, 13313, 12595, 11630, 11569, 11562, 115 | confirmed | claimed value exists among 338 fresh values (exact) |
+| L2-136 | extreme_mining.log:40 | 0.000143 support (fraction) | pattern_power_son_k12_2_support_frac | [0.00021049292605260608, 0.00020660430171589125, 0.000197253 | confirmed | claimed value exists among 338 fresh values (fresh rounds to 0.000143 at 3 significant digits) |
+| L2-137 | extreme_mining.log:40 | 10,978 proteins (itemset support count) | pattern_power_son_k12_2_support | [16185, 15886, 15167, 13313, 12595, 11630, 11569, 11562, 115 | confirmed | claimed value exists among 338 fresh values (exact) |
+| L2-138 | extreme_mining.log:42 | 0.000142 support (fraction) | pattern_power_son_k12_3_support_frac | [0.00021049292605260608, 0.00020660430171589125, 0.000197253 | confirmed | claimed value exists among 338 fresh values (fresh rounds to 0.000142 at 3 significant digits) |
+| L2-139 | extreme_mining.log:42 | 10,913 proteins (itemset support count) | pattern_power_son_k12_3_support | [16185, 15886, 15167, 13313, 12595, 11630, 11569, 11562, 115 | confirmed | claimed value exists among 338 fresh values (exact) |
+| L2-140 | extreme_mining.log:44 | 0.000142 support (fraction) | pattern_power_son_k12_4_support_frac | [0.00021049292605260608, 0.00020660430171589125, 0.000197253 | confirmed | claimed value exists among 338 fresh values (fresh rounds to 0.000142 at 3 significant digits) |
+| L2-141 | extreme_mining.log:44 | 10,912 proteins (itemset support count) | pattern_power_son_k12_4_support | [16185, 15886, 15167, 13313, 12595, 11630, 11569, 11562, 115 | confirmed | claimed value exists among 338 fresh values (exact) |
+| L2-142 | extreme_mining.log:46 | 0.000136 support (fraction) | pattern_power_son_k12_5_support_frac | [0.00021049292605260608, 0.00020660430171589125, 0.000197253 | confirmed | claimed value exists among 338 fresh values (fresh rounds to 0.000136 at 3 significant digits) |
+| L2-143 | extreme_mining.log:46 | 10,494 proteins (itemset support count) | pattern_k12_support | [16185, 10642, 10619, 10494, 10249, 10214, 994, 860, 783, 41 | confirmed | claimed value exists among 27 fresh values (exact) |
+| L2-144 | extreme_mining.log:49 | 48 itemsets K=11 | kdist_power_son_k11_count | 869 | hallucinated | exact-match rule: fresh value differs |
+| L2-145 | extreme_mining.log:50 | 0.000230 support (fraction) | pattern_power_son_k11_1_support_frac | [0.00037602607173055293, 0.0002374401823257602, 0.0002300140 | confirmed | claimed value exists among 700 fresh values (fresh rounds to 0.000230 at 3 significant digits) |
+| L2-146 | extreme_mining.log:50 | 17,686 proteins (itemset support count) | pattern_power_son_k11_1_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (exact) |
+| L2-147 | extreme_mining.log:52 | 0.000207 support (fraction) | pattern_power_son_k11_2_support_frac | [0.00037602607173055293, 0.0002374401823257602, 0.0002300140 | confirmed | claimed value exists among 700 fresh values (fresh rounds to 0.000207 at 3 significant digits) |
+| L2-148 | extreme_mining.log:52 | 15,886 proteins (itemset support count) | pattern_power_son_k11_2_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (exact) |
+| L2-149 | extreme_mining.log:54 | 0.000207 support (fraction) | pattern_power_son_k11_3_support_frac | [0.00037602607173055293, 0.0002374401823257602, 0.0002300140 | confirmed | claimed value exists among 700 fresh values (fresh rounds to 0.000207 at 3 significant digits) |
+| L2-150 | extreme_mining.log:54 | 15,886 proteins (itemset support count) | pattern_power_son_k11_3_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (exact) |
+| L2-151 | extreme_mining.log:56 | 0.000202 support (fraction) | pattern_power_son_k11_4_support_frac | [0.00037602607173055293, 0.0002374401823257602, 0.0002300140 | confirmed | claimed value exists among 700 fresh values (fresh rounds to 0.000202 at 3 significant digits) |
+| L2-152 | extreme_mining.log:56 | 15,565 proteins (itemset support count) | pattern_power_son_k11_4_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (exact) |
+| L2-153 | extreme_mining.log:58 | 0.000197 support (fraction) | pattern_power_son_k11_5_support_frac | [0.00037602607173055293, 0.0002374401823257602, 0.0002300140 | confirmed | claimed value exists among 700 fresh values (fresh rounds to 0.000197 at 3 significant digits) |
+| L2-154 | extreme_mining.log:58 | 15,167 proteins (itemset support count) | pattern_power_son_k11_5_support | [28913, 18257, 17686, 16968, 16614, 16590, 16440, 16229, 161 | confirmed | claimed value exists among 700 fresh values (exact) |
+| L2-155 | extreme_mining.log:61 | 160 itemsets K=10 | kdist_power_son_k10_count | 3,488 | hallucinated | exact-match rule: fresh value differs |
+| L2-156 | extreme_mining.log:62 | 0.000240 support (fraction) | pattern_power_son_k10_1_support_frac | [0.0005057682669916464, 0.0004321445132453503, 0.00039518307 | confirmed | claimed value exists among 1358 fresh values (fresh rounds to 0.000240 at 3 significant digits) |
+| L2-157 | extreme_mining.log:62 | 18,425 proteins (itemset support count) | pattern_power_son_k10_1_support | [38889, 33228, 30386, 30165, 29501, 28957, 28918, 28914, 289 | confirmed | claimed value exists among 1358 fresh values (exact) |
+| L2-158 | extreme_mining.log:64 | 0.000238 support (fraction) | pattern_power_son_k10_2_support_frac | [0.0005057682669916464, 0.0004321445132453503, 0.00039518307 | confirmed | claimed value exists among 1358 fresh values (fresh rounds to 0.000238 at 3 significant digits) |
+| L2-159 | extreme_mining.log:64 | 18,313 proteins (itemset support count) | pattern_power_son_k10_2_support | [38889, 33228, 30386, 30165, 29501, 28957, 28918, 28914, 289 | confirmed | claimed value exists among 1358 fresh values (exact) |
+| L2-160 | extreme_mining.log:66 | 0.000216 support (fraction) | pattern_power_son_k10_3_support_frac | [0.0005057682669916464, 0.0004321445132453503, 0.00039518307 | confirmed | claimed value exists among 1358 fresh values (fresh rounds to 0.000216 at 3 significant digits) |
+| L2-161 | extreme_mining.log:66 | 16,614 proteins (itemset support count) | pattern_power_son_k10_3_support | [38889, 33228, 30386, 30165, 29501, 28957, 28918, 28914, 289 | confirmed | claimed value exists among 1358 fresh values (exact) |
+| L2-162 | extreme_mining.log:68 | 0.000208 support (fraction) | pattern_power_son_k10_4_support_frac | [0.0005057682669916464, 0.0004321445132453503, 0.00039518307 | confirmed | claimed value exists among 1358 fresh values (fresh rounds to 0.000208 at 3 significant digits) |
+| L2-163 | extreme_mining.log:68 | 16,029 proteins (itemset support count) | pattern_power_son_k10_4_support | [38889, 33228, 30386, 30165, 29501, 28957, 28918, 28914, 289 | hallucinated | exact-match rule: fresh value differs; no fresh K=10 itemset has exactly 16,029 supporting proteins; the neare |
+| L2-164 | extreme_mining.log:70 | 0.000207 support (fraction) | pattern_power_son_k10_5_support_frac | [0.0005057682669916464, 0.0004321445132453503, 0.00039518307 | confirmed | claimed value exists among 1358 fresh values (fresh rounds to 0.000207 at 3 significant digits) |
+| L2-165 | extreme_mining.log:70 | 15,936 proteins (itemset support count) | pattern_power_son_k10_5_support | [38889, 33228, 30386, 30165, 29501, 28957, 28918, 28914, 289 | confirmed | claimed value exists among 1358 fresh values (exact) |
+| L2-166 | godmode_mining.log:2 | 2026-02-09 06:42:58,031 timestamp (run start, Direct CSR path) | meta_log_opus_start_timestamp |  | inconclusive | external fact (other systems/literature); not re-executable in this campaign |
+| L2-167 | godmode_mining.log:2 | 76,890,945 transactions | dataset_multi_feature | 76,890,945 | confirmed | exact |
+| L2-168 | godmode_mining.log:2 | 8 min_count | run_opus_min_count | 8 | confirmed | exact |
+| L2-169 | godmode_mining.log:3 | 1002 frequent items (K=1) | vocab_items_frequent | 1,002 | confirmed | exact |
+| L2-170 | godmode_mining.log:4 | 316,421,093 non-zeros (CSR nnz) | csr_nnz | 316,421,093 | confirmed | exact |
+| L2-171 | godmode_mining.log:5 | 1,002 frequent itemsets K=1 | kdist_opus_k1_count | 1,002 | confirmed | exact |
+| L2-172 | godmode_mining.log:6 | 73,786 frequent itemsets K=2 | kdist_opus_k2_count | 73,786 | confirmed | exact |
+| L2-173 | godmode_mining.log:7 | 452,777 frequent itemsets K=3 | kdist_opus_k3_count | 452,777 | confirmed | exact |
+| L2-174 | godmode_mining.log:8 | 1,184,461 frequent itemsets K=4 | kdist_opus_k4_count | 1,184,461 | confirmed | exact |
+| L2-175 | godmode_mining.log:9 | 1,974,126 frequent itemsets K=5 | kdist_opus_k5_count | 1,974,126 | confirmed | exact |
+| L2-176 | godmode_mining.log:10 | 2,626,332 frequent itemsets K=6 | kdist_opus_k6_count | 2,626,332 | confirmed | exact |
+| L2-177 | godmode_mining.log:11 | 3,118,459 frequent itemsets K=7 | kdist_opus_k7_count | 3,118,459 | confirmed | exact |
+| L2-178 | godmode_mining.log:12 | 3,442,954 frequent itemsets K=8 | kdist_opus_k8_count | 3,442,954 | confirmed | exact |
+| L2-179 | godmode_mining.log:13 | 3,529,257 frequent itemsets K=9 | kdist_opus_k9_count | 3,529,257 | confirmed | exact |
+| L2-180 | godmode_mining.log:14 | 3,293,612 frequent itemsets K=10 | kdist_opus_k10_count | 3,293,612 | confirmed | exact |
+| L2-181 | godmode_mining.log:15 | 2,739,532 frequent itemsets K=11 | kdist_opus_k11_count | 2,739,532 | confirmed | exact |
+| L2-182 | godmode_mining.log:16 | 1,996,772 frequent itemsets K=12 | kdist_opus_k12_count | 1,996,772 | confirmed | exact |
+| L2-183 | godmode_mining.log:17 | 1,259,045 frequent itemsets K=13 | kdist_opus_k13_count | 1,259,045 | confirmed | exact |
+| L2-184 | godmode_mining.log:18 | 679,471 frequent itemsets K=14 | kdist_opus_k14_count | 679,471 | confirmed | exact |
+| L2-185 | godmode_mining.log:19 | 310,527 frequent itemsets K=15 | kdist_opus_k15_count | 310,527 | confirmed | exact |
+| L2-186 | godmode_mining.log:20 | 118,659 frequent itemsets K=16 | kdist_opus_k16_count | 118,659 | confirmed | exact |
+| L2-187 | godmode_mining.log:21 | 37,261 frequent itemsets K=17 | kdist_opus_k17_count | 37,261 | confirmed | exact |

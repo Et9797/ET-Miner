@@ -1,0 +1,196 @@
+qkey,category,unit,description,claimed_value_tex,tex_lines,reproducibility
+meta_review_f1_verification_buckets,external-fact,buckets,Number of verification buckets the F1 audit organised its checks into (9).,review:9,PAPER_V2_REVIEW.md:7,external
+meta_review_f1_claims_adjudicated,external-fact,claims,Number of paper claims adjudicated by the F1 audit (73).,review:73,PAPER_V2_REVIEW.md:7,external
+meta_review_f1_claims_confirmed,external-fact,claims,F1 verdict table: claims CONFIRMED (62).,review:62,PAPER_V2_REVIEW.md:11,external
+meta_review_f1_claims_discrepant,external-fact,claims,F1 verdict table: claims DISCREPANT (4).,review:4,PAPER_V2_REVIEW.md:12,external
+meta_review_f1_claims_unverifiable,external-fact,claims,F1 verdict table: claims UNVERIFIABLE (7).,review:7,PAPER_V2_REVIEW.md:13,external
+meta_review_f1_campaign_rows_verified,external-fact,rows verified,F1: campaign-table rows verified against the logs (6/6).,review:6/6,PAPER_V2_REVIEW.md:15;PAPER_V2_REVIEW.md:72,external
+meta_review_f1_kdist_checks,external-fact,checks passed,"F1: K-distribution checks passed (8/8, line-for-line).",review:8/8,PAPER_V2_REVIEW.md:15;PAPER_V2_REVIEW.md:74,external
+meta_review_f1_direct_vs_son_checks,external-fact,checks passed,F1: Direct-vs-SON comparison checks passed (6/6).,review:6/6,PAPER_V2_REVIEW.md:15;PAPER_V2_REVIEW.md:80,external
+vocab_v1_pfam,deterministic,items,"Pfam item count of the v1 manuscript's Table 1 (247; F1 calls that table fabricated, F3 quotes it as the paper's vocabulary). Not re-derivable.",review:247,PAPER_V2_REVIEW.md:15;review_b1_hostile.md:159,external
+vocab_v1_go,deterministic,items,GO item count of the v1 manuscript's Table 1 (752 = 302 MF + 289 BP + 161 CC).,review:752,PAPER_V2_REVIEW.md:15,external
+vocab_v1_plddt,deterministic,items,pLDDT item count of the v1 manuscript's Table 1 (3).,review:3,PAPER_V2_REVIEW.md:15;review_b1_hostile.md:159,external
+null_p_bound_rule_of_three,deterministic,p,Reviewer's rule-of-three upper bound for 0 of 5 permutations reaching K>=7: 3/n = 3/5 = 0.60 (contrasted with the exact binomial null_p_bound_kge7 = 0.4507).,review:3/5=0.60,PAPER_V2_REVIEW.md:22;PAPER_V2_REVIEW.md:51,derived
+dataset_pfam_go_families_ge8,deterministic,families,Number of Pfam/GO families occurring in >= 8 proteins of the 205.6M set (reviewer: 'vastly more than 500'); the count that a '>=8-support retention' vocabulary would have produced.,review:>500,PAPER_V2_REVIEW.md:33,rerun
+meta_review_f1_confirmed_dataset_vocab,external-fact,claims,F1: number of confirmed dataset & vocabulary claims (7).,review:7,PAPER_V2_REVIEW.md:61,external
+meta_review_f1_confirmed_memory,external-fact,claims,F1: number of confirmed memory claims (6).,review:6,PAPER_V2_REVIEW.md:70,external
+meta_review_f1_kdist_rows_range,deterministic,K range,"F1: range of intermediate K-distribution rows verified besides K=1, 2, 22 ('all K=3..21 rows').",review:3..21,PAPER_V2_REVIEW.md:74,external
+kdist_opus_pct_sum,deterministic,%,Sum of the tab:kdist percentage column recomputed by the reviewer (100.0%).,review:100.0%,PAPER_V2_REVIEW.md:74,derived
+meta_review_f1_confirmed_k22_composition,external-fact,claims,F1: number of confirmed K=22 composition claims (2).,review:2,PAPER_V2_REVIEW.md:76,external
+meta_review_f1_confirmed_null_model,external-fact,claims,F1: number of confirmed null-model claims (17).,review:17,PAPER_V2_REVIEW.md:78,external
+meta_review_f1_confirmed_scale_comparison,external-fact,claims,F1: number of confirmed scale-comparison claims (3).,review:3,PAPER_V2_REVIEW.md:82,external
+meta_review_f1_confirmed_citations,external-fact,claims,F1: number of confirmed citation claims (7).,review:7,PAPER_V2_REVIEW.md:84,external
+meta_review_f1_cite_commands,external-fact,\cite commands,F1: number of \cite commands counted in the .tex (47).,review:47,PAPER_V2_REVIEW.md:84,external
+meta_review_f1_unique_cite_keys,external-fact,citation keys,F1: number of unique citation keys behind the \cite commands (37).,review:37,PAPER_V2_REVIEW.md:84,external
+meta_review_f1_bib_entries,external-fact,bibliography entries,F1: number of \bibitem entries / references in the paper's bibliography (37; \begin{thebibliography}{37}).,review:37,PAPER_V2_REVIEW.md:84;PAPER_V2_REVIEW.md:100,external
+meta_review_f1_cross_paper_contamination,external-fact,contaminating references,F1: cross-paper tool contamination found (zero; opus_pocket tools fpocket / efficient-apriori / scikit-learn / PDBbind absent).,review:0 (zero),PAPER_V2_REVIEW.md:84,external
+meta_review_f1_artifact_kge20_absent,deterministic,K,F1 assertion that no local artifact contains any itemset of length K>=20 (value = the absent K bound).,review:>=20,PAPER_V2_REVIEW.md:95,external
+meta_review_f1_commit_diff_lines,external-fact,lines,F1 integrity item: size of the manuscript rewrite in the diff of commit b318df5 (231 lines).,review:231,PAPER_V2_REVIEW.md:108,external
+run_v35k_itemsets,deterministic,itemsets,"Frequent itemsets of the 35K Direct-GPU run at min_count 1,093 (triplicate mean 606,292; '606K').","review:606K / 606,292",PAPER_V2_REVIEW.md:110;review_b1_hostile.md:9;review_b1_hostile.md:17;review_b1_hostile.md:73;review_b1_hostile.md:80;review_b1_hostile.md:121;review_b1_hostile.md:195;review_b1_hostile.md:214;review_b1_hostile.md:287,rerun
+run_v35k_n_gpus,hardware-dependent,GPUs,"GPU configuration of the 35K runs (4 x NVIDIA H200, 4-way row-splitting).",review:4xH200 / 4,PAPER_V2_REVIEW.md:110;review_b1_hostile.md:17;review_b1_hostile.md:43;review_b1_hostile.md:90;review_b1_hostile.md:167;review_b1_hostile.md:207;review_b1_hostile.md:214;review_b1_hostile.md:224;review_b1_hostile.md:262;review_b1_hostile.md:279;review_b1_hostile.md:321,setup
+run_v35k_16p8b_itemsets,deterministic,itemsets,"Expanded-run itemset count stated in the plan file (16.8B @ 8xH200), contradicting the 606K @ 4xH200 figure of revision_notes_b3.tex (F1 integrity item). No artifact.",review:16.8B,PAPER_V2_REVIEW.md:110,external
+run_v35k_16p8b_n_gpus,hardware-dependent,GPUs,GPU configuration of the plan-file expanded run (8xH200).,review:8xH200,PAPER_V2_REVIEW.md:110,external
+meta_review_f1_dutch_translation_date,external-fact,date,F1 integrity item: date carried by the stale Dutch translation et_miner_proteome_nl.tex (Feb 2026).,review:Feb 2026,PAPER_V2_REVIEW.md:112,external
+meta_review_f2_overclaim_ways,external-fact,ways,F2: number of specific ways the reviewer says the narrative outruns its support (three; Majors 1-3).,review:3 (three),peer_review_jul12.md:14,external
+misc_f2_deep_k_range,deterministic,K range,F2's range of deep patterns lacking null validation (K = 15-22; '>= 15' for the protein-concentration analysis it requests).,review:15-22 / >=15,peer_review_jul12.md:33;peer_review_jul12.md:35,external
+cost_null_100perm_1k_hours,hardware-dependent,GPU-hours,Wall-clock for 100 null permutations at the 1K vocabulary on one H100 = 100 x null_per_perm_time_s / 3600 (F2: ~3.6 with ~130 s/perm; F3: ~2.4 with ~86 s/perm).,review:~3.6 / ~2.4,peer_review_jul12.md:43;review_b1_hostile.md:263,derived
+k22_n_families,deterministic,protein families,Number of protein families among the 8 K=22 proteins; reviewer's hypothetical that a single densely annotated family could generate the whole signature. Needs the accessions.,review:1 (single),peer_review_jul12.md:48,derived
+misc_f2_subset_slice_transactions,method-parameter,transactions,Transaction slice F2 suggests for a same-data ET-miner vs GMiner comparison (1-15M).,review:1-15M,peer_review_jul12.md:53,external
+alg_subitemsets_per_k_itemset,deterministic,itemsets,Reviewer's redundancy argument: every frequent K-itemset implies 2^K - 2 frequent proper sub-itemsets.,review:2^K - 2,peer_review_jul12.md:56,derived
+meta_review_f2_memory_quantities_count,external-fact,quantities,"F2 Minor: number of distinct memory quantities the reviewer says coexist ('three', while listing four: ~206 / ~26 / ~5.1 / ~10 GB).",review:3 (three),peer_review_jul12.md:63,external
+cost_f2_majors_fix_gpu_hours,hardware-dependent,GPU-hours,F2 estimate of the compute needed to fix Majors 1-2 (100 permutations plus an Opus-threshold null): <= 4 GPU-hours.,review:<=4,peer_review_jul12.md:96,derived
+meta_review_f2_figures_on_disk,external-fact,figures,F2 checklist: figure files present on disk (4).,review:4,peer_review_jul12.md:116,external
+meta_review_f2_paper_limitations,external-fact,limitations,F2 checklist: explicit limitations listed by the paper (5).,review:5,peer_review_jul12.md:118,external
+meta_review_f2_reference_currency_year,external-fact,year,F2 checklist: reference currency ('through 2024').,review:2024,peer_review_jul12.md:120,external
+meta_review_f2_citation_errors_corrected,external-fact,citation errors,F2 checklist: citation errors corrected in this revision (13).,review:13,peer_review_jul12.md:120,external
+meta_review_f2_uncited_bibitems,external-fact,bibitems,"F2: number of uncited bibitems (one, miettinen2020, at review time; zero after the post-review fix).",review:1 (one) / 0 (zero),peer_review_jul12.md:120;peer_review_jul12.md:173,external
+meta_review_f2_orphaned_figures,external-fact,files,"F2: orphaned figure PDFs from the removed expanded run left on disk (two: kdist_shift.pdf, pruning_savings.pdf).",review:2 (two),peer_review_jul12.md:138;peer_review_jul12.md:159,external
+sw_claude_opus_version,software,version,Version of the AI tool listed as co-author in the manuscript ('Claude Code Opus 4.6').,review:4.6,peer_review_jul12.md:143;peer_review_jul12.md:156,external
+meta_review_f2_ai_vendor_authors,external-fact,authors,F2 ethics: number of listed authors affiliated with the AI vendor whose tool co-produced the work (one).,review:1 (one),peer_review_jul12.md:143,external
+ext_zenodo_version,software,version,Zenodo record version of the published preprint (v1) whose relationship to the manuscript F2 asks to disclose.,review:v1,peer_review_jul12.md:143;peer_review_jul12.md:160;peer_review_jul12.md:171,external
+meta_review_f2_majors,external-fact,major concerns,F2 checklist: major concerns identified (5).,review:5,peer_review_jul12.md:151,external
+meta_review_f2_minors,external-fact,minor issues,F2 checklist: minor issues categorized (8).,review:8,peer_review_jul12.md:151,external
+meta_review_f2_missing_statements,external-fact,statements,"F2 checklist Stage 6: missing statements surfaced (3: COI, funding, subjects).",review:3,peer_review_jul12.md:151,external
+run_v35k_kmax,deterministic,K,Maximum itemset length of the 35K Direct-GPU run (17; F3 recommends reporting '16-17' because K=17 is at the support boundary; also the K of the deepest 35K itemset).,review:17 / 16-17,review_b1_hostile.md:9;review_b1_hostile.md:17;review_b1_hostile.md:18;review_b1_hostile.md:47;review_b1_hostile.md:55;review_b1_hostile.md:78;review_b1_hostile.md:155;review_b1_hostile.md:313,rerun
+vocab_v35k_items,deterministic,items,"Size of the expanded 35K feature vocabulary (34,920 items; '35K' where it enters arithmetic).","review:34,920 / 35K",review_b1_hostile.md:15;review_b1_hostile.md:61;review_b1_hostile.md:77;review_b1_hostile.md:159;review_b1_hostile.md:175;review_b1_hostile.md:214;review_b1_hostile.md:309;review_b1_hostile.md:321,setup
+vocab_v35k_expansion_ratio,deterministic,x,"vocab_v35k_items / vocab_items_frequent = 34,920 / 1,002 (reviewer: 35x).",review:35x,review_b1_hostile.md:15;review_b1_hostile.md:216,derived
+meta_review_f3_new_result_files,external-fact,files,F3: number of new 35K-feature result files reviewed (three).,review:3 (three),review_b1_hostile.md:15,external
+run_v35k_n_runs,method-parameter,runs,"Number of Direct-GPU replicate runs of the 35K campaign (triplicate, 3).",review:3 (triplicate) / 3 (Three),review_b1_hostile.md:17;review_b1_hostile.md:73,setup
+run_v35k_itemsets_std,deterministic,itemsets,Standard deviation of the itemset total over the three 35K Direct-GPU runs (28).,review:28,review_b1_hostile.md:17;review_b1_hostile.md:73,derived
+run_v35k_time_s,hardware-dependent,s,Mean wall-clock of the 35K Direct-GPU triplicate (654 s).,review:654,review_b1_hostile.md:17,hardware
+mem_v35k_son_bitvec_gb,deterministic,GB,"Bitvector size of one 40M-transaction SON chunk at 35K features (40M x 34,920 bits ~ 175 GB > H200 VRAM).",review:175,review_b1_hostile.md:17;review_b1_hostile.md:61;review_b1_hostile.md:240,derived
+hw_h200_vram_gb,hardware-dependent,GB,VRAM of the NVIDIA H200 as stated by F3 (143 GB).,review:143,review_b1_hostile.md:17;review_b1_hostile.md:61;review_b1_hostile.md:63,external
+run_v35k_null_permutations,method-parameter,permutations,Number of permutations of the 35K-feature null model (2; 'n=2').,review:2 / n=2,review_b1_hostile.md:18;review_b1_hostile.md:29;review_b1_hostile.md:33;review_b1_hostile.md:35;review_b1_hostile.md:39;review_b1_hostile.md:129;review_b1_hostile.md:248;review_b1_hostile.md:317;review_b1_hostile.md:327;review_b1_hostile.md:329;review_b1_hostile.md:341,setup
+run_v35k_null_peak_k,deterministic,K,argmax of the 35K null K-distribution (2).,review:2,review_b1_hostile.md:18,rerun
+null_v35k2perm_k2_mean,deterministic,itemsets,Mean null itemsets at K=2 in the 35K 2-permutation null (59K).,review:59K,review_b1_hostile.md:18,rerun
+run_v35k_null_kmax,deterministic,K,Deepest K produced by the 35K null permutations (5; 1 itemset in both runs).,review:5,review_b1_hostile.md:18;review_b1_hostile.md:35;review_b1_hostile.md:317,rerun
+null_v35k2perm_k5_mean,deterministic,itemsets,Null itemsets at K=5 in the 35K null (1 in both permutations).,review:1,review_b1_hostile.md:18;review_b1_hostile.md:35,rerun
+null_v35k2perm_total_enrichment_ratio,deterministic,x,Total biological / null itemset ratio of the 35K null model (5.45x).,review:5.45x,review_b1_hostile.md:18,derived
+null_v35k2perm_k3_z,deterministic,Z,"Z at K=3 of the 35K null = (53235 - 15919.5) / 51.6 (722.91, quoted rounded as 723 / +723).",review:723 / 722.91 / +723,review_b1_hostile.md:18;review_b1_hostile.md:33;review_b1_hostile.md:39,derived
+null_v35k2perm_k4_z,deterministic,Z,"Z at K=4 of the 35K null (20,585).","review:20,585",review_b1_hostile.md:18,derived
+run_v35k_wave3_support_pct,method-parameter,%,Support threshold of the incomplete 35K wave-3 run (0.1%).,review:0.1%,review_b1_hostile.md:19;review_b1_hostile.md:100;review_b1_hostile.md:121;review_b1_hostile.md:236;review_b1_hostile.md:279,setup
+run_v35k_wave3_kmax,deterministic,K,K reached by the incomplete wave-3 run (10+; K=10 still running when the log ends).,review:10+ / 10,review_b1_hostile.md:19;review_b1_hostile.md:100;review_b1_hostile.md:115,rerun
+run_v35k_wave3_itemsets_per_level,deterministic,itemsets,Order of magnitude of wave-3 itemsets per K-level ('millions').,review:millions,review_b1_hostile.md:19;review_b1_hostile.md:279,derived
+run_v35k_wave3_k9_cum_time_s,hardware-dependent,s,"Cumulative wall-clock of the wave-3 run at the end of K=9 (743.4 s; '743s', '12+ minutes').",review:743 / 743.4 / 12+,review_b1_hostile.md:19;review_b1_hostile.md:112;review_b1_hostile.md:117,hardware
+run_v35k_wave3_last_complete_k,deterministic,K,Last fully counted level of the wave-3 run (9).,review:9,review_b1_hostile.md:19;review_b1_hostile.md:121,rerun
+kdist_v35k_wave3_k9_count,deterministic,itemsets,"Wave-3 run itemsets at K=9 (10,041,611; '10M', '10M+').","review:10M / 10,041,611 / 10M+",review_b1_hostile.md:19;review_b1_hostile.md:112;review_b1_hostile.md:121,rerun
+meta_review_f3_severity_major1,external-fact,severity /10,"F3 severity of Major M1 (null-model permutation count, now n=2): 9/10.",review:9/10,review_b1_hostile.md:27;review_b1_hostile.md:341,external
+run_v35k_null_seed_1,method-parameter,seed,Seed of 35K null permutation 1 (7138484576005690180).,review:7138484576005690180,review_b1_hostile.md:29,setup
+run_v35k_null_seed_2,method-parameter,seed,Seed of 35K null permutation 2 (4047939128787533792).,review:4047939128787533792,review_b1_hostile.md:29,setup
+run_v35k_null_t_df,deterministic,df,Degrees of freedom of a Z/t statistic from n=2 permutations (1).,review:1,review_b1_hostile.md:33,derived
+null_v35k2perm_k2_std,deterministic,itemsets,Std of null itemsets at K=2 in the 35K null (123.7).,review:123.7,review_b1_hostile.md:33,rerun
+null_v35k2perm_k3_std,deterministic,itemsets,Std of null itemsets at K=3 in the 35K null (51.6).,review:51.6,review_b1_hostile.md:33,rerun
+null_v35k2perm_k4_std,deterministic,itemsets,Std of null itemsets at K=4 in the 35K null (2.8).,review:2.8,review_b1_hostile.md:33,rerun
+null_v35k2perm_k3_bio,deterministic,itemsets,Biological itemsets at K=3 of the 35K run used in the null comparison (53235).,review:53235,review_b1_hostile.md:33,rerun
+null_v35k2perm_k3_mean,deterministic,itemsets,Mean null itemsets at K=3 in the 35K null (15919.5).,review:15919.5,review_b1_hostile.md:33,rerun
+null_v35k2perm_k5_std,deterministic,itemsets,"Std of null itemsets at K=5 in the 35K null (0.0, identical values).",review:0.0,review_b1_hostile.md:35,rerun
+null_v35k2perm_k5_z,deterministic,Z,"Z at K=5 of the 35K null, stored as the string 'inf' (division by zero std).",review:inf,review_b1_hostile.md:35,derived
+misc_v35k_null_hypothetical_perms,method-parameter,permutations,Hypothetical permutation counts in F3's K=5 null argument (10 or 100).,review:10 or 100,review_b1_hostile.md:35,external
+misc_v35k_null_hypothetical_k5_range,deterministic,itemsets,Hypothetical range of the K=5 null count with more permutations (0 to 5).,review:0 to 5,review_b1_hostile.md:35,external
+run_v35k_null_min_count,method-parameter,proteins,"Minimum count of the 35K null model (1,090, ~0.001% of 109M; differs from the campaign's 1,093).","review:1,090",review_b1_hostile.md:37,setup
+run_v35k_null_support_pct,method-parameter,%,Nominal support of the 35K null model (0.001%).,review:0.001%,review_b1_hostile.md:37,setup
+run_v35k_n_transactions,deterministic,transactions,Transactions mined in the 35K campaign (109M / 109.2M).,review:109M / 109.2M,review_b1_hostile.md:37;review_b1_hostile.md:63;review_b1_hostile.md:86;review_b1_hostile.md:214;review_b1_hostile.md:299;review_b1_hostile.md:321,rerun
+run_v35k_min_count,method-parameter,proteins,"Minimum count of the 35K mining campaign (1,093 = 0.001% of 109.2M; also used by the power test).","review:1,093 / 1,093 vs 8",review_b1_hostile.md:37;review_b1_hostile.md:43;review_b1_hostile.md:80;review_b1_hostile.md:82;review_b1_hostile.md:84;review_b1_hostile.md:119;review_b1_hostile.md:214,setup
+run_v35k_support_pct,method-parameter,%,Nominal support threshold of the 35K mining campaign (0.001%).,review:0.001%,review_b1_hostile.md:37;review_b1_hostile.md:115;review_b1_hostile.md:121;review_b1_hostile.md:214;review_b1_hostile.md:279,setup
+null_v35k2perm_k2_z,deterministic,Z,"Z at K=2 of the 35K null (-102, depleted).",review:-102,review_b1_hostile.md:39,derived
+run_v35k_null_perms_requested,method-parameter,permutations,"Permutation counts F3 requests / costs out for the 35K null (100+, 100, 200).",review:100+ / 100 / 200,review_b1_hostile.md:43;review_b1_hostile.md:262,external
+run_v35k_null_per_perm_time_s,hardware-dependent,s,Runtime of one 35K null permutation on 4xH200 (~655 s).,review:~655,review_b1_hostile.md:43;review_b1_hostile.md:262,hardware
+cost_null_100perm_v35k_hours,hardware-dependent,hours,Wall-clock for 100 permutations of the 35K null (F3 line 43: ~18 h at ~655 s/perm; line 262: ~4.5 h after dividing by 4 GPUs again).,review:~18 / ~4.5,review_b1_hostile.md:43;review_b1_hostile.md:262,derived
+cost_null_200perm_v35k_hours,hardware-dependent,hours,"Wall-clock for 200 permutations of the 35K null (~36 h / ~9 h, same two computations).",review:~36 / ~9,review_b1_hostile.md:43;review_b1_hostile.md:262,derived
+meta_review_f3_severity_major2,external-fact,severity /10,F3 severity of Major M2 (GO true-path inflation unquantified): 7/10.,review:7/10,review_b1_hostile.md:45;review_b1_hostile.md:342,external
+misc_hypothetical_redundant_pairs_1k_pct,deterministic,%,Hypothetical share of redundant (GO parent-child) pairs in the 1K vocabulary used in F3's K-drop argument (30%).,review:30%,review_b1_hostile.md:51,external
+misc_hypothetical_redundant_pairs_v35k_pct,deterministic,%,Hypothetical share of redundant pairs in the 35K vocabulary in the same argument (5%).,review:5%,review_b1_hostile.md:51,external
+meta_review_f3_severity_major3,external-fact,severity /10,F3 severity of Major M3 (SON comparison framing) in review v2: 5/10.,review:5/10,review_b1_hostile.md:57;review_b1_hostile.md:343,external
+meta_review_f3_severity_major3_v1,external-fact,severity /10,F3 severity of Major M3 in review v1 (before the 35K results): 8/10.,review:8/10,review_b1_hostile.md:57,external
+run_v35k_son_chunk_size,method-parameter,transactions,"SON chunk size attempted at 35K features (40M transactions), whose bitvector does not fit an H200.",review:40M,review_b1_hostile.md:61;review_b1_hostile.md:240,setup
+mem_v35k_son_max_chunk_size,deterministic,transactions,Largest SON chunk whose 35K bitvector would fit a 143 GB H200 (reviewer: < 33M).,review:<33M,review_b1_hostile.md:63,derived
+mem_v35k_son_min_chunks,deterministic,chunks,Number of SON chunks implied by chunk_size < 33M at 109M transactions (4+).,review:4+,review_b1_hostile.md:63,derived
+mem_v35k_son_feasible_chunk_size,method-parameter,transactions,Reviewer's alternative SON chunk size that would fit an H200 (20M).,review:20M,review_b1_hostile.md:67,derived
+mem_v35k_son_bitvec_20m_gb,deterministic,GB,Bitvector size of a 20M-transaction chunk at 35K features (~87 GB).,review:~87,review_b1_hostile.md:67,derived
+mem_v35k_son_chunks_at_20m,deterministic,chunks,Number of SON chunks at chunk_size 20M over 109M transactions (6).,review:6,review_b1_hostile.md:67,derived
+run_v35k_itemsets_cv_pct,deterministic,%,Coefficient of variation of the 35K triplicate itemset totals (0.0046%).,review:0.0046%,review_b1_hostile.md:73;review_b1_hostile.md:244,derived
+run_v35k_kmax_per_run,deterministic,K,"K_max of each of the three 35K Direct-GPU runs (17, 16, 17).","review:17, 16, 17 / 17 / 16 / 17",review_b1_hostile.md:73;review_b1_hostile.md:153,rerun
+kdist_v35k_k17_count_per_run,deterministic,itemsets,"Itemsets of length K=17 in each of the three 35K runs (2, 0, 1).","review:2, 0, 1",review_b1_hostile.md:73;review_b1_hostile.md:153,rerun
+meta_review_f3_severity_major4,external-fact,severity /10,"F3 severity of Major M4 (K-max drop unexplained, new): 8/10.",review:8/10,review_b1_hostile.md:75;review_b1_hostile.md:344,external
+run_v35k_vs_opus_kmax_change,deterministic,K -> K,Change of K_max from the 1K Opus run to the 35K run (22 -> 17).,review:22 -> 17,review_b1_hostile.md:75;review_b1_hostile.md:133,derived
+kdist_v35k_peak_k,deterministic,K,argmax of the 35K run's K-distribution (7).,review:7,review_b1_hostile.md:79;review_b1_hostile.md:187;review_b1_hostile.md:228;review_b1_hostile.md:313,derived
+dataset_go_cytoplasm_support,deterministic,proteins,Number of proteins carrying the GO 'cytoplasm' term (reviewer: 'millions'; cf. the Super SON K=1 support of GO:0005737).,review:millions,review_b1_hostile.md:88,rerun
+run_v35k_local_min_count,method-parameter,proteins,"Per-GPU local threshold of the 35K min_count=1,093 runs under 4-way row-splitting (274, from power_test_v1_full.log:2).",review:274,review_b1_hostile.md:90,setup
+kdist_v35k_wave3_k2_locally_frequent,deterministic,itemsets,"Wave-3 run locally frequent K=2 candidates (union across GPUs) before the global recount (14,800).","review:14,800",review_b1_hostile.md:90;review_b1_hostile.md:167,rerun
+kdist_v35k_wave3_k2_count,deterministic,itemsets,"Wave-3 run itemsets at K=2 (8,554 globally frequent; '8.5K').","review:8,554 / 8.5K",review_b1_hostile.md:90;review_b1_hostile.md:105;review_b1_hostile.md:119;review_b1_hostile.md:167,rerun
+run_v35k_wave3_k2_local_prune_pct,deterministic,%,"Share of locally frequent K=2 candidates (union across GPUs) that fail the global recount in the wave-3 run (42% = 1 - 8,554/14,800).",review:42%,review_b1_hostile.md:90;review_b1_hostile.md:167;review_b1_hostile.md:291,derived
+meta_review_f3_severity_major5,external-fact,severity /10,F3 severity of Major M5 (8 vs 3 K=22 proteins): 7/10.,review:7/10,review_b1_hostile.md:94;review_b1_hostile.md:345,external
+k22_script_identified_proteins,deterministic,proteins,Number of K=22 proteins identified by the analysis script's fallback heuristic (3) versus the mining support count (8); the '8 vs 3' discrepancy rows are keyed here.,review:8 vs 3 / 3 / 8-vs-3,review_b1_hostile.md:94;review_b1_hostile.md:96;review_b1_hostile.md:143;review_b1_hostile.md:283;review_b1_hostile.md:345,rerun
+meta_review_f3_severity_major6,external-fact,severity /10,"F3 severity of Major M6 (wave 3 incomplete, new): 6/10.",review:6/10,review_b1_hostile.md:98;review_b1_hostile.md:346,external
+run_v35k_wave3_min_count,method-parameter,proteins,"Global min_count of the 35K wave-3 run (109,225).","review:109,225",review_b1_hostile.md:100;review_b1_hostile.md:119;review_b1_hostile.md:167,setup
+kdist_v35k_wave3_k1_count,deterministic,itemsets,"Wave-3 run itemsets at K=1 (1,164).","review:1,164",review_b1_hostile.md:104,rerun
+run_v35k_wave3_k1_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=1 (0.3 s).,review:0.3,review_b1_hostile.md:104,hardware
+run_v35k_wave3_k2_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=2 (1.2 s).,review:1.2,review_b1_hostile.md:105;review_b1_hostile.md:119,hardware
+kdist_v35k_wave3_k3_count,deterministic,itemsets,"Wave-3 run itemsets at K=3 (28,804).","review:28,804",review_b1_hostile.md:106,rerun
+run_v35k_wave3_k3_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=3 (2.0 s).,review:2.0,review_b1_hostile.md:106,hardware
+kdist_v35k_wave3_k4_count,deterministic,itemsets,"Wave-3 run itemsets at K=4 (88,561).","review:88,561",review_b1_hostile.md:107,rerun
+run_v35k_wave3_k4_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=4 (5.3 s).,review:5.3,review_b1_hostile.md:107,hardware
+kdist_v35k_wave3_k5_count,deterministic,itemsets,"Wave-3 run itemsets at K=5 (280,784).","review:280,784",review_b1_hostile.md:108,rerun
+run_v35k_wave3_k5_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=5 (17.5 s).,review:17.5,review_b1_hostile.md:108,hardware
+kdist_v35k_wave3_k6_count,deterministic,itemsets,"Wave-3 run itemsets at K=6 (835,466).","review:835,466",review_b1_hostile.md:109,rerun
+run_v35k_wave3_k6_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=6 (52.1 s).,review:52.1,review_b1_hostile.md:109,hardware
+kdist_v35k_wave3_k7_count,deterministic,itemsets,"Wave-3 run itemsets at K=7 (2,207,022; '2.2M').","review:2,207,022 / 2.2M",review_b1_hostile.md:110;review_b1_hostile.md:115,rerun
+run_v35k_wave3_k7_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=7 (145.3 s).,review:145.3,review_b1_hostile.md:110,hardware
+kdist_v35k_wave3_k8_count,deterministic,itemsets,"Wave-3 run itemsets at K=8 (5,063,845).","review:5,063,845",review_b1_hostile.md:111,rerun
+run_v35k_wave3_k8_cum_time_s,hardware-dependent,s,Cumulative wall-clock of the wave-3 run at the end of K=8 (348.5 s).,review:348.5,review_b1_hostile.md:111,hardware
+kdist_v35k_wave3_k10_locally_frequent,deterministic,itemsets,Wave-3 run locally frequent K=10 candidates when the log ends (12.5M; global count unknown).,review:12.5M,review_b1_hostile.md:113,rerun
+run_v35k_wave3_k10_cum_time_s,hardware-dependent,s,"Cumulative wall-clock of the wave-3 run at K=10 when the log ends (>743 s, still running).",review:>743,review_b1_hostile.md:113,hardware
+run_v35k_wave3_vs_v35k_itemsets_ratio,deterministic,x,"Itemsets per K-level of the wave-3 0.1% run relative to the 0.001% run (~30x, e.g. K=7 2.2M vs 64K).",review:30x,review_b1_hostile.md:115,derived
+kdist_v35k_k7_count,deterministic,itemsets,"Itemsets of length K=7 in the 35K run (64,400; the peak of its K-distribution; '64K').","review:64K / 64,400",review_b1_hostile.md:115;review_b1_hostile.md:187,rerun
+run_v35k_wave3_itemsets_projected,deterministic,itemsets,Reviewer's projection of the wave-3 total if the run completes ('hundreds of millions' / 'tens of millions').,review:hundreds of millions / tens of millions,review_b1_hostile.md:117;review_b1_hostile.md:236,derived
+run_v35k_power_k2_time_s,hardware-dependent,s,"Time of the K=2 level alone in the 35K power test at min_count=1,093 (586 s).",review:586,review_b1_hostile.md:119,hardware
+kdist_v35k_power_k2_count,deterministic,itemsets,"Frequent pairs of the 35K power test at min_count=1,093 (902K; '900K+').",review:902K / 900K+,review_b1_hostile.md:119;review_b1_hostile.md:279,rerun
+misc_v35k_power_candidate_space_k,deterministic,K,"K range from which F3 says the candidate space explodes at min_count=1,093 (K>=3).",review:>=3,review_b1_hostile.md:119,external
+run_v35k_power_kmax,deterministic,K,K reached by the 35K power test before it apparently stalled (4).,review:4,review_b1_hostile.md:119,rerun
+kdist_v35k_power_k4_count,deterministic,itemsets,K=4 itemsets of the 35K power test (17.4M; '17M+').,review:17.4M / 17M+,review_b1_hostile.md:119;review_b1_hostile.md:279,rerun
+meta_review_f3_severity_minor1,external-fact,severity /10,F3 severity of minor m1 (triplicate boundary instability): 3/10.,review:3/10,review_b1_hostile.md:151,external
+run_v35k_run1_itemsets,deterministic,itemsets,"Itemset total of 35K Direct-GPU run 1 (606,319).","review:606,319",review_b1_hostile.md:153,rerun
+run_v35k_run2_itemsets,deterministic,itemsets,"Itemset total of 35K Direct-GPU run 2 (606,293).","review:606,293",review_b1_hostile.md:153,rerun
+run_v35k_run3_itemsets,deterministic,itemsets,"Itemset total of 35K Direct-GPU run 3 (606,263).","review:606,263",review_b1_hostile.md:153,rerun
+kdist_v35k_k16_count,deterministic,itemsets,"Itemsets of length K=16 in the 35K run (152, stable across the triplicate).",review:152,review_b1_hostile.md:153,rerun
+meta_review_f3_severity_minor2,external-fact,severity /10,F3 severity of minor m2 (35K vocabulary undocumented): 5/10.,review:5/10,review_b1_hostile.md:157,external
+vocab_v1_go_mf,deterministic,items,GO:MF item count of the v1 manuscript's Table 1 (302).,review:302,review_b1_hostile.md:159,external
+vocab_v1_go_bp,deterministic,items,GO:BP item count of the v1 manuscript's Table 1 (289).,review:289,review_b1_hostile.md:159,external
+vocab_v1_go_cc,deterministic,items,GO:CC item count of the v1 manuscript's Table 1 (161).,review:161,review_b1_hostile.md:159,external
+kdist_v35k_k1_count,deterministic,itemsets,"Frequent items (K=1) of the 35K run (34,920 = the whole vocabulary).","review:34,920",review_b1_hostile.md:159,rerun
+misc_v35k_hypothetical_feature_support_range,deterministic,proteins,"Hypothetical support range of most new 35K features in F3's dilution argument (1,093-2,000 proteins).","review:1,093-2,000",review_b1_hostile.md:162,external
+meta_review_f3_severity_minor3,external-fact,severity /10,F3 severity of minor m3 (multi-GPU row-splitting approximation): 5/10.,review:5/10,review_b1_hostile.md:165,external
+run_v35k_wave3_local_min_count,method-parameter,proteins,"Per-GPU local threshold of the wave-3 run (27,307 for global 109,225; wave3_base_partial.log:18).","review:27,307",review_b1_hostile.md:167,setup
+run_v35k_gpu_row_fraction,method-parameter,fraction,Share of the transactions seen by each GPU under 4-way row-splitting (1/4).,review:1/4,review_b1_hostile.md:169,derived
+alg_local_min_count_rule,method-parameter,formula,Local threshold rule of the multi-GPU row-split: local_min_count = global_min_count / n_gpus (global/4).,review:global/4,review_b1_hostile.md:169,setup
+meta_review_f3_severity_minor4,external-fact,severity /10,F3 severity of minor m4 (vocabulary expansion unmotivated): 4/10.,review:4/10,review_b1_hostile.md:173,external
+ext_go_protein_binding_prevalence_pct,external-fact,%,Reviewer's figure for the share of all proteins annotated with GO:0005515 protein binding (~60%).,review:~60%,review_b1_hostile.md:177,external
+misc_go_protein_binding_trivial_cooccurrences,deterministic,co-occurrences,Order of magnitude of trivial co-occurrences F3 attributes to GO:0005515 ('millions').,review:millions,review_b1_hostile.md:177,external
+misc_v35k_hypothetical_median_feature_frequency,deterministic,proteins,Hypothetical median feature frequency threshold in F3's noise-floor argument (< 2x min_count).,review:<2x min_count,review_b1_hostile.md:179,external
+meta_review_f3_severity_minor5,external-fact,severity /10,F3 severity of minor m5 (21.4x speedup now secondary) in review v2: 2/10.,review:2/10,review_b1_hostile.md:181,external
+meta_review_f3_severity_minor5_v1,external-fact,severity /10,F3 severity of minor m5 in review v1: 4/10.,review:4/10,review_b1_hostile.md:181,external
+meta_review_f3_severity_minor6,external-fact,severity /10,F3 severity of minor m6 ('bell curve' terminology): 3/10.,review:3/10,review_b1_hostile.md:185,external
+meta_review_f3_severity_minor7,external-fact,severity /10,F3 severity of minor m7 (intermediate discoveries lack quantitative validation): 3/10.,review:3/10,review_b1_hostile.md:189,external
+meta_review_f3_severity_minor8,external-fact,severity /10,F3 severity of minor m8 (no closed/maximal itemset analysis): 4/10.,review:4/10,review_b1_hostile.md:193,external
+meta_review_f3_severity_minor9,external-fact,severity /10,F3 severity of minor m9 (title vs annotations): 3/10.,review:3/10,review_b1_hostile.md:197,external
+meta_review_f3_severity_minor10,external-fact,severity /10,F3 severity of minor m10 (no cuML/RAPIDS comparison): 2/10.,review:2/10,review_b1_hostile.md:201,external
+meta_review_f3_severity_minor11,external-fact,severity /10,F3 severity of minor m11 (multi-GPU claims incompletely substantiated) in review v2: 3/10.,review:3/10,review_b1_hostile.md:205,external
+meta_review_f3_severity_minor11_v1,external-fact,severity /10,F3 severity of minor m11 in review v1: 5/10.,review:5/10,review_b1_hostile.md:205,external
+run_v35k_bitvec_build_time_s,hardware-dependent,s,Bitvector build time across the 35K runs (8.9-12.9 s).,review:8.9-12.9,review_b1_hostile.md:207,hardware
+meta_review_f3_severity_minor12,external-fact,severity /10,F3 severity of minor m12 (runtime comparison across scales inconsistent): 4/10.,review:4/10,review_b1_hostile.md:209,external
+run_v35k_time_min,hardware-dependent,min,Wall-clock of the 35K run in minutes as tabulated by F3 (10.9 min = run_v35k_time_s / 60).,review:10.9,review_b1_hostile.md:214;review_b1_hostile.md:321,hardware
+run_v35k_vs_opus_gpu_ratio,hardware-dependent,x,GPU count of the 35K run relative to the Opus run (4x).,review:4x,review_b1_hostile.md:216,derived
+run_v35k_vs_opus_support_ratio,method-parameter,x,Support threshold of the 35K run relative to the Opus run (0.001% / 0.00001% = 100x).,review:100x,review_b1_hostile.md:216,derived
+run_v35k_vs_opus_time_ratio,hardware-dependent,relative,Runtime of the 35K run relative to the Opus run ('50% longer'; 10.9 / 7.3 min).,review:50%,review_b1_hostile.md:216,derived
+mem_v35k_bitvec_per_gpu_gb,deterministic,GB,"Bitvector matrix size per GPU for the 35K run under 4-way row-splitting (~119 GB, power_test log line 3; also quoted as the size that would have to fit a single H200).",review:~119,review_b1_hostile.md:224;review_b1_hostile.md:271,derived
+meta_review_f3_vocab_scales,external-fact,scales,F3: number of vocabulary scales at which the method was demonstrated (two: 1K and 35K).,review:2 (two) / 2 (Two),review_b1_hostile.md:236;review_b1_hostile.md:313,external
+meta_review_f3_hardware_configs,hardware-dependent,configurations,F3: number of hardware configurations demonstrated (two: 1xH100 and 4xH200).,review:2 (two),review_b1_hostile.md:236,external
+null_depleted_k,deterministic,K,K level at which the biological itemset count lies below the null mean in both the 1K (5-perm) and 35K (2-perm) null models (2).,review:2,review_b1_hostile.md:248,derived
+run_v35k_null_enriched_from_k,deterministic,K,Smallest K from which the 35K biological counts exceed the null (>=3).,review:>=3,review_b1_hostile.md:248,derived
+cost_null_perms_cloud_usd,hardware-dependent,USD,F3 estimate of the cloud H200 cost of the requested permutation runs (~$50-100).,review:~$50-100,review_b1_hostile.md:267,external
+misc_v35k_minc8_hypothetical_kmax,deterministic,K,"Hypothetical K_max outcomes of a 35K run at min_count=8 that F3 requests (~17 if unchanged, 22 if threshold-driven).",review:~17 / 22,review_b1_hostile.md:271,external
+run_v35k_closed_itemsets,deterministic,itemsets,"Closed-itemset count for the 35K run; not computed, reviewer's projection 50K-100K from the 606K raw total.",review:50K-100K,review_b1_hostile.md:287,derived
+misc_f3_prune_analysis_k,deterministic,K,K threshold of the multi-GPU pruning analysis F3 requests (K>=5).,review:>=5,review_b1_hostile.md:291,external
+null_kmax_bio_ratio,deterministic,x,"run_opus_kmax / null_kmax for the 1K vocabulary (22/6, reviewer: ~3.5x).",review:~3.5x,review_b1_hostile.md:317,derived
+null_v35k2perm_kmax_bio_ratio,deterministic,x,"run_v35k_kmax / run_v35k_null_kmax for the 35K vocabulary (17/5, reviewer: ~3.4x).",review:~3.4x,review_b1_hostile.md:317,derived
+run_v35k_vs_opus_throughput_ratio,hardware-dependent,x,Reviewer's normalised throughput ratio: feature-transaction products per GPU-second of the 35K run vs the 1K run (~50x).,review:~50x,review_b1_hostile.md:321,derived

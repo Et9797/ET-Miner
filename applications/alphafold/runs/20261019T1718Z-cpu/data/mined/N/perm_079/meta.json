@@ -1,0 +1,92 @@
+{
+  "perm": 79,
+  "perm_seed": 7230184821612632326,
+  "shuffle_seed": 5212934058507387840,
+  "shuffle": "numpy default_rng(shuffle_seed).shuffle",
+  "n_rows": 76890945,
+  "min_count": 769,
+  "min_support": 1.0001177641918693e-05,
+  "build_s": 437.94217885896796,
+  "mine_wall_s": 444.5948585139704,
+  "process": {
+    "wall_s": 882.5370661859633,
+    "cpu_s": 4175.744154,
+    "peak_rss_mb": 24585.890625
+  },
+  "levels": [
+    {
+      "k": 1,
+      "candidates": 1002,
+      "frequent": 1002,
+      "ms": 0.060271006077528
+    },
+    {
+      "k": 2,
+      "candidates": 501501,
+      "frequent": 63627,
+      "ms": 10801.246841030661
+    },
+    {
+      "k": 3,
+      "candidates": 2654581,
+      "frequent": 79139,
+      "ms": 86135.73397800792
+    },
+    {
+      "k": 4,
+      "candidates": 141098,
+      "frequent": 25451,
+      "ms": 272926.49517400423
+    },
+    {
+      "k": 5,
+      "candidates": 8713,
+      "frequent": 1993,
+      "ms": 55312.6362710027
+    },
+    {
+      "k": 6,
+      "candidates": 132,
+      "frequent": 23,
+      "ms": 7327.121421985794
+    }
+  ],
+  "total_itemsets": 171235,
+  "k_distribution": {
+    "1": 1002,
+    "2": 63627,
+    "3": 79139,
+    "4": 25451,
+    "5": 1993,
+    "6": 23
+  },
+  "k_max": 6,
+  "signature": {
+    "itemsets": 171235,
+    "sum_counts": 1072192117,
+    "sha256": "ff746c42851032102408bffee799b6807bed5f9345e139acbf1c9341ce28e423",
+    "k_distribution": {
+      "1": 1002,
+      "2": 63627,
+      "3": 79139,
+      "4": 25451,
+      "5": 1993,
+      "6": 23
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-22T12:00:10Z"
+  }
+}

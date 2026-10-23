@@ -1,0 +1,198 @@
+{
+  "experiment": "null_model_permutation_test",
+  "timestamp": "2026-09-02T01:02:33.873613+00:00",
+  "parameters": {
+    "min_support": 0.0001050547072387946,
+    "min_count": 20,
+    "n_transactions": 190377,
+    "n_permutations": 2,
+    "n_gpus": 2,
+    "seed": 42,
+    "permutation_seeds": [
+      7138484576005690180,
+      4047939128787533792
+    ],
+    "recomputed_real": true
+  },
+  "real_distribution": {
+    "1": 1002,
+    "2": 7375,
+    "3": 17329,
+    "4": 23446,
+    "5": 24050,
+    "6": 20706,
+    "7": 15518,
+    "8": 10086,
+    "9": 5527,
+    "10": 2444,
+    "11": 824,
+    "12": 196,
+    "13": 29,
+    "14": 2
+  },
+  "real_total": 128534,
+  "null_runs": [
+    {
+      "run": 1,
+      "total_itemsets": 15564,
+      "time_seconds": 0.77,
+      "k_distribution": {
+        "1": 1002,
+        "2": 8364,
+        "3": 5199,
+        "4": 969,
+        "5": 30
+      }
+    },
+    {
+      "run": 2,
+      "total_itemsets": 15578,
+      "time_seconds": 0.77,
+      "k_distribution": {
+        "1": 1002,
+        "2": 8459,
+        "3": 5145,
+        "4": 942,
+        "5": 30
+      }
+    }
+  ],
+  "statistics": {
+    "1": {
+      "real": 1002,
+      "null_mean": 1002.0,
+      "null_std": 0.0,
+      "z_score": 0.0,
+      "p_value": 1.0,
+      "direction": "depleted",
+      "significant": false
+    },
+    "2": {
+      "real": 7375,
+      "null_mean": 8411.5,
+      "null_std": 67.2,
+      "z_score": -15.43,
+      "p_value": 1.0,
+      "direction": "depleted",
+      "significant": false
+    },
+    "3": {
+      "real": 17329,
+      "null_mean": 5172.0,
+      "null_std": 38.2,
+      "z_score": 318.38,
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": true
+    },
+    "4": {
+      "real": 23446,
+      "null_mean": 955.5,
+      "null_std": 19.1,
+      "z_score": 1178.01,
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": true
+    },
+    "5": {
+      "real": 24050,
+      "null_mean": 30.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "6": {
+      "real": 20706,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "7": {
+      "real": 15518,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "8": {
+      "real": 10086,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "9": {
+      "real": 5527,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "10": {
+      "real": 2444,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "11": {
+      "real": 824,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "12": {
+      "real": 196,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "13": {
+      "real": 29,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    },
+    "14": {
+      "real": 2,
+      "null_mean": 0.0,
+      "null_std": 0.0,
+      "z_score": "inf",
+      "p_value": 0.0,
+      "direction": "enriched",
+      "significant": "True"
+    }
+  },
+  "summary": {
+    "real_total": 128534,
+    "null_mean_total": 15571.0,
+    "ratio_real_vs_null": 8.25,
+    "avg_null_mining_seconds": 0.77,
+    "total_gpu_seconds": 1.54,
+    "wall_clock_seconds": 2.93,
+    "n_gpus": 2
+  },
+  "real_mining_seconds": 2.53
+}

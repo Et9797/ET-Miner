@@ -1,0 +1,19 @@
+[2026-10-20T06:05:00.736Z INFO  af_extract] === Build Transactions from Metadata (pLDDT + annotations) ===
+[2026-10-20T06:05:00.736Z INFO  af_extract::annotations] Loading annotations from DAT: /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.dat.gz
+[2026-10-20T06:05:06.197Z INFO  af_extract::annotations] Loaded 2000000 annotations (21871 Pfam, 20535 GO, 0 InterPro, 0 EC, 0 taxonomy)
+[2026-10-20T06:05:06.197Z INFO  af_extract] Reading pLDDT metadata from: /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.csv
+[2026-10-20T06:05:06.197Z INFO  af_extract]   Accession column: 'uniprotAccession' (index 0)
+[2026-10-20T06:05:06.197Z INFO  af_extract]   pLDDT column: 'globalMetricValue' (index 1)
+[2026-10-20T06:05:06.607Z INFO  af_extract] Read 2000000 rows: 2000000 passed pLDDT filter (>= 50), 0 skipped
+[2026-10-20T06:05:06.607Z INFO  af_extract] Counting feature frequencies across 2000000 proteins...
+[2026-10-20T06:05:08.523Z INFO  af_extract] Frequencies: 21871 Pfam, 20535 GO, 0 InterPro, 0 EC, 0 taxonomy from 2000000 proteins
+[2026-10-20T06:05:08.524Z INFO  af_extract::transaction] Item encoding: 6 pLDDT + 50 Pfam + 50 GO + 0 InterPro + 0 EC + 0 taxonomy = 106 total items
+[2026-10-20T06:05:08.524Z INFO  af_extract::transaction] Saved item mapping: 106 items to /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/direct/item_mapping.parquet
+[2026-10-20T06:05:10.520Z INFO  af_extract::transaction] Written 2000000 transactions to /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/direct/transactions.parquet
+[2026-10-20T06:05:10.520Z INFO  af_extract] === Results ===
+[2026-10-20T06:05:10.520Z INFO  af_extract] Transactions: 2000000
+[2026-10-20T06:05:10.520Z INFO  af_extract] Total items:  106
+[2026-10-20T06:05:10.520Z INFO  af_extract] Output:       /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/direct/transactions.parquet
+[2026-10-20T06:05:10.520Z INFO  af_extract] Item mapping: /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/direct/item_mapping.parquet
+[2026-10-20T06:05:10.520Z INFO  af_extract] Time:         9.8s (204407 proteins/sec)
+af-extract wall_seconds=11

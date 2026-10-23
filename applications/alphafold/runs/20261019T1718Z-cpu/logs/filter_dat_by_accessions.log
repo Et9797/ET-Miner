@@ -1,0 +1,6 @@
+start 2026-10-20T05:49:46Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.pfamgo.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/plddt_metadata_pfamgo.csv
+accessions loaded=90506840
+records_total=158700122 records_kept=90506840
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 6447078382 okt 20 08:01 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.csvacc.dat.gz
+end 2026-10-20T06:01:42Z

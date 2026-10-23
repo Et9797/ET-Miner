@@ -1,0 +1,6 @@
+start 2026-10-20T06:05:19Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s1/plddt.csv
+accessions loaded=500000
+records_total=2000000 records_kept=500000
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 36602967 okt 20 08:05 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s1/shard.dat.gz
+end 2026-10-20T06:05:24Z

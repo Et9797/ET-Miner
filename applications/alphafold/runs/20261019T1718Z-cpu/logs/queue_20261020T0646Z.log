@@ -1,0 +1,21 @@
+2026-10-20T06:46:01Z start G0_incore log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_incore_20261020T0646Z.log
+2026-10-20T06:46:06Z done G0_incore
+2026-10-20T06:46:06Z start G0_son log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_son_20261020T0646Z.log
+2026-10-20T06:46:16Z done G0_son
+2026-10-20T06:46:16Z start G0_ea log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_ea_20261020T0646Z.log
+2026-10-20T06:50:45Z done G0_ea
+2026-10-20T06:50:45Z start G0_cmp_incore log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_cmp_incore_20261020T0650Z.log
+2026-10-20T06:50:46Z done G0_cmp_incore
+2026-10-20T06:50:46Z start G0_cmp_son log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_cmp_son_20261020T0650Z.log
+2026-10-20T06:50:47Z done G0_cmp_son
+2026-10-20T06:50:47Z start G0_check log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_check_20261020T0650Z.log
+2026-10-20T06:50:47Z done G0_check
+2026-10-20T06:50:47Z start C1 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C1_20261020T0650Z.log
+2026-10-20T06:55:22Z done C1
+2026-10-20T06:55:22Z start C2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C2_20261020T0655Z.log
+2026-10-20T08:41:45Z done C2
+2026-10-20T08:41:45Z start C3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C3_20261020T0841Z.log
+2026-10-20T15:48:30Z done C3
+2026-10-20T15:48:30Z start P1T log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/P1T_20261020T1548Z.log
+2026-10-20T15:51:03Z done P1T
+2026-10-20T15:51:03Z queue end

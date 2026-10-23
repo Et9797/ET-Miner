@@ -1,0 +1,5 @@
+  smoke: 60,000 rows, nnz=498,549 → datasets/synth/smoke.parquet
+  stress_k2: 2,000,000 rows, nnz=47,473,315 → datasets/synth/stress_k2.parquet
+  deep_k: 1,000,000 rows, nnz=12,835,593 → datasets/synth/deep_k.parquet
+  skewed_rows: 1,000,000 rows, nnz=16,002,555 → datasets/synth/skewed_rows.parquet
+  oom_regression: 500,000 rows, nnz=9,938,316 → datasets/synth/oom_regression.parquet

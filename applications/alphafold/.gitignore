@@ -1,0 +1,37 @@
+# Reproduction runs: inputs, itemset tables and third-party data stay local; they are listed with
+# sha256 in EXCLUDED_FROM_MAIN.md and in each run's EXCLUDED_LARGE_FILES.md. File-level rules only, so the
+# tracked records in the same directories stay visible to git add.
+runs/**/*.parquet
+runs/**/*.dat.gz
+runs/**/*.partial
+runs/**/go.obo
+runs/**/*.done
+runs/*/state/
+runs/*/RUN_DIR.txt
+runs/20260902T0000Z/phase2/data/plddt_metadata_storageapi.csv
+runs/20260902T0000Z/phase2/data/dat_pfamgo_accessions_2026_01.txt
+runs/20260902T0000Z/phase2/extract_2026_01/plddt_metadata_pfamgo.csv
+runs/20260902T0000Z/phase2/bwtest/*.tar
+runs/20260902T0000Z/phase2/metadata_sample/
+runs/20260902T0000Z/phase2/smoke_2026_01/plddt_smoke.csv
+runs/20260902T0000Z/phase2/smoke_2026_01/accessions.txt
+runs/20260902T0000Z/phase2/streamtest/work/
+runs/20260902T0000Z/phase2/streamtest/docs.tar.gz
+runs/20260902T0000Z/phase2/streamtest/keywlist_streamed.txt
+runs/20260902T0000Z/phase4/v2_checks/interpro2go
+runs/20261019T1718Z-cpu/data/plddt_metadata_storageapi.csv
+runs/20261019T1718Z-cpu/data/dat_pfamgo_accessions_2026_01.txt
+runs/20261019T1718Z-cpu/data/extract_2026_01/plddt_metadata_pfamgo.csv
+runs/20261019T1718Z-cpu/data/extract_2026_01/shards/*/plddt.csv
+runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.csv
+runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/*/plddt.csv
+runs/20261019T1718Z-cpu/data/stream_work_*/
+af-extract/target/
+rust/build_tx
+rust/remap_tx
+# The repository-wide rules ignore logs and MANIFEST.md; the run records and the V1 logs keep theirs.
+!runs/**/logs/
+!runs/**/*.log
+!results_214m/logs/
+!results_214m/logs/*.log
+!runs/20261019T1718Z-cpu/data/MANIFEST.md

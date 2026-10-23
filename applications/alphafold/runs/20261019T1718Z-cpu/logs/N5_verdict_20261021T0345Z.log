@@ -1,0 +1,1 @@
+{"mode": "n5", "verdict": "consistent", "cpu_mean": 171290.4, "gpu_mu": 171306.29, "gpu_sigma_ddof1": 65.6833996524159, "mannwhitney_p": 0.6089059688455525, "criteria": {"a_kmax_all_6": true, "b_mean_within_3sigma_sqrt5": true, "d_no_perm_reaches_real_at_k456_and_none_k_ge_7": true}}

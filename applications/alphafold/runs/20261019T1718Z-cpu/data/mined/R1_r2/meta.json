@@ -1,0 +1,31 @@
+{
+  "label": "R1_r2",
+  "itemsets": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/C1/parquet",
+  "n_itemsets": 5305,
+  "min_confidence": 0.5,
+  "n_rules": 53447,
+  "n_rules_lift_ge5": 51126,
+  "n_rules_lift_ge100": 40428,
+  "max_lift": 968.9956430284116,
+  "generate_s": 0.16083201597211882,
+  "process": {
+    "wall_s": 0.6086217890260741,
+    "cpu_s": 0.637419,
+    "peak_rss_mb": 188.2421875
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-20T16:07:32Z"
+  }
+}

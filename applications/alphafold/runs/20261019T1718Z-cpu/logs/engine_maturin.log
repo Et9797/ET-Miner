@@ -1,0 +1,46 @@
+🐍 Found CPython 3.14 at /home/et/personal-projects/ET-Miner-engine/.venv/bin/python
+🔗 Found pyo3 bindings
+   Compiling target-lexicon v0.13.4
+   Compiling autocfg v1.5.0
+   Compiling libc v0.2.180
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.22
+   Compiling quote v1.0.44
+   Compiling crossbeam-utils v0.8.21
+   Compiling cfg-if v1.0.4
+   Compiling zerocopy v0.8.37
+   Compiling heck v0.5.0
+   Compiling rawpointer v0.2.1
+   Compiling rayon-core v1.13.0
+   Compiling once_cell v1.21.3
+   Compiling unindent v0.2.4
+   Compiling indoc v2.0.7
+   Compiling rustc-hash v2.1.1
+   Compiling either v1.15.0
+   Compiling num-traits v0.2.19
+   Compiling matrixmultiply v0.3.10
+   Compiling memoffset v0.9.1
+   Compiling pyo3-build-config v0.27.2
+   Compiling crossbeam-epoch v0.9.18
+   Compiling num-complex v0.4.6
+   Compiling num-integer v0.1.46
+   Compiling syn v2.0.114
+   Compiling crossbeam-deque v0.8.6
+   Compiling getrandom v0.2.17
+   Compiling ndarray v0.17.2
+   Compiling rand_core v0.6.4
+   Compiling rand_xoshiro v0.6.0
+   Compiling pyo3-macros-backend v0.27.2
+   Compiling pyo3-ffi v0.27.2
+   Compiling pyo3 v0.27.2
+   Compiling numpy v0.27.1
+   Compiling rayon v1.11.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.5
+   Compiling pyo3-macros v0.27.2
+   Compiling et_miner_rust v0.4.0 (/home/et/personal-projects/ET-Miner-engine/rust_ext)
+    Finished `release` profile [optimized] target(s) in 16.83s
+📦 Built wheel for CPython 3.14 to /tmp/.tmpBhPZnl/et_miner_rust-0.4.0-cp314-cp314-linux_x86_64.whl
+✏️ Setting installed package as editable
+🛠 Installed et_miner_rust-0.4.0

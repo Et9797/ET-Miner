@@ -1,0 +1,228 @@
+{
+  "label": "C5_vs_GPU_opus_filtered",
+  "cpu": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/C5/parquet",
+  "ref": "/home/et/personal-projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/opus/parquet",
+  "n_rows": 76890945,
+  "ref_min_count": 16,
+  "cpu_min_count": null,
+  "translated": true,
+  "verdict": "identical",
+  "per_k": {
+    "1": {
+      "cpu": 1002,
+      "ref": 1002,
+      "both": 1002,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "2": {
+      "cpu": 60088,
+      "ref": 60088,
+      "both": 60088,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "3": {
+      "cpu": 356691,
+      "ref": 356691,
+      "both": 356691,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "4": {
+      "cpu": 894903,
+      "ref": 894903,
+      "both": 894903,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "5": {
+      "cpu": 1421780,
+      "ref": 1421780,
+      "both": 1421780,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "6": {
+      "cpu": 1794852,
+      "ref": 1794852,
+      "both": 1794852,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "7": {
+      "cpu": 2006312,
+      "ref": 2006312,
+      "both": 2006312,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "8": {
+      "cpu": 2053858,
+      "ref": 2053858,
+      "both": 2053858,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "9": {
+      "cpu": 1912672,
+      "ref": 1912672,
+      "both": 1912672,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "10": {
+      "cpu": 1587145,
+      "ref": 1587145,
+      "both": 1587145,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "11": {
+      "cpu": 1148998,
+      "ref": 1148998,
+      "both": 1148998,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "12": {
+      "cpu": 712433,
+      "ref": 712433,
+      "both": 712433,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "13": {
+      "cpu": 371981,
+      "ref": 371981,
+      "both": 371981,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "14": {
+      "cpu": 160675,
+      "ref": 160675,
+      "both": 160675,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "15": {
+      "cpu": 56221,
+      "ref": 56221,
+      "both": 56221,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "16": {
+      "cpu": 15501,
+      "ref": 15501,
+      "both": 15501,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "17": {
+      "cpu": 3236,
+      "ref": 3236,
+      "both": 3236,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "18": {
+      "cpu": 480,
+      "ref": 480,
+      "both": 480,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "19": {
+      "cpu": 45,
+      "ref": 45,
+      "both": 45,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "20": {
+      "cpu": 2,
+      "ref": 2,
+      "both": 2,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    }
+  },
+  "signature_cpu": {
+    "itemsets": 14558875,
+    "sum_counts": 5346127334,
+    "sha256": "0e25705cf3ea75bf20913fcdfc92d61c39c0cc400f1b826606489841eb285dfb",
+    "k_distribution": {
+      "1": 1002,
+      "2": 60088,
+      "3": 356691,
+      "4": 894903,
+      "5": 1421780,
+      "6": 1794852,
+      "7": 2006312,
+      "8": 2053858,
+      "9": 1912672,
+      "10": 1587145,
+      "11": 1148998,
+      "12": 712433,
+      "13": 371981,
+      "14": 160675,
+      "15": 56221,
+      "16": 15501,
+      "17": 3236,
+      "18": 480,
+      "19": 45,
+      "20": 2
+    }
+  },
+  "signature_ref": {
+    "itemsets": 14558875,
+    "sum_counts": 5346127334,
+    "sha256": "0e25705cf3ea75bf20913fcdfc92d61c39c0cc400f1b826606489841eb285dfb",
+    "k_distribution": {
+      "1": 1002,
+      "2": 60088,
+      "3": 356691,
+      "4": 894903,
+      "5": 1421780,
+      "6": 1794852,
+      "7": 2006312,
+      "8": 2053858,
+      "9": 1912672,
+      "10": 1587145,
+      "11": 1148998,
+      "12": 712433,
+      "13": 371981,
+      "14": 160675,
+      "15": 56221,
+      "16": 15501,
+      "17": 3236,
+      "18": 480,
+      "19": 45,
+      "20": 2
+    }
+  },
+  "n_differing": 0,
+  "differing": []
+}

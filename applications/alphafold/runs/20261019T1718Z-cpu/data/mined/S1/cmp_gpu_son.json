@@ -1,0 +1,118 @@
+{
+  "label": "S1_vs_GPU_son_base",
+  "cpu": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/mined/S1/parquet",
+  "ref": "/home/et/personal-projects/ET-Miner/runs/20260902T0000Z/phase3/2026_01/exp/son_base_itemsets.parquet",
+  "n_rows": 76890945,
+  "ref_min_count": null,
+  "cpu_min_count": null,
+  "translated": true,
+  "verdict": "identical",
+  "per_k": {
+    "1": {
+      "cpu": 667,
+      "ref": 667,
+      "both": 667,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "2": {
+      "cpu": 1504,
+      "ref": 1504,
+      "both": 1504,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "3": {
+      "cpu": 1378,
+      "ref": 1378,
+      "both": 1378,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "4": {
+      "cpu": 884,
+      "ref": 884,
+      "both": 884,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "5": {
+      "cpu": 514,
+      "ref": 514,
+      "both": 514,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "6": {
+      "cpu": 247,
+      "ref": 247,
+      "both": 247,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "7": {
+      "cpu": 89,
+      "ref": 89,
+      "both": 89,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "8": {
+      "cpu": 20,
+      "ref": 20,
+      "both": 20,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    },
+    "9": {
+      "cpu": 2,
+      "ref": 2,
+      "both": 2,
+      "cpu_only": 0,
+      "ref_only": 0,
+      "count_mismatch": 0
+    }
+  },
+  "signature_cpu": {
+    "itemsets": 5305,
+    "sum_counts": 1404722522,
+    "sha256": "fc0de1eefb529fe3aab214f2641b53985e655b74ce1201269d1d69ef39256a84",
+    "k_distribution": {
+      "1": 667,
+      "2": 1504,
+      "3": 1378,
+      "4": 884,
+      "5": 514,
+      "6": 247,
+      "7": 89,
+      "8": 20,
+      "9": 2
+    }
+  },
+  "signature_ref": {
+    "itemsets": 5305,
+    "sum_counts": 1404722522,
+    "sha256": "fc0de1eefb529fe3aab214f2641b53985e655b74ce1201269d1d69ef39256a84",
+    "k_distribution": {
+      "1": 667,
+      "2": 1504,
+      "3": 1378,
+      "4": 884,
+      "5": 514,
+      "6": 247,
+      "7": 89,
+      "8": 20,
+      "9": 2
+    }
+  },
+  "n_differing": 0,
+  "differing": []
+}

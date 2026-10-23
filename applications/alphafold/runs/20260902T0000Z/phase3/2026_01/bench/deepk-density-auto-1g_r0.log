@@ -1,0 +1,44 @@
+2026-09-02 12:00:45.240 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:501 - Direct CSR path: 1,000,000 transactions, min_count=20000
+2026-09-02 12:00:45.299 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:524 - Direct CSR path: 112 frequent items
+2026-09-02 12:00:45.424 | INFO     | et_miner.core.matrix:_build_csr_from_transactions:548 - Direct CSR path: 8,046,258 non-zeros
+2026-09-02 12:00:45.894 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:520 - APRIORI BITVEC: 112 cols, 1,000,000 txns, min_support=0.02000000 (min_count=20000), max_length=112
+2026-09-02 12:00:45.920 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=1: candidates=112 → frequent=112 (0.0s) | cumulative=112 | RAM=1.0GB VRAM=0.0GB
+/root/projects/ET-Miner/bench/child_run.py:139: UserWarning: 100% of items are frequent (min_count=20000). Mining may produce combinatorially explosive results. Consider raising min_support.
+  res = apriori(
+2026-09-02 12:00:45.923 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=2: candidates=6,216 → frequent=471 (0.0s) | cumulative=583 | RAM=1.0GB VRAM=0.0GB
+2026-09-02 12:00:45.924 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 7 dead bitvecs at K=2 (1 MB logical)
+2026-09-02 12:00:45.933 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=3: candidates=9,174 → frequent=901 (0.0s) | cumulative=1,484 | RAM=1.0GB VRAM=0.0GB
+2026-09-02 12:00:45.934 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 21 dead bitvecs at K=3 (3 MB logical)
+2026-09-02 12:00:45.947 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=4: candidates=3,659 → frequent=1,407 (0.0s) | cumulative=2,891 | RAM=1.0GB VRAM=0.0GB
+2026-09-02 12:00:45.947 | DEBUG    | et_miner.gpu.mining:_deallocate_dead_bitvecs:46 -     Pruning: zeroed 22 dead bitvecs at K=4 (3 MB logical)
+2026-09-02 12:00:45.947 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:611 -   ═══ DENSITY TRANSITION at K=5 (measured mean support 2.9105% < 3.1250% crossover): dense bitvec → sparse CSR ═══
+2026-09-02 12:00:45.998 | INFO     | et_miner.gpu.sparse_csr:convert_shards_to_csr:196 -     Dense→Sparse: 1,407 itemsets, avg support 29105, 156.2 MB tidset across 1 shard(s), row lengths verified exactly
+2026-09-02 12:00:45.998 | DEBUG    | et_miner.gpu.mining:_apriori_from_bitvecs:621 -     Freed bitvec VRAM, 40,950,859 tid entries in the CSR shard
+2026-09-02 12:00:45.999 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:633 -   K=5: 2,251 candidates (CSR sparse mode)
+2026-09-02 12:00:46.010 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=5 CSR chunk 1/1 filtering: 2,251 candidates → 1,854 frequent (82.4% pass rate, min_count=20,000)
+2026-09-02 12:00:46.030 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 1,854 itemsets, avg support 28543, 201.9 MB across 1 shard(s)
+2026-09-02 12:00:46.030 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=5: candidates=2,251 → frequent=1,854 (0.1s) | cumulative=4,745 | RAM=1.0GB VRAM=0.2GB
+2026-09-02 12:00:46.031 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:633 -   K=6: 1,855 candidates (CSR sparse mode)
+2026-09-02 12:00:46.035 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=6 CSR chunk 1/1 filtering: 1,855 candidates → 1,848 frequent (99.6% pass rate, min_count=20,000)
+2026-09-02 12:00:46.047 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 1,848 itemsets, avg support 28260, 199.2 MB across 1 shard(s)
+2026-09-02 12:00:46.047 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=6: candidates=1,855 → frequent=1,848 (0.0s) | cumulative=6,593 | RAM=1.0GB VRAM=0.2GB
+2026-09-02 12:00:46.047 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:633 -   K=7: 1,320 candidates (CSR sparse mode)
+2026-09-02 12:00:46.052 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=7 CSR chunk 1/1 filtering: 1,320 candidates → 1,320 frequent (100.0% pass rate, min_count=20,000)
+2026-09-02 12:00:46.067 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 1,320 itemsets, avg support 27970, 140.9 MB across 1 shard(s)
+2026-09-02 12:00:46.067 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=7: candidates=1,320 → frequent=1,320 (0.0s) | cumulative=7,913 | RAM=0.9GB VRAM=0.2GB
+2026-09-02 12:00:46.068 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:633 -   K=8: 660 candidates (CSR sparse mode)
+2026-09-02 12:00:46.072 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=8 CSR chunk 1/1 filtering: 660 candidates → 660 frequent (100.0% pass rate, min_count=20,000)
+2026-09-02 12:00:46.080 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 660 itemsets, avg support 27680, 69.7 MB across 1 shard(s)
+2026-09-02 12:00:46.080 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=8: candidates=660 → frequent=660 (0.0s) | cumulative=8,573 | RAM=0.9GB VRAM=0.1GB
+2026-09-02 12:00:46.080 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:633 -   K=9: 220 candidates (CSR sparse mode)
+2026-09-02 12:00:46.084 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=9 CSR chunk 1/1 filtering: 220 candidates → 220 frequent (100.0% pass rate, min_count=20,000)
+2026-09-02 12:00:46.091 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 220 itemsets, avg support 27390, 23.0 MB across 1 shard(s)
+2026-09-02 12:00:46.091 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=9: candidates=220 → frequent=220 (0.0s) | cumulative=8,793 | RAM=0.9GB VRAM=0.0GB
+2026-09-02 12:00:46.092 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:633 -   K=10: 44 candidates (CSR sparse mode)
+2026-09-02 12:00:46.095 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=10 CSR chunk 1/1 filtering: 44 candidates → 44 frequent (100.0% pass rate, min_count=20,000)
+2026-09-02 12:00:46.101 | DEBUG    | et_miner.gpu.sparse_csr:log_new_shards:325 -     New tidsets: 44 itemsets, avg support 27100, 4.5 MB across 1 shard(s)
+2026-09-02 12:00:46.101 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=10: candidates=44 → frequent=44 (0.0s) | cumulative=8,837 | RAM=0.9GB VRAM=0.0GB
+2026-09-02 12:00:46.101 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:633 -   K=11: 4 candidates (CSR sparse mode)
+2026-09-02 12:00:46.105 | INFO     | et_miner.gpu.row_split_chunks:run_chunked_dense_level:285 -   K=11 CSR chunk 1/1 filtering: 4 candidates → 4 frequent (100.0% pass rate, min_count=20,000)
+2026-09-02 12:00:46.105 | INFO     | et_miner.gpu.mining:_log_level:497 -   K=11: candidates=4 → frequent=4 (0.0s) | cumulative=8,841 | RAM=0.9GB VRAM=0.0GB
+2026-09-02 12:00:46.105 | INFO     | et_miner.gpu.mining:_apriori_from_bitvecs:770 -   Mining complete: K=11 reached max_length=112. Total: 8,841 itemsets in 0.2s

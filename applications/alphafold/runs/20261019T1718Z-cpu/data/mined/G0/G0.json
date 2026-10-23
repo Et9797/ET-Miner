@@ -1,0 +1,63 @@
+{
+  "n_rows": 1000000,
+  "min_count": 50,
+  "itemsets": {
+    "incore": 167042,
+    "son": 167042,
+    "ea": 167042
+  },
+  "k_max": {
+    "incore": 14,
+    "son": 14,
+    "ea": 14
+  },
+  "signatures": {
+    "incore": "8a3f042ee23f70f03fd7f0274c6713ddcade2c0acd40871773875a8c00e8ef39",
+    "son": "8a3f042ee23f70f03fd7f0274c6713ddcade2c0acd40871773875a8c00e8ef39",
+    "ea": "8a3f042ee23f70f03fd7f0274c6713ddcade2c0acd40871773875a8c00e8ef39"
+  },
+  "son_chunks": 4,
+  "son_pass1_events": 4,
+  "ea_max_length": 21,
+  "compare": {
+    "incore": "identical",
+    "son": "identical"
+  },
+  "gpu_total": 168674,
+  "gpu_k_distribution": {
+    "1": 1002,
+    "2": 12255,
+    "3": 30164,
+    "4": 36753,
+    "5": 32921,
+    "6": 24562,
+    "7": 15761,
+    "8": 8794,
+    "9": 4198,
+    "10": 1643,
+    "11": 497,
+    "12": 108,
+    "13": 15,
+    "14": 1
+  },
+  "cpu_k_distribution": {
+    "1": 1002,
+    "2": 12259,
+    "3": 30053,
+    "4": 36550,
+    "5": 32624,
+    "6": 24189,
+    "7": 15419,
+    "8": 8586,
+    "9": 4117,
+    "10": 1624,
+    "11": 495,
+    "12": 108,
+    "13": 15,
+    "14": 1
+  },
+  "row_order_equals_gpu": false,
+  "exact_three_way": true,
+  "gpu_crosscheck": "not comparable: the first 1,000,000 rows of the rebuilt mined set are not the GPU run's rows (row order follows the joined pLDDT CSV, whose order comes from 16 parallel Storage Read streams and an unordered polars join; sha256 of the rebuilt multi parquet != EXCLUDED_LARGE_FILES.md; ORIGINAL_DATA_DIR not set)",
+  "pass": true
+}

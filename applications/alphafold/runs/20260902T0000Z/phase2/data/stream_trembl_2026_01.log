@@ -1,0 +1,203 @@
+start 2026-09-02T00:40:36Z url=https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/knowledgebase2026_01.tar.gz size=161890570993 member=uniprot_trembl.dat.gz
+member docs size=0
+member docs/ptmlist.txt size=248929
+member docs/keywlist.xsd size=1819
+member docs/humchr07.txt size=176981
+member docs/dicty.txt size=317907
+member docs/sp_soon.htm size=0
+member docs/yeast14.txt size=82882
+member docs/mgdtosp.txt size=989817
+member docs/humchr08.txt size=131541
+member docs/protspot.txt size=35596
+member docs/enzuser.txt size=11597
+member docs/humchr06.txt size=195161
+member docs/yeast6.txt size=28528
+member docs/pdbtosp.txt size=16381490
+member docs/tisslist.txt size=80324
+member docs/yeast7.txt size=111548
+member docs/jourlist.txt size=1138759
+member docs/humchry.txt size=10418
+member docs/intein.txt size=7825
+member docs/plasmid.txt size=17290
+member docs/fly.txt size=258116
+member docs/userman.htm size=313794
+member docs/yeast3.txt size=39235
+member docs/humchr15.txt size=107803
+member docs/humdisease.txt size=4602566
+member docs/acindex.txt size=18782014
+member docs/extradom.txt size=10399
+member docs/keywlist.txt size=655311
+member docs/allergen.txt size=17285
+member docs/delac_tr.txt.gz size=631248764
+consumed 0.23 GB of 161.89 GB  avg 7.8 MB/s
+member docs/hoxlist.txt size=13462
+member docs/enzclass.txt size=20806
+member docs/reinstated_map.txt.gz size=84186361
+member docs/pkinfam.txt size=36166
+member docs/yeast15.txt size=113261
+member docs/speclist.txt size=2450418
+member docs/humchr17.txt size=217735
+member docs/humchr14.txt size=129100
+member docs/xml_news.htm size=0
+member docs/glycosid.txt size=145542
+member docs/humchr18.txt size=49903
+member docs/humchr19.txt size=251037
+member docs/humchr21.txt size=49371
+member docs/humsavar.txt size=8639883
+member docs/delac_sp.txt size=14711
+member docs/yeast11.txt size=66046
+member docs/shortdes.txt size=157818186
+member docs/initfact.txt size=57401
+member docs/humchr10.txt size=139410
+member docs/keywlist.xml.gz size=155581
+member docs/arath.txt size=2355559
+member docs/humchr01.txt size=377698
+member docs/strains.txt size=535790
+member docs/subcell.txt size=261753
+member docs/aatrnasy.txt size=320994
+member docs/nomlist.txt size=28193
+member docs/humchr05.txt size=159638
+member docs/yeast12.txt size=110699
+member docs/metallo.txt size=27619
+member docs/dbxref.txt size=55430
+member docs/humchr11.txt size=239232
+member docs/similar.txt size=14866781
+member docs/yeast.txt size=959553
+member docs/humchr09.txt size=144443
+member docs/yeast10.txt size=76294
+member docs/celegans.txt size=515095
+member docs/upflist.txt size=406972
+member docs/humchr13.txt size=61150
+member docs/peptidas.txt size=338601
+member docs/scorpktx.txt size=20973
+member docs/yeast5.txt size=62200
+member docs/humchrx.txt size=155909
+member docs/humchr02.txt size=237035
+member docs/pe_criteria.txt size=4448
+member docs/pathway.txt size=4146164
+member docs/International_Protein_Nomenclature_Guidelines.pdf size=505513
+member docs/rice.txt size=705832
+member docs/cdlist.txt size=70717
+member docs/ribosomp.txt size=1299381
+member docs/xml_soon.htm size=0
+member docs/yeast13.txt size=96424
+member docs/bloodgrp.txt size=9634
+member docs/yeast4.txt size=158825
+member docs/humchr16.txt size=156497
+member docs/7tmrlist.txt size=337307
+member docs/RELEASE.metalink size=71499
+member docs/humchr04.txt size=148514
+member docs/speindex.txt size=16206228
+member docs/calbican.txt size=130906
+member docs/humchr12.txt size=195469
+member docs/humchr20.txt size=103199
+member docs/humchr03.txt size=196880
+member docs/humpvar.txt size=1066182
+member docs/mimtosp.txt size=794333
+member docs/pathlist.txt size=861086
+member docs/yeast2.txt size=86722
+member docs/sec_ac.txt size=60521766
+member docs/sp_news.htm size=0
+member docs/humchr22.txt size=89045
+member docs/restric.txt size=17174
+member docs/yeast16.txt size=98399
+member docs/yeast9.txt size=47926
+member docs/yeast1.txt size=24319
+member docs/pombe.txt size=552544
+member docs/yeast8.txt size=62017
+member reldate.txt size=151
+member uniprot_sprot.dat.gz size=692563345
+member uniprot_trembl.dat.gz size=160834306675
+consumed 2.57 GB of 161.89 GB  avg 42.7 MB/s
+consumed 3.64 GB of 161.89 GB  avg 40.3 MB/s
+consumed 5.28 GB of 161.89 GB  avg 43.9 MB/s
+consumed 7.10 GB of 161.89 GB  avg 47.1 MB/s
+consumed 8.91 GB of 161.89 GB  avg 49.3 MB/s
+consumed 10.74 GB of 161.89 GB  avg 50.9 MB/s
+consumed 12.50 GB of 161.89 GB  avg 51.8 MB/s
+consumed 14.13 GB of 161.89 GB  avg 52.1 MB/s
+consumed 15.89 GB of 161.89 GB  avg 52.7 MB/s
+consumed 17.68 GB of 161.89 GB  avg 53.4 MB/s
+consumed 19.33 GB of 161.89 GB  avg 53.4 MB/s
+consumed 20.79 GB of 161.89 GB  avg 53.1 MB/s
+consumed 22.30 GB of 161.89 GB  avg 52.8 MB/s
+consumed 23.84 GB of 161.89 GB  avg 52.7 MB/s
+consumed 25.37 GB of 161.89 GB  avg 52.5 MB/s
+consumed 26.81 GB of 161.89 GB  avg 52.3 MB/s
+consumed 27.95 GB of 161.89 GB  avg 51.5 MB/s
+consumed 29.43 GB of 161.89 GB  avg 51.3 MB/s
+consumed 30.77 GB of 161.89 GB  avg 51.0 MB/s
+consumed 32.21 GB of 161.89 GB  avg 50.9 MB/s
+consumed 33.52 GB of 161.89 GB  avg 50.5 MB/s
+consumed 34.91 GB of 161.89 GB  avg 50.3 MB/s
+consumed 36.57 GB of 161.89 GB  avg 50.5 MB/s
+consumed 38.08 GB of 161.89 GB  avg 50.5 MB/s
+consumed 39.68 GB of 161.89 GB  avg 50.6 MB/s
+consumed 41.29 GB of 161.89 GB  avg 50.7 MB/s
+consumed 42.71 GB of 161.89 GB  avg 50.6 MB/s
+consumed 44.11 GB of 161.89 GB  avg 50.4 MB/s
+consumed 45.48 GB of 161.89 GB  avg 50.3 MB/s
+consumed 46.84 GB of 161.89 GB  avg 50.1 MB/s
+consumed 48.23 GB of 161.89 GB  avg 49.9 MB/s
+consumed 49.69 GB of 161.89 GB  avg 49.9 MB/s
+consumed 51.10 GB of 161.89 GB  avg 49.8 MB/s
+consumed 52.58 GB of 161.89 GB  avg 49.8 MB/s
+consumed 53.91 GB of 161.89 GB  avg 49.6 MB/s
+consumed 55.26 GB of 161.89 GB  avg 49.5 MB/s
+consumed 56.59 GB of 161.89 GB  avg 49.4 MB/s
+consumed 58.03 GB of 161.89 GB  avg 49.3 MB/s
+consumed 59.39 GB of 161.89 GB  avg 49.2 MB/s
+consumed 60.90 GB of 161.89 GB  avg 49.2 MB/s
+consumed 62.38 GB of 161.89 GB  avg 49.2 MB/s
+consumed 63.87 GB of 161.89 GB  avg 49.2 MB/s
+consumed 65.43 GB of 161.89 GB  avg 49.3 MB/s
+consumed 67.23 GB of 161.89 GB  avg 49.5 MB/s
+consumed 68.94 GB of 161.89 GB  avg 49.7 MB/s
+consumed 70.68 GB of 161.89 GB  avg 49.8 MB/s
+consumed 72.71 GB of 161.89 GB  avg 50.2 MB/s
+consumed 74.78 GB of 161.89 GB  avg 50.6 MB/s
+consumed 76.81 GB of 161.89 GB  avg 50.9 MB/s
+consumed 78.87 GB of 161.89 GB  avg 51.3 MB/s
+consumed 80.87 GB of 161.89 GB  avg 51.6 MB/s
+consumed 82.90 GB of 161.89 GB  avg 51.9 MB/s
+consumed 84.94 GB of 161.89 GB  avg 52.2 MB/s
+consumed 86.94 GB of 161.89 GB  avg 52.4 MB/s
+consumed 88.99 GB of 161.89 GB  avg 52.7 MB/s
+consumed 90.97 GB of 161.89 GB  avg 52.9 MB/s
+consumed 93.03 GB of 161.89 GB  avg 53.2 MB/s
+consumed 95.09 GB of 161.89 GB  avg 53.4 MB/s
+consumed 97.12 GB of 161.89 GB  avg 53.7 MB/s
+consumed 99.22 GB of 161.89 GB  avg 53.9 MB/s
+consumed 101.28 GB of 161.89 GB  avg 54.2 MB/s
+consumed 103.31 GB of 161.89 GB  avg 54.4 MB/s
+consumed 105.36 GB of 161.89 GB  avg 54.6 MB/s
+consumed 107.41 GB of 161.89 GB  avg 54.8 MB/s
+consumed 109.44 GB of 161.89 GB  avg 55.0 MB/s
+consumed 111.50 GB of 161.89 GB  avg 55.2 MB/s
+consumed 113.03 GB of 161.89 GB  avg 53.8 MB/s
+consumed 115.13 GB of 161.89 GB  avg 54.0 MB/s
+consumed 117.21 GB of 161.89 GB  avg 54.2 MB/s
+consumed 119.27 GB of 161.89 GB  avg 54.4 MB/s
+consumed 121.33 GB of 161.89 GB  avg 54.6 MB/s
+consumed 123.40 GB of 161.89 GB  avg 54.8 MB/s
+consumed 125.44 GB of 161.89 GB  avg 54.9 MB/s
+consumed 127.49 GB of 161.89 GB  avg 55.1 MB/s
+consumed 129.55 GB of 161.89 GB  avg 55.3 MB/s
+consumed 131.63 GB of 161.89 GB  avg 55.4 MB/s
+consumed 133.68 GB of 161.89 GB  avg 55.6 MB/s
+consumed 135.74 GB of 161.89 GB  avg 55.8 MB/s
+consumed 137.79 GB of 161.89 GB  avg 55.9 MB/s
+consumed 139.80 GB of 161.89 GB  avg 56.0 MB/s
+consumed 141.45 GB of 161.89 GB  avg 56.0 MB/s
+consumed 142.74 GB of 161.89 GB  avg 55.9 MB/s
+consumed 144.18 GB of 161.89 GB  avg 55.8 MB/s
+consumed 146.10 GB of 161.89 GB  avg 55.9 MB/s
+consumed 148.06 GB of 161.89 GB  avg 56.0 MB/s
+consumed 150.09 GB of 161.89 GB  avg 56.1 MB/s
+consumed 152.17 GB of 161.89 GB  avg 56.3 MB/s
+consumed 154.17 GB of 161.89 GB  avg 56.4 MB/s
+consumed 156.16 GB of 161.89 GB  avg 56.5 MB/s
+consumed 158.26 GB of 161.89 GB  avg 56.6 MB/s
+consumed 160.27 GB of 161.89 GB  avg 56.7 MB/s
+consumed 161.67 GB of 161.89 GB  avg 56.6 MB/s
+end 2026-09-02T01:28:19Z found=True copied=160834306675 consumed=161890570993

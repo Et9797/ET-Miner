@@ -1,0 +1,55 @@
+ok  M-001: 214683829 | expected 214683829
+ok  M-002: 214683829 | expected 214683829
+ok  M-003: 205620298 | expected 205620298
+ok  M-004: 0 | expected 0
+ok  M-005: [20.03, 98.81] | expected [20.03, 98.81]
+ok  M-006: [214683829, 'uniprotAccession,globalMetricValue'] | expected [214683829, 'uniprotAccession,globalMetricValue']
+info M-006 sha256: 6068f714 | expected e089f052
+ok  M-007: [205620298, 9063531] | expected [205620298, 9063531]
+ok  M-008: 80002801 | expected 80002801
+ok  M-009: 125617497 | expected 125617497
+ok  U-007: 160834306675 | expected 160834306675
+ok  U-009: [160834306675, 161890570993] | expected [160834306675, 161890570993]
+ok  X-016: [202556314, 25475, 26536, 232694948, 436931915] | expected [202556314, 25475, 26536, 232694948, 436931915]
+ok  X-001: 202556314 | expected 202556314
+ok  X-002: [25475, 26536] | expected [25475, 26536]
+ok  X-005: [158700122, 158700122, 202556314] | expected [158700122, 158700122, 202556314]
+ok  X-006: 90506840 | expected 90506840
+ok  X-007: 90506840 | expected 90506840
+ok  X-008: [24291, 25993, 1006] | expected [24291, 25993, 1006]
+ok  X-009: 90506840 | expected 90506840
+ok  shards: [True] | expected [True]
+ok  stats.items_per_category: {'plddt_mean': 3, 'plddt_fraction': 3, 'pfam': 500, 'go_term': 500} | expected {'plddt_mean': 3, 'pfam': 500, 'go_term': 500, 'plddt_fraction': 3}
+ok  stats.items_per_txn_histogram: {'1': 128729353, '2': 16588361, '3': 17840950, '4': 16007527, '5': 10554413, '6': 6801712, | expected {'1': 128729353, '2': 16588361, '3': 17840950, '4': 16007527, '5': 10554413, '6': 6801712,
+ok  stats.items_per_txn_max: 46 | expected 46
+ok  stats.items_per_txn_mean_all: 2.164914895707427 | expected 2.164914895707427
+ok  stats.items_per_txn_mean_multi: 4.115193186922075 | expected 4.115193186922075
+ok  stats.n_csv_pass_full: 205620298 | expected 205620298
+ok  stats.n_csv_rows_full: 214683829 | expected 214683829
+ok  stats.n_csv_skipped_full: 9063531 | expected 9063531
+ok  stats.n_items_defined: 1006 | expected 1006
+ok  stats.n_items_present_all: 1002 | expected 1002
+ok  stats.n_items_present_multi: 1002 | expected 1002
+ok  stats.n_items_with_support_ge8_multi: 1002 | expected 1002
+ok  stats.n_multi_feature: 76890945 | expected 76890945
+ok  stats.n_multi_written: 76890945 | expected 76890945
+ok  stats.n_outside_run_single_item: 115113458 | expected 115113458
+ok  stats.n_run_rows: 90506840 | expected 90506840
+ok  stats.n_single_feature: 128729353 | expected 128729353
+ok  stats.n_transactions_total: 205620298 | expected 205620298
+ok  stats.n_zero_feature: 0 | expected 0
+ok  stats.nnz_all: 445150446 | expected 445150446
+ok  stats.nnz_multi: 316421093 | expected 316421093
+ok  stats.pct_multi_feature: 37.39462774244204 | expected 37.39462774244204
+ok  stats.pct_single_feature: 62.60537225755796 | expected 62.60537225755796
+ok  stats.reconstruction: proteins with pLDDT >= min but without any Pfam/GO DAT record are single-item transactions | expected proteins with pLDDT >= min but without any Pfam/GO DAT record are single-item transactions
+ok  X-011: 76890945 | expected 76890945
+ok  X-014: [316421093, 445150446] | expected [316421093, 445150446]
+ok  X-015: [1006, 1002] | expected [1006, 1002]
+ok  mapping feature set: 0 | expected 0
+info mapping ids: 2 | expected 0
+ok  item_support_all: [1002, 0] | expected [1002, 0]
+ok  item_support_multi: [1002, 0] | expected [1002, 0]
+ok  plddt_bin_edges.json: {'plddt_mean_low': {'item_id': 0, 'n_proteins': 0, 'min_plddt': None, 'max_plddt': None},  | expected {'plddt_mean_low': {'item_id': 0, 'n_proteins': 0, 'min_plddt': None, 'max_plddt': None}, 
+info sha256 transactions_214m_base.parquet: 86ee18220a2a336be30f49bb59d3b202d2ad2ad76cf90969314dbfdd1bb82cdf | expected 3cbf518a6d391be188a8f446f8fe8450d616cab024f4fecb2b83790e4811fe23
+info sha256 transactions_214m_base_multi.parquet: 81867413dc5f53efa93978c0dc549cdeb57df653ecb0ccee6bfacf498e8ffaa1 | expected 17a51ca4f2892efdfc415f1367bf1f9711ffd400be44d1a05dda3420e9eb8912

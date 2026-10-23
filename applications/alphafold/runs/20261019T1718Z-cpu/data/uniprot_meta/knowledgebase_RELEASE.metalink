@@ -1,0 +1,64 @@
+<metalink xmlns="http://www.metalinker.org/" version="3.0">
+  <publisher>
+    <name>UniProt Consortium</name>
+    <url>http://www.uniprot.org/</url>
+  </publisher>
+  <license>
+    <name>Creative Commons Attribution 4.0 International (CC BY 4.0)</name>
+    <url>http://creativecommons.org/licenses/by/4.0/</url>
+  </license>
+  <description>UniProt</description>
+  <version>2026_01</version>
+  <files>
+    <file name="knowledgebase2026_01.tar.gz">
+      <size>161890570993</size>
+      <verification>
+        <hash type="md5">e41d313b61d595a05d4f80032df44c33</hash>
+      </verification>
+      <resources>
+        <url type="ftp" location="uk" preference="100">ftp://ftp.ebi.ac.uk/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/knowledgebase2026_01.tar.gz</url>
+        <url type="ftp" location="us" preference="100">ftp://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/knowledgebase2026_01.tar.gz</url>
+      </resources>
+    </file>
+  <file name="uniprot_sprot-only2026_01.tar.gz">
+      <size>1722763542</size>
+      <verification>
+        <hash type="md5">6042adf20dad1ab62112c9053bdebd20</hash>
+      </verification>
+      <resources>
+        <url type="ftp" location="uk" preference="100">ftp://ftp.ebi.ac.uk/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/uniprot_sprot-only2026_01.tar.gz</url>
+        <url type="ftp" location="us" preference="100">ftp://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/uniprot_sprot-only2026_01.tar.gz</url>
+      </resources>
+    </file>
+  <file name="UniProtKB_SwissProt-relstat.html">
+      <size>65578</size>
+      <verification>
+        <hash type="md5">82b6cf9f2dbfb22a6fb9b53d93be7cf2</hash>
+      </verification>
+      <resources>
+        <url type="ftp" location="uk" preference="100">ftp://ftp.ebi.ac.uk/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/UniProtKB_SwissProt-relstat.html</url>
+        <url type="ftp" location="us" preference="100">ftp://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/UniProtKB_SwissProt-relstat.html</url>
+      </resources>
+    </file>
+  <file name="knowledgebase-docs-only2026_01.tar.gz">
+      <size>410622964</size>
+      <verification>
+        <hash type="md5">a38361de11f51252f6f467ff09330bf5</hash>
+      </verification>
+      <resources>
+        <url type="ftp" location="uk" preference="100">ftp://ftp.ebi.ac.uk/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/knowledgebase-docs-only2026_01.tar.gz</url>
+        <url type="ftp" location="us" preference="100">ftp://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/knowledgebase-docs-only2026_01.tar.gz</url>
+      </resources>
+    </file>
+  <file name="UniProtKB_TrEMBL-relstat.html">
+      <size>45067</size>
+      <verification>
+        <hash type="md5">c11809f9971a7d1dba173177399a4fec</hash>
+      </verification>
+      <resources>
+        <url type="ftp" location="uk" preference="100">ftp://ftp.ebi.ac.uk/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/UniProtKB_TrEMBL-relstat.html</url>
+        <url type="ftp" location="us" preference="100">ftp://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/UniProtKB_TrEMBL-relstat.html</url>
+      </resources>
+    </file>
+  </files>
+</metalink>

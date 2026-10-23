@@ -1,0 +1,4 @@
+start 2026-10-19T18:13:23Z url=https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_01/knowledgebase/knowledgebase2026_01.tar.gz
+pipeline rc=0
+-rw-rw-r-- 1 et et 27116638807 okt 20 07:37 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.reduced.dat.gz
+end 2026-10-20T05:37:17Z

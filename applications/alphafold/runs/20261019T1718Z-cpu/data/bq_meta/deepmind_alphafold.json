@@ -1,0 +1,32 @@
+{
+  "access": [
+    {
+      "groupByEmail": "cloud-datasets-eng@google.com",
+      "role": "OWNER"
+    },
+    {
+      "iamMember": "allUsers",
+      "role": "READER"
+    }
+  ],
+  "creationTime": "1658125574438",
+  "datasetReference": {
+    "datasetId": "deepmind_alphafold",
+    "projectId": "bigquery-public-data"
+  },
+  "description": "Metadata for the AlphaFold Protein Structure Database",
+  "etag": "9L2L0DqCMgCrHCoFdGKadw==",
+  "friendlyName": "",
+  "id": "bigquery-public-data:deepmind_alphafold",
+  "kind": "bigquery#dataset",
+  "labels": {
+    "dg_data_confidentiality": "public",
+    "dg_data_context": "metadata",
+    "dg_data_source": "public"
+  },
+  "lastModifiedTime": "1757319502212",
+  "location": "US",
+  "maxTimeTravelHours": "168",
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/bigquery-public-data/datasets/deepmind_alphafold",
+  "type": "DEFAULT"
+}

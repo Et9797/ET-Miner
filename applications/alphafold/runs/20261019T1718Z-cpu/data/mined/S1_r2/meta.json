@@ -1,0 +1,85 @@
+{
+  "label": "S1_r2",
+  "data": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/transactions_214m_base_multi.parquet",
+  "head": null,
+  "n_rows": 76890945,
+  "min_count": 76891,
+  "min_support": 0.001,
+  "chunk_size": 40000000,
+  "chunks": 2,
+  "local_support_factor": 0.9,
+  "n_jobs": 6,
+  "load_s": 1.4352589210029691,
+  "mine_wall_s": 289.4019174770219,
+  "pass1_s": 289.3967258790508,
+  "pass2_s": 0.005191597971133888,
+  "pass2_chunks_read": 0,
+  "process": {
+    "wall_s": 290.83731469500344,
+    "cpu_s": 502.628876,
+    "peak_rss_mb": 7860.140625
+  },
+  "progress": [
+    {
+      "phase": "pass1",
+      "chunk": 0,
+      "n_chunks": 2,
+      "t_s": 152.93897956504952,
+      "metrics": {
+        "candidates": 6125,
+        "items": 751,
+        "memory_gb": 3.761496064
+      },
+      "utc": "2026-10-20T16:15:01Z"
+    },
+    {
+      "phase": "pass1",
+      "chunk": 1,
+      "n_chunks": 2,
+      "t_s": 289.3967258790508,
+      "metrics": {
+        "candidates": 12245,
+        "items": 752,
+        "memory_gb": 3.85671168
+      },
+      "utc": "2026-10-20T16:17:17Z"
+    }
+  ],
+  "signature": {
+    "itemsets": 5305,
+    "sum_counts": 1404722522,
+    "sha256": "fc0de1eefb529fe3aab214f2641b53985e655b74ce1201269d1d69ef39256a84",
+    "k_distribution": {
+      "1": 667,
+      "2": 1504,
+      "3": 1378,
+      "4": 884,
+      "5": 514,
+      "6": 247,
+      "7": 89,
+      "8": 20,
+      "9": 2
+    }
+  },
+  "env": {
+    "et_miner_file": "/home/et/personal-projects/ET-Miner-engine/src/et_miner/__init__.py",
+    "has_rust_extension": true,
+    "THREADS": 6,
+    "CUDA_VISIBLE_DEVICES": "",
+    "dev_nvidia": [],
+    "pins": {
+      "POLARS_MAX_THREADS": "6",
+      "RAYON_NUM_THREADS": "6",
+      "OMP_NUM_THREADS": "6",
+      "MKL_NUM_THREADS": "6",
+      "OPENBLAS_NUM_THREADS": "6"
+    },
+    "utc": "2026-10-20T16:17:17Z"
+  },
+  "k_max": 9,
+  "process_end": {
+    "wall_s": 290.8761828169809,
+    "cpu_s": 502.65947900000003,
+    "peak_rss_mb": 7860.140625
+  }
+}

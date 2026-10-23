@@ -1,0 +1,3 @@
+Waiting on bqjob_r25b865b41fdbabdf_000001a05f813634_1 ... (0s) Current status: RUNNING                                                                                      Waiting on bqjob_r25b865b41fdbabdf_000001a05f813634_1 ... (0s) Current status: DONE   
+n_rows,n_accessions,n_plddt_ge50,n_null_plddt,min_plddt,max_plddt
+214683829,214683829,205620298,0,20.03,98.81

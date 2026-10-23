@@ -1,0 +1,157 @@
+start count_dat 2026-10-20T05:38:10Z
+start pfamgo 2026-10-20T05:38:10Z
+start 2026-10-20T05:38:10Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.reduced.dat.gz
+records_total=202556314 records_kept=158700122
+awk/pigz rc=0
+-rw-rw-r-- 1 et et  1678722670 okt 20 07:49 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/dat_pfamgo_accessions_2026_01.txt
+-rw-rw-r-- 1 et et 10580479054 okt 20 07:49 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.pfamgo.dat.gz
+accessions listed: 158700122
+end 2026-10-20T05:49:13Z
+done pfamgo 2026-10-20T05:49:13Z
+start join 2026-10-20T05:49:13Z
+start 2026-10-20T05:38:10Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.reduced.dat.gz
+records=202556314 primary_accessions=202556314 pfam_unique=25475 go_unique=26536 pfam_lines=232694948 go_lines=436931915
+end 2026-10-20T05:49:15Z
+done count_dat 2026-10-20T05:49:15Z
+csv join: 90506840 rows with pLDDT>=50 and a Pfam/GO DAT record -> /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/plddt_metadata_pfamgo.csv (31s)
+done join 2026-10-20T05:49:46Z
+start csvacc 2026-10-20T05:49:46Z
+start 2026-10-20T05:49:46Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.pfamgo.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/plddt_metadata_pfamgo.csv
+accessions loaded=90506840
+records_total=158700122 records_kept=90506840
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 6447078382 okt 20 08:01 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.csvacc.dat.gz
+end 2026-10-20T06:01:42Z
+done csvacc 2026-10-20T06:01:42Z
+start sample 2026-10-20T06:01:42Z
+af-extract wall_seconds=11
+	Maximum resident set size (kbytes): 1053700
+	Exit status: 0
+rows=2000000 per_shard=500000
+s0 500000
+s1 500000
+s2 500000
+s3 500000
+start 2026-10-20T06:05:12Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s0/plddt.csv
+accessions loaded=500000
+records_total=2000000 records_kept=500000
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 36406562 okt 20 08:05 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s0/shard.dat.gz
+end 2026-10-20T06:05:16Z
+af-extract wall_seconds=3
+	Maximum resident set size (kbytes): 305584
+	Exit status: 0
+start 2026-10-20T06:05:19Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s1/plddt.csv
+accessions loaded=500000
+records_total=2000000 records_kept=500000
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 36602967 okt 20 08:05 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s1/shard.dat.gz
+end 2026-10-20T06:05:24Z
+af-extract wall_seconds=3
+	Maximum resident set size (kbytes): 309512
+	Exit status: 0
+start 2026-10-20T06:05:27Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s2/plddt.csv
+accessions loaded=500000
+records_total=2000000 records_kept=500000
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 36188790 okt 20 08:05 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s2/shard.dat.gz
+end 2026-10-20T06:05:31Z
+af-extract wall_seconds=3
+	Maximum resident set size (kbytes): 306252
+	Exit status: 0
+start 2026-10-20T06:05:34Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/sample.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s3/plddt.csv
+accessions loaded=500000
+records_total=2000000 records_kept=500000
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 36922822 okt 20 08:05 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s3/shard.dat.gz
+end 2026-10-20T06:05:39Z
+af-extract wall_seconds=3
+	Maximum resident set size (kbytes): 309976
+	Exit status: 0
+{"rows_total": 2000000, "mapping_rows": 106, "pfam": {"distinct_features": 21871, "kept": 50, "count_at_cut": 4172, "count_after_cut": 4162, "tie_at_cut": false}, "go_term": {"distinct_features": 20535, "kept": 50, "count_at_cut": 14323, "count_after_cut": 14291, "tie_at_cut": false}, "tied_groups_inside": {"pfam": 0, "go_term": 0}}
+{"rows_direct": 2000000, "rows_merged": 2000000, "protein_id_sequence_equal": true, "decoded_rows_equal": true, "rows_differing": 0, "mapping_feature_sets_equal": true, "mapping_rows": [106, 106], "ids_moved": 0, "within_row_ascending": true, "dtypes_merged": {"protein_id": "String", "items": "List(Int64)"}, "dtypes_direct": {"protein_id": "String", "items": "List(Int64)"}, "pass": true}
+done sample 2026-10-20T06:05:48Z
+start full 2026-10-20T06:05:48Z
+rows=90506840 per_shard=22626710
+s0 22626710
+s1 22626710
+s2 22626710
+s3 22626710
+start 2026-10-20T06:06:18Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.csvacc.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s0/plddt.csv
+accessions loaded=22626710
+records_total=90506840 records_kept=22626710
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 1631726041 okt 20 08:11 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s0/shard.dat.gz
+end 2026-10-20T06:11:43Z
+af-extract wall_seconds=139
+	Maximum resident set size (kbytes): 9606320
+	Exit status: 0
+start 2026-10-20T06:14:02Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.csvacc.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s1/plddt.csv
+accessions loaded=22626710
+records_total=90506840 records_kept=22626710
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 1631915595 okt 20 08:19 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s1/shard.dat.gz
+end 2026-10-20T06:19:29Z
+af-extract wall_seconds=138
+	Maximum resident set size (kbytes): 9592088
+	Exit status: 0
+start 2026-10-20T06:21:47Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.csvacc.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s2/plddt.csv
+accessions loaded=22626710
+records_total=90506840 records_kept=22626710
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 1631670708 okt 20 08:27 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s2/shard.dat.gz
+end 2026-10-20T06:27:10Z
+af-extract wall_seconds=139
+	Maximum resident set size (kbytes): 9588732
+	Exit status: 0
+start 2026-10-20T06:29:29Z in=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/uniprot_trembl_2026_01.csvacc.dat.gz csv=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s3/plddt.csv
+accessions loaded=22626710
+records_total=90506840 records_kept=22626710
+awk/pigz rc=0
+-rw-rw-r-- 1 et et 1631980566 okt 20 08:34 /home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s3/shard.dat.gz
+end 2026-10-20T06:34:54Z
+af-extract wall_seconds=138
+	Maximum resident set size (kbytes): 9612392
+	Exit status: 0
+{"rows_total": 90506840, "mapping_rows": 1006, "pfam": {"distinct_features": 24291, "kept": 500, "count_at_cut": 43754, "count_after_cut": 43720, "tie_at_cut": false}, "go_term": {"distinct_features": 25993, "kept": 500, "count_at_cut": 70347, "count_after_cut": 70219, "tie_at_cut": false}, "tied_groups_inside": {"pfam": 2, "go_term": 2}}
+done full 2026-10-20T06:37:52Z
+start stats 2026-10-20T06:37:52Z
+{
+  "n_run_rows": 90506840,
+  "n_csv_rows_full": 214683829,
+  "n_csv_pass_full": 205620298,
+  "n_csv_skipped_full": 9063531,
+  "full_csv": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/plddt_metadata_storageapi.csv",
+  "reconstruction": "proteins with pLDDT >= min but without any Pfam/GO DAT record are single-item transactions by construction; totals below include them",
+  "n_transactions_total": 205620298,
+  "n_outside_run_single_item": 115113458,
+  "n_multi_feature": 76890945,
+  "n_single_feature": 128729353,
+  "n_zero_feature": 0,
+  "items_per_txn_mean_all": 2.164914895707427,
+  "items_per_txn_max": 46,
+  "nnz_all": 445150446,
+  "nnz_multi": 316421093,
+  "items_per_txn_mean_multi": 4.115193186922075,
+  "pct_multi_feature": 37.39462774244204,
+  "pct_single_feature": 62.60537225755796,
+  "n_multi_written": 76890945,
+  "n_items_defined": 1006,
+  "items_per_category": {
+    "plddt_mean": 3,
+    "plddt_fraction": 3,
+    "pfam": 500,
+    "go_term": 500
+  },
+  "n_items_with_support_ge8_multi": 1002,
+  "n_items_present_multi": 1002,
+  "n_items_present_all": 1002,
+  "elapsed_s": 15.459697484970093
+}
+done stats 2026-10-20T06:38:08Z
+start edges 2026-10-20T06:38:08Z
+    "max_plddt": null
+  }
+}
+done edges 2026-10-20T06:38:47Z
+phase1 chain end 2026-10-20T06:38:47Z

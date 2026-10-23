@@ -1,0 +1,20 @@
+2026-10-21 04:31:35.485 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-21 04:31:35.485 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-10-21 04:39:16.184 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 76890945 rows, 1002 frequent items, 296835620 entries
+{"perm": 0, "total": 171324, "k_max": 6, "mine_wall_s": 438.8, "peak_rss_mb": 24485}
+2026-10-21 04:46:24.035 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-21 04:46:24.035 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-10-21 04:54:02.742 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 76890945 rows, 1002 frequent items, 296834218 entries
+{"perm": 1, "total": 171271, "k_max": 6, "mine_wall_s": 449.9, "peak_rss_mb": 24574}
+2026-10-21 05:01:21.813 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-21 05:01:21.813 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-10-21 05:08:50.229 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 76890945 rows, 1002 frequent items, 296836953 entries
+{"perm": 2, "total": 171306, "k_max": 6, "mine_wall_s": 439.9, "peak_rss_mb": 24586}
+2026-10-21 05:15:59.149 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-21 05:15:59.149 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-10-21 05:23:36.092 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 76890945 rows, 1002 frequent items, 296835422 entries
+{"perm": 3, "total": 171288, "k_max": 6, "mine_wall_s": 433.7, "peak_rss_mb": 24586}
+2026-10-21 05:30:38.716 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:116 - MKL: MKL_RT set to /home/et/personal-projects/ET-Miner-engine/.venv/lib/libmkl_rt.so.3
+2026-10-21 05:30:38.716 | DEBUG    | et_miner.core.sparse:_setup_mkl_library_path:124 - MKL: added /home/et/personal-projects/ET-Miner-engine/.venv/lib to LD_LIBRARY_PATH for ['libmkl_rt.so.3']
+2026-10-21 05:38:14.181 | DEBUG    | et_miner.core.cpu_miner:build_transaction_csr:306 - CPU CSR: 76890945 rows, 1002 frequent items, 296831351 entries
+{"perm": 4, "total": 171263, "k_max": 6, "mine_wall_s": 438.4, "peak_rss_mb": 24586}

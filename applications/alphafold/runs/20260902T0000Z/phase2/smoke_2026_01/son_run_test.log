@@ -1,0 +1,92 @@
+2026-09-02 01:08:07.174 | INFO     | utils:load_transactions:35 - Loading /root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/transactions_214m_base_multi.parquet...
+2026-09-02 01:08:07.196 | INFO     | utils:load_transactions:42 -   Loaded 190,377 proteins in 0.0s
+2026-09-02 01:08:07.198 | INFO     | utils:load_transactions:47 -   Multi-feature filter: 190,377 → 190,377 (removed 0 single-feature proteins)
+2026-09-02 01:08:07.198 | INFO     | et_miner.streaming.son:apriori_streaming:208 - SON streaming: 190377 total transactions, 2 chunks of 100000, local_support=0.000900 (90.0% of 0.001000)
+2026-09-02 01:08:07.995 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 1855/100000 transactions (1.9%) with < 2 items
+2026-09-02 01:08:08.122 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 264628 itemsets, 98,145 transactions, 728 items
+2026-09-02 01:08:34.645 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 20706/100000 transactions (20.7%) with < 3 items
+2026-09-02 01:08:34.756 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 2999 itemsets, 79,294 transactions, 728 items
+2026-09-02 01:08:35.551 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 50343/100000 transactions (50.3%) with < 4 items
+2026-09-02 01:08:35.652 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1928 itemsets, 49,657 transactions, 728 items
+2026-09-02 01:08:36.201 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 70023/100000 transactions (70.0%) with < 5 items
+2026-09-02 01:08:36.298 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1481 itemsets, 29,977 transactions, 728 items
+2026-09-02 01:08:36.704 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 82845/100000 transactions (82.8%) with < 6 items
+2026-09-02 01:08:36.797 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1163 itemsets, 17,155 transactions, 728 items
+2026-09-02 01:08:37.112 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 91943/100000 transactions (91.9%) with < 7 items
+2026-09-02 01:08:37.203 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 845 itemsets, 8,057 transactions, 728 items
+2026-09-02 01:08:37.430 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 96329/100000 transactions (96.3%) with < 8 items
+2026-09-02 01:08:37.520 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 501 itemsets, 3,671 transactions, 728 items
+2026-09-02 01:08:37.651 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 98287/100000 transactions (98.3%) with < 9 items
+2026-09-02 01:08:37.740 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 220 itemsets, 1,713 transactions, 728 items
+2026-09-02 01:08:37.811 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 99215/100000 transactions (99.2%) with < 10 items
+2026-09-02 01:08:37.899 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 66 itemsets, 785 transactions, 728 items
+2026-09-02 01:08:37.938 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 99684/100000 transactions (99.7%) with < 11 items
+2026-09-02 01:08:38.024 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 12 itemsets, 316 transactions, 728 items
+2026-09-02 01:08:38.055 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 99799/100000 transactions (99.8%) with < 12 items
+2026-09-02 01:08:38.141 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1 itemsets, 201 transactions, 728 items
+2026-09-02 01:08:38.997 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 1662/90377 transactions (1.8%) with < 2 items
+2026-09-02 01:08:39.106 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 264628 itemsets, 88,715 transactions, 728 items
+2026-09-02 01:09:05.652 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 18562/90377 transactions (20.5%) with < 3 items
+2026-09-02 01:09:05.758 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 3049 itemsets, 71,815 transactions, 728 items
+2026-09-02 01:09:06.596 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 45159/90377 transactions (50.0%) with < 4 items
+2026-09-02 01:09:06.696 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 2150 itemsets, 45,218 transactions, 728 items
+2026-09-02 01:09:07.336 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 63089/90377 transactions (69.8%) with < 5 items
+2026-09-02 01:09:07.432 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1757 itemsets, 27,288 transactions, 728 items
+2026-09-02 01:09:07.956 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 74999/90377 transactions (83.0%) with < 6 items
+2026-09-02 01:09:08.050 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1399 itemsets, 15,378 transactions, 728 items
+2026-09-02 01:09:08.444 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 83094/90377 transactions (91.9%) with < 7 items
+2026-09-02 01:09:08.536 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 981 itemsets, 7,283 transactions, 728 items
+2026-09-02 01:09:08.799 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 87076/90377 transactions (96.3%) with < 8 items
+2026-09-02 01:09:08.890 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 552 itemsets, 3,301 transactions, 728 items
+2026-09-02 01:09:09.038 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 89011/90377 transactions (98.5%) with < 9 items
+2026-09-02 01:09:09.126 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 231 itemsets, 1,366 transactions, 728 items
+2026-09-02 01:09:09.204 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 89715/90377 transactions (99.3%) with < 10 items
+2026-09-02 01:09:09.291 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 67 itemsets, 662 transactions, 728 items
+2026-09-02 01:09:09.331 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 90032/90377 transactions (99.6%) with < 11 items
+2026-09-02 01:09:09.418 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 12 itemsets, 345 transactions, 728 items
+2026-09-02 01:09:09.446 | DEBUG    | et_miner.core.matrix:count_support_batched:326 - Transaction length filter: removed 90113/90377 transactions (99.7%) with < 12 items
+2026-09-02 01:09:09.532 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 1 itemsets, 264 transactions, 728 items
+2026-09-02 01:09:09.535 | INFO     | et_miner.streaming.son:apriori_streaming:331 - Pass 1 complete: 13495 candidate itemsets from 784 items
+2026-09-02 01:09:09.537 | INFO     | et_miner.streaming.son:apriori_streaming:350 - Pass 2 optimization: 784/784 items needed for candidates (0.0% reduction)
+2026-09-02 01:09:10.270 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 13495 itemsets, 100,000 transactions, 784 items
+2026-09-02 01:09:12.617 | DEBUG    | et_miner.gpu.bitvec:count_support_gpu_bitvec:202 - [GPU BITVEC] 13495 itemsets, 90,377 transactions, 784 items
+2026-09-02 01:09:14.364 | INFO     | et_miner.streaming.son:apriori_streaming:468 - Pass 2 complete: 9426/13495 candidates are globally frequent (support >= 0.001000)
+{
+  "timestamp": "2026-09-02T01:09:14Z",
+  "data": "/root/projects/ET-Miner/runs/20260902T0000Z/phase2/smoke_2026_01/transactions_214m_base_multi.parquet",
+  "n_transactions": 190377,
+  "min_support": 0.001,
+  "min_count": 191,
+  "chunk_size": 100000,
+  "local_support_factor": 0.9,
+  "max_length": null,
+  "itemsets": 9426,
+  "max_k": 12,
+  "k_distribution": {
+    "1": 638,
+    "2": 1658,
+    "3": 1823,
+    "4": 1479,
+    "5": 1200,
+    "6": 1027,
+    "7": 806,
+    "8": 496,
+    "9": 220,
+    "10": 66,
+    "11": 12,
+    "12": 1
+  },
+  "time_seconds": 67.23,
+  "rules_min_confidence": 0.5,
+  "n_rules": 92511,
+  "rules_time_seconds": 1.04,
+  "rules_max": {
+    "lift": 966.3807106598985,
+    "confidence": 1.0,
+    "support": 0.1199409592545318
+  }
+}
+
+real	1m9.686s
+user	1m23.468s
+sys	0m1.762s

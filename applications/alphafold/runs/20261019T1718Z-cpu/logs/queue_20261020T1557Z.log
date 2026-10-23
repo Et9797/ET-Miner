@@ -1,0 +1,65 @@
+2026-10-20T15:57:59Z skip G0_incore (done)
+2026-10-20T15:57:59Z skip G0_son (done)
+2026-10-20T15:57:59Z skip G0_ea (done)
+2026-10-20T15:57:59Z skip G0_cmp_incore (done)
+2026-10-20T15:57:59Z skip G0_cmp_son (done)
+2026-10-20T15:57:59Z skip G0_check (done)
+2026-10-20T15:57:59Z skip C1 (done)
+2026-10-20T15:57:59Z skip C2 (done)
+2026-10-20T15:58:00Z skip C3 (done)
+2026-10-20T15:58:00Z skip P1T (done)
+2026-10-20T15:58:00Z start C1_cmp log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C1_cmp_20261020T1558Z.log
+2026-10-20T15:58:01Z done C1_cmp
+2026-10-20T15:58:01Z start C2_cmp log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C2_cmp_20261020T1558Z.log
+2026-10-20T15:58:03Z done C2_cmp
+2026-10-20T15:58:03Z start C3_cmp log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C3_cmp_20261020T1558Z.log
+2026-10-20T15:58:06Z done C3_cmp
+2026-10-20T15:58:06Z start G0_incore_r2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_incore_r2_20261020T1558Z.log
+2026-10-20T15:58:10Z done G0_incore_r2
+2026-10-20T15:58:10Z start G0_incore_r3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_incore_r3_20261020T1558Z.log
+2026-10-20T15:58:14Z done G0_incore_r3
+2026-10-20T15:58:14Z start G0_son_r2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_son_r2_20261020T1558Z.log
+2026-10-20T15:58:23Z done G0_son_r2
+2026-10-20T15:58:23Z start G0_son_r3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/G0_son_r3_20261020T1558Z.log
+2026-10-20T15:58:33Z done G0_son_r3
+2026-10-20T15:58:33Z start C1_r2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C1_r2_20261020T1558Z.log
+2026-10-20T16:03:02Z done C1_r2
+2026-10-20T16:03:02Z start C1_r3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C1_r3_20261020T1603Z.log
+2026-10-20T16:07:30Z done C1_r3
+2026-10-20T16:07:30Z start R1 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/R1_20261020T1607Z.log
+2026-10-20T16:07:31Z done R1
+2026-10-20T16:07:31Z start R1_r2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/R1_r2_20261020T1607Z.log
+2026-10-20T16:07:32Z done R1_r2
+2026-10-20T16:07:32Z start R1_r3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/R1_r3_20261020T1607Z.log
+2026-10-20T16:07:33Z done R1_r3
+2026-10-20T16:07:33Z start S1 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S1_20261020T1607Z.log
+2026-10-20T16:12:25Z done S1
+2026-10-20T16:12:25Z start S1_cmp_C1 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S1_cmp_C1_20261020T1612Z.log
+2026-10-20T16:12:26Z done S1_cmp_C1
+2026-10-20T16:12:26Z start S1_cmp_gpu log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S1_cmp_gpu_20261020T1612Z.log
+2026-10-20T16:12:26Z done S1_cmp_gpu
+2026-10-20T16:12:26Z start S1_r2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S1_r2_20261020T1612Z.log
+2026-10-20T16:17:17Z done S1_r2
+2026-10-20T16:17:17Z start S1_r3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S1_r3_20261020T1617Z.log
+2026-10-20T16:22:09Z done S1_r3
+2026-10-20T16:22:09Z start S2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S2_20261020T1622Z.log
+2026-10-20T18:20:36Z done S2
+2026-10-20T18:20:36Z start S2_cmp_C2 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S2_cmp_C2_20261020T1820Z.log
+2026-10-20T18:20:37Z done S2_cmp_C2
+2026-10-20T18:20:37Z start S2_cmp_gpu log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S2_cmp_gpu_20261020T1820Z.log
+2026-10-20T18:20:38Z done S2_cmp_gpu
+2026-10-20T18:20:38Z start S3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S3_20261020T1820Z.log
+2026-10-21T02:31:30Z done S3
+2026-10-21T02:31:30Z start S3_cmp_C3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S3_cmp_C3_20261021T0231Z.log
+2026-10-21T02:31:32Z done S3_cmp_C3
+2026-10-21T02:31:32Z start S3_cmp_gpu log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/S3_cmp_gpu_20261021T0231Z.log
+2026-10-21T02:31:35Z done S3_cmp_gpu
+2026-10-21T02:31:35Z start N5 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/N5_20261021T0231Z.log
+2026-10-21T03:45:21Z done N5
+2026-10-21T03:45:21Z start N5_verdict log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/N5_verdict_20261021T0345Z.log
+2026-10-21T03:45:22Z done N5_verdict
+2026-10-21T03:45:22Z start C3G log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C3G_20261021T0345Z.log
+2026-10-21T05:16:41Z done C3G
+2026-10-21T05:16:41Z start C3G_cmp_C3 log=/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/logs/C3G_cmp_C3_20261021T0516Z.log
+2026-10-21T05:16:42Z done C3G_cmp_C3
+2026-10-21T05:16:42Z queue end

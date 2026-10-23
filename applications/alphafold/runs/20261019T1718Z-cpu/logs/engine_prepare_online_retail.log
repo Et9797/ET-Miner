@@ -1,0 +1,24 @@
+2026-10-19 19:29:15.221 | INFO     | __main__:download_dataset:30 - Using cached /home/et/personal-projects/ET-Miner-engine/datasets/online_retail_ii/online_retail_ii.zip
+2026-10-19 19:29:15.222 | INFO     | __main__:extract_and_load:37 - Extracting and loading Excel file...
+2026-10-19 19:29:15.225 | INFO     | __main__:extract_and_load:46 - Reading online_retail_II.xlsx...
+2026-10-19 19:29:52.199 | INFO     | __main__:extract_and_load:54 -   Year 2009-2010: 525,461 rows
+2026-10-19 19:29:52.199 | INFO     | __main__:extract_and_load:54 -   Year 2010-2011: 541,910 rows
+2026-10-19 19:29:52.938 | INFO     | __main__:extract_and_load:66 - Loaded 1,067,371 rows
+2026-10-19 19:29:52.978 | INFO     | __main__:prepare_transactions:81 - Preparing transactions using StockCode as item identifier...
+2026-10-19 19:29:53.007 | INFO     | __main__:prepare_transactions:95 - After cleaning: 1,044,420 rows (22,951 removed)
+2026-10-19 19:29:53.021 | INFO     | __main__:prepare_transactions:107 - Unique items: 4,985
+2026-10-19 19:29:53.077 | INFO     | __main__:prepare_transactions:130 - Transactions: 36,422
+2026-10-19 19:29:53.077 | INFO     | __main__:prepare_transactions:131 - Avg items per transaction: 27.3
+2026-10-19 19:29:53.121 | INFO     | __main__:save_datasets:146 - Saved: /home/et/personal-projects/ET-Miner-engine/datasets/online_retail_ii/transactions.parquet
+2026-10-19 19:29:53.122 | INFO     | __main__:save_datasets:151 - Saved: /home/et/personal-projects/ET-Miner-engine/datasets/online_retail_ii/item_mapping.parquet
+2026-10-19 19:29:53.122 | INFO     | __main__:save_datasets:153 - ==================================================
+2026-10-19 19:29:53.122 | INFO     | __main__:save_datasets:154 - Dataset Summary
+2026-10-19 19:29:53.122 | INFO     | __main__:save_datasets:155 - ==================================================
+2026-10-19 19:29:53.122 | INFO     | __main__:save_datasets:156 - Transactions: 36,422
+2026-10-19 19:29:53.122 | INFO     | __main__:save_datasets:157 - Unique items: 4,985
+2026-10-19 19:29:53.122 | INFO     | __main__:save_datasets:160 - Items per transaction:
+2026-10-19 19:29:53.123 | DEBUG    | __main__:save_datasets:161 -   Min: 2
+2026-10-19 19:29:53.123 | DEBUG    | __main__:save_datasets:162 -   Max: 1110
+2026-10-19 19:29:53.123 | DEBUG    | __main__:save_datasets:163 -   Mean: 27.3
+2026-10-19 19:29:53.124 | DEBUG    | __main__:save_datasets:164 -   Median: 17
+2026-10-19 19:29:53.124 | INFO     | __main__:main:192 - Done! Dataset ready for benchmarking.

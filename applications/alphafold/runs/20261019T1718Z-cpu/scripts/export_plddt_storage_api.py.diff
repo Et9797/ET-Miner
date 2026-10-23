@@ -1,0 +1,39 @@
+6,8c6,9
+< with the two selected columns over parallel Arrow streams, using the gcloud
+< user access token passed on the command line, and writes one CSV with the
+< header `uniprotAccession,globalMetricValue` (the layout af-extract expects).
+---
+> with the two selected columns over parallel Arrow streams, using gcloud
+> user access tokens fetched in-process and refreshed before expiry (never on a
+> command line or in a log), and writes one CSV with the header
+> `uniprotAccession,globalMetricValue` (the layout af-extract expects).
+11,12c12
+<     export_plddt_storage_api.py OUTPUT_CSV --token TOKEN [--project ID]
+<                                 [--streams N]
+---
+>     export_plddt_storage_api.py OUTPUT_CSV [--project ID] [--streams N]
+15d14
+<     --token     OAuth2 access token (e.g. from `gcloud auth print-access-token`)
+21c20,21
+< import sys
+---
+> import datetime
+> import subprocess
+55a56,66
+> def refresh_token(request, scopes):
+>     """Return a fresh gcloud user access token and a conservative expiry.
+> 
+>     Used as the credentials' refresh handler so long reads outlive one token.
+>     """
+>     out = subprocess.run(["gcloud", "auth", "print-access-token"], check=True,
+>                          capture_output=True, text=True)
+>     expiry = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+>     return out.stdout.strip(), expiry + datetime.timedelta(minutes=40)
+> 
+> 
+59d69
+<     ap.add_argument("--token", required=True)
+64c74
+<     client = bigquery_storage.BigQueryReadClient(credentials=Credentials(token=a.token))
+---
+>     client = bigquery_storage.BigQueryReadClient(credentials=Credentials(token=None, refresh_handler=refresh_token))

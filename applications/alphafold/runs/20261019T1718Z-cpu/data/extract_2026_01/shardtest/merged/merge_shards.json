@@ -1,0 +1,85 @@
+{
+  "shards": [
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s0",
+      "rows": 500000,
+      "nnz_shard": 2729051,
+      "nnz_merged": 1205832,
+      "mapped_features": {
+        "pfam": 19066,
+        "go_term": 16064
+      },
+      "log": [
+        "[2026-10-20T06:05:18.232Z INFO  af_extract::annotations] Loaded 500000 annotations (19066 Pfam, 16064 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:05:18.335Z INFO  af_extract] Read 500000 rows: 500000 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:05:18.760Z INFO  af_extract] Frequencies: 19066 Pfam, 16064 GO, 0 InterPro, 0 EC, 0 taxonomy from 500000 proteins"
+      ]
+    },
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s1",
+      "rows": 500000,
+      "nnz_shard": 2743719,
+      "nnz_merged": 1206756,
+      "mapped_features": {
+        "pfam": 19216,
+        "go_term": 16530
+      },
+      "log": [
+        "[2026-10-20T06:05:25.695Z INFO  af_extract::annotations] Loaded 500000 annotations (19216 Pfam, 16530 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:05:25.798Z INFO  af_extract] Read 500000 rows: 500000 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:05:26.221Z INFO  af_extract] Frequencies: 19216 Pfam, 16530 GO, 0 InterPro, 0 EC, 0 taxonomy from 500000 proteins"
+      ]
+    },
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s2",
+      "rows": 500000,
+      "nnz_shard": 2712821,
+      "nnz_merged": 1204034,
+      "mapped_features": {
+        "pfam": 19163,
+        "go_term": 16214
+      },
+      "log": [
+        "[2026-10-20T06:05:33.220Z INFO  af_extract::annotations] Loaded 500000 annotations (19163 Pfam, 16214 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:05:33.322Z INFO  af_extract] Read 500000 rows: 500000 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:05:33.738Z INFO  af_extract] Frequencies: 19163 Pfam, 16214 GO, 0 InterPro, 0 EC, 0 taxonomy from 500000 proteins"
+      ]
+    },
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shardtest/s3",
+      "rows": 500000,
+      "nnz_shard": 2763526,
+      "nnz_merged": 1207136,
+      "mapped_features": {
+        "pfam": 19208,
+        "go_term": 16653
+      },
+      "log": [
+        "[2026-10-20T06:05:40.672Z INFO  af_extract::annotations] Loaded 500000 annotations (19208 Pfam, 16653 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:05:40.776Z INFO  af_extract] Read 500000 rows: 500000 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:05:41.216Z INFO  af_extract] Frequencies: 19208 Pfam, 16653 GO, 0 InterPro, 0 EC, 0 taxonomy from 500000 proteins"
+      ]
+    }
+  ],
+  "rows_total": 2000000,
+  "vocabulary": {
+    "pfam": {
+      "distinct_features": 21871,
+      "kept": 50,
+      "count_at_cut": 4172,
+      "count_after_cut": 4162,
+      "tie_at_cut": false,
+      "tied_groups_inside": []
+    },
+    "go_term": {
+      "distinct_features": 20535,
+      "kept": 50,
+      "count_at_cut": 14323,
+      "count_after_cut": 14291,
+      "tie_at_cut": false,
+      "tied_groups_inside": []
+    }
+  },
+  "mapping_rows": 106,
+  "tie_break": "count descending, then feature_name ascending"
+}

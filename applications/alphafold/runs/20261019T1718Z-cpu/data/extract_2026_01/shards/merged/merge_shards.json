@@ -1,0 +1,131 @@
+{
+  "shards": [
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s0",
+      "rows": 22626710,
+      "nnz_shard": 123681387,
+      "nnz_merged": 82507890,
+      "mapped_features": {
+        "pfam": 23800,
+        "go_term": 24663
+      },
+      "log": [
+        "[2026-10-20T06:12:44.750Z INFO  af_extract::annotations] Loaded 22626710 annotations (23800 Pfam, 24663 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:12:49.892Z INFO  af_extract] Read 22626710 rows: 22626710 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:13:14.159Z INFO  af_extract] Frequencies: 23800 Pfam, 24663 GO, 0 InterPro, 0 EC, 0 taxonomy from 22626710 proteins"
+      ]
+    },
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s1",
+      "rows": 22626710,
+      "nnz_shard": 123698120,
+      "nnz_merged": 82514076,
+      "mapped_features": {
+        "pfam": 23800,
+        "go_term": 24632
+      },
+      "log": [
+        "[2026-10-20T06:20:30.582Z INFO  af_extract::annotations] Loaded 22626710 annotations (23800 Pfam, 24632 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:20:35.558Z INFO  af_extract] Read 22626710 rows: 22626710 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:21:00.368Z INFO  af_extract] Frequencies: 23800 Pfam, 24632 GO, 0 InterPro, 0 EC, 0 taxonomy from 22626710 proteins"
+      ]
+    },
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s2",
+      "rows": 22626710,
+      "nnz_shard": 123677735,
+      "nnz_merged": 82503624,
+      "mapped_features": {
+        "pfam": 23783,
+        "go_term": 24559
+      },
+      "log": [
+        "[2026-10-20T06:28:11.689Z INFO  af_extract::annotations] Loaded 22626710 annotations (23783 Pfam, 24559 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:28:16.384Z INFO  af_extract] Read 22626710 rows: 22626710 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:28:41.651Z INFO  af_extract] Frequencies: 23783 Pfam, 24559 GO, 0 InterPro, 0 EC, 0 taxonomy from 22626710 proteins"
+      ]
+    },
+    {
+      "shard": "/home/et/personal-projects/ET-Miner/runs/20261019T1718Z-cpu/data/extract_2026_01/shards/s3",
+      "rows": 22626710,
+      "nnz_shard": 123700588,
+      "nnz_merged": 82511398,
+      "mapped_features": {
+        "pfam": 23827,
+        "go_term": 24601
+      },
+      "log": [
+        "[2026-10-20T06:35:55.566Z INFO  af_extract::annotations] Loaded 22626710 annotations (23827 Pfam, 24601 GO, 0 InterPro, 0 EC, 0 taxonomy)",
+        "[2026-10-20T06:36:00.282Z INFO  af_extract] Read 22626710 rows: 22626710 passed pLDDT filter (>= 50), 0 skipped",
+        "[2026-10-20T06:36:24.613Z INFO  af_extract] Frequencies: 23827 Pfam, 24601 GO, 0 InterPro, 0 EC, 0 taxonomy from 22626710 proteins"
+      ]
+    }
+  ],
+  "rows_total": 90506840,
+  "vocabulary": {
+    "pfam": {
+      "distinct_features": 24291,
+      "kept": 500,
+      "count_at_cut": 43754,
+      "count_after_cut": 43720,
+      "tie_at_cut": false,
+      "tied_groups_inside": [
+        {
+          "count": 53632,
+          "feature_name": [
+            "PF01040",
+            "PF13378"
+          ],
+          "item_id": [
+            379,
+            380
+          ]
+        },
+        {
+          "count": 47362,
+          "feature_name": [
+            "PF01841",
+            "PF08544"
+          ],
+          "item_id": [
+            458,
+            459
+          ]
+        }
+      ]
+    },
+    "go_term": {
+      "distinct_features": 25993,
+      "kept": 500,
+      "count_at_cut": 70347,
+      "count_after_cut": 70219,
+      "tie_at_cut": false,
+      "tied_groups_inside": [
+        {
+          "count": 120741,
+          "feature_name": [
+            "GO:0009099",
+            "GO:0016655"
+          ],
+          "item_id": [
+            778,
+            779
+          ]
+        },
+        {
+          "count": 71439,
+          "feature_name": [
+            "GO:0019646",
+            "GO:0030983"
+          ],
+          "item_id": [
+            997,
+            998
+          ]
+        }
+      ]
+    }
+  },
+  "mapping_rows": 1006,
+  "tie_break": "count descending, then feature_name ascending"
+}

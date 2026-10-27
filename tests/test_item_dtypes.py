@@ -194,3 +194,44 @@ def test_null_items_are_no_items_on_the_gpu(dtype):
     }
     for name, res in runs.items():
         assert _counts(res, df.height) == want, name
+
+
+#: Items that are not integer ids: (input dtype, the dtype every route emits, values, values on the CPU route).
+NON_INT_CASES = [
+    (pl.String, pl.String, ("10", "9", "b")),
+    (pl.Float64, pl.Float64, (1.2, 1.7, -0.5)),
+    (pl.Float32, pl.Float64, (1.25, 1.75, -0.5)),
+    (pl.Categorical, pl.String, ("10", "9", "b")),
+]
+
+
+def _ordered(res: pl.DataFrame, n: int) -> dict[tuple, int]:
+    """Itemsets in the order the route emits their items, with integer counts."""
+    return {tuple(s): round(p * n) for s, p in zip(res["itemset"].to_list(), res["support"].to_list())}
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("dtype,want,ids", NON_INT_CASES, ids=[str(c[0]) for c in NON_INT_CASES])
+def test_gpu_route_mines_non_integer_items_as_the_cpu_route_does(dtype, want, ids):
+    """Strings, floats and categoricals mine as column ids and map back: same items, item order, dtype and counts
+    as the CPU route. They used to be copied into an int64 array: strings raised or came back as Int64, floats
+    were truncated (1.2 and 1.7 both became 1)."""
+    df = _frame(dtype, ids)
+    cpu = apriori(df, min_support=0.5)
+    for layer in ("host", None):
+        with pytest.MonkeyPatch.context() as mp:
+            if layer:
+                mp.setenv("ET_MINER_INPUT_LAYER", layer)
+            gpu = apriori(df, min_support=0.5, use_gpu=True)
+        assert gpu.schema["itemset"] == cpu.schema["itemset"] == pl.List(want)
+        assert _ordered(gpu, 10) == _ordered(cpu, 10)
+        assert _counts(gpu, 10) == _expected(ids)
+
+
+@pytest.mark.parametrize("kwargs", [{"output_dir": "OUT"}, {"anchor_items": {"10"}}, {"resume_from_k": 2}])
+def test_gpu_route_rejects_non_integer_items_where_it_stores_ids(kwargs, tmp_path):
+    """Per-K parquet, resume and anchors hold integer item ids: other items raise before anything is built."""
+    if "output_dir" in kwargs:
+        kwargs = {"output_dir": str(tmp_path)}
+    with pytest.raises(ValueError, match="not integer ids"):
+        apriori(_frame(pl.String, ("10", "9", "b")), min_support=0.5, use_gpu=True, **kwargs)

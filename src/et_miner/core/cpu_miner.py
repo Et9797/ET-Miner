@@ -68,7 +68,7 @@ from loguru import logger
 from scipy.sparse import csr_matrix
 
 from .profiling import ProfilingSession
-from .result import _INT64_ITEM_DTYPES, _empty_result, _item_dtype, _min_count, _result_item_dtype
+from .result import _INT64_ITEM_DTYPES, _emitted_items, _empty_result, _item_dtype, _min_count
 
 CSR_CHUNK_NNZ = 500_000
 INT_SPAN_LIMIT = 1 << 22
@@ -990,13 +990,7 @@ def _emit(levels: list[tuple[np.ndarray, np.ndarray]], items: pl.Series, n_rows:
     levels = [(s, c) for s, c in levels if len(s)]
     if not levels:
         return _empty_result(items.dtype)
-    dtype = items.dtype
-    if (out := _result_item_dtype(dtype)) is not None:
-        items = items.cast(out)
-    elif dtype.is_float():
-        items = items.cast(pl.Float64)
-    elif dtype.base_type() in (pl.Categorical, pl.Enum):
-        items = items.cast(pl.String)
+    items = _emitted_items(items)
     frames = []
     for sets, counts in levels:
         n, k = sets.shape

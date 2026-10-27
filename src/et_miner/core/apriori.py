@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import math
+import numbers
 import warnings
 from collections.abc import Callable
 from math import comb
@@ -28,7 +29,8 @@ from et_miner.gpu.density import validate_sparse_from_k
 from .profiling import ProfilingSession
 from .result import (
     _INT64_ITEM_DTYPES,
-    _WIDE_ITEM_DTYPES,
+    _INT_ITEM_DTYPES,
+    _emitted_items,
     _empty_result,
     _item_dtype,
 )
@@ -262,14 +264,14 @@ def _beyond_int64(items: pl.Series) -> bool:
 
 
 def _as_item_dtype(result: Any, items: pl.Series, column_ids: bool) -> Any:
-    """The GPU route's result (a frame, or (frame, session)) with its itemsets as ``items.dtype``.
+    """The GPU route's result (a frame, or (frame, session)) with its itemsets as the CPU route emits ``items``.
 
-    With ``column_ids`` the route mined column ids, which map to ``items``;
-    otherwise it emitted the item ids as Int64, which are cast back. Either way
-    the itemsets are copied once: the frame's peak briefly gains 8 (UInt64) or
-    16 (Int128, UInt128) bytes per emitted item id.
+    With ``column_ids`` the route mined column ids, which map to ``items``
+    (cast as ``_emitted_items`` does); otherwise it emitted the item ids as
+    Int64, which are cast back. Either way the itemsets are copied once.
     """
     df, session = result if isinstance(result, tuple) else (result, None)
+    items = _emitted_items(items)
     if column_ids:
         cols = pl.Series(range(len(items)), dtype=pl.Int64)
         itemset = pl.col("itemset").list.eval(pl.element().replace_strict(cols, items, return_dtype=items.dtype))
@@ -515,6 +517,13 @@ def apriori(
                 f"col_to_item has {len(col_to_item)} keys but bitvecs_gpu has {bitvecs_gpu.shape[0]} columns"
             )
 
+        # The route holds item ids as 64-bit integers; a float would be truncated.
+        if not all(isinstance(v, numbers.Integral) for v in col_to_item.values()):
+            raise ValueError(
+                "col_to_item must map every column to an integer item id: the bitvecs route holds item ids as "
+                "64-bit integers. Map the items to integer ids first."
+            )
+
         # The kernels index the array as col * n_u64s + word.
         if bitvecs_gpu.dtype != "uint64" or not bitvecs_gpu.flags.c_contiguous:
             raise ValueError(
@@ -606,13 +615,21 @@ def apriori(
     if use_gpu:
         from .matrix import _build_csr_from_transactions
 
-        # The route holds item ids in 64 bits. Ids of a wider dtype mine as
-        # column ids when one lies outside Int64, and the result keeps their dtype.
+        # The route holds item ids as 64-bit integers. Other items (strings,
+        # floats, categoricals) and ids of a wider dtype that lie outside Int64
+        # mine as column ids, and the result maps them back.
         item_dtype = _item_dtype(lf, item_col)
-        wide = item_dtype in _WIDE_ITEM_DTYPES
+        integer = item_dtype in _INT_ITEM_DTYPES
+        stores = output_dir or resume_from_k is not None or anchor_items is not None
+        if stores and not integer:
+            raise ValueError(
+                f"items of {item_dtype} are not integer ids: output_dir, resume_from_k and anchor_items store "
+                "item ids as 64-bit integers on the GPU route. Map the items to integer ids, or mine without "
+                "those options."
+            )
 
         def stores_ids(items: pl.Series) -> None:
-            if wide and (output_dir or resume_from_k is not None or anchor_items is not None) and _beyond_int64(items):
+            if stores and item_dtype not in _INT64_ITEM_DTYPES and _beyond_int64(items):
                 raise ValueError(
                     f"item ids of {item_dtype} lie outside the Int64 range: output_dir, resume_from_k and "
                     "anchor_items store item ids in 64 bits on the GPU route. Map the ids to Int64, or mine "
@@ -666,8 +683,8 @@ def apriori(
 
         csr, idx_to_item, n_trans = csr_result
 
-        items = pl.Series(list(idx_to_item.values()), dtype=item_dtype) if wide else None
-        column_ids = items is not None and _beyond_int64(items)
+        items = pl.Series(list(idx_to_item.values()), dtype=item_dtype) if item_dtype not in _INT64_ITEM_DTYPES else None
+        column_ids = items is not None and (not integer or _beyond_int64(items))
         if column_ids:
             idx_to_item = {c: c for c in idx_to_item}
 

@@ -320,6 +320,15 @@ class TestRowSplitInputEdges:
         with pytest.raises(ValueError, match="C-contiguous uint64"):
             apriori(bitvecs=(bv[::2], {i: i for i in range(4)}, 256), min_support=0.1, use_gpu=True)
 
+    @pytest.mark.parametrize("item", [1.5, "a"])
+    def test_non_integer_col_to_item_is_refused(self, item):
+        """The route holds item ids as 64-bit integers: a float id was truncated, a string raised mid-run."""
+        import cupy as cp
+
+        bv = cp.zeros((2, 4), dtype=cp.uint64)
+        with pytest.raises(ValueError, match="integer item id"):
+            apriori(bitvecs=(bv, {0: 1, 1: item}, 256), min_support=0.1)
+
     def test_the_memory_guard_does_not_discard_a_finished_lattice(self, nested_df):
         """After the last level nothing more is mined, so a tripped guard would only throw the result away."""
         got = apriori(nested_df, min_support=0.05, max_length=1, use_gpu=True, max_ram_gb=0.0)

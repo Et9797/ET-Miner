@@ -3,9 +3,8 @@
 Routes: the CPU miner (et_miner.core.cpu_miner, the default), the row-split
 GPU miner (et_miner.gpu.row_split; use_gpu=True or bitvecs=), and SON
 streaming on one or more devices (et_miner.streaming; streaming=True). This
-module validates the parameters, rejects combinations a route cannot honour,
-and holds list-based reference implementations of the free-set test and
-Pascal inference (core.cpu_miner applies both to arrays).
+module validates the parameters and rejects combinations a route cannot
+honour.
 
 Usage:
     from et_miner import apriori
@@ -22,7 +21,6 @@ from math import comb
 from typing import Any, Literal
 
 import polars as pl
-from loguru import logger
 
 from et_miner import _env
 from et_miner.gpu.density import validate_sparse_from_k
@@ -96,124 +94,6 @@ def _validate_parameters(
     validate_sparse_from_k(sparse_from_k)
     if not isinstance(prune_apriori, bool):
         raise TypeError(f"prune_apriori must be bool, got {type(prune_apriori).__name__}")
-
-
-def _prune_equal_support(
-    current_frequent: list[tuple[str, ...]],
-    current_counts: dict[tuple[str, ...], int],
-    prev_counts: dict[tuple[str, ...], int],
-) -> list[tuple[str, ...]]:
-    """Keep only the free-sets (generators) of a level (reference implementation).
-
-    The CPU miner applies the same test to arrays (``core.cpu_miner``), and
-    ``tests/test_cpu_miner.py`` checks its free-sets against a brute force;
-    nothing calls this function on a mining route.
-
-    An itemset is a *free-set* when no proper subset has the same support
-    [Bastide et al. 2000, Pascal]. If support({A,B,C}) == support({A,B}) then C
-    is implied by {A,B} and {A,B,C} is not free. Free-sets are anti-monotone —
-    every subset of a free-set is free — so the next level can be generated
-    from the survivors alone without losing a single free-set.
-
-    NOT closed-itemset mining: closed asks about equal-support *supersets*,
-    this asks about equal-support *subsets*, and the two select different
-    itemsets. ``prev_counts`` must hold every frequent candidate of the
-    previous level, not just its free-sets (the caller never prunes it): an
-    equal-count (k-1)-subset of a candidate generated from free parents is
-    always among those candidates, while the free level alone can miss it and
-    under-prune.
-
-    Compares raw integer counts, exactly as the GPU path does — a float
-    comparison with a tolerance made the two tiers disagree at the boundary.
-
-    Args:
-        current_frequent: Frequent k-itemsets from current iteration.
-        current_counts: Integer counts for the current k-itemsets.
-        prev_counts: Integer counts of every frequent candidate of the previous level.
-
-    Returns:
-        The free-sets, in input order.
-    """
-    if not prev_counts:
-        return current_frequent
-
-    free = []
-    for itemset in current_frequent:
-        is_free = True
-        current_count = current_counts[itemset]
-
-        # Not free if the count equals any (k-1)-subset's count
-        for i in range(len(itemset)):
-            subset = itemset[:i] + itemset[i + 1 :]
-            if prev_counts.get(subset) == current_count:
-                is_free = False
-                break
-
-        if is_free:
-            free.append(itemset)
-
-    return free
-
-
-
-
-def _infer_count_from_subsets(
-    candidate: tuple[str, ...],
-    prev_counts: dict[tuple[str, ...], int],
-    prev_free: set[tuple[str, ...]] | None,
-) -> int | None:
-    """Infer a candidate's exact count from its (k-1)-subsets, or None (reference implementation).
-
-    The CPU miner applies the same rule to arrays (``core.cpu_miner``).
-
-    Pascal [Bastide et al. 2000]: if a (k-1)-subset Y of X is *not* free — some
-    Z ⊊ Y has rows(Z) = rows(Y) — then for X = Y ∪ {a} we have
-    rows(X) = rows(Z ∪ {a}), and any (k-1)-subset W with Z ∪ {a} ⊆ W ⊂ X
-    satisfies rows(W) = rows(X). So X is not free either and
-
-        count(X) = min{count(W) : W ⊂ X, |W| = k-1}
-
-    exactly — no counting pass needed. When every (k-1)-subset is free nothing
-    can be inferred and the candidate must be counted.
-
-    This replaces an earlier rule that inferred whenever ALL subsets happened to
-    share a count, which is unsound: support({A,B}) = support({A,C}) =
-    support({B,C}) = 30 with support({A,B,C}) = 15 was its own documented
-    counterexample. Here all three pairs are free, so no inference is made.
-
-    Args:
-        candidate: Candidate k-itemset to check.
-        prev_counts: Integer counts of every frequent candidate of the previous level.
-        prev_free: The free (generator) (k-1)-itemsets. None disables inference.
-
-    Returns:
-        The exact count, or None when the candidate has to be counted.
-    """
-    k = len(candidate)
-    if k < 2 or prev_free is None:
-        return None
-
-    subset_counts: list[int] = []
-    licensed = False
-    for i in range(k):
-        subset = candidate[:i] + candidate[i + 1 :]
-        count = prev_counts.get(subset)
-        if count is None:
-            # A subset is not frequent — the candidate cannot be either, and we
-            # have no minimum to take. Let the caller count it.
-            return None
-        subset_counts.append(count)
-        if subset not in prev_free:
-            licensed = True
-
-    if not licensed:
-        return None
-
-    inferred = min(subset_counts)
-    logger.debug(f"INFERRED {candidate}: non-free subset licenses count={inferred}")
-    return inferred
-
-
 
 
 def _validate_route_support(

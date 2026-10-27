@@ -141,9 +141,21 @@ def test_generator_pruning_does_not_change_results():
     )
 
 
-def test_infer_count_rejects_its_own_counterexample():
-    from et_miner.core.apriori import _infer_count_from_subsets
+def _infer_count_from_subsets(
+    candidate: tuple[str, ...], prev_counts: dict[tuple[str, ...], int], prev_free: set[tuple[str, ...]] | None
+) -> int | None:
+    """Pascal's rule on tuples, the reference for the array miners: a candidate with a non-free (k-1)-subset
+    has the minimum of its (k-1)-subset counts; None when every subset is free, one is missing, or
+    ``prev_free`` is None."""
+    if len(candidate) < 2 or prev_free is None:
+        return None
+    subsets = [candidate[:i] + candidate[i + 1 :] for i in range(len(candidate))]
+    if any(s not in prev_counts for s in subsets) or all(s in prev_free for s in subsets):
+        return None
+    return min(prev_counts[s] for s in subsets)
 
+
+def test_infer_count_rejects_its_own_counterexample():
     # support({A,B}) == support({A,C}) == support({B,C}) == 30 while
     # support({A,B,C}) == 15: all three pairs are free, so nothing is inferable.
     prev_counts = {("A", "B"): 30, ("A", "C"): 30, ("B", "C"): 30}

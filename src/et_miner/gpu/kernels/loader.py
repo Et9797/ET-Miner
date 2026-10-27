@@ -2,30 +2,14 @@
 
 Kernel sources live as .cu files in the adjacent _src/ directory (shipped as
 package data) and are compiled on first use via cupy.RawKernel, keyed by the
-CUDA entry-point name. Also holds the per-device locks and grid-dimension
-helpers shared by every kernel-wrapper module.
+CUDA entry-point name. Also holds the grid-dimension helpers shared by
+every kernel-wrapper module.
 """
 
 from __future__ import annotations
 
 import threading
 from importlib import resources
-
-
-# Per-device locks for thread-safe CUDA operations on each GPU independently.
-# Allows true parallel kernel execution across GPUs (the old single global lock
-# serialized ALL GPU work, making multi-GPU slower than single-GPU).
-_cuda_device_locks: dict = {}
-_cuda_locks_init = threading.Lock()
-
-
-def _get_device_lock(device_id: int) -> threading.Lock:
-    """Get or create a lock for a specific CUDA device."""
-    if device_id not in _cuda_device_locks:
-        with _cuda_locks_init:
-            if device_id not in _cuda_device_locks:
-                _cuda_device_locks[device_id] = threading.Lock()
-    return _cuda_device_locks[device_id]
 
 
 #: Host-side cap on K for every K>=3 kernel. The group kernels cache the

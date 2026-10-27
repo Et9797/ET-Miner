@@ -140,16 +140,11 @@ def build_boolean_matrix(
 
     # Step 3: Item -> column mapping
     #
-    # The names are ZERO-PADDED, and that is load-bearing rather than cosmetic.
-    # Every ordering decision on the CPU path is a *string* comparison over
-    # these names -- sorted(...) in core.candidates._generate_candidates_k2 and
-    # the pl.col("a") < pl.col("b") prefix-join filters -- and item_ids comes
-    # from freq_1.sort("item"), so the column index is monotone in item id.
-    # Unpadded, "i_10" < "i_2" from 11 frequent items on, and the emitted
-    # itemsets stop being ascending item-id tuples. Padded, lexicographic order
-    # over the names IS numeric order over the indices, which IS item-id order,
-    # so the CPU route agrees with the GPU route by construction rather than by
-    # a second sort bolted on at emission.
+    # The names are ZERO-PADDED: item_ids comes from freq_1.sort("item"), so
+    # with padding the lexicographic order over the names is the numeric order
+    # over the indices, which is item-id order, for any caller that orders
+    # itemsets by their column names. Unpadded, "i_10" < "i_2" from 11
+    # frequent items on.
     #
     # The width depends on how many items were frequent, so it varies from run
     # to run. That is harmless and deliberate: ordering only needs the width to

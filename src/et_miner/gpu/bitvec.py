@@ -56,7 +56,7 @@ def _build_gpu_bitvec_matrix(
     n_rows = csr.shape[0]
     n_cols = csr.shape[1]
 
-    # Try CUDA kernel path (Phase 2 optimization)
+    # CUDA kernel path first
     if use_cuda_kernel:
         try:
             from et_miner.gpu.csr_bitvec import build_bitvecs_gpu_from_scipy

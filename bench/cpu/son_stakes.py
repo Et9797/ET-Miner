@@ -136,11 +136,11 @@ class Phases:
 
 def run_current(lf: pl.LazyFrame, min_support: float, max_length, chunk_size: int, n_jobs: int, ph: Phases) -> tuple:
     """son.apriori_streaming with its building blocks timed in place (trees before the port only)."""
-    import et_miner.core.candidates as cand_mod
     from et_miner.streaming import son
 
     if not hasattr(son, "_mine_chunk_frequent"):
         raise RuntimeError("arm `current` measures SON before the port (trees up to 508cdb0); S1 reads it from S0")
+    import et_miner.core.candidates as cand_mod
 
     state = {"pass1": False}
     real = {

@@ -275,13 +275,11 @@ def _random_level(seed: int, k: int, n_cols: int = 14, n: int = 300) -> np.ndarr
     return arr
 
 
-def _reference_candidates(level: np.ndarray, k: int) -> np.ndarray:
-    from et_miner.core.candidates import _generate_candidates
-
-    names = [f"i_{i:02d}" for i in range(64)]
-    out = _generate_candidates([tuple(names[c] for c in row) for row in level.tolist()], k)
-    arr = np.array([[int(c[2:]) for c in t] for t in out], dtype=np.int32).reshape(-1, k)
-    return arr[np.lexsort(arr.T[::-1])] if len(arr) else arr
+def _reference_candidates(level: np.ndarray, k: int, n_cols: int = 14) -> np.ndarray:
+    """Every k-set of the columns whose (k-1)-subsets all lie in ``level``, ascending (brute force)."""
+    prev = {tuple(row) for row in level.tolist()}
+    out = [c for c in itertools.combinations(range(n_cols), k) if all(s in prev for s in itertools.combinations(c, k - 1))]
+    return np.array(out, dtype=np.int32).reshape(-1, k)
 
 
 @pytest.mark.parametrize("chunk", [cpu_miner.CAND_CHUNK, 7, 1])

@@ -1023,9 +1023,6 @@ def _apriori_row_split_multi_gpu(
                 if n_freq > 0:
                     current_flat = decode_k2_pairs_flat(freq_pair_indices, freq_cols)
                     current_counts_raw = freq_pair_counts  # already int64
-
-
-                    # Pair cache disabled — not yet wired to K>=3 kernels (saves ~13.6 GB VRAM)
                 else:
                     current_flat = np.empty((0, 2), dtype=np.int32)
                     current_counts_raw = np.empty(0, dtype=np.int64)

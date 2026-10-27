@@ -486,7 +486,7 @@ def generate_candidates(prev: np.ndarray, k: int, n_cols: int) -> Iterator[np.nd
     A candidate joins two itemsets that share their first k-2 items (a prefix
     group) and survives when every (k-1)-subset is in ``prev`` (Apriori's
     subset test). Yields int32 (m, k) arrays; concatenated they are the full
-    lexsorted candidate list of ``core.candidates._generate_candidates``.
+    lexsorted candidate list.
 
     Steps: find the prefix runs; each member pairs with every later member of
     its run, so the number of partners per member is known; walk the members

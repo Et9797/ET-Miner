@@ -210,12 +210,6 @@ fn build_column_bitvecs_u64<'py>(
         .map_err(|e| PyValueError::new_err(format!("could not build bitvec array: {}", e)))
 }
 
-/// Get the number of threads Rayon will use for parallel operations.
-#[pyfunction]
-fn get_num_threads() -> usize {
-    core::utils::get_num_threads()
-}
-
 // =============================================================================
 // Full-Rust Apriori over CSR
 // =============================================================================
@@ -410,7 +404,6 @@ fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_column_bitvecs_u64, m)?)?;
 
     // Thread control
-    m.add_function(wrap_pyfunction!(get_num_threads, m)?)?;
 
     // Full-Rust Apriori over a CSR matrix
     m.add_function(wrap_pyfunction!(apriori_from_csr, m)?)?;

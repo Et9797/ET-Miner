@@ -9,7 +9,7 @@
 //! - `bitvec`: Bitvector operations for GPU acceleration
 //! - `candidates`: Candidate generation for Apriori
 //! - `apriori`: Complete Apriori algorithm
-//! - `utils`: Thread control and utility functions
+//! - `groups`: K>=3 prefix-group build and the free-set prune
 
 pub mod matrix;
 pub mod cooccurrence;
@@ -17,7 +17,6 @@ pub mod bitvec;
 pub mod candidates;
 pub mod apriori;
 pub mod groups;
-pub mod utils;
 
 // Re-export commonly used types
 pub use matrix::CscMatrix;

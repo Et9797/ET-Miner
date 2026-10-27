@@ -1,28 +1,19 @@
-"""
-CUDA Kernel for Direct CSR-to-Bitvec Conversion on GPU
+"""Column bitvectors from a CSR on the GPU, whole or split by rows across devices.
 
-Phase 2 GPU Pipeline Optimization:
-- Instead of building bitvecs on CPU (3GB) and transferring to GPU
-- Transfer CSR data (~100MB) to GPU and build bitvecs there
-- Expected: 3.6s → 0.02s transfer, 4s → 0.5s build
+The ``csr_to_bitvec`` kernel (``gpu/kernels/_src/csr_to_bitvec.cu``) sets bit
+``row`` of column ``col``'s bitvector for every CSR entry; the output is a
+uint64 array of shape ``(n_cols, ceil(n_rows / 64))``, zero-initialised, so a
+repeated entry sets its bit once.
 
-The kernel converts CSR (Compressed Sparse Row) format directly to
-column-oriented bitvector format on the GPU, enabling massive parallelism
-for the conversion.
+Usage:
+    from et_miner.gpu.csr_bitvec import build_bitvecs_gpu, build_bitvecs_row_split
 
-Memory layout:
-- Input CSR:
-  - indptr: [n_rows + 1] row pointers
-  - indices: [nnz] column indices
-- Output bitvecs: [n_cols, n_u64s] where n_u64s = ceil(n_rows / 64)
-  - Each column gets a bitvector with 1 bit per row
-  - Bit i in bitvec[col] is set if row i contains column col
-
+    bitvecs = build_bitvecs_gpu(indptr, indices, n_rows, n_cols, device_id=0)
+    shards = build_bitvecs_row_split(csr, n_gpus=2)  # [(bitvecs, device_id, n_rows)]
 """
 
 import numpy as np
-import threading
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from loguru import logger
 
@@ -36,129 +27,7 @@ __all__ = [
     'build_bitvecs_row_split_from_arrays',
     'get_csr_to_bitvec_kernel',
     'clear_csr_kernel_cache',
-    'PinnedBufferPool',
-    'get_default_pinned_pool',
 ]
-
-
-# =============================================================================
-# Pinned Memory Buffer Pool (Phase 3 optimization: 3x faster transfers)
-# =============================================================================
-
-class PinnedBufferPool:
-    """
-    Reusable pinned memory buffer pool for fast GPU transfers.
-
-    Pinned memory enables DMA (Direct Memory Access) transfers at ~37 GB/s
-    vs ~11 GB/s for unpinned memory. This pool pre-allocates and reuses
-    buffers to avoid allocation overhead in the hot path.
-
-    Usage:
-        pool = PinnedBufferPool()
-
-        for chunk in chunks:
-            # Get buffers (automatically sized)
-            indptr_buf, indices_buf = pool.get_buffers(indptr, indices)
-
-            # Transfer to GPU (3x faster!)
-            indptr_gpu = cp.asarray(indptr_buf)
-            indices_gpu = cp.asarray(indices_buf)
-    """
-
-    def __init__(self, initial_size: int = 0):
-        """
-        Initialize the buffer pool.
-
-        Args:
-            initial_size: Pre-allocate buffers of this size (bytes).
-                         If 0, buffers are allocated on first use.
-        """
-        self._lock = threading.Lock()
-        self._indptr_buf = None
-        self._indices_buf = None
-        self._indptr_size = 0
-        self._indices_size = 0
-        self._initialized = False
-
-        if initial_size > 0:
-            self._allocate(initial_size, initial_size)
-
-    def _allocate(self, indptr_bytes: int, indices_bytes: int):
-        """Allocate or reallocate pinned buffers."""
-        import cupy as cp
-
-        # Only reallocate if needed (grow-only)
-        if indptr_bytes > self._indptr_size:
-            self._indptr_buf = cp.cuda.alloc_pinned_memory(indptr_bytes)
-            self._indptr_size = indptr_bytes
-
-        if indices_bytes > self._indices_size:
-            self._indices_buf = cp.cuda.alloc_pinned_memory(indices_bytes)
-            self._indices_size = indices_bytes
-
-        self._initialized = True
-
-    def get_buffers(
-        self,
-        indptr: np.ndarray,
-        indices: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Get pinned memory buffers with data copied in.
-
-        Args:
-            indptr: CSR indptr array
-            indices: CSR indices array
-
-        Returns:
-            Tuple of (pinned_indptr, pinned_indices) numpy arrays
-            backed by pinned memory.
-        """
-        with self._lock:
-            # Ensure int64 dtype
-            if indptr.dtype != np.int64:
-                indptr = indptr.astype(np.int64)
-            if indices.dtype != np.int64:
-                indices = indices.astype(np.int64)
-
-            # Allocate/resize if needed
-            if indptr.nbytes > self._indptr_size or indices.nbytes > self._indices_size:
-                self._allocate(indptr.nbytes, indices.nbytes)
-
-            # Create numpy views into pinned memory
-            pinned_indptr = np.frombuffer(
-                self._indptr_buf, dtype=np.int64, count=len(indptr)
-            )
-            pinned_indices = np.frombuffer(
-                self._indices_buf, dtype=np.int64, count=len(indices)
-            )
-
-            # Copy data to pinned buffers (fast memcpy)
-            np.copyto(pinned_indptr, indptr)
-            np.copyto(pinned_indices, indices)
-
-            return pinned_indptr, pinned_indices
-
-    def clear(self):
-        """Release all buffers."""
-        with self._lock:
-            self._indptr_buf = None
-            self._indices_buf = None
-            self._indptr_size = 0
-            self._indices_size = 0
-            self._initialized = False
-
-
-# Global default pool (lazy initialized)
-_default_pinned_pool: Optional[PinnedBufferPool] = None
-
-
-def get_default_pinned_pool() -> PinnedBufferPool:
-    """Get the default global pinned buffer pool."""
-    global _default_pinned_pool
-    if _default_pinned_pool is None:
-        _default_pinned_pool = PinnedBufferPool()
-    return _default_pinned_pool
 
 
 # =============================================================================
@@ -197,18 +66,8 @@ def build_bitvecs_gpu(
     n_rows: int,
     n_cols: int,
     device_id: int = 0,
-    buffer_pool: Optional[PinnedBufferPool] = None,
 ) -> "cp.ndarray":
-    """
-    Build bitvecs directly on GPU from CSR data.
-
-    This is the key optimization for Phase 2 GPU pipeline:
-    - Transfer CSR (~100MB) instead of bitvecs (~3GB) to GPU
-    - Build bitvecs in parallel on GPU using thousands of CUDA threads
-
-    Phase 3 optimization: Pinned memory for 3x faster transfers!
-    - Normal transfer: ~12 GB/s
-    - Pinned transfer: ~37 GB/s (with buffer_pool)
+    """Build the column bitvectors of a CSR on one GPU: the CSR is copied over, the bitvectors built there.
 
     Args:
         csr_indptr: numpy array of row pointers [n_rows + 1], dtype int64/int32
@@ -216,9 +75,6 @@ def build_bitvecs_gpu(
         n_rows: number of rows (transactions)
         n_cols: number of columns (items)
         device_id: GPU device to use (default 0)
-        buffer_pool: Optional PinnedBufferPool for 3x faster transfers.
-                    If None, uses unpinned transfers. For best performance,
-                    create one pool and reuse it for all chunks.
 
     Returns:
         CuPy array of shape [n_cols, n_u64s] on GPU, where n_u64s = ceil(n_rows/64)
@@ -226,16 +82,13 @@ def build_bitvecs_gpu(
 
     Raises:
         ImportError: If CuPy is not available.
-        RuntimeError: If GPU initialization fails.
+        OverflowError: If n_cols * n_u64s does not fit int64.
 
     Example:
         >>> import numpy as np
-        >>> from et_miner.gpu.csr_bitvec import PinnedBufferPool
-        >>> # Create pool ONCE, reuse for all chunks
-        >>> pool = PinnedBufferPool()
         >>> indptr = np.array([0, 2, 3, 6], dtype=np.int64)
         >>> indices = np.array([0, 2, 1, 0, 1, 3], dtype=np.int64)
-        >>> bitvecs = build_bitvecs_gpu(indptr, indices, n_rows=3, n_cols=4, buffer_pool=pool)
+        >>> bitvecs = build_bitvecs_gpu(indptr, indices, n_rows=3, n_cols=4)
     """
     import cupy as cp
 
@@ -259,17 +112,8 @@ def build_bitvecs_gpu(
         if csr_indices.dtype != np.int64:
             csr_indices = csr_indices.astype(np.int64)
 
-        # Transfer CSR data to GPU
-        # Phase 3: Use pinned memory pool for 3x faster DMA transfers
-        if buffer_pool is not None:
-            # Use provided buffer pool (reuses memory, avoids allocation overhead)
-            pinned_indptr, pinned_indices = buffer_pool.get_buffers(csr_indptr, csr_indices)
-            indptr_gpu = cp.asarray(pinned_indptr)
-            indices_gpu = cp.asarray(pinned_indices)
-        else:
-            # Standard unpinned transfer (slower but simpler)
-            indptr_gpu = cp.asarray(csr_indptr)
-            indices_gpu = cp.asarray(csr_indices)
+        indptr_gpu = cp.asarray(csr_indptr)
+        indices_gpu = cp.asarray(csr_indices)
 
         # Allocate output bitvecs on GPU, zero-initialized
         # Zero-init is critical: atomicOr only sets bits, doesn't clear them
@@ -319,9 +163,9 @@ def build_bitvecs_from_gpu_arrays(
 ) -> "cp.ndarray":
     """Build bitvecs from CSR arrays already resident on GPU.
 
-    Same CUDA kernel as build_bitvecs_gpu() but skips the CPU→GPU transfer.
-    Used by the GPU-resident null model where indptr/indices persist in VRAM
-    across permutations.
+    Same CUDA kernel as build_bitvecs_gpu() but skips the CPU→GPU transfer,
+    for callers that keep the CSR in VRAM (the AlphaFold null-model
+    experiment permutes it there between runs).
 
     Args:
         indptr_gpu: CuPy int64 array of row pointers [n_rows + 1], already on GPU.
@@ -372,37 +216,15 @@ def build_bitvecs_from_gpu_arrays(
 def build_bitvecs_gpu_from_scipy(
     csr: "scipy.sparse.csr_matrix",
     device_id: int = 0,
-    buffer_pool: Optional[PinnedBufferPool] = None,
 ) -> "cp.ndarray":
-    """
-    Build GPU bitvecs directly from a scipy CSR matrix.
-
-    Convenience wrapper that extracts CSR components and calls build_bitvecs_gpu.
-    This replaces the CPU bitvec build + transfer pattern.
-
-    Args:
-        csr: scipy.sparse.csr_matrix (transactions x items)
-        device_id: GPU device to use
-        buffer_pool: Optional PinnedBufferPool for 3x faster transfers.
-                    For best performance, create one pool and reuse for all chunks.
-
-    Returns:
-        CuPy array [n_cols, n_u64s] on GPU
-
-    Example:
-        >>> from scipy.sparse import csr_matrix
-        >>> from et_miner.gpu.csr_bitvec import PinnedBufferPool
-        >>> pool = PinnedBufferPool()  # Create once, reuse
-        >>> csr = csr_matrix([[1, 0, 1], [0, 1, 0], [1, 1, 1]])
-        >>> bitvecs = build_bitvecs_gpu_from_scipy(csr, buffer_pool=pool)
-    """
+    """``build_bitvecs_gpu`` on a scipy CSR matrix (transactions x items)."""
     n_rows, n_cols = csr.shape
 
     # Extract CSR components (these are views, not copies)
     indptr = csr.indptr.astype(np.int64)
     indices = csr.indices.astype(np.int64)
 
-    return build_bitvecs_gpu(indptr, indices, n_rows, n_cols, device_id, buffer_pool)
+    return build_bitvecs_gpu(indptr, indices, n_rows, n_cols, device_id)
 
 
 def _row_split_cuts(n_rows: int, n_gpus: int, balance: str = "rows") -> list[tuple[int, int]]:
@@ -447,9 +269,10 @@ def build_bitvecs_row_split_from_arrays(
     """Build row-split bitvecs across multiple GPUs from raw CSR arrays.
 
     Splits transaction rows across GPUs (contiguous ranges) and builds each
-    shard's bitvec on its own device in parallel (one thread per GPU — the
-    kernel loader's per-device locks make this safe). Total VRAM usage is
-    split n_gpus ways, enabling datasets that don't fit on a single GPU.
+    shard's bitvec on its own device in parallel (one thread per GPU; the
+    kernel loader's cache lock makes the first compile on each device safe).
+    Total VRAM usage is split n_gpus ways, enabling datasets that don't fit
+    on a single GPU.
 
     Args:
         indptr: numpy int64 array of row pointers [n_rows + 1].

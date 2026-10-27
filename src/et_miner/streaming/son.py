@@ -54,6 +54,7 @@ from typing import Any
 import numpy as np
 import polars as pl
 
+from et_miner import _env
 from et_miner._compat import HAS_TQDM, tqdm
 from et_miner.core.cpu_miner import (
     _emit,
@@ -303,8 +304,8 @@ def apriori_streaming(
         min_support,
     )
 
-    if not use_gpu:
-        result_df = _son_cpu(
+    if not use_gpu or _env.son_gpu() == "ported":
+        result_df = _son_arrays(
             lf,
             item_col,
             effective_chunk_size,
@@ -317,6 +318,7 @@ def apriori_streaming(
             session,
             show_progress,
             progress_callback,
+            gpus=1 if use_gpu else 0,
         )
         return (result_df, session) if profile else result_df
 
@@ -749,7 +751,89 @@ def _count_chunk(
     return count_itemsets(indptr, indices, len(items), cands, pool, workers)
 
 
-def _son_cpu(
+def _local_levels_gpu(
+    chunk_lf: pl.LazyFrame,
+    n_rows: int,
+    local_min_support: float,
+    max_length: int | None,
+    item_col: str,
+    gpus: int,
+) -> tuple[pl.Series, list[tuple[np.ndarray, np.ndarray]]] | None:
+    """``_local_levels`` on the in-core GPU route: the chunk mined by ``apriori(use_gpu=True, n_gpus=gpus)``.
+
+    The route keeps ``_min_count`` of the local threshold, which is
+    ``_local_min_count`` for any threshold above 0. Its itemsets become column
+    ids into the chunk's frequent items (sorted), its supports counts.
+    """
+    from et_miner.core.apriori import apriori
+
+    column = chunk_lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
+    if len(column) != n_rows:
+        raise RuntimeError(f"a SON chunk holds {len(column)} rows where {n_rows} were counted")
+    res = apriori(column.to_frame(item_col), min_support=local_min_support, max_length=max_length,
+                  item_col=item_col, use_gpu=True, n_gpus=gpus)
+    if res.height == 0:
+        return None
+    lens = res.get_column("itemset").list.len().to_numpy()
+    counts = (res.get_column("support") * n_rows).round().cast(pl.Int64).to_numpy()
+    flat = res.get_column("itemset").explode()
+    items = flat.unique().sort()
+    cols = flat.replace_strict(items, pl.Series(np.arange(len(items), dtype=np.int32))).to_numpy()
+    starts = np.zeros(len(lens) + 1, dtype=np.int64)
+    np.cumsum(lens, out=starts[1:])
+    levels = []
+    for k in np.unique(lens).tolist():
+        rows = np.flatnonzero(lens == k)
+        idx = starts[rows][:, None] + np.arange(k)
+        levels.append((cols[idx].astype(np.int32), counts[rows]))
+    return items, levels
+
+
+def _count_chunk_gpu(
+    chunk_lf: pl.LazyFrame, item_col: str, items: pl.Series, cands: dict[int, np.ndarray], gpus: int
+) -> dict[int, np.ndarray]:
+    """``_count_chunk`` on the GPU: the rows mapped onto the candidate items, their bitvectors split by rows over
+    ``gpus`` devices, every candidate counted with the batched itemset kernel on each shard and summed."""
+    import cupy as cp
+
+    from et_miner.gpu.csr_bitvec import build_bitvecs_gpu, build_bitvecs_row_split_from_arrays
+    from et_miner.gpu.kernels import count_itemsets_flat
+
+    column = chunk_lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
+    bound = int(column.list.len().fill_null(1).cast(pl.Int64).sum())
+    indptr, indices = _map_rows(column, items, bound, _int_ids(column))
+    del column
+    n_rows, n_cols = len(indptr) - 1, len(items)
+    order = sorted(cands)
+    flat = np.concatenate([cands[k].ravel() for k in order]).astype(np.int32)
+    offsets = np.zeros(sum(len(cands[k]) for k in order) + 1, dtype=np.int64)
+    np.cumsum(np.concatenate([np.full(len(cands[k]), k, dtype=np.int64) for k in order]), out=offsets[1:])
+    if gpus <= 1:
+        device = cp.cuda.Device().id
+        shards = [(build_bitvecs_gpu(indptr, indices, n_rows, n_cols, device_id=device), device, n_rows)]
+    else:
+        shards = build_bitvecs_row_split_from_arrays(
+            indptr.astype(np.int64), indices.astype(np.int64), n_rows, n_cols, gpus
+        )
+    del indptr, indices
+    try:
+        with ThreadPoolExecutor(max_workers=len(shards)) as pool:
+            parts = list(pool.map(lambda sh: count_itemsets_flat(sh[0], flat, offsets), shards))
+    finally:
+        devices = [d for _, d, _ in shards]
+        del shards
+        for d in devices:
+            with cp.cuda.Device(d):
+                cp.get_default_memory_pool().free_all_blocks()
+    total = np.sum(parts, axis=0)
+    out, at = {}, 0
+    for k in order:
+        out[k] = total[at : at + len(cands[k])]
+        at += len(cands[k])
+    return out
+
+
+def _son_arrays(
     lf: pl.LazyFrame,
     item_col: str,
     chunk_size: int,
@@ -762,8 +846,9 @@ def _son_cpu(
     session: ProfilingSession | None,
     show_progress: bool,
     progress_callback: Callable[[str, int, int, dict[str, Any]], None] | None,
+    gpus: int = 0,
 ) -> pl.DataFrame:
-    """SON's two passes on the CPU's array miner.
+    """SON's two passes on the CPU's array miner, or with ``gpus`` on the in-core GPU route.
 
     Steps:
 
@@ -780,6 +865,10 @@ def _son_cpu(
        chunk is read.
     4. Keep the candidates whose count reaches the global min_count and build
        the result as the CPU route does (``_emit``).
+
+    With ``gpus`` (> 0) pass 1 mines each chunk with ``_local_levels_gpu`` and
+    pass 2 counts with ``_count_chunk_gpu`` on that many devices; the union,
+    the bound and the emission are the same.
 
     A chunk that fails raises: a skipped chunk would drop its candidates or its
     counts while support is still divided by every row.
@@ -799,14 +888,13 @@ def _son_cpu(
         union = _CandidateUnion(n_total)
         bar = _chunks(n_chunks, "Pass 1: Local mining", show_progress)
         for chunk_idx in bar:
-            local = _local_levels(
-                lf.slice(chunk_idx * chunk_size, chunk_size),
-                chunk_sizes[chunk_idx],
-                local_min_support,
-                max_length,
-                item_col,
-                pool,
-                workers,
+            chunk_lf = lf.slice(chunk_idx * chunk_size, chunk_size)
+            local = (
+                _local_levels_gpu(chunk_lf, chunk_sizes[chunk_idx], local_min_support, max_length, item_col, gpus)
+                if gpus
+                else _local_levels(
+                    chunk_lf, chunk_sizes[chunk_idx], local_min_support, max_length, item_col, pool, workers
+                )
             )
             if local is not None:
                 union.add(*local, slacks[chunk_idx])
@@ -840,7 +928,12 @@ def _son_cpu(
             session.start_phase("pass2_global_counting")
         totals = {k: np.zeros(len(c), dtype=np.int64) for k, c in cands.items()}
         for chunk_idx in _chunks(n_chunks if cands else 0, "Pass 2: Global counting", show_progress):
-            counts = _count_chunk(lf.slice(chunk_idx * chunk_size, chunk_size), item_col, items, cands, pool, workers)
+            chunk_lf = lf.slice(chunk_idx * chunk_size, chunk_size)
+            counts = (
+                _count_chunk_gpu(chunk_lf, item_col, items, cands, gpus)
+                if gpus
+                else _count_chunk(chunk_lf, item_col, items, cands, pool, workers)
+            )
             for k, c in counts.items():
                 totals[k] += c
             if progress_callback:

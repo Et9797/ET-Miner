@@ -38,6 +38,7 @@ from typing import TYPE_CHECKING, Any
 
 import polars as pl
 
+from et_miner import _env
 from et_miner._compat import HAS_TQDM, tqdm
 
 # SON-specific helpers live in son.py; generic ones in matrix.py (foundation layer)
@@ -50,6 +51,7 @@ from et_miner.streaming.son import (
     _estimate_chunk_size_from_memory,
     _get_memory_gb,
     _mine_chunk_gpu,
+    _son_arrays,
 )
 from et_miner.core.matrix import build_boolean_matrix
 from et_miner.core.result import (
@@ -287,6 +289,12 @@ def apriori_streaming_multi_gpu(
         local_support_factor * 100,
         min_support,
     )
+
+    if _env.son_gpu() == "ported":
+        return _son_arrays(
+            lf, item_col, chunk_size, chunk_sizes, n_total, min_support, local_min_support, max_length, n_jobs,
+            None, show_progress, progress_callback, gpus=effective_n_gpus,
+        )
 
     # =========================================================================
     # PASS 1: Local frequent itemset mining (parallel across GPUs)

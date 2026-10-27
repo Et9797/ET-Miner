@@ -168,6 +168,18 @@ Variables:
                                        GPUs a group beyond one chunk is
                                        counted per candidate whatever it
                                        says. Unset: every arm
+    ET_MINER_SON_GPU                   bench only: "boolean" or "ported",
+                                       SON's GPU passes (use_gpu=True, and
+                                       every multi-GPU SON run). "boolean":
+                                       per chunk a Polars boolean matrix,
+                                       a set union, pass 2 counting every
+                                       candidate. "ported": the CPU passes'
+                                       skeleton (array union, the partition
+                                       bound), each chunk mined by the
+                                       in-core GPU route on n_gpus devices
+                                       and pass 2 counted with the batched
+                                       itemset kernel, row-split over them.
+                                       Unset: boolean
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -376,6 +388,18 @@ def leave_out() -> frozenset[str]:
     if bad := names - set(LEAVE_OUT):
         raise ValueError(f"ET_MINER_LEAVE_OUT names {sorted(bad)}; it takes a comma-separated subset of {LEAVE_OUT}")
     return names
+
+
+SON_GPU = ("boolean", "ported")
+
+
+def son_gpu() -> str | None:
+    v = os.environ.get("ET_MINER_SON_GPU", "").strip().lower()
+    if not v:
+        return None
+    if v not in SON_GPU:
+        raise ValueError(f"ET_MINER_SON_GPU must be one of {SON_GPU}, got {v!r}")
+    return v
 
 
 def log_dir() -> Path:

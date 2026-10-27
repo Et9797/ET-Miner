@@ -29,28 +29,48 @@ def count_itemsets_cuda(bitvecs_gpu, itemsets: list[np.ndarray]) -> np.ndarray:
         return _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s)
 
 
+def count_itemsets_flat(bitvecs_gpu, items: np.ndarray, offsets: np.ndarray) -> np.ndarray:
+    """``count_itemsets_cuda`` on itemsets given flat: itemset i is ``items[offsets[i]:offsets[i + 1]]``.
+
+    Args:
+        bitvecs_gpu: CuPy uint64 array of shape (n_cols, n_u64s).
+        items: int32 column indices of every itemset, concatenated.
+        offsets: int64 array of len(itemsets) + 1 starts; every itemset holds at least one item.
+
+    Returns:
+        int64 NumPy array of counts, one per itemset.
+    """
+    import cupy as cp
+
+    _assert_bitvecs("count_itemsets_flat", bitvecs_gpu)
+    n_itemsets = len(offsets) - 1
+    if n_itemsets <= 0 or bitvecs_gpu.shape[1] == 0:
+        return np.zeros(max(0, n_itemsets), dtype=np.int64)
+    if np.any(np.diff(offsets) <= 0):
+        raise ValueError("count_itemsets_flat: every itemset needs at least one item")
+    with cp.cuda.Device(bitvecs_gpu.device.id):
+        return _launch_batch_kernel(
+            bitvecs_gpu,
+            cp.asarray(items, dtype=cp.int32),
+            cp.asarray(offsets, dtype=cp.int64),
+            n_itemsets,
+            bitvecs_gpu.shape[1],
+        )
+
+
 def _count_batch(bitvecs_gpu, itemsets, n_cols, n_u64s):
     """Count all itemsets in one kernel launch."""
     import cupy as cp
 
-    kernel = get_cuda_kernel("count_itemsets_batch")
-    n_itemsets = len(itemsets)
-
-    # Flatten itemsets
-    all_items = []
-    offsets = [0]
-    for itemset in itemsets:
-        all_items.extend(itemset.tolist())
-        offsets.append(len(all_items))
-
-    all_items_gpu = cp.array(all_items, dtype=cp.int32)
-    offsets_gpu = cp.array(offsets, dtype=cp.int64)  # FIXED: int32 -> int64 for >2B elements
+    offsets = np.zeros(len(itemsets) + 1, dtype=np.int64)
+    np.cumsum([len(s) for s in itemsets], out=offsets[1:])
+    all_items = np.concatenate([np.asarray(s, dtype=np.int32) for s in itemsets])
 
     return _launch_batch_kernel(
         bitvecs_gpu,
-        all_items_gpu,
-        offsets_gpu,
-        n_itemsets,
+        cp.asarray(all_items),
+        cp.asarray(offsets),
+        len(itemsets),
         n_u64s,
     )
 

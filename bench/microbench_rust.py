@@ -1,18 +1,23 @@
-"""Time the Rust host roles R2 and R4 against their fallbacks on real level arrays.
+"""Time the Rust host roles R2, R4 and R5 against their alternatives on real level arrays.
 
 Two steps, each in a fresh process so the thread budget is fixed before any
 pool starts:
 
-    dump   mine a dataset on the row-split miner (one GPU) and save the inputs
-           of every R2 (prefix-group build) and R4 (free-set prune) call to
-           <dir>/<dataset>/<role>_k<K>.npz
+    dump   mine a dataset on the row-split miner through apriori(use_gpu=True)
+           (one GPU unless --n-gpus) and save the inputs of every R2
+           (prefix-group build) and R4 (free-set prune) call to
+           <dir>/<dataset>/<role>_k<K>.npz; with --son-chunk, mine it with
+           SON's GPU passes instead and save every CSR handed to
+           _build_gpu_bitvec_matrix (R5) to <dir>/<dataset>/r5_<n>.npz
     time   load every dumped input and time Rust against the fallback, per
-           call, R4 together with the fancy-index that follows it
+           call: R2 against the numpy group build, R4 (with the fancy-index
+           that follows it) against the Python prune, R5 (the Rust bitvector
+           build and its copy to the device) against the CUDA build it backs
 
 Usage:
-    RAYON_NUM_THREADS=6 python bench/microbench_rust.py dump DATASET DIR [--free-sets]
-        [--max-length K] [--then-k3] [--n-gpus N]
-    RAYON_NUM_THREADS=6 python bench/microbench_rust.py time DIR [--reps 3] [--fallback-timeout S]
+    RAYON_NUM_THREADS=17 python bench/microbench_rust.py dump DATASET DIR [--free-sets]
+        [--max-length K] [--then-k3] [--n-gpus N] [--min-support S] [--son-chunk ROWS]
+    RAYON_NUM_THREADS=17 python bench/microbench_rust.py time DIR [--reps 3] [--fallback-timeout S]
 
 `time` prints one JSON line per call; a fallback still running after
 --fallback-timeout seconds is interrupted and recorded as a lower bound. `--then-k3` with
@@ -36,49 +41,64 @@ REPO = Path(__file__).resolve().parent.parent
 
 
 def dump(dataset: str, out: Path, free_sets: bool, max_length: int | None, then_k3: bool = False,
-         n_gpus: int = 1) -> None:
+         n_gpus: int = 1, min_support: float | None = None, son_chunk: int | None = None) -> None:
+    import os
+
     import polars as pl
 
-    from et_miner.core.matrix import _build_csr_from_transactions
-    from et_miner.gpu import kernels, row_split
+    from et_miner import apriori
+    from et_miner.gpu import bitvec, kernels, row_split
     from et_miner.synthetic import PRESETS
 
     out.mkdir(parents=True, exist_ok=True)
-    build, prune_free = (
+    build, prune_free, bitvecs = (
         kernels.build_k3plus_groups_from_flat,
         row_split._prune_non_free_mask,
+        bitvec._build_gpu_bitvec_matrix,
     )
     seen: dict[str, int] = {}
 
-    def _name(role: str, k: int) -> Path:
-        key = f"{role}_k{k}"
+    def _name(key: str) -> Path:
         seen[key] = seen.get(key, 0) + 1
         return out / (f"{key}.npz" if seen[key] == 1 else f"{key}_{seen[key]}.npz")
 
-    def _build(flat):
-        np.savez(_name("r2", flat.shape[1] + 1), flat=flat)
-        return build(flat)
+    def _build(flat, **kw):
+        if not kw:
+            np.savez(_name(f"r2_k{flat.shape[1] + 1}"), flat=flat)
+        return build(flat, **kw)
 
     def _free(cur, cc, prev, pc):
-        np.savez(_name("r4", cur.shape[1]), cur=cur, cc=cc, prev=prev, pc=pc)
+        np.savez(_name(f"r4_k{cur.shape[1]}"), cur=cur, cc=cc, prev=prev, pc=pc)
         return prune_free(cur, cc, prev, pc)
+
+    def _bitvecs(csr, *a, **kw):
+        np.savez(_name("r5"), indptr=csr.indptr, indices=csr.indices, shape=np.array(csr.shape))
+        return bitvecs(csr, *a, **kw)
 
     kernels.build_k3plus_groups_from_flat = _build  # row_split imports it at call time
     row_split._prune_non_free_mask = _free
+    bitvec._build_gpu_bitvec_matrix = _bitvecs  # son imports it at call time
 
-    spec = PRESETS[dataset]
-    df = pl.read_parquet(REPO / "datasets" / "synth" / f"{dataset}.parquet")
-    csr, idx_to_item, n = _build_csr_from_transactions(df.lazy(), spec.min_support, "items")
-    res = row_split._apriori_row_split_multi_gpu(
-        csr, idx_to_item, n, spec.min_support, max_length, n_gpus, None,
-        prune_non_free=free_sets,
-    )
-    if then_k3:
-        item_to_col = {item: col for col, item in idx_to_item.items()}
-        pairs = [sorted(item_to_col[i] for i in s) for s in res["itemset"].to_list() if len(s) == 2]
-        flat = np.array(pairs, dtype=np.int32)
-        flat = flat[np.lexsort(flat[:, ::-1].T)]
-        kernels.build_k3plus_groups_from_flat(flat)
+    spec = PRESETS.get(dataset)
+    if dataset == "online_retail":
+        df = pl.read_parquet(REPO / "datasets" / "online_retail_ii" / "transactions.parquet")
+    else:
+        df = pl.read_parquet(REPO / "datasets" / "synth" / f"{dataset}.parquet")
+    support = min_support if min_support is not None else spec.min_support
+    if son_chunk:
+        os.environ["ET_MINER_SON_GPU"] = "boolean"
+        apriori(df, min_support=support, max_length=max_length, streaming=True, chunk_size=son_chunk, use_gpu=True,
+                show_progress=False)
+    else:
+        res = apriori(df, min_support=support, max_length=max_length, use_gpu=True, n_gpus=n_gpus,
+                      prune_equal_support=free_sets)
+        if then_k3:
+            items = sorted(s[0] for s in res["itemset"].to_list() if len(s) == 1)
+            item_to_col = {item: col for col, item in enumerate(items)}
+            pairs = [sorted(item_to_col[i] for i in s) for s in res["itemset"].to_list() if len(s) == 2]
+            flat = np.array(pairs, dtype=np.int32)
+            flat = flat[np.lexsort(flat[:, ::-1].T)]
+            kernels.build_k3plus_groups_from_flat(flat)
     print(json.dumps({"dumped": sorted(p.name for p in out.glob("*.npz"))}))
 
 
@@ -138,6 +158,28 @@ def time_calls(root: Path, reps: int, timeout: float) -> None:
                 return cur[keep], cc[keep]
 
             size = {"rows": int(cur.shape[0]), "prev_rows": int(prev.shape[0]), "k": int(cur.shape[1])}
+        elif role.startswith("r5"):
+            import cupy as cp
+            from scipy.sparse import csr_matrix
+
+            from et_miner.gpu.csr_bitvec import build_bitvecs_gpu_from_scipy
+
+            n_rows, n_cols = (int(v) for v in z["shape"])
+            indptr, indices = z["indptr"], z["indices"]
+            csr = csr_matrix((np.ones(len(indices), dtype=np.int32), indices, indptr), shape=(n_rows, n_cols))
+
+            def rust_fn():
+                out = cp.asarray(rust.build_column_bitvecs_u64(indptr.astype(np.int64), indices.astype(np.int64),
+                                                               n_rows, n_cols))
+                cp.cuda.Stream.null.synchronize()
+                return out
+
+            def fb_fn():
+                return build_bitvecs_gpu_from_scipy(csr, device_id=0)
+
+            np.testing.assert_array_equal(cp.asnumpy(rust_fn()), cp.asnumpy(fb_fn()))
+            role = "r5"
+            size = {"rows": n_rows, "cols": n_cols, "nnz": int(len(indices))}
         else:
             continue
         rust_t, _ = _time(rust_fn, reps, float("inf"))
@@ -160,6 +202,8 @@ def main() -> int:
     d.add_argument("--max-length", type=int, default=None)
     d.add_argument("--then-k3", action="store_true")
     d.add_argument("--n-gpus", type=int, default=1)
+    d.add_argument("--min-support", type=float, default=None)
+    d.add_argument("--son-chunk", type=int, default=None)
     t = sub.add_parser("time")
     t.add_argument("dir")
     t.add_argument("--reps", type=int, default=3)
@@ -169,8 +213,10 @@ def main() -> int:
         print("set RAYON_NUM_THREADS before running", file=sys.stderr)
         return 2
     if args.cmd == "dump":
-        sub_dir = Path(args.dir) / (args.dataset + ("-free" if args.free_sets else ""))
-        dump(args.dataset, sub_dir, args.free_sets, args.max_length, args.then_k3, args.n_gpus)
+        name = args.dataset + ("-free" if args.free_sets else "") + ("-son" if args.son_chunk else "")
+        name += f"-ml{args.max_length}" if args.max_length else ""
+        dump(args.dataset, Path(args.dir) / name, args.free_sets, args.max_length, args.then_k3, args.n_gpus,
+             args.min_support, args.son_chunk)
     else:
         time_calls(Path(args.dir), args.reps, args.fallback_timeout)
     return 0

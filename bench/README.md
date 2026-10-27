@@ -75,6 +75,23 @@ validation are described in [ESCO.md](ESCO.md).
 | `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |
 | `ET_MINER_SMALL_GROUP_KERNEL` | `percand`, `group` | pins the kernel for the K≥3 groups below the tiled crossover (unset = the measured three-way dispatch) |
 | `ET_MINER_DISABLE_RUST` | `1` | every Rust role takes its fallback (read once, at import) |
+| `ET_MINER_LEAVE_OUT` | comma list | bench only: the row-split miner without those counting arms (`routes/PROTOCOL.md`) |
+| `ET_MINER_INPUT_LAYER` | `host`, `device`, `rebuilt`, `coded` | the input layer; `rebuilt` and `coded` are bench only |
+| `ET_MINER_SON_GPU` | `boolean`, `ported` | bench only: SON's GPU passes |
+
+## Route consolidation, round 2
+
+`routes/PROTOCOL.md` (decision points, arms, rule), `routes/INVENTORY.md` (the route map it started from).
+
+```bash
+uv run python -m et_miner.synthetic --preset deep_sparse_xl --out datasets/synth   # the scale regime
+uv run python bench/runner.py --mode routes-cpu --out bench/results/<date>-routes-cpu --max-hours 8
+uv run python bench/runner.py --mode routes --out bench/results/<date>-routes-gpu --max-gpu-hours 6
+uv run python bench/routes/decide.py bench/results/<date>-routes-*/raw.jsonl --md decisions.md
+```
+
+The microbenchmarks (`bench/microbench_rust.py` for the Rust host roles, `bench/routes/count_api.py` for
+the public counting API) dump and time as their docstrings say.
 
 ## Consolidation campaign
 

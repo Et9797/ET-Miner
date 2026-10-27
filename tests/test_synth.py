@@ -98,6 +98,35 @@ class TestGenerateCSR:
         assert lens[:n_skew].mean() > 2.0 * lens[n_skew:].mean()
 
 
+class TestBlocks:
+    """``block_rows``: blocks drawn on their own, the same motifs planted at the preset's penetration in each."""
+
+    SPEC = dict(n_rows=9_000, motif_count=2, motif_size=4, motif_penetration=0.05, motif_tiers=((2, 0.2),))
+
+    def test_one_block_is_the_unblocked_generator(self):
+        a = generate_csr(_small_spec(**self.SPEC))
+        b = generate_csr(_small_spec(**self.SPEC, block_rows=9_000))
+        np.testing.assert_array_equal(a.indptr, b.indptr)
+        np.testing.assert_array_equal(a.indices, b.indices)
+
+    def test_blocks_plant_the_same_motifs_and_sum_their_counts(self):
+        whole = generate_csr(_small_spec(**self.SPEC))
+        data = generate_csr(_small_spec(**self.SPEC, block_rows=4_000))
+        assert data.n_rows == 9_000 and len(data.indptr) == 9_001
+        assert [m for m, _ in data.planted] == [m for m, _ in whole.planted]
+        for (motif, count), want in zip(data.planted, (200 + 200 + 50, 200 + 200 + 50, 800 + 800 + 200, 800 + 800 + 200)):
+            assert count == want
+            hits = sum(
+                np.isin(np.array(motif), data.indices[data.indptr[r] : data.indptr[r + 1]]).all()
+                for r in range(data.n_rows)
+            )
+            assert hits >= count
+        for r in range(data.n_rows):
+            assert np.all(np.diff(data.indices[data.indptr[r] : data.indptr[r + 1]]) > 0)
+        np.testing.assert_array_equal(data.indices[: data.indptr[4_000]], generate_csr(
+            _small_spec(**{**self.SPEC, "n_rows": 4_000})).indices)
+
+
 class TestTransactionsFrame:
     def test_frame_matches_csr(self):
         spec = _small_spec()
@@ -120,6 +149,15 @@ class TestPresets:
     def test_deep_k20_purpose_rejects_drift(self, change):
         with pytest.raises(AssertionError, match="deep_k20"):
             check_preset_purpose(dataclasses.replace(PRESETS["deep_k20"], **change))
+
+    @pytest.mark.parametrize(
+        "change",
+        [{"n_rows": 59_999_999}, {"row_len_mean": 7}, {"motif_tiers": ((5, 0.22),)}, {"n_rows": 200_000_000}],
+        ids=["too-few-rows", "other-row-length", "other-tiers", "beyond-one-card"],
+    )
+    def test_deep_sparse_xl_purpose_rejects_drift(self, change):
+        with pytest.raises(AssertionError, match="deep_sparse_xl"):
+            check_preset_purpose(dataclasses.replace(PRESETS["deep_sparse_xl"], **change))
 
     def test_stress_k2_estimate_exceeds_100m_pairs(self):
         est = estimate_level_sizes(PRESETS["stress_k2"])

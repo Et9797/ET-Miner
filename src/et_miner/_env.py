@@ -123,6 +123,15 @@ Variables:
                                        serves integer ids spanning at most
                                        2**22 values, and any other column
                                        takes the host CSR whatever the pin.
+                                       Bench only: "rebuilt" builds the host
+                                       CSR with core.cpu_miner.
+                                       build_transaction_csr for every
+                                       column; "coded" codes a column the
+                                       device layer does not serve to
+                                       integer ids in item order (Polars)
+                                       and mines it on the device layer,
+                                       without output_dir, resume_from_k
+                                       or anchor_items.
                                        Unset: device where it serves
     ET_MINER_ROW_ORDER                 "keep" or "lex": the device input
                                        layer's row order. "lex" sorts each
@@ -134,6 +143,31 @@ Variables:
                                        Counts do not depend on it; the host
                                        CSR and bitvecs= keep their order.
                                        Unset: lex
+    ET_MINER_LEAVE_OUT                 bench only: a comma-separated list of
+                                       counting arms the row-split miner
+                                       does without, for leave-one-out
+                                       measurements. "k2-shared": row-wise
+                                       K=2 on global atomics only.
+                                       "k2-percand": K=2 pair spaces below
+                                       the tiled crossover are tiled.
+                                       "k2-tiled": K=2 within one chunk is
+                                       counted per candidate. "k2-fused": a
+                                       one-GPU pair space beyond one chunk
+                                       is counted in per-candidate
+                                       sub-chunks. "percand": K>=3 groups
+                                       below GROUP_MIN_PAIRS go to the group
+                                       kernel. "group": the group kernel's
+                                       groups go per-candidate below
+                                       TILED_MIN_GROUP_PAIRS and tiled at or
+                                       above it. "tiled": the tiled kernel's
+                                       groups go to the group kernel (64
+                                       suffixes at most) or per-candidate.
+                                       "fused": one-GPU K>=3 groups beyond
+                                       one chunk are counted in
+                                       per-candidate sub-chunks. On several
+                                       GPUs a group beyond one chunk is
+                                       counted per candidate whatever it
+                                       says. Unset: every arm
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -309,7 +343,7 @@ def reduce_mode() -> str | None:
     return v
 
 
-INPUT_LAYERS = ("host", "device")
+INPUT_LAYERS = ("host", "device", "rebuilt", "coded")
 
 
 def input_layer() -> str | None:
@@ -331,6 +365,17 @@ def row_order() -> str | None:
     if v not in ROW_ORDERS:
         raise ValueError(f"ET_MINER_ROW_ORDER must be one of {ROW_ORDERS}, got {v!r}")
     return v
+
+
+LEAVE_OUT = ("k2-shared", "k2-percand", "k2-tiled", "k2-fused", "percand", "group", "tiled", "fused")
+
+
+def leave_out() -> frozenset[str]:
+    v = os.environ.get("ET_MINER_LEAVE_OUT", "").strip().lower()
+    names = frozenset(p.strip() for p in v.split(",") if p.strip())
+    if bad := names - set(LEAVE_OUT):
+        raise ValueError(f"ET_MINER_LEAVE_OUT names {sorted(bad)}; it takes a comma-separated subset of {LEAVE_OUT}")
+    return names
 
 
 def log_dir() -> Path:

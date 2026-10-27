@@ -281,6 +281,27 @@ def _as_item_dtype(result: Any, items: pl.Series, column_ids: bool) -> Any:
     return df if session is None else (df, session)
 
 
+def _coded_items(column: pl.Series) -> tuple[pl.Series, pl.Series]:
+    """(the list column with every item replaced by its rank among the distinct items as Int32, those items sorted).
+
+    Nulls stay null. The ranks follow the item order, so ascending codes are ascending items.
+    """
+    items = column.explode().drop_nulls().unique().sort()
+    ranks = pl.Series(range(len(items)), dtype=pl.Int32)
+    return column.list.eval(pl.element().replace_strict(items, ranks, default=None)), items
+
+
+def _rebuilt_csr(lf: pl.LazyFrame, min_support: float, item_col: str, check_items) -> tuple | None:
+    """``_build_csr_from_transactions``'s answer from ``cpu_miner.build_transaction_csr``."""
+    from .cpu_miner import build_transaction_csr
+
+    tc = build_transaction_csr(lf, min_support, item_col)
+    if tc is None:
+        return None
+    check_items(tc.items)
+    return tc.to_scipy(), dict(enumerate(tc.items.to_list())), tc.n_rows
+
+
 def _release_cached_blocks(n_gpus: int, device: int = 0) -> None:
     """Hand CuPy's cached blocks back to the driver on the devices a GPU run uses.
 
@@ -636,7 +657,8 @@ def apriori(
                     "without those options."
                 )
 
-        if _env.input_layer() != "host" and item_dtype in _INT64_ITEM_DTYPES:
+        layer = _env.input_layer()
+        if layer not in ("host", "rebuilt") and item_dtype in _INT64_ITEM_DTYPES:
             from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
 
             column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
@@ -675,7 +697,51 @@ def apriori(
                 )
             lf = column.to_frame().lazy()
 
-        csr_result = _build_csr_from_transactions(lf, min_support, item_col, check_items=stores_ids)
+        if layer == "coded" and not stores:
+            from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
+
+            from .cpu_miner import INT_SPAN_LIMIT
+
+            column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
+            coded, items = _coded_items(column)
+            if len(items) <= INT_SPAN_LIMIT:
+                _release_cached_blocks(n_gpus)
+                built = build_device_input(
+                    coded,
+                    min_support,
+                    max(1, n_gpus),
+                    keep_rows=_env.k2_kernel() != "dense" or _env.k3_kernel() != "dense",
+                    row_order=_env.row_order() or "lex",
+                )
+                if built is None:
+                    return (_empty_result(item_dtype), ProfilingSession()) if profile else _empty_result(item_dtype)
+                if built is not NOT_SERVED:
+                    from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
+
+                    result = _apriori_row_split_multi_gpu(
+                        None,
+                        built.col_to_item,
+                        built.n_transactions,
+                        min_support,
+                        max_length,
+                        max(1, n_gpus),
+                        level_callback,
+                        prune_non_free=prune_equal_support,
+                        prune_apriori=prune_apriori,
+                        infer_counts=use_generator_pruning,
+                        sparse_from_k=sparse_from_k,
+                        profile=profile,
+                        max_ram_gb=max_ram_gb,
+                        max_vram_gb=max_vram_gb,
+                        device_input=built,
+                    )
+                    return _as_item_dtype(result, items, column_ids=True)
+            lf = column.to_frame().lazy()
+
+        if layer == "rebuilt":
+            csr_result = _rebuilt_csr(lf, min_support, item_col, stores_ids)
+        else:
+            csr_result = _build_csr_from_transactions(lf, min_support, item_col, check_items=stores_ids)
         if csr_result is None:
             if profile:
                 return _empty_result(item_dtype), ProfilingSession()

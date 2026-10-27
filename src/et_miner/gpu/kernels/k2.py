@@ -8,6 +8,8 @@ from typing import NamedTuple
 
 import numpy as np
 
+from et_miner import _env
+
 from .loader import _assert_bitvecs, _assert_dtype, _assert_home, _grid_dims, get_cuda_kernel
 
 
@@ -118,7 +120,7 @@ def count_pairs_k2_rows(rows: K2Rows, chunk_start: int, chunk_size: int):
         out = cp.zeros(chunk_size, dtype=cp.int32)
         if chunk_size <= 0 or rows.n_rows == 0:
             return out
-        shared = chunk_size <= K2_ROWS_SHARED_PAIRS
+        shared = chunk_size <= K2_ROWS_SHARED_PAIRS and "k2-shared" not in _env.leave_out()
         kernel = get_cuda_kernel("count_pairs_k2_rows_shared" if shared else "count_pairs_k2_rows")
         n_sm = cp.cuda.Device().attributes["MultiProcessorCount"]
         warps_per_block = 256 // 32

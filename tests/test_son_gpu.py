@@ -1,4 +1,4 @@
-"""ET_MINER_SON_GPU=ported: SON's GPU passes on the array skeleton mine what the CPU route mines."""
+"""SON's GPU passes (the CPU passes' array skeleton on the row-split miner) mine what the CPU route mines."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def _ordered(res: pl.DataFrame) -> list:
 
 @pytest.mark.parametrize("n_gpus", [1, 2])
 @pytest.mark.parametrize("cast", [None, pl.String])
-def test_ported_son_matches_the_cpu_route(smoke, monkeypatch, n_gpus, cast):
+def test_gpu_son_matches_the_cpu_route(smoke, monkeypatch, n_gpus, cast):
     if n_gpus > _gpu_count():
         pytest.skip(f"needs {n_gpus} CUDA devices")
     from et_miner.streaming import son
@@ -47,7 +47,6 @@ def test_ported_son_matches_the_cpu_route(smoke, monkeypatch, n_gpus, cast):
             return _real(*a, **k)
 
         monkeypatch.setattr(son, name, spy)
-    monkeypatch.setenv("ET_MINER_SON_GPU", "ported")
     events = []
     got = apriori(df, min_support=SPEC.min_support, streaming=True, chunk_size=SPEC.n_rows // 4, use_gpu=True,
                   n_gpus=n_gpus, progress_callback=lambda phase, i, n, m: events.append((phase, n)))
@@ -59,8 +58,7 @@ def test_ported_son_matches_the_cpu_route(smoke, monkeypatch, n_gpus, cast):
     assert {n for _, n in events} == {4}
 
 
-def test_ported_son_profiles_both_passes(smoke, monkeypatch):
-    monkeypatch.setenv("ET_MINER_SON_GPU", "ported")
+def test_gpu_son_profiles_both_passes(smoke):
     got, session = apriori(smoke, min_support=SPEC.min_support, streaming=True, chunk_size=SPEC.n_rows // 4,
                            use_gpu=True, profile=True)
     assert _ordered(got) == _ordered(apriori(smoke, min_support=SPEC.min_support))

@@ -30,6 +30,8 @@ CHUNK = 1_000
 MIN_SUPPORT = 0.05
 #: Pairs near this threshold are locally frequent in some chunks only, so pass 1's bound leaves pass 2 candidates to count.
 CPU_MIN_SUPPORT = 0.035
+#: SON's GPU per-chunk steps; pass 2 counts nothing at MIN_SUPPORT (the bound settles every candidate).
+_FAIL_TARGETS = [("_local_levels_gpu", MIN_SUPPORT), ("_count_chunk_gpu", CPU_MIN_SUPPORT)]
 
 
 @pytest.fixture(scope="module")
@@ -112,12 +114,13 @@ class TestSingleGpuSonOnTheGpu:
         assert sorted(map(tuple, gpu["itemset"].to_list())) == sorted(map(tuple, cpu["itemset"].to_list()))
         assert len(cpu) > 0
 
-    @pytest.mark.parametrize("target", ["_mine_chunk_gpu", "_count_candidates_gpu"])
-    def test_a_failed_chunk_raises(self, transactions, monkeypatch, target):
+    @pytest.mark.parametrize("target,support", _FAIL_TARGETS)
+    def test_a_failed_chunk_raises(self, transactions, monkeypatch, target, support):
         failing = _FailOnCall(getattr(son, target), 2)
         monkeypatch.setattr(son, target, failing)
         with pytest.raises(RuntimeError, match="injected failure on call 2"):
-            self._run(transactions)
+            son.apriori_streaming(transactions, min_support=support, chunk_size=CHUNK, use_gpu=True,
+                                  show_progress=False)
         assert failing.calls == 2
 
 
@@ -134,17 +137,13 @@ class TestMultiGpuSon:
             transactions, min_support=MIN_SUPPORT, n_gpus=2, chunk_size=CHUNK, show_progress=False
         )
 
-    @pytest.mark.parametrize("target", ["build_boolean_matrix", "_mine_chunk_gpu"])
-    def test_a_failed_pass1_chunk_raises(self, transactions, monkeypatch, target):
-        monkeypatch.setattr(self.mg, target, _FailOnCall(getattr(self.mg, target), 2))
+    @pytest.mark.parametrize("target,support", _FAIL_TARGETS)
+    def test_a_failed_chunk_raises(self, transactions, monkeypatch, target, support):
+        """Multi-GPU SON runs single-GPU SON's skeleton: a failed pass-1 or pass-2 chunk raises."""
+        monkeypatch.setattr(son, target, _FailOnCall(getattr(son, target), 2))
         with pytest.raises(RuntimeError, match="injected failure"):
-            self._run(transactions)
-
-    @pytest.mark.parametrize("target", ["_build_matrix_for_items", "_count_candidates_gpu"])
-    def test_a_failed_pass2_chunk_raises(self, transactions, monkeypatch, target):
-        monkeypatch.setattr(self.mg, target, _FailOnCall(getattr(self.mg, target), 2))
-        with pytest.raises(RuntimeError, match="injected failure"):
-            self._run(transactions)
+            self.mg.apriori_streaming_multi_gpu(transactions, min_support=support, n_gpus=2, chunk_size=CHUNK,
+                                                show_progress=False)
 
     def test_matches_in_core_without_the_rust_extension(self, transactions):
         from et_miner.gpu import bitvec

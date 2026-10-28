@@ -39,6 +39,14 @@ unchanged: every removal kept the tier-equivalence chain exact.
 - **GPU K=2:** a pair space within one chunk is always tiled (per-candidate
   K=2 stays for the multi-GPU sub-chunks), and row-wise K=2 runs on global
   atomics only (`count_pairs_k2_rows_shared` is gone).
+- **SON on the GPU runs the CPU passes' array skeleton only** (the partition
+  bound over an array union; each chunk mined by the row-split miner, pass 2
+  counted with the batched kernel, row-split over `n_gpus`). The per-chunk
+  Polars boolean matrices, the set union and the multi-GPU waves are gone:
+  22-34x slower on one GPU (dslxl-son 504 s against 15 s) and 24x on two
+  (306 s against 12.7 s), and 2.5x more RAM (18.3 GB against 7.4 GB). The
+  skeleton peaks higher in VRAM on one GPU (dslxl-son 3.4 GB against 1.7 GB;
+  accepted by the owner, it scales with `chunk_size`).
 - **The Rust bitvector builder (`et_miner_rust.build_column_bitvecs_u64`) is
   removed.** It was the fallback of the CUDA CSR→bitvec kernel, which built
   the same bits 3.3-7x faster per call on the dumped SON and counting inputs;

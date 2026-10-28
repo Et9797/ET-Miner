@@ -280,10 +280,12 @@ class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
 
         took_shortcut = False
 
-        def _spy(*a, **kw):
+        def _spy(transactions, *a, **kw):
+            """The shortcut mines the whole frame; the chunked path mines each chunk through apriori() too."""
             nonlocal took_shortcut
-            took_shortcut = True
-            raise RuntimeError("single-chunk shortcut taken")
+            lf = transactions.lazy() if isinstance(transactions, pl.DataFrame) else transactions
+            took_shortcut |= lf.select(pl.len()).collect().item() == n_rows
+            raise RuntimeError("apriori reached")
 
         # `from et_miner.core.apriori import apriori` runs INSIDE the function,
         # so patch the attribute on the module object. `et_miner.core.apriori`

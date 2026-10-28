@@ -1,26 +1,13 @@
 """Multi-GPU Streaming Apriori implementation using SON algorithm.
 
-This module extends the single-GPU streaming implementation to leverage multiple
-GPUs for parallel chunk processing. The architecture follows a wave-based approach:
-
-Pass 1 (Local Mining):
-┌─────────────┬─────────────┬─────────────┬─────────────┐
-│  Chunk 0    │  Chunk 1    │  Chunk 2    │  Chunk 3    │
-│  GPU 0      │  GPU 1      │  GPU 2      │  GPU 3      │
-└─────────────┴─────────────┴─────────────┴─────────────┘
-       ↓              ↓              ↓              ↓
-                 [Merge candidate_itemsets]
-                        ↓
-Pass 2 (Global Counting):
-┌─────────────┬─────────────┬─────────────┬─────────────┐
-│  Chunk 0    │  Chunk 1    │  Chunk 2    │  Chunk 3    │
-│  GPU 0      │  GPU 1      │  GPU 2      │  GPU 3      │
-└─────────────┴─────────────┴─────────────┴─────────────┘
-       ↓              ↓              ↓              ↓
-                    [Sum global_counts]
-
-Each wave processes n_gpus chunks simultaneously using ThreadPoolExecutor.
-GPU memory is cleaned after each chunk to prevent accumulation.
+The chunks run one after another, each row-split over every GPU: pass 1 mines
+a chunk on the row-split miner at the local support, the union of the chunks'
+levels is pruned by the partition bound, and pass 2 counts the surviving
+candidates on each chunk with the batched kernel, the GPUs' counts summed
+(``streaming/son.py::_son_arrays``, shared with single-GPU SON). The
+wave-based variant (one chunk per GPU, a Polars boolean matrix per chunk) lost
+every measured workload (route consolidation S2: dslxl 12.7 s against 306 s)
+and is gone.
 
 Reference:
     Savasere, A., Omiecinski, E. R., & Navathe, S. B. (1995).
@@ -31,34 +18,23 @@ Reference:
 from __future__ import annotations
 
 import math
-import threading
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any
 
 import polars as pl
 
-from et_miner import _env
-from et_miner._compat import HAS_TQDM, tqdm
 
 # SON-specific helpers live in son.py; generic ones in matrix.py (foundation layer)
 from et_miner.streaming.son import (
     LOCAL_SUPPORT_FACTOR,
-    _build_matrix_for_items,
     _check_chunk_size,
     _check_local_support_factor,
-    _count_candidates_gpu,
     _estimate_chunk_size_from_memory,
-    _get_memory_gb,
-    _mine_chunk_gpu,
     _son_arrays,
 )
-from et_miner.core.matrix import build_boolean_matrix
 from et_miner.core.result import (
-    _build_result_df,
     _empty_result,
     _item_dtype,
-    _min_count,
 )
 from et_miner.backends import CUPY_INSTALLED, get_gpu_count, has_cupy
 from et_miner.exceptions import MiningError
@@ -92,29 +68,6 @@ def _get_gpu_memory_info(device_id: int = 0) -> tuple[float, float]:
         return (0.0, 0.0)
 
 
-def _cleanup_gpu_memory(device_id: int) -> None:
-    """Free all cached GPU memory for a device.
-
-    Args:
-        device_id: GPU device ID to clean.
-    """
-    if not CUPY_INSTALLED:
-        return
-    try:
-        import cupy as cp
-
-        with cp.cuda.Device(device_id):
-            cp.get_default_memory_pool().free_all_blocks()
-            cp.get_default_pinned_memory_pool().free_all_blocks()
-    except Exception as e:
-        logger.warning("Failed to cleanup GPU {} memory: {}", device_id, e)
-
-
-# =============================================================================
-# Multi-GPU Streaming Apriori
-# =============================================================================
-
-
 def apriori_streaming_multi_gpu(
     transactions: pl.LazyFrame | pl.DataFrame,
     min_support: float = 0.5,
@@ -132,9 +85,8 @@ def apriori_streaming_multi_gpu(
 ) -> pl.DataFrame:
     """Find frequent itemsets using multi-GPU streaming SON algorithm.
 
-    Processes the dataset in chunks across multiple GPUs, enabling analysis of
-    massive datasets that don't fit in memory. Uses wave-based processing where
-    each wave processes n_gpus chunks simultaneously.
+    Processes the dataset in chunks, each row-split over every GPU, enabling
+    analysis of datasets that don't fit in memory.
 
     The SON (Savasere-Omiecinski-Navathe) algorithm:
 
@@ -210,7 +162,6 @@ def apriori_streaming_multi_gpu(
     if available_gpus == 0:
         raise MiningError("No CUDA GPUs detected")
 
-    import cupy as cp
 
     effective_n_gpus = min(n_gpus, available_gpus)
     if effective_n_gpus < n_gpus:
@@ -269,9 +220,7 @@ def apriori_streaming_multi_gpu(
             n_jobs=n_jobs,
         )
 
-    # Calculate number of chunks and waves
     n_chunks = math.ceil(n_total / chunk_size)
-    n_waves = math.ceil(n_chunks / effective_n_gpus)
     local_min_support = min_support * local_support_factor
 
     # Pre-calculate chunk sizes
@@ -282,260 +231,17 @@ def apriori_streaming_multi_gpu(
         chunk_sizes.append(min(chunk_size, remaining))
 
     logger.info(
-        "Multi-GPU SON streaming: {} total transactions, {} chunks, {} waves, "
+        "Multi-GPU SON streaming: {} total transactions, {} chunks, each row-split over "
         "{} GPUs, local_support={:.6f} ({:.1f}% of {:.6f})",
         n_total,
         n_chunks,
-        n_waves,
         effective_n_gpus,
         local_min_support,
         local_support_factor * 100,
         min_support,
     )
 
-    if _env.son_gpu() == "ported":
-        return _son_arrays(
-            lf, item_col, chunk_size, chunk_sizes, n_total, min_support, local_min_support, max_length, n_jobs,
-            None, show_progress, progress_callback, gpus=effective_n_gpus,
-        )
-
-    # =========================================================================
-    # PASS 1: Local frequent itemset mining (parallel across GPUs)
-    # =========================================================================
-    candidate_itemsets: set[tuple[int, ...]] = set()
-    all_items: set[int] = set()
-    candidates_lock = threading.Lock()
-
-    def process_chunk_pass1(chunk_idx: int, gpu_id: int) -> tuple[set[tuple[int, ...]], set[int]]:
-        """Process a single chunk for Pass 1 on a specific GPU.
-
-        Returns:
-            Tuple of (local_frequent_itemsets, local_items)
-        """
-        try:
-            # Set GPU device for this thread
-            with cp.cuda.Device(gpu_id):
-                offset = chunk_idx * chunk_size
-                chunk_lf = lf.slice(offset, chunk_size)
-                chunk_n = chunk_sizes[chunk_idx]
-
-                if chunk_n == 0:
-                    return set(), set()
-
-                # Build boolean matrix for this chunk with LOCAL support threshold
-                matrix, col_to_item, _ = build_boolean_matrix(
-                    chunk_lf,
-                    local_min_support,
-                    item_col,
-                )
-
-                if not col_to_item:
-                    return set(), set()
-
-                local_items = set(col_to_item.values())
-
-                local_frequent = _mine_chunk_gpu(matrix, col_to_item, chunk_n, local_min_support, max_length)
-
-                return set(local_frequent), local_items
-
-        finally:
-            # Clean up GPU memory after processing
-            _cleanup_gpu_memory(gpu_id)
-
-    # Process chunks in waves
-    wave_iter = range(n_waves)
-    if show_progress and HAS_TQDM:
-        wave_iter = tqdm(
-            wave_iter,
-            desc="Pass 1: Local mining (waves)",
-            unit="wave",
-            total=n_waves,
-        )
-
-    for wave_idx in wave_iter:
-        start_chunk = wave_idx * effective_n_gpus
-        end_chunk = min(start_chunk + effective_n_gpus, n_chunks)
-
-        logger.debug(
-            "Wave {}: chunks {}-{} on GPUs 0-{}",
-            wave_idx,
-            start_chunk,
-            end_chunk - 1,
-            effective_n_gpus - 1,
-        )
-
-        with ThreadPoolExecutor(max_workers=effective_n_gpus) as executor:
-            futures = {}
-            for i, chunk_idx in enumerate(range(start_chunk, end_chunk)):
-                gpu_id = i % effective_n_gpus
-                future = executor.submit(process_chunk_pass1, chunk_idx, gpu_id)
-                futures[future] = (chunk_idx, gpu_id)
-
-            # A failed chunk propagates: a dropped chunk contributes no
-            # candidates, and an itemset frequent only there would be lost.
-            for future in as_completed(futures):
-                chunk_idx, gpu_id = futures[future]
-                local_itemsets, local_items = future.result()
-
-                with candidates_lock:
-                    candidate_itemsets.update(local_itemsets)
-                    all_items.update(local_items)
-
-                # Progress callback
-                if progress_callback:
-                    progress_callback(
-                        "pass1",
-                        chunk_idx,
-                        n_chunks,
-                        {
-                            "candidates": len(candidate_itemsets),
-                            "items": len(all_items),
-                            "memory_gb": _get_memory_gb(),
-                            "gpu_id": gpu_id,
-                        },
-                    )
-
-        if show_progress and HAS_TQDM:
-            wave_iter.set_postfix(  # type: ignore
-                candidates=len(candidate_itemsets),
-                items=len(all_items),
-            )
-
-    if not candidate_itemsets:
-        return _empty_result(_item_dtype(lf, item_col))
-
-    logger.info(
-        "Pass 1 complete: {} candidate itemsets from {} items",
-        len(candidate_itemsets),
-        len(all_items),
+    return _son_arrays(
+        lf, item_col, chunk_size, chunk_sizes, n_total, min_support, local_min_support, max_length, n_jobs,
+        None, show_progress, progress_callback, gpus=effective_n_gpus,
     )
-
-    # =========================================================================
-    # PASS 2: Global support counting (parallel across GPUs)
-    # =========================================================================
-    candidate_items: set[int] = set()
-    for itemset in candidate_itemsets:
-        candidate_items.update(itemset)
-
-    logger.info(
-        "Pass 2 optimization: {}/{} items needed for candidates ({:.1f}% reduction)",
-        len(candidate_items),
-        len(all_items),
-        (1 - len(candidate_items) / len(all_items)) * 100 if all_items else 0,
-    )
-
-    # Thread-safe global counts
-    global_counts: dict[tuple[int, ...], int] = {
-        itemset: 0 for itemset in candidate_itemsets
-    }
-    counts_lock = threading.Lock()
-
-    # Create item -> column name mapping
-    sorted_items = sorted(candidate_items)
-    item_to_col = {item: f"i_{idx}" for idx, item in enumerate(sorted_items)}
-
-    candidate_list = list(candidate_itemsets)
-
-    def process_chunk_pass2(chunk_idx: int, gpu_id: int) -> dict[tuple[int, ...], int]:
-        """Process a single chunk for Pass 2 on a specific GPU.
-
-        Returns:
-            Dict mapping itemsets to their counts in this chunk.
-        """
-        try:
-            with cp.cuda.Device(gpu_id):
-                offset = chunk_idx * chunk_size
-                chunk_lf = lf.slice(offset, chunk_size)
-                chunk_n = chunk_sizes[chunk_idx]
-
-                if chunk_n == 0:
-                    return {}
-
-                # Build boolean matrix with consistent column mapping
-                matrix = _build_matrix_for_items(
-                    chunk_lf,
-                    item_col,
-                    sorted_items,
-                    item_to_col,
-                )
-
-                if matrix.height == 0:
-                    return {}
-
-                return _count_candidates_gpu(matrix, candidate_list, sorted_items)
-
-        finally:
-            _cleanup_gpu_memory(gpu_id)
-
-    # Process Pass 2 in waves
-    wave_iter2 = range(n_waves)
-    if show_progress and HAS_TQDM:
-        wave_iter2 = tqdm(
-            wave_iter2,
-            desc="Pass 2: Global counting (waves)",
-            unit="wave",
-            total=n_waves,
-        )
-
-    for wave_idx in wave_iter2:
-        start_chunk = wave_idx * effective_n_gpus
-        end_chunk = min(start_chunk + effective_n_gpus, n_chunks)
-
-        logger.debug(
-            "Wave {}: chunks {}-{} on GPUs 0-{}",
-            wave_idx,
-            start_chunk,
-            end_chunk - 1,
-            effective_n_gpus - 1,
-        )
-
-        with ThreadPoolExecutor(max_workers=effective_n_gpus) as executor:
-            futures = {}
-            for i, chunk_idx in enumerate(range(start_chunk, end_chunk)):
-                gpu_id = i % effective_n_gpus
-                future = executor.submit(process_chunk_pass2, chunk_idx, gpu_id)
-                futures[future] = (chunk_idx, gpu_id)
-
-            # A failed chunk propagates: its counts would be missing while
-            # support is still divided by the full row count.
-            for future in as_completed(futures):
-                chunk_idx, gpu_id = futures[future]
-                chunk_counts = future.result()
-
-                # Thread-safe accumulation
-                with counts_lock:
-                    for itemset, count in chunk_counts.items():
-                        global_counts[itemset] += count
-
-                # Progress callback
-                if progress_callback:
-                    progress_callback(
-                        "pass2",
-                        chunk_idx,
-                        n_chunks,
-                        {
-                            "counted": chunk_idx + 1,
-                            "memory_gb": _get_memory_gb(),
-                            "gpu_id": gpu_id,
-                        },
-                    )
-
-    # =========================================================================
-    # Filter to globally frequent itemsets
-    # =========================================================================
-    min_count_threshold = _min_count(min_support, n_total)
-
-    results: list[tuple[list[int], float]] = []
-    for itemset, count in global_counts.items():
-        if count >= min_count_threshold:
-            support = count / n_total
-            results.append((list(itemset), support))
-
-    logger.info(
-        "Pass 2 complete: {}/{} candidates are globally frequent (support >= {:.6f})",
-        len(results),
-        len(candidate_itemsets),
-        min_support,
-    )
-
-    return _build_result_df(results, _item_dtype(lf, item_col))

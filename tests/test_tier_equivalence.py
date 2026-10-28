@@ -302,6 +302,7 @@ _WRAPPERS = (
     "count_group_pairs",
     "count_tiled_fused",
     "count_itemsets_cuda",
+    "count_itemsets_flat",
 )
 
 
@@ -610,7 +611,8 @@ def test_row_split_two_gpus_input_layer_matches_oracle(smoke_dataset, oracle_set
 @pytest.mark.gpu
 def test_son_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "SON 1 GPU, four chunks", {},
-             runs=("count_itemsets_cuda",), streaming=True, chunk_size=SPEC.n_rows // 4 + 1, show_progress=False)
+             runs=("count_pairs_k2_shared", "count_itemsets_flat"), never=("count_itemsets_cuda",), streaming=True,
+             chunk_size=SPEC.n_rows // 4 + 1, show_progress=False)
 
 
 @pytest.mark.gpu
@@ -756,5 +758,5 @@ def test_row_split_two_gpus_reduce_matches_oracle(smoke_dataset, oracle_set, mon
 def test_son_two_gpus_forced_chunks_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
     _needs_two_gpus()
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "SON 2 GPUs, four chunks", {},
-             runs=("count_itemsets_cuda",), streaming=True, n_gpus=2, chunk_size=SPEC.n_rows // 4 + 1,
-             show_progress=False)
+             runs=("count_pairs_k2_shared", "count_itemsets_flat"), never=("count_itemsets_cuda",), streaming=True,
+             n_gpus=2, chunk_size=SPEC.n_rows // 4 + 1, show_progress=False)

@@ -100,7 +100,8 @@ def dump(workload: str, out: Path, son_chunk: int | None, cap: int) -> None:
         values = items.to_list()
         width = len(str(len(values)))
         names = [f"i_{i:0{width}d}" for i in range(len(values))]
-        matrix = son._build_matrix_for_items(chunk.lazy(), "items", values, dict(zip(values, names)))
+        # A boolean column per candidate item (SON's former _build_matrix_for_items, gone with its boolean GPU passes).
+        matrix = chunk.select([pl.col("items").list.contains(v).alias(n) for v, n in zip(values, names)])
         rows = [tuple(names[c] for c in row) for k in sorted(cands) for row in cands[k].tolist()]
         _save(out, f"{workload}-son-pass2", matrix, _stride(rows, cap), chunk.height,
               {"source": "son pass 2, chunk 0", "n_total": len(rows)})

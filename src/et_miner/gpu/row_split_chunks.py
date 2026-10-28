@@ -96,12 +96,12 @@ class GroupKernels(NamedTuple):
 def group_kernels(k: int, pairs, sizes) -> GroupKernels:
     """The kernel of each prefix group of level ``k`` from its pairs and suffixes.
 
-    ``ET_MINER_SMALL_GROUP_KERNEL=percand`` (or ``group`` in
-    ``ET_MINER_LEAVE_OUT``): tiled from ``TILED_MIN_GROUP_PAIRS``,
-    per-candidate below. Otherwise groups of more than ``GROUP_MAX_SUFFIXES``
-    suffixes or from ``GROUP_TILED_MIN_PAIRS`` pairs are tiled; below that,
-    groups under ``GROUP_MIN_PAIRS`` go per-candidate (unless the pin says
-    ``group`` or ``percand`` is left out) and the rest to the group kernel.
+    ``ET_MINER_SMALL_GROUP_KERNEL=percand``: tiled from
+    ``TILED_MIN_GROUP_PAIRS``, per-candidate below. Otherwise groups of more
+    than ``GROUP_MAX_SUFFIXES`` suffixes or from ``GROUP_TILED_MIN_PAIRS``
+    pairs are tiled; below that, groups under ``GROUP_MIN_PAIRS`` go
+    per-candidate (unless the pin says ``group``) and the rest to the group
+    kernel.
     ``ET_MINER_TILED_MIN_GROUP_PAIRS`` pins the tiled crossover in every mode.
     """
     from et_miner.gpu.kernels.group_pairs import GROUP_MAX_SUFFIXES
@@ -109,11 +109,6 @@ def group_kernels(k: int, pairs, sizes) -> GroupKernels:
     pairs = np.asarray(pairs, dtype=np.int64)
     sizes = np.asarray(sizes, dtype=np.int64)
     mode = _env.small_group_kernel()
-    leave_out = _env.leave_out()
-    if "group" in leave_out:
-        mode = "percand"
-    elif "percand" in leave_out:
-        mode = "group"
     none = np.zeros(len(pairs), dtype=bool)
     if mode == "percand":
         tiled = pairs >= tiled_min_group_pairs(k)

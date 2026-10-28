@@ -73,7 +73,6 @@ consolidation G6: it won no workload. [ESCO.md](ESCO.md) records the `esco` and
 | `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |
 | `ET_MINER_SMALL_GROUP_KERNEL` | `percand`, `group` | pins the kernel for the K≥3 groups below the tiled crossover (unset = the measured three-way dispatch) |
 | `ET_MINER_DISABLE_RUST` | `1` | every Rust role takes its fallback (read once, at import) |
-| `ET_MINER_LEAVE_OUT` | comma list | bench only: the row-split miner without those counting arms (`routes/PROTOCOL.md`) |
 | `ET_MINER_INPUT_LAYER` | `host`, `device`, `rebuilt`, `coded` | the input layer; `rebuilt` and `coded` are bench only |
 | `ET_MINER_SON_GPU` | `boolean`, `ported` | bench only: SON's GPU passes |
 

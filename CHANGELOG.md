@@ -70,6 +70,9 @@ unchanged: every removal kept the tier-equivalence chain exact.
   `upload_k3plus_groups(with_src_rows=)`; the group builders keep
   `with_src_rows` (`bench/candidate_waste.py` reads it). The tier chain's ESCO
   legs go with it.
+- **The bench-only `ET_MINER_LEAVE_OUT` is gone**: Phase 2's leave-one-out
+  pins of the row-split counting arms. No tier leg used it;
+  `bench/routes_matrix.py::PHASE2_LEAVE_OUT` keeps the record of what ran.
 - **SON on the GPU runs the CPU passes' array skeleton only** (the partition
   bound over an array union; each chunk mined by the row-split miner, pass 2
   counted with the batched kernel, row-split over `n_gpus`). The per-chunk

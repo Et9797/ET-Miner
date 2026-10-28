@@ -128,28 +128,6 @@ Variables:
                                        or anchor_items on such a column).
                                        "host" pins the host CSR.
                                        Unset: device where it serves
-    ET_MINER_LEAVE_OUT                 bench only: a comma-separated list of
-                                       counting arms the row-split miner
-                                       does without, for leave-one-out
-                                       measurements. "k2-tiled": K=2 within
-                                       one chunk is counted per candidate.
-                                       "k2-fused": a
-                                       one-GPU pair space beyond one chunk
-                                       is counted in per-candidate
-                                       sub-chunks. "percand": K>=3 groups
-                                       below GROUP_MIN_PAIRS go to the group
-                                       kernel. "group": the group kernel's
-                                       groups go per-candidate below
-                                       TILED_MIN_GROUP_PAIRS and tiled at or
-                                       above it. "tiled": the tiled kernel's
-                                       groups go to the group kernel (64
-                                       suffixes at most) or per-candidate.
-                                       "fused": one-GPU K>=3 groups beyond
-                                       one chunk are counted in
-                                       per-candidate sub-chunks. On several
-                                       GPUs a group beyond one chunk is
-                                       counted per candidate whatever it
-                                       says. Unset: every arm
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -335,17 +313,6 @@ def input_layer() -> str | None:
     if v not in INPUT_LAYERS:
         raise ValueError(f"ET_MINER_INPUT_LAYER must be one of {INPUT_LAYERS}, got {v!r}")
     return v
-
-
-LEAVE_OUT = ("k2-tiled", "k2-fused", "percand", "group", "tiled", "fused")
-
-
-def leave_out() -> frozenset[str]:
-    v = os.environ.get("ET_MINER_LEAVE_OUT", "").strip().lower()
-    names = frozenset(p.strip() for p in v.split(",") if p.strip())
-    if bad := names - set(LEAVE_OUT):
-        raise ValueError(f"ET_MINER_LEAVE_OUT names {sorted(bad)}; it takes a comma-separated subset of {LEAVE_OUT}")
-    return names
 
 
 def log_dir() -> Path:

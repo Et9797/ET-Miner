@@ -32,7 +32,6 @@ from et_miner.gpu.mining import (
 from et_miner.gpu.nccl import _destroy_nccl, _init_nccl
 from et_miner.gpu.row_split_chunks import (
     K2_ROWS_MAX_R,
-    GroupKernels,
     _device_available_bytes,
     compute_chunk_budget,
     group_kernels,
@@ -328,7 +327,6 @@ def _apriori_row_split_multi_gpu(
 
     from et_miner.gpu.csr_bitvec import build_bitvecs_row_split
     from et_miner.gpu.kernels import (
-        GROUP_MAX_SUFFIXES,
         SUBSET_BOUNDS,
         SUBSET_INFER,
         SUBSET_PRUNE,
@@ -911,7 +909,7 @@ def _apriori_row_split_multi_gpu(
                 )
                 if _k2_counted is not None:
                     freq_pair_indices, freq_pair_counts = _k2_counted
-                elif _one_device and n_pairs > _k2_budget and "k2-fused" not in _env.leave_out():
+                elif _one_device and n_pairs > _k2_budget:
                     did0 = bitvecs_list[0][1]
                     logger.info(
                         f"  K=2: {n_pairs:,} total pairs exceed one dense chunk ({_k2_budget:,}); "
@@ -922,10 +920,7 @@ def _apriori_row_split_multi_gpu(
                             bitvecs_list[0][0], k2_groups(freq_cols), bitvecs_list[0][0].shape[1], min_count_threshold
                         )
                 else:
-                    if "k2-tiled" in _env.leave_out():
-                        k2_chunks = plan_candidate_chunks(n_pairs, _k2_budget)
-                    else:
-                        k2_chunks = plan_group_chunks(np.array([0, n_pairs], dtype=np.int64), _k2_budget)
+                    k2_chunks = plan_group_chunks(np.array([0, n_pairs], dtype=np.int64), _k2_budget)
                     logger.info(
                         f"  K=2: {n_pairs:,} total pairs, {len(k2_chunks)} chunk(s), "
                         f"dense output {min(_k2_budget, n_pairs) * 4 / (1 << 30):.2f} GB/GPU per chunk"
@@ -1004,26 +999,13 @@ def _apriori_row_split_multi_gpu(
                     kernels_of = group_kernels(
                         k, np.diff(groups_info.cumulative_pairs), np.diff(groups_info.suffix_offsets)
                     )
-                    _left_out = _env.leave_out()
-                    if "tiled" in _left_out:
-                        # Without the tiled kernel its groups go to the group kernel (64 suffixes at most) or
-                        # per-candidate; one-GPU groups beyond one chunk stay with the fused kernel.
-                        _pairs = np.diff(groups_info.cumulative_pairs)
-                        _wide = np.diff(groups_info.suffix_offsets) > GROUP_MAX_SUFFIXES
-                        _fused = kernels_of.tiled & (
-                            _one_device and "fused" not in _left_out
-                        ) & (_pairs > max_cands_per_chunk)
-                        _moved = kernels_of.tiled & ~_fused
-                        kernels_of = GroupKernels(
-                            kernels_of.per_candidate | (_moved & _wide), kernels_of.group | (_moved & ~_wide), _fused
-                        )
                     small = _subset(groups_info, kernels_of.per_candidate)
                     mid = _subset(groups_info, kernels_of.group)
                     big = _subset(groups_info, kernels_of.tiled)
                     del groups_info  # the split holds copies; do not keep the whole level twice
                     # (groups, survivor indices into them, counts) per counted part
                     parts = []
-                    if big is not None and _one_device and "fused" not in _left_out:
+                    if big is not None and _one_device:
                         mega = np.diff(big.cumulative_pairs) > max_cands_per_chunk
                         if mega.any():
                             fused_groups = _subset(big, mega)

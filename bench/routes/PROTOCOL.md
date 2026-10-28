@@ -239,4 +239,6 @@ Taken on the Phase 2a and 2b rows (`bench/results/2026-10-27-routes-gpu/FINDINGS
    (lex peaks +3.2 GB VRAM on dslxl); the `ET_MINER_ROW_ORDER` pin goes.
 4. **C3.** `apriori_from_csr` stays: without it the CPU route fails dsl (timeout) where Rust mines it in
    227 s (rule 7), although the geomean favours the CPU route.
-
+5. **H budget.** Phase 2b gets 0.5 more GPU-hours for H (its dumps and timing, at one device), a hard stop.
+6. **G6, G7.** ESCO (`sparse_from_k`, the sparse CSR path) and `prune_apriori` go as the rule says; their
+   tier-equivalence legs go with them (CLAUDE.md), with a CHANGELOG entry for the API change.

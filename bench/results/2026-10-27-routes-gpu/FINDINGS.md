@@ -76,9 +76,6 @@ boolean SON peaks 18.3 / 25.6 GB RSS on dslxl-son 1 / 2 GPUs (ported 7.4 / 7.8 G
 3. G2 `keep` stays as the named fallback of lex, chosen when lex does not fit; the env pin goes.
 4. C3: `apriori_from_csr` stays (rule 7 on dsl). Finding 2 (the CPU route on dsl) is the follow-up.
 
-## Still open
-
-1. H: extra GPU budget for the Rust host-role microbenchmarks (estimate 0.3-0.5 GPU-hours), or decide H
-   without them.
-2. G6 and G7 remove public parameters (`sparse_from_k` and the sparse CSR path; `prune_apriori`). The rule
-   says both go; the API removal needs the owner's word.
+5. H runs with 0.5 more GPU-hours (hard stop).
+6. G6 and G7: ESCO (`sparse_from_k`, the sparse CSR path) and `prune_apriori` go; their tier-equivalence legs
+   go with them, with a CHANGELOG entry.

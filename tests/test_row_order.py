@@ -174,8 +174,12 @@ def test_mining_under_the_lex_order_matches_keep_and_the_oracle(monkeypatch, opt
     s = _tie_support(column)
     kw = {"use_generator_pruning": option == "count inference", "prune_equal_support": option == "free sets"}
     results = {}
+    from et_miner.gpu import input_layer
+
+    lex_bytes = input_layer.LEX_BYTES_PER_ROW
     for order in ("keep", "lex"):
-        monkeypatch.setenv("ET_MINER_ROW_ORDER", order)
+        # keep: the lex sort's no-room fallback, forced by leaving it no room
+        monkeypatch.setattr(input_layer, "LEX_BYTES_PER_ROW", 1 << 50 if order == "keep" else lex_bytes)
         res = apriori(column.to_frame(), min_support=s, use_gpu=True, n_gpus=n_gpus, **kw)
         results[order] = sorted(zip(map(tuple, res["itemset"].to_list()), res["support"].to_list()))
     assert results["lex"] == results["keep"]
@@ -209,7 +213,6 @@ def test_without_room_for_the_occupancy_every_tile_is_counted(monkeypatch):
     monkeypatch.setattr(kernels, "tile_occupancy", no_room)
     for name, value in _PINS["per-candidate"].items():
         monkeypatch.setenv(name, value)
-    monkeypatch.setenv("ET_MINER_ROW_ORDER", "lex")
     column = _random_column(11, 4_099, repeats=True)
     s = _tie_support(column)
     res = apriori(column.to_frame(), min_support=s, use_gpu=True)
@@ -217,11 +220,12 @@ def test_without_room_for_the_occupancy_every_tile_is_counted(monkeypatch):
     assert mined_counts(res, len(column)) == ea_counts(column.to_list(), s)
 
 
-def test_row_order_knob_is_validated(monkeypatch):
-    from et_miner import _env
+@pytest.mark.gpu
+def test_the_lex_order_keeps_the_rows_where_its_sort_does_not_fit(monkeypatch):
+    from et_miner.gpu import input_layer
+    from et_miner.gpu.input_layer import build_device_input
 
-    monkeypatch.setenv("ET_MINER_ROW_ORDER", "sorted")
-    with pytest.raises(ValueError, match="ET_MINER_ROW_ORDER"):
-        _env.row_order()
-    monkeypatch.setenv("ET_MINER_ROW_ORDER", "LEX")
-    assert _env.row_order() == "lex"
+    column = _random_column(11, 4_099, repeats=True)
+    assert build_device_input(column, 0.01, 1, keep_rows=False, row_order="lex").row_order == "lex"
+    monkeypatch.setattr(input_layer, "LEX_BYTES_PER_ROW", 1 << 50)
+    assert build_device_input(column, 0.01, 1, keep_rows=False, row_order="lex").row_order == "keep"

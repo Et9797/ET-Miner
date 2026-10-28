@@ -48,6 +48,12 @@ unchanged: every removal kept the tier-equivalence chain exact.
   distinct items than 2**22, or `output_dir` / `resume_from_k` /
   `anchor_items` on such a column) and under `ET_MINER_INPUT_LAYER=host`.
   The bench-only `rebuilt` and `coded` values of that variable are gone.
+- **The lex row order falls back to the kept order where its sort does not
+  fit.** Lex stays the device layer's order (dsl 3.9 s against 10.0 s, dslxl
+  10.4 s against 28.3 s), but its sort peaks about 55 B per row above the kept
+  order (dslxl +3.2 GB): each shard now needs `LEX_BYTES_PER_ROW` (56 B) per row
+  free on its device, or every shard keeps its row order. `ET_MINER_ROW_ORDER`
+  is gone.
 - **SON on the GPU runs the CPU passes' array skeleton only** (the partition
   bound over an array union; each chunk mined by the row-split miner, pass 2
   counted with the batched kernel, row-split over `n_gpus`). The per-chunk

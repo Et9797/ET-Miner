@@ -129,16 +129,6 @@ Variables:
                                        or anchor_items on such a column).
                                        "host" pins the host CSR.
                                        Unset: device where it serves
-    ET_MINER_ROW_ORDER                 "keep" or "lex": the device input
-                                       layer's row order. "lex" sorts each
-                                       shard's rows by their most frequent
-                                       items before the bitvectors are
-                                       built, and the per-candidate and
-                                       group kernels skip the 2,048-row
-                                       tiles an item does not occupy.
-                                       Counts do not depend on it; the host
-                                       CSR and bitvecs= keep their order.
-                                       Unset: lex
     ET_MINER_LEAVE_OUT                 bench only: a comma-separated list of
                                        counting arms the row-split miner
                                        does without, for leave-one-out
@@ -345,18 +335,6 @@ def input_layer() -> str | None:
         return None
     if v not in INPUT_LAYERS:
         raise ValueError(f"ET_MINER_INPUT_LAYER must be one of {INPUT_LAYERS}, got {v!r}")
-    return v
-
-
-ROW_ORDERS = ("keep", "lex")
-
-
-def row_order() -> str | None:
-    v = os.environ.get("ET_MINER_ROW_ORDER", "").strip().lower()
-    if not v:
-        return None
-    if v not in ROW_ORDERS:
-        raise ValueError(f"ET_MINER_ROW_ORDER must be one of {ROW_ORDERS}, got {v!r}")
     return v
 
 

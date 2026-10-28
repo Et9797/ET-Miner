@@ -656,7 +656,7 @@ def apriori(
                 min_support,
                 max(1, n_gpus),
                 keep_rows=_env.k2_kernel() != "dense" or _env.k3_kernel() != "dense",
-                row_order=_env.row_order() or "lex",
+                row_order="lex",
             )
             if built is None:
                 return (_empty_result(item_dtype), ProfilingSession()) if profile else _empty_result(item_dtype)
@@ -699,7 +699,7 @@ def apriori(
                     min_support,
                     max(1, n_gpus),
                     keep_rows=_env.k2_kernel() != "dense" or _env.k3_kernel() != "dense",
-                    row_order=_env.row_order() or "lex",
+                    row_order="lex",
                 )
                 if built is None:
                     return (_empty_result(item_dtype), ProfilingSession()) if profile else _empty_result(item_dtype)

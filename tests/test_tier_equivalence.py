@@ -17,7 +17,8 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
            forced chunks)
         == row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; and selected by
            the r3 dispatch)
-        == row-split 1 GPU, row order keep / lex pinned (plain / forced chunks / count inference)
+        == row-split 1 GPU, row order lex / keep (its no-room fallback) (plain / forced chunks / count
+           inference)
         == ESCO 1 GPU, auto and fixed K=3, including forced chunks and count inference
         == SON 1 GPU, forced chunks (the batched itemset kernel)
         == row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks)
@@ -28,7 +29,8 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 2 GPUs, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
            forced chunks)
         == row-split 2 GPUs, row-wise K=3 (plain / forced chunks / count inference)
-        == row-split 2 GPUs, row order keep / lex pinned (plain / forced chunks / count inference)
+        == row-split 2 GPUs, row order lex / keep (its no-room fallback) (plain / forced chunks / count
+           inference)
         == row-split 2 GPUs, compacted reduce (the default) and dense reduce pinned (plain
            and forced chunks, with and without count inference)
         == ESCO 2 GPUs, including count inference
@@ -531,9 +533,13 @@ def _row_wise_k3_leg(smoke_dataset, oracle_set, monkeypatch, variant, n_gpus):
 
 
 def _row_order_leg(smoke_dataset, oracle_set, monkeypatch, order, variant, n_gpus):
-    """A leg with the device input layer's row order pinned. Under "lex" every per-candidate and group launch gets
-    the tile occupancy, built only when such a launch runs; under "keep" none does."""
-    from et_miner.gpu import kernels
+    """A leg with the device input layer's row order: "lex" (the default) or "keep" (its fallback when the lex
+    sort does not fit, forced by leaving it no room). Under "lex" every per-candidate and group launch gets the
+    tile occupancy, built only when such a launch runs; under "keep" none does."""
+    from et_miner.gpu import input_layer, kernels
+
+    if order == "keep":
+        monkeypatch.setattr(input_layer, "LEX_BYTES_PER_ROW", 1 << 50)
 
     built, occ_args = [], []
     monkeypatch.setattr(kernels, "tile_occupancy", lambda bv, _real=kernels.tile_occupancy: built.append(1) or _real(bv))
@@ -543,7 +549,7 @@ def _row_order_leg(smoke_dataset, oracle_set, monkeypatch, order, variant, n_gpu
             return _real(*a, **k)
 
         monkeypatch.setattr(kernels, name, spy)
-    env = {"ET_MINER_ROW_ORDER": order, "ET_MINER_INPUT_LAYER": "device"}
+    env = {"ET_MINER_INPUT_LAYER": "device"}
     kwargs = {}
     if variant == "forced chunks":
         env |= {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}

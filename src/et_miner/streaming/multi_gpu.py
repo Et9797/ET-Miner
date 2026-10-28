@@ -164,8 +164,7 @@ def apriori_streaming_multi_gpu(
         batch_size: Accepted for parity with apriori_streaming; the GPU
             passes do not read it.
         show_progress: If True, display progress bars (requires tqdm).
-        sparse: Accepted for parity with apriori_streaming; the GPU passes
-            do not read it.
+        sparse: Removed; only None is accepted (any other value raises).
         n_jobs: Accepted for parity with apriori_streaming; the GPU passes do
             not read it.
         progress_callback: Optional callback for progress updates. Called with:
@@ -191,6 +190,11 @@ def apriori_streaming_multi_gpu(
         ...     show_progress=True,
         ... )
     """
+    if sparse is not None:
+        raise ValueError(
+            "sparse= was removed with the scipy sparse counter (route consolidation C4): no route reads it. "
+            "Drop the argument."
+        )
     _check_local_support_factor(local_support_factor)
     if memory_budget_gb is None:
         _check_chunk_size(chunk_size)
@@ -262,7 +266,6 @@ def apriori_streaming_multi_gpu(
             n_gpus=effective_n_gpus,
             batch_size=batch_size,
             show_progress=show_progress,
-            sparse=sparse,
             n_jobs=n_jobs,
         )
 

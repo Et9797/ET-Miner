@@ -46,7 +46,6 @@ Reference:
 from __future__ import annotations
 
 import math
-import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -186,8 +185,7 @@ def apriori_streaming(
             the data fits one chunk.
         profile: If True, return profiling metrics alongside results.
         show_progress: If True, display progress bars (requires tqdm).
-        sparse: Deprecated on the CPU passes, where it selects no counter (a
-            non-None value warns and is ignored); the GPU passes do not read it.
+        sparse: Removed; only None is accepted (any other value raises).
         n_jobs: Threads for the CPU passes (-1 = every CPU); 1 runs them on
             the calling thread.
         progress_callback: Optional callback for progress updates. Called with:
@@ -223,13 +221,10 @@ def apriori_streaming(
     _check_local_support_factor(local_support_factor)
     if memory_budget_gb is None:
         _check_chunk_size(chunk_size)
-    if sparse is not None and not use_gpu:
-        warnings.warn(
-            "sparse= no longer selects a counting engine under streaming=True: SON's CPU passes count "
-            "from a CSR of each chunk whatever its value, and the argument is ignored there. It will be "
-            "removed in a future release.",
-            DeprecationWarning,
-            stacklevel=2,
+    if sparse is not None:
+        raise ValueError(
+            "sparse= was removed with the scipy sparse counter (route consolidation C4): no route reads it. "
+            "Drop the argument."
         )
     lf = transactions.lazy() if isinstance(transactions, pl.DataFrame) else transactions
     session = ProfilingSession() if profile else None

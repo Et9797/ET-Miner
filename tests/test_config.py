@@ -136,7 +136,6 @@ min_support = 0.05
             config = Config.from_file(temp_path)
             assert config.apriori.min_support == 0.05
             # Defaults
-            assert config.apriori.sparse is True
             assert config.streaming.chunk_size == 100_000
         finally:
             os.unlink(temp_path)
@@ -241,7 +240,6 @@ class TestGetDefaultConfig:
         """Test that get_default_config returns default values."""
         config = get_default_config()
         assert config.apriori.min_support == 0.01
-        assert config.apriori.sparse is True
         assert config.streaming.chunk_size == 100_000
 
 

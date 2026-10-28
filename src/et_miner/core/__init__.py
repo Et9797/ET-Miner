@@ -6,7 +6,6 @@ from et_miner.core.matrix import (
     count_support_batched,
     count_support_vectorized,
 )
-from et_miner.core.sparse import count_support_sparse
 from et_miner.core.rules import (
     Rule,
     compute_self_sufficiency,
@@ -19,7 +18,6 @@ __all__ = [
     "apriori",
     "build_boolean_matrix",
     "count_support_batched",
-    "count_support_sparse",
     "count_support_vectorized",
     "Rule",
     "compute_self_sufficiency",

@@ -400,9 +400,7 @@ def apriori(
             which also skips every candidate that cannot be free. False counts
             every candidate the prefix groups generate, and is honoured only by
             the row-split miner (the CPU route and SON always test).
-        sparse: Deprecated. It selects no counting engine on the CPU route or
-            in SON's CPU passes (a non-None value warns and is ignored there),
-            and the GPU routes do not read it.
+        sparse: Removed; only None is accepted (any other value raises).
         n_jobs: Parallel workers for counting. 1 = sequential, -1 = all CPUs.
         enable_length_filter: Skip transactions shorter than k when counting
             k-itemsets. Set to False to disable (results are the same).
@@ -579,13 +577,10 @@ def apriori(
     if transactions is None:
         raise ValueError("Either 'transactions' or 'bitvecs' must be provided")
 
-    if sparse is not None and not use_gpu and not (streaming and n_gpus > 1):
-        warnings.warn(
-            "sparse= no longer selects a counting engine on the CPU: the CPU route and SON's CPU passes "
-            "count from a CSR whatever its value, and the argument is ignored there. It will be removed "
-            "in a future release.",
-            DeprecationWarning,
-            stacklevel=2,
+    if sparse is not None:
+        raise ValueError(
+            "sparse= was removed with the scipy sparse counter (route consolidation C4): no route reads it. "
+            "Drop the argument."
         )
 
     # Route to streaming implementation if requested

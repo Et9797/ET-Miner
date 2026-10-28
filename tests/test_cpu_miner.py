@@ -4,7 +4,6 @@ and the route end to end against efficient-apriori (oracle convention, CLAUDE.md
 from __future__ import annotations
 
 import itertools
-import warnings
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -674,26 +673,12 @@ def test_cpu_route_keeps_string_items():
     assert got == _oracle(rows, 0.3)
 
 
-def test_sparse_is_deprecated_on_the_cpu_route_and_changes_nothing():
+@pytest.mark.parametrize("value", [True, False])
+@pytest.mark.parametrize("streaming", [False, True])
+def test_sparse_raises_on_every_route(value, streaming):
     df = pl.DataFrame({"items": _random_rows(7, messy=False)})
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        plain = _mined(df, 0.03)
-    for value in (True, False):
-        with pytest.warns(DeprecationWarning, match="sparse= no longer selects"):
-            assert _mined(df, 0.03, sparse=value) == plain
-
-
-def test_streaming_single_chunk_fallback_warns_about_sparse_once_and_changes_nothing():
-    df = pl.DataFrame({"items": _random_rows(7, messy=False)})
-    plain = _mined(df, 0.03)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        assert _mined(df, 0.03, streaming=True, sparse=None) == plain
-    for value in (True, False):
-        with pytest.warns(DeprecationWarning, match="sparse= no longer selects") as record:
-            assert _mined(df, 0.03, streaming=True, sparse=value) == plain
-        assert sum(issubclass(w.category, DeprecationWarning) for w in record) == 1
+    with pytest.raises(ValueError, match="sparse= was removed"):
+        _mined(df, 0.03, streaming=streaming, sparse=value)
 
 
 def test_map_rows_raises_when_explode_and_lengths_disagree(monkeypatch):

@@ -1,8 +1,6 @@
-"""Tests for scipy sparse matrix support.
+"""The CPU counting API (count_support_batched) and the boolean matrix's CSR conversion.
 
-These tests verify that the sparse counting strategy produces identical
-results to the standard Polars approach, and that the automatic strategy
-selection works correctly.
+The scipy sparse counter went with route consolidation C4; count_support_batched counts with Polars.
 """
 
 import random
@@ -15,17 +13,11 @@ from et_miner.core.matrix import (
     _polars_to_sparse_csr,
     build_boolean_matrix,
     count_support_batched,
-    count_support_vectorized,
-)
-from et_miner.core.sparse import (
-    _choose_counting_strategy,
-    _estimate_density,
-    count_support_sparse,
 )
 
 
-def _counter_counts(df: pl.DataFrame, min_support: float, sparse: bool) -> dict[tuple, int]:
-    """count_support_batched(sparse=...) of every itemset the CPU route mines, keyed by sorted item ids.
+def _counter_counts(df: pl.DataFrame, min_support: float) -> dict[tuple, int]:
+    """count_support_batched of every itemset the CPU route mines, keyed by sorted item ids.
 
     The whole frame is one boolean matrix, so one counter call sees every row
     holding an itemset: a counter that wraps at 256 shows wherever 256+ rows
@@ -36,7 +28,7 @@ def _counter_counts(df: pl.DataFrame, min_support: float, sparse: bool) -> dict[
     matrix, col_to_item, n = build_boolean_matrix(df.lazy(), min_support)
     col_of = {item: col for col, item in col_to_item.items()}
     itemsets = [tuple(col_of[i] for i in sorted(s)) for s in apriori(df, min_support=min_support)["itemset"].to_list()]
-    counts = count_support_batched(matrix, itemsets, n, sparse=sparse, enable_length_filter=False)
+    counts = count_support_batched(matrix, itemsets, n, enable_length_filter=False)
     return {tuple(sorted(col_to_item[c] for c in cols)): int(v) for cols, v in counts.items()}
 
 
@@ -116,377 +108,15 @@ class TestPolarsToSparseCsr:
         )
 
 
-class TestCountSupportSparse:
-    """Tests for sparse support counting."""
-
-    @pytest.fixture
-    def simple_matrix(self):
-        """Simple boolean matrix for testing."""
-        return pl.DataFrame({
-            "i_0": [True, False, True, True],   # items: A
-            "i_1": [True, True, False, True],   # items: B
-            "i_2": [False, True, True, True],   # items: C
-        })
-
-    def test_single_item_support(self, simple_matrix):
-        """Test support counting for single items."""
-        itemsets = [("i_0",), ("i_1",), ("i_2",)]
-        result = count_support_sparse(simple_matrix, itemsets)
-
-        assert result[("i_0",)] == 3
-        assert result[("i_1",)] == 3
-        assert result[("i_2",)] == 3
-
-    def test_pair_itemset_support(self, simple_matrix):
-        """Test support counting for 2-itemsets."""
-        itemsets = [("i_0", "i_1"), ("i_0", "i_2"), ("i_1", "i_2")]
-        result = count_support_sparse(simple_matrix, itemsets)
-
-        # Verify manually:
-        # i_0 & i_1: rows 0, 3 -> 2
-        # i_0 & i_2: rows 2, 3 -> 2
-        # i_1 & i_2: rows 1, 3 -> 2
-        assert result[("i_0", "i_1")] == 2
-        assert result[("i_0", "i_2")] == 2
-        assert result[("i_1", "i_2")] == 2
-
-    def test_triple_itemset_support(self, simple_matrix):
-        """Test support counting for 3-itemsets."""
-        itemsets = [("i_0", "i_1", "i_2")]
-        result = count_support_sparse(simple_matrix, itemsets)
-
-        # i_0 & i_1 & i_2: only row 3 -> 1
-        assert result[("i_0", "i_1", "i_2")] == 1
-
-    def test_empty_itemsets(self, simple_matrix):
-        """Test with empty itemsets list."""
-        result = count_support_sparse(simple_matrix, [])
-        assert result == {}
-
-    def test_matches_vectorized(self, simple_matrix):
-        """Verify sparse results exactly match vectorized results."""
-        itemsets = [
-            ("i_0",), ("i_1",), ("i_2",),
-            ("i_0", "i_1"), ("i_0", "i_2"), ("i_1", "i_2"),
-            ("i_0", "i_1", "i_2"),
-        ]
-
-        sparse_result = count_support_sparse(simple_matrix, itemsets)
-        vectorized_result = count_support_vectorized(simple_matrix, itemsets)
-
-        assert sparse_result == vectorized_result
-
-
-class TestSparseIntegration:
-    """Integration tests for sparse support in count_support_batched."""
-
-    @pytest.fixture
-    def large_sparse_matrix(self):
-        """Generate a larger sparse boolean matrix."""
-        np.random.seed(42)
-        n_rows = 1000
-        n_cols = 100
-        density = 0.03  # 3% density
-
-        # Generate sparse random data
-        data = {}
-        for i in range(n_cols):
-            col_data = np.random.random(n_rows) < density
-            data[f"i_{i}"] = col_data.tolist()
-
-        return pl.DataFrame(data)
-
-    def test_forced_sparse_matches_polars(self, large_sparse_matrix):
-        """Test that forced sparse=True produces identical results to Polars."""
-        # Generate some itemsets
-        itemsets = [
-            ("i_0", "i_1"),
-            ("i_0", "i_2"),
-            ("i_1", "i_2"),
-            ("i_5", "i_10"),
-            ("i_0", "i_1", "i_2"),
-        ]
-
-        polars_result = count_support_batched(
-            large_sparse_matrix, itemsets, n_transactions=1000, sparse=False
-        )
-        sparse_result = count_support_batched(
-            large_sparse_matrix, itemsets, n_transactions=1000, sparse=True
-        )
-
-        assert polars_result == sparse_result
-
-    def test_auto_detection_chooses_polars_for_dense(self, large_sparse_matrix):
-        """Test that auto-detection chooses Polars for smaller matrices."""
-        # 100 columns at 3% density won't trigger sparse (needs >2000 items)
-        itemsets = [("i_0", "i_1")]
-
-        # This should use Polars internally (auto-detection)
-        result = count_support_batched(
-            large_sparse_matrix, itemsets, n_transactions=1000, sparse=None
-        )
-
-        # Just verify it works - we can't easily check which strategy was used
-        assert ("i_0", "i_1") in result
-
-
-class TestEstimateDensity:
-    """Tests for _estimate_density function."""
-
-    def test_zero_density(self):
-        """Test with all False values."""
-        df = pl.DataFrame({
-            "i_0": [False, False, False],
-            "i_1": [False, False, False],
-        })
-        density = _estimate_density(df)
-        assert density == 0.0
-
-    def test_full_density(self):
-        """Test with all True values."""
-        df = pl.DataFrame({
-            "i_0": [True, True, True],
-            "i_1": [True, True, True],
-        })
-        density = _estimate_density(df)
-        assert density == 1.0
-
-    def test_partial_density(self):
-        """Test with 50% density."""
-        df = pl.DataFrame({
-            "i_0": [True, False, True, False],
-            "i_1": [False, True, False, True],
-        })
-        density = _estimate_density(df)
-        assert density == 0.5
-
-    def test_empty_matrix(self):
-        """Test with empty matrix."""
-        df = pl.DataFrame({
-            "i_0": pl.Series([], dtype=pl.Boolean),
-        })
-        density = _estimate_density(df)
-        assert density == 0.0
-
-
-class TestChooseCountingStrategy:
-    """Tests for _choose_counting_strategy function."""
-
-    def test_small_matrix_chooses_polars(self):
-        """Test that small matrices use Polars."""
-        strategy = _choose_counting_strategy(
-            n_items=100, n_transactions=10_000, density=0.01
-        )
-        assert strategy == "polars"
-
-    def test_dense_matrix_below_k2_threshold_chooses_polars(self):
-        """Test that dense matrices below the k2-explosion threshold use Polars.
-
-        The k2 candidate-explosion rule (>100K pairs -> sparse) precedes the
-        density check, so density only decides the outcome when n_items keeps
-        k2 pairs under 100K (n_items <= 447). At 447 items and 20% density,
-        neither the k2 rule nor the item+density rule fires -> Polars.
-        """
-        strategy = _choose_counting_strategy(
-            n_items=447, n_transactions=1_000_000, density=0.20  # k2=99,681 < 100K, dense
-        )
-        assert strategy == "polars"
-
-    def test_k2_explosion_overrides_density(self):
-        """Test that the k2-explosion rule fires regardless of density.
-
-        At 3000 items, k2 = 4.5M pairs > 100K, so sparse is chosen even at high
-        (20%) density — the candidate explosion dominates the strategy choice.
-        """
-        strategy = _choose_counting_strategy(
-            n_items=3000, n_transactions=1_000_000, density=0.20
-        )
-        assert strategy == "sparse"
-
-    def test_large_sparse_matrix_chooses_sparse(self):
-        """Test that large sparse matrices use scipy.
-
-        Updated Jan 2026: New thresholds are >500 items + <10% density, OR >1GB size.
-        """
-        # 10K items × 5M tx = 50G bits = 6.25 GB → triggers >1GB threshold
-        strategy = _choose_counting_strategy(
-            n_items=10_000, n_transactions=5_000_000, density=0.01  # 1% density
-        )
-        assert strategy == "sparse"
-
-    def test_extreme_sparse_chooses_sparse(self):
-        """Test that extreme sparse workloads use scipy."""
-        # 25K items × 2M tx = 50GB+ dense
-        strategy = _choose_counting_strategy(
-            n_items=25_000, n_transactions=2_000_000, density=0.001
-        )
-        assert strategy == "sparse"
-
-    def test_borderline_cases(self):
-        """Test borderline cases around the thresholds.
-
-        The k2-explosion rule (>100K pairs -> sparse) fires first, so it caps the
-        Polars region at n_items <= 447 (k2=99,681). Above that, sparse is chosen
-        by the k2 rule before density or size are considered.
-        """
-        # k2 boundary: 447 items = 99,681 pairs (< 100K) -> below all rules -> Polars
-        strategy = _choose_counting_strategy(
-            n_items=447, n_transactions=100_000, density=0.05
-        )
-        assert strategy == "polars"
-
-        # 448 items = 100,128 pairs (> 100K) -> k2-explosion rule -> sparse
-        strategy = _choose_counting_strategy(
-            n_items=448, n_transactions=100_000, density=0.11
-        )
-        assert strategy == "sparse"
-
-        # Under 1GB estimated size AND under the k2 threshold - should use Polars
-        # 400 items × 1M tx = 400M bits = 50MB, k2=79,800 < 100K
-        strategy = _choose_counting_strategy(
-            n_items=400, n_transactions=1_000_000, density=0.05
-        )
-        assert strategy == "polars"
-
-
-class TestSparseWithRealData:
-    """Tests using the build_boolean_matrix + sparse pipeline."""
-
-    def test_full_pipeline_sparse_forced(self, sample_transactions):
-        """Test the full pipeline with forced sparse counting."""
-        matrix, col_to_item, n_tx = build_boolean_matrix(
-            sample_transactions.lazy(), min_support=0.5
-        )
-
-        # Get column names for frequent items
-        col_names = list(col_to_item.keys())
-
-        # Generate itemsets
-        itemsets = [(col,) for col in col_names]
-        if len(col_names) >= 2:
-            itemsets.append((col_names[0], col_names[1]))
-
-        # Count with both methods
-        polars_counts = count_support_batched(matrix, itemsets, n_tx, sparse=False)
-        sparse_counts = count_support_batched(matrix, itemsets, n_tx, sparse=True)
-
-        assert polars_counts == sparse_counts
-
-
-@pytest.fixture
-def sample_transactions():
-    """Basic sample transactions."""
-    return pl.DataFrame({
-        "items": [[1, 2, 3], [2, 3, 4], [1, 3, 5], [2, 3]]
-    })
-
-
-def _brute(dense: np.ndarray, col_to_idx: dict[str, int], itemset: tuple[str, ...]) -> int:
-    return int(dense[:, sorted({col_to_idx[c] for c in itemset})].all(axis=1).sum())
-
-
-class TestSparseNonPairCounting:
-    """The non-pair itemsets of the sparse path (K=0, K=1, K>=3), counted on the CPU array miner's counter."""
-
-    @staticmethod
-    def _case(n_rows=300, n_cols=9, density=0.45):
-        from itertools import combinations
-
-        rng = np.random.default_rng(42)
-        dense = rng.random((n_rows, n_cols)) < density
-        dense[0] = False
-        df = pl.DataFrame({f"i_{j}": dense[:, j] for j in range(n_cols)})
-        csr, col_to_idx = _polars_to_sparse_csr(df)
-        cols = list(col_to_idx)
-        itemsets = [(), *[(c,) for c in cols]]
-        for k in range(3, 7):
-            itemsets += list(combinations(cols, k))
-        itemsets += [("i_0", "i_0", "i_1"), ("i_4", "i_2", "i_3"), ("i_4", "i_2", "i_3")]
-        return dense, csr, col_to_idx, itemsets
-
-    @pytest.mark.parametrize("n_jobs", [1, 2, -1])
-    def test_counts_match_a_brute_force_count(self, n_jobs):
-        """K=0, K=1, K=3..6, a repeated item, a repeated itemset and an empty row, against the rows themselves."""
-        from et_miner.core.sparse import _count_support_sparse_non_pairs
-
-        dense, csr, col_to_idx, itemsets = self._case()
-        got = _count_support_sparse_non_pairs(csr, col_to_idx, itemsets, n_jobs=n_jobs)
-
-        assert set(got) == set(itemsets)
-        for itemset in itemsets:
-            assert got[itemset] == _brute(dense, col_to_idx, itemset), itemset
-
-    @pytest.mark.parametrize(
-        "knobs",
-        [
-            {"BITVEC_BUDGET_BYTES": 0},
-            {"PER_CANDIDATE_MAX_WORDS": -1, "PER_CANDIDATE_MEAN_GROUP": 0},
-            {"GRAM_BITVEC_RATIO": -1.0, "COMPACT_RATIO": 1.0},
-        ],
-        ids=["projection", "prefix-groups", "k2-gram-compaction"],
-    )
-    @pytest.mark.parametrize("n_jobs", [1, 3])
-    def test_every_counter_branch_matches(self, monkeypatch, knobs, n_jobs):
-        """The counter's other branches (no bitvecs, prefix groups, the Gram for a collapsed pair, row compaction)."""
-        from et_miner.core import cpu_miner
-        from et_miner.core.sparse import _count_support_sparse_non_pairs
-
-        for name, value in knobs.items():
-            monkeypatch.setattr(cpu_miner, name, value)
-        dense, csr, col_to_idx, itemsets = self._case(n_rows=700)
-        got = _count_support_sparse_non_pairs(csr, col_to_idx, itemsets, n_jobs=n_jobs)
-
-        for itemset in itemsets:
-            assert got[itemset] == _brute(dense, col_to_idx, itemset), itemset
-
-    def test_only_the_named_columns_are_counted(self, monkeypatch):
-        """A wide matrix is narrowed to the itemsets' columns before the counter sees it."""
-        from et_miner.core import sparse
-
-        seen = {}
-        real = sparse.count_itemsets
-
-        def spy(indptr, indices, n_cols, cands, pool=None, n_workers=1):
-            seen["n_cols"] = n_cols
-            return real(indptr, indices, n_cols, cands, pool, n_workers)
-
-        monkeypatch.setattr(sparse, "count_itemsets", spy)
-        dense, csr, col_to_idx, _ = self._case(n_cols=40)
-        itemsets = [("i_3", "i_17", "i_29"), ("i_29", "i_3"), ("i_38",)]
-        got = sparse._count_support_sparse_non_pairs(csr, col_to_idx, itemsets)
-
-        assert seen["n_cols"] == 4
-        for itemset in itemsets:
-            assert got[itemset] == _brute(dense, col_to_idx, itemset), itemset
-
-    def test_a_non_canonical_csr_with_stored_zeros(self):
-        """Duplicate entries count once and stored zeros not at all; the caller's matrix is left as it was."""
-        from scipy.sparse import csr_matrix
-
-        from et_miner.core.sparse import _count_support_sparse_non_pairs
-
-        # rows: {0,1,2} with 1 stored twice, {0,2} with an explicit zero at 1, {2,1,0} unsorted
-        indptr = np.array([0, 4, 7, 10])
-        indices = np.array([0, 1, 1, 2, 0, 1, 2, 2, 1, 0])
-        data = np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1], dtype=np.int32)
-        csr = csr_matrix((data, indices, indptr), shape=(3, 3))
-        before = (csr.indptr.copy(), csr.indices.copy(), csr.data.copy())
-        col_to_idx = {"a": 0, "b": 1, "c": 2}
-
-        got = _count_support_sparse_non_pairs(csr, col_to_idx, [("a", "b", "c"), ("b",), ("a",)])
-
-        assert got == {("a", "b", "c"): 2, ("b",): 2, ("a",): 3}
-        assert all(np.array_equal(x, y) for x, y in zip(before, (csr.indptr, csr.indices, csr.data)))
-
-    @pytest.mark.parametrize("sparse", [True, False])
-    def test_a_repeated_item_is_held_by_a_row_of_its_distinct_items(self, sparse):
+class TestCounter:
+    def test_a_repeated_item_is_held_by_a_row_of_its_distinct_items(self):
         """The length filter keys on distinct items: ("a", "a", "b") is held by the 2-item row {a, b}."""
         df = pl.DataFrame({"items": [["a", "b"], ["a", "b", "c"], ["a"]]})
         matrix, col_to_item, n = build_boolean_matrix(df.lazy(), 0.01)
         item_to_col = {v: k for k, v in col_to_item.items()}
         itemset = (item_to_col["a"], item_to_col["a"], item_to_col["b"])
 
-        assert count_support_batched(matrix, [itemset], n, sparse=sparse) == {itemset: 2}
+        assert count_support_batched(matrix, [itemset], n) == {itemset: 2}
 
     def test_n_jobs_api_parameter(self):
         """Test that n_jobs parameter flows through the full API."""
@@ -513,86 +143,8 @@ class TestSparseNonPairCounting:
         assert result_seq["support"].to_list() == result_par["support"].to_list()
 
 
-class TestSparseMkl:
-    """Tests for MKL-accelerated sparse matrix multiplication."""
-
-    def test_sparse_matmul_correctness(self):
-        """_sparse_matmul produces same result as scipy @ operator."""
-        from et_miner.core.sparse import _sparse_matmul
-        from scipy.sparse import csr_matrix
-
-        # Create test matrix (5 transactions x 4 items)
-        data = np.array([1, 1, 1, 1, 1, 1, 1, 1], dtype=np.float32)
-        row = np.array([0, 0, 1, 1, 2, 2, 3, 4])
-        col = np.array([0, 1, 1, 2, 0, 2, 3, 0])
-        A = csr_matrix((data, (row, col)), shape=(5, 4))
-
-        # Compare _sparse_matmul(A.T, A) with A.T @ A
-        result_mkl = _sparse_matmul(A.T, A)
-        result_scipy = A.T @ A
-
-        # Convert to dense for comparison
-        np.testing.assert_allclose(
-            result_mkl.toarray(),
-            result_scipy.toarray(),
-            rtol=1e-5,
-        )
-
-    def test_sparse_matmul_handles_int_dtype(self):
-        """_sparse_matmul handles integer matrices (converts to float)."""
-        from et_miner.core.sparse import _sparse_matmul
-        from scipy.sparse import csr_matrix
-
-        # Create int32 sparse matrix
-        data = np.array([1, 1, 1, 1], dtype=np.int32)
-        row = np.array([0, 0, 1, 2])
-        col = np.array([0, 1, 1, 0])
-        A = csr_matrix((data, (row, col)), shape=(3, 2))
-
-        # Should not raise an error and produce correct result
-        result = _sparse_matmul(A.T, A)
-        expected = A.T @ A
-
-        np.testing.assert_allclose(
-            result.toarray(),
-            expected.toarray(),
-            rtol=1e-5,
-        )
-
-    def test_sparse_matmul_fallback_works(self):
-        """_sparse_matmul falls back to scipy when MKL unavailable."""
-        from et_miner.core.sparse import _sparse_matmul
-        from scipy.sparse import csr_matrix
-
-        # Create a simple matrix - this test verifies the function works
-        # regardless of whether MKL is installed or not
-        data = np.array([1.0, 2.0, 3.0], dtype=np.float32)
-        row = np.array([0, 1, 2])
-        col = np.array([0, 0, 1])
-        A = csr_matrix((data, (row, col)), shape=(3, 2))
-
-        # Should work with either MKL or scipy fallback
-        result = _sparse_matmul(A.T, A)
-        expected = A.T @ A
-
-        np.testing.assert_allclose(
-            result.toarray(),
-            expected.toarray(),
-            rtol=1e-5,
-        )
-
-
-# =============================================================================
-# Sparse Mode Correctness Tests (merged from test_sparse_correctness.py)
-# =============================================================================
-
-
-class TestSparseModeCorrectness:
-    """The sparse and the Polars counter both give the exact count of every mined itemset.
-
-    These tests prevent regression of the uint8 overflow bug that caused sparse
-    mode to give wrong counts for datasets with >255 transactions per itemset.
-    """
+class TestCounterCorrectness:
+    """The counter gives the exact count of every mined itemset (a uint8 counter would wrap past 255)."""
 
     @pytest.fixture
     def patterned_dataset(self):
@@ -618,12 +170,11 @@ class TestSparseModeCorrectness:
 
         return pl.DataFrame({"items": transactions})
 
-    @pytest.mark.parametrize("sparse", [True, False])
     @pytest.mark.parametrize("min_support", [0.20, 0.10, 0.05])
-    def test_counter_matches_the_mined_counts(self, patterned_dataset, min_support, sparse):
+    def test_counter_matches_the_mined_counts(self, patterned_dataset, min_support):
         expected = _mined_counts(patterned_dataset, min_support)
         assert len(expected) > 3
-        assert _counter_counts(patterned_dataset, min_support, sparse) == expected
+        assert _counter_counts(patterned_dataset, min_support) == expected
 
 
 class TestUint8OverflowRegression:
@@ -632,7 +183,7 @@ class TestUint8OverflowRegression:
     def test_large_transaction_count_no_overflow(self):
         """500 identieke transacties: elke count is 500, niet 500 % 256 = 244."""
         df = pl.DataFrame({"items": [[1, 2, 3]] * 500})
-        counts = _counter_counts(df, 0.5, sparse=True)
+        counts = _counter_counts(df, 0.5)
         assert len(counts) == 7
         assert set(counts.values()) == {500}
 
@@ -640,4 +191,11 @@ class TestUint8OverflowRegression:
     def test_counts_around_256(self, n):
         """n transacties met [1,2]; met de uint8 bug telt 256 als 0 en 257 als 1."""
         df = pl.DataFrame({"items": [[1, 2]] * n + [[3]]})
-        assert _counter_counts(df, 0.5, sparse=True) == _mined_counts(df, 0.5) == {(1,): n, (2,): n, (1, 2): n}
+        assert _counter_counts(df, 0.5) == _mined_counts(df, 0.5) == {(1,): n, (2,): n, (1, 2): n}
+
+
+@pytest.mark.parametrize("kw", [{"sparse": True}, {"sparse": False}, {"n_jobs": 4}])
+def test_the_removed_sparse_counter_arguments_raise(kw):
+    matrix, col_to_item, n = build_boolean_matrix(pl.DataFrame({"items": [[1, 2], [1, 2, 3]]}).lazy(), 0.5)
+    with pytest.raises(ValueError, match="sparse= and n_jobs= were removed"):
+        count_support_batched(matrix, [(c,) for c in col_to_item], n, **kw)

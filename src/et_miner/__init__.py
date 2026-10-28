@@ -41,7 +41,6 @@ from et_miner.core.matrix import (
     count_support_batched,
     count_support_vectorized,
 )
-from et_miner.core.sparse import count_support_sparse
 
 # Config & logging
 from et_miner.config import Config, load_config
@@ -99,7 +98,6 @@ __all__ = [
     # Matrix
     "build_boolean_matrix",
     "count_support_batched",
-    "count_support_sparse",
     "count_support_vectorized",
     # Progress
     "ProfilingSession",

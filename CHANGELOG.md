@@ -12,6 +12,34 @@ All notable changes to ET-Miner are recorded here. Versions follow
 
 ## [Unreleased] — 0.2.0
 
+### Route consolidation, round 2
+
+Every mining path measured and every loser removed, decided by
+`bench/results/2026-10-27-routes-gpu/FINDINGS.md` (2x RTX 3060 12 GB, 17
+threads; rule and arms in `bench/routes/PROTOCOL.md`). Mined output is
+unchanged: every removal kept the tier-equivalence chain exact.
+
+- **`count_support_sparse` is removed, and with it `core/sparse.py`.** The
+  scipy counter won none of 28 measured batches against the Polars counter
+  (dsl levels: 0.2-7.2 s Polars, 10-48 s scipy) and ran out of the 34.8 GiB
+  limit on a K=2 batch over 20M rows. `count_support_batched` counts with
+  Polars on the CPU; its `sparse=` and `n_jobs=` (which only the scipy counter
+  read) raise `ValueError` unless left at their defaults (`None`, `1`).
+  `apriori(sparse=...)`, `apriori_streaming(sparse=...)` and
+  `apriori_streaming_multi_gpu(sparse=...)` raise for any value but `None`
+  (they were deprecated and ignored). `Config.apriori.sparse` and
+  `ET_APRIORI_SPARSE` are gone (nothing read them).
+- **The CPU route counts K=2 on the Gram only** (`count_pairs_bitvec` is
+  gone): its bitvector K=2 won no workload. `count_itemsets` (SON's pass 2)
+  keeps its own K=2 rule.
+- **K>=3 prefix groups on the CPU are counted on the bitvectors whenever they
+  exist** (`PROJ_MIN_SUFFIXES` is gone). Projection remains the counter when
+  the bitvectors exceed `BITVEC_BUDGET_BYTES`. SON's CPU pass 2 got faster
+  with it (skewed_rows 18.4 s -> 10.8 s).
+- **GPU K=2:** a pair space within one chunk is always tiled (per-candidate
+  K=2 stays for the multi-GPU sub-chunks), and row-wise K=2 runs on global
+  atomics only (`count_pairs_k2_rows_shared` is gone).
+
 ### CPU route: one array miner
 
 - **The CPU route of `apriori()` mines every level from one CSR of the

@@ -33,7 +33,7 @@ matrix, col_to_item, n = build_boolean_matrix(pl.DataFrame({"items": rows}).lazy
 cols = sorted(col_to_item)
 itemsets = [(a,) for a in cols] + [(a, b) for a in cols for b in cols if a < b]
 itemsets += [(a, b, c) for a in cols for b in cols for c in cols if a < b < c]
-counts = count_support_batched(matrix, itemsets, n, sparse=True, enable_length_filter=False)
+counts = count_support_batched(matrix, itemsets, n, enable_length_filter=False)
 print(json.dumps({
     "backends": [backends.RUST_INSTALLED, backends.get_rust_ext() is None, backends.RUST_DISABLED],
     "copies": [et_miner.HAS_RUST, bitvec.RUST_INSTALLED],

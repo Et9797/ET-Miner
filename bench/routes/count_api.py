@@ -8,8 +8,8 @@ Two steps, each in a fresh process with the thread pools pinned before polars is
            the workload's boolean matrix at its min_support, and SON's pass-2 candidate list (every length)
            over the first chunk's matrix of the candidate items. A batch holds at most --cap itemsets, an
            even stride through the level.
-    time   per batch and arm, the wall time of one call (median of --reps), the counts checked equal across
-           the arms:
+    time   per batch and arm, in a fresh process each (an arm the kernel kills, out of memory, is recorded and the
+           run goes on), the wall time of one call (median of --reps), the counts checked equal across the arms:
              polars   count_support_batched(sparse=False, batch_size=10_000)  (count_support_vectorized)
              sparse   count_support_batched(sparse=True, n_jobs=THREADS)      (count_support_sparse)
              arrays   the same length filter, then the matrix's CSR counted by cpu_miner.count_itemsets
@@ -178,43 +178,79 @@ def _timed(fn, timeout: float):
         signal.signal(signal.SIGALRM, previous)
 
 
-def time_batches(root: Path, reps: int, timeout: float, threads: int, only: str | None) -> None:
+ARMS = ("polars", "sparse", "arrays")
+
+
+def time_arm(d: Path, arm: str, reps: int, timeout: float, threads: int) -> None:
+    """One arm on one batch, in this process: one JSON line with its times and a digest of its counts."""
+    import hashlib
+
     import polars as pl
 
     from et_miner.core.matrix import count_support_batched
 
+    meta = json.loads((d / "batch.json").read_text())
+    matrix = pl.read_parquet(d / "matrix.parquet")
+    itemsets = [tuple(s) for s in meta["itemsets"]]
+    n = meta["n_rows"]
+    fn = {
+        "polars": lambda: count_support_batched(matrix, itemsets, n, batch_size=10_000, sparse=False),
+        "sparse": lambda: count_support_batched(matrix, itemsets, n, sparse=True, n_jobs=threads),
+        "arrays": lambda: _arrays(matrix, itemsets, n, threads),
+    }[arm]
+    times, cut, got = [], False, None
+    for _ in range(reps):
+        got, dt, cut = _timed(fn, timeout)
+        times.append(dt)
+        if cut:
+            break
+    digest = None
+    if got is not None:
+        counts = sorted((tuple(k), int(v)) for k, v in got.items())
+        digest = hashlib.sha256(json.dumps(counts).encode()).hexdigest()[:16]
+    print(json.dumps({
+        "batch": d.name, "source": meta["source"], "n_itemsets": len(itemsets), "n_total": meta["n_total"],
+        "n_rows": n, "n_cols": matrix.width, "arm": arm, "s": [round(t, 4) for t in times],
+        "median_s": round(statistics.median(times), 4), "lower_bound": cut, "counts_digest": digest,
+        "threads": threads,
+    }), flush=True)
+
+
+def _oom_kills() -> int | None:
+    try:
+        for line in Path("/sys/fs/cgroup/memory.events").read_text().splitlines():
+            if line.startswith("oom_kill "):
+                return int(line.split()[1])
+    except OSError:
+        pass
+    return None
+
+
+def time_batches(root: Path, reps: int, timeout: float, threads: int, only: str | None) -> None:
+    import subprocess
+
     for d in sorted(p for p in root.iterdir() if (p / "batch.json").exists()):
         if only and only not in d.name:
             continue
-        meta = json.loads((d / "batch.json").read_text())
-        matrix = pl.read_parquet(d / "matrix.parquet")
-        itemsets = [tuple(s) for s in meta["itemsets"]]
-        n = meta["n_rows"]
-        arms = {
-            "polars": lambda: count_support_batched(matrix, itemsets, n, batch_size=10_000, sparse=False),
-            "sparse": lambda: count_support_batched(matrix, itemsets, n, sparse=True, n_jobs=threads),
-            "arrays": lambda: _arrays(matrix, itemsets, n, threads),
-        }
         reference = None
-        for arm, fn in arms.items():
-            times, cut, got = [], False, None
-            for _ in range(reps):
-                got, dt, cut = _timed(fn, timeout)
-                times.append(dt)
-                if cut:
-                    break
-            same = None
-            if got is not None:
-                counts = {tuple(k): int(v) for k, v in got.items()}
-                if reference is None:
-                    reference = counts
-                same = counts == reference
-            print(json.dumps({
-                "batch": d.name, "source": meta["source"], "n_itemsets": len(itemsets), "n_total": meta["n_total"],
-                "n_rows": n, "n_cols": matrix.width, "arm": arm, "s": [round(t, 4) for t in times],
-                "median_s": round(statistics.median(times), 4), "lower_bound": cut, "same_counts": same,
-                "threads": threads,
-            }), flush=True)
+        for arm in ARMS:
+            kills = _oom_kills()
+            cmd = [sys.executable, __file__, "arm", str(d), arm, "--reps", str(reps), "--timeout", str(timeout),
+                   "--threads", str(threads)]
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
+            lines = [line for line in proc.stdout.splitlines() if line.startswith("{")]
+            if proc.returncode != 0 or not lines:
+                after = _oom_kills()
+                oom = kills is not None and after is not None and after > kills
+                print(json.dumps({"batch": d.name, "arm": arm, "status": f"exit {proc.returncode}"
+                                  + (" (cgroup oom_kill)" if oom else ""), "lower_bound": True, "threads": threads}),
+                      flush=True)
+                continue
+            row = json.loads(lines[-1])
+            if row["counts_digest"] is not None:
+                reference = reference or row["counts_digest"]
+                row["same_counts"] = row["counts_digest"] == reference
+            print(json.dumps({**row, "status": "ok"}), flush=True)
 
 
 def main() -> int:
@@ -231,9 +267,17 @@ def main() -> int:
     t.add_argument("--timeout", type=float, default=300.0)
     t.add_argument("--threads", type=int, default=17)
     t.add_argument("--only", default=None)
+    a = sub.add_parser("arm", help="one arm on one batch (the child of `time`)")
+    a.add_argument("batch")
+    a.add_argument("arm", choices=ARMS)
+    a.add_argument("--reps", type=int, default=3)
+    a.add_argument("--timeout", type=float, default=300.0)
+    a.add_argument("--threads", type=int, default=17)
     args = ap.parse_args()
     if args.cmd == "dump":
         dump(args.workload, Path(args.dir), args.son_chunk, args.cap)
+    elif args.cmd == "arm":
+        time_arm(Path(args.batch), args.arm, args.reps, args.timeout, args.threads)
     else:
         time_batches(Path(args.dir), args.reps, args.timeout if math.isfinite(args.timeout) else 1e9, args.threads,
                      args.only)

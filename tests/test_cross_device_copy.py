@@ -241,3 +241,40 @@ def test_a_callers_nccl_setting_wins(monkeypatch, recording_communicator, var, v
     expected = value if var == "NCCL_P2P_LEVEL" else None
     assert recording_communicator.seen == [expected, expected]
     assert os.environ.get(var) == value
+
+
+@pytest.mark.multigpu
+@needs_two
+def test_prebuilt_shards_that_do_not_fit_raise_before_any_allocation(monkeypatch):
+    """The caller's array stays resident: its device needs room for its own shard beside it, or the split names
+    the sizes instead of failing inside an allocation."""
+    from et_miner.gpu import row_split
+
+    with cp.cuda.Device(0):
+        bv = cp.zeros((64, 40_001), dtype=cp.uint64)
+    monkeypatch.setattr(row_split, "_device_available_bytes", lambda did: (1 << 20, 1 << 34))
+    used = []
+    for d in (0, 1):
+        with cp.cuda.Device(d):
+            used.append(cp.get_default_memory_pool().used_bytes())
+    with pytest.raises(MemoryError, match=r"device 0 needs .* beside the caller's bitvectors"):
+        row_split.shard_prebuilt_bitvecs(bv, 40_001 * 64, 2)
+    for d in (0, 1):
+        with cp.cuda.Device(d):
+            assert cp.get_default_memory_pool().used_bytes() == used[d], f"device {d} allocated before raising"
+
+
+@pytest.mark.multigpu
+@needs_two
+def test_prebuilt_shards_are_copied_in_bounded_blocks(monkeypatch):
+    """Blocks smaller than one row of the shard still copy every row (one row per block)."""
+    from et_miner.gpu import row_split
+
+    monkeypatch.setattr(row_split, "SHARD_COPY_BYTES", 8)
+    rng = np.random.default_rng(3)
+    packed = rng.integers(0, 2**63 - 1, size=(7, 1_001), dtype=np.int64).astype(np.uint64)
+    with cp.cuda.Device(0):
+        bv = cp.asarray(packed)
+    shards = row_split.shard_prebuilt_bitvecs(bv, 1_001 * 64, 2)
+    got = np.concatenate([arr.get() for arr, _, _ in shards], axis=1)
+    np.testing.assert_array_equal(got, packed)

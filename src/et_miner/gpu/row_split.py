@@ -183,14 +183,24 @@ class _HostRows:
         self._csr = None
 
 
+#: Bytes of a strided shard slice staged through host memory at once: bounds the contiguous copy the staging
+#: makes on the input device.
+SHARD_COPY_BYTES = 256 << 20
+
+
 def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, devices=None):
     """Row-split a caller's (n_cols, n_u64s) bitvecs across up to ``n_gpus`` devices.
 
-    Shards are cut at 64-row word boundaries and copied onto their devices
-    through host memory (``gpu.nccl.copy_between_devices``; a direct
+    Shards are cut at 64-row word boundaries. A shard on the input device is
+    written there from the caller's array directly; a shard on another device
+    is copied through host memory in row blocks of at most
+    ``SHARD_COPY_BYTES`` (``gpu.nccl.copy_between_devices``; a direct
     device-to-device copy only with ``ET_MINER_DIRECT_D2D=1``). The caller's
-    array is read-only to the engine. On one device the caller's array is the
-    only shard. ``devices`` names the shard devices explicitly, repeats allowed.
+    array is read-only to the engine and stays resident, so before any
+    allocation every device must have room for its shards beside what it
+    already holds, or ``MemoryError`` names the sizes. On one device the
+    caller's array is the only shard. ``devices`` names the shard devices
+    explicitly, repeats allowed.
 
     Returns:
         ``bitvecs_list`` for ``_apriori_row_split_multi_gpu``: (array, device, rows).
@@ -200,23 +210,41 @@ def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, device
 
     from et_miner.gpu.nccl import copy_between_devices
 
-    n_u64s = bitvecs_gpu.shape[1]
+    n_cols, n_u64s = bitvecs_gpu.shape
+    home = int(bitvecs_gpu.device.id)
     if devices is None:
         n_dev = max(1, min(int(n_gpus), cp.cuda.runtime.getDeviceCount(), n_u64s))
-        devices = [int(bitvecs_gpu.device.id)] if n_dev == 1 else list(range(n_dev))
+        devices = [home] if n_dev == 1 else list(range(n_dev))
     n_dev = len(devices)
-    if n_dev == 1 and devices[0] == bitvecs_gpu.device.id:
-        return [(bitvecs_gpu, int(bitvecs_gpu.device.id), n_transactions)]
+    if n_dev == 1 and devices[0] == home:
+        return [(bitvecs_gpu, home, n_transactions)]
     cuts = np.linspace(0, n_u64s, n_dev + 1).astype(np.int64)
+    need: dict[int, int] = {}
+    for i, dev in enumerate(devices):
+        need[dev] = need.get(dev, 0) + n_cols * int(cuts[i + 1] - cuts[i]) * 8
+    if any(dev != home for dev in devices):
+        need[home] = need.get(home, 0) + SHARD_COPY_BYTES
+    for dev, nbytes in need.items():
+        free, _ = _device_available_bytes(dev)
+        if nbytes > free:
+            beside = " beside the caller's bitvectors" if dev == home else ""
+            raise MemoryError(
+                f"bitvecs= on {n_dev} GPUs: device {dev} needs {nbytes / (1 << 30):.2f} GB for its row shard(s)"
+                f"{beside} and has {free / (1 << 30):.2f} GB free. Mine with n_gpus=1, or pass the transactions "
+                "instead of bitvecs= (the device input layer builds each shard on its own GPU)."
+            )
     shards = []
     for i, dev in enumerate(devices):
         lo, hi = int(cuts[i]), int(cuts[i + 1])
-        with cp.cuda.Device(bitvecs_gpu.device.id):
-            src = cp.ascontiguousarray(bitvecs_gpu[:, lo:hi])
         with cp.cuda.Device(dev):
-            dst = cp.empty(src.shape, dtype=src.dtype)
-        copy_between_devices(dst, src)
-        del src
+            dst = cp.empty((n_cols, hi - lo), dtype=bitvecs_gpu.dtype)
+        if dev == home:
+            with cp.cuda.Device(dev):
+                dst[...] = bitvecs_gpu[:, lo:hi]
+        else:
+            step = max(1, SHARD_COPY_BYTES // max(1, (hi - lo) * 8))
+            for r0 in range(0, n_cols, step):
+                copy_between_devices(dst[r0 : r0 + step], bitvecs_gpu[r0 : r0 + step, lo:hi])
         shards.append((dst, dev, min(hi * 64, n_transactions) - lo * 64))
     logger.info(f"  Pre-built bitvecs: split into {n_dev} row shards")
     return shards

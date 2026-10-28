@@ -74,6 +74,17 @@ unchanged: every removal kept the tier-equivalence chain exact.
   CUDA build fails instead of falling back to the host build. The Rust group
   build and free-set prune stay (their fallbacks are 11x and 25x slower).
 
+### Fixed (route consolidation, round 2)
+
+- **`bitvecs=` on several GPUs no longer runs out of memory on an input that
+  fits.** The row split made each shard contiguous on the input device before
+  copying it, so the input device held the caller's array, a temporary copy of
+  its shard and the shard itself: a 6 GB input failed on a 12 GB card. The
+  shard on the input device is now written from the caller's array directly
+  and the others are copied through host memory in 256 MB row blocks; an input
+  whose device cannot also hold its own shard (8.75 GB on 12 GB) raises a
+  `MemoryError` naming the sizes before any allocation, instead of CuPy's.
+
 ### CPU route: one array miner
 
 - **The CPU route of `apriori()` mines every level from one CSR of the

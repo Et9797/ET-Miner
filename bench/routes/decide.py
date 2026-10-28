@@ -44,6 +44,10 @@ LEAVE_ONE_OUT = {
     "C2": {"popcount": ("default", "proj"), "proj": ("default", "popcount"),
            "son-percand": ("default", "groups"), "son-groups": ("default", "percand")},
 }
+#: A path whose peak VRAM stays below this used no GPU memory of its own (rule 7 compares RSS only).
+GPU_FLOOR_MB = 64
+#: Paths rule 9 keeps whatever their head-to-head says: SON on the CPU is the CPU route's streaming strategy.
+RULE_9 = {("S1", "cpu")}
 #: Head-to-head decision points: DP -> {path: [arm labels that run it]} (route tag + name, no GPU count).
 HEAD_TO_HEAD = {
     "G1": {"device": ["C-default", "C-coded"], "host": ["C-host"], "rebuilt": ["C-rebuilt"]},
@@ -190,31 +194,59 @@ def leave_one_out(table: dict, dp: str) -> list[dict]:
     return out
 
 
+def _guard(path: str, c: Cell, replacement: Cell | None) -> str | None:
+    """Rule 7 for removing ``path`` from one regime, where ``replacement`` serves it instead."""
+    if not c.ok:
+        return None
+    if replacement is None or not replacement.ok:
+        return f"{path} ran where no other path did"
+    for what, mine, theirs in (("VRAM", c.vram, replacement.vram), ("RSS", c.rss, replacement.rss)):
+        if what == "VRAM" and max(mine) < GPU_FLOOR_MB:
+            continue  # a CPU path: its "VRAM" is the context of other processes, no capability to lose
+        if max(theirs) > 1.25 * max(mine) + 1:
+            return f"peak {what} {max(theirs) / max(max(mine), 1):.2f}x without {path}"
+    return None
+
+
 def head_to_head(table: dict, dp: str) -> list[dict]:
-    """Per path: the regimes it wins (rule 2 against the best alternative), the decision (rule 4)."""
+    """Per path: the regimes it wins (rule 2 against the best alternative, at one GPU count), the decision (rules 4
+    and 7: a path that wins nothing goes unless its removal fails a regime or raises its peak memory > 1.25x)."""
     paths = HEAD_TO_HEAD[dp]
     regimes = []
     for regime, rc in sorted(table.items()):
-        present = {}
-        for path, labels in paths.items():
-            for label in labels:
-                route, name = label.split("-", 1)
-                for arm, c in rc.items():
-                    if arm.split("-", 1)[0][0] == route and arm.split("-", 1)[1] == name:
-                        present[path] = (arm, c)
-        if len(present) < 2:
-            continue
-        row = {"regime": regime, "arms": {p: f"{a}: {c.fmt()}" for p, (a, c) in present.items()}, "winner": None}
-        for path, (_, c) in present.items():
-            others = [oc for p, (_, oc) in present.items() if p != path]
-            ok_others = [o for o in others if o.ok]
-            best = min(ok_others, key=lambda o: o.median) if ok_others else (others[0] if others else None)
-            if best is not None and wins(c, best) and all(wins(c, o) or not o.ok for o in others):
-                row["winner"] = path
-        regimes.append(row)
+        for n in sorted({arm.split("-", 1)[0][1:] for arm in rc}):
+            present = {}
+            for path, labels in paths.items():
+                for label in labels:
+                    route, name = label.split("-", 1)
+                    for arm, c in rc.items():
+                        if arm.split("-", 1)[0] == f"{route}{n}" and arm.split("-", 1)[1] == name:
+                            present[path] = (arm, c)
+            if len(present) < 2:
+                continue
+            row = {"regime": regime if n == "1" else f"{regime} ({n} GPUs)",
+                   "arms": {p: f"{a}: {c.fmt()}" for p, (a, c) in present.items()}, "winner": None, "guard": {}}
+            for path, (_, c) in present.items():
+                others = [oc for p, (_, oc) in present.items() if p != path]
+                ok_others = [o for o in others if o.ok]
+                best = min(ok_others, key=lambda o: o.median) if ok_others else (others[0] if others else None)
+                if best is not None and wins(c, best) and all(wins(c, o) or not o.ok for o in others):
+                    row["winner"] = path
+                if (why := _guard(path, c, min(ok_others, key=lambda o: o.median) if ok_others else None)):
+                    row["guard"][path] = why
+            regimes.append(row)
     won = {r["winner"] for r in regimes if r["winner"]}
-    decisions = {p: ("wins " + ", ".join(r["regime"] for r in regimes if r["winner"] == p) if p in won else
-                     "wins no regime (rule 4: goes, subject to rules 7 and 9)") for p in paths}
+    decisions = {}
+    for p in paths:
+        if p in won:
+            decisions[p] = "wins " + ", ".join(r["regime"] for r in regimes if r["winner"] == p)
+            continue
+        if (dp, p) in RULE_9:
+            decisions[p] = "wins no regime; stays (rule 9: SON is never removed as a strategy)"
+            continue
+        blocked = [f"{r['regime']}: {r['guard'][p]}" for r in regimes if p in r["guard"]]
+        decisions[p] = "wins no regime (rule 4: goes, subject to rule 9)" + (
+            f"; BLOCKED by rule 7 ({'; '.join(blocked)})" if blocked else "")
     return [{"decisions": decisions, "regimes": regimes}]
 
 

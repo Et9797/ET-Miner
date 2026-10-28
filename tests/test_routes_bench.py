@@ -123,3 +123,38 @@ def test_head_to_head_names_the_winning_path(tmp_path):
     (g1,) = decide.head_to_head(table, "G1")
     assert g1["regimes"][0]["winner"] == "device"
     assert g1["decisions"]["host"].startswith("wins no regime")
+
+
+def test_head_to_head_compares_arms_at_one_gpu_count(tmp_path):
+    rows = []
+    for rep in range(3):
+        rows += [_row(f"dsl-C1-default#r{rep}", 10 + rep * 0.01), _row(f"dsl-C2-default#r{rep}", 2 + rep * 0.01),
+                 _row(f"dsl-C1-host#r{rep}", 9.5 + rep * 0.01)]
+    table, _ = decide.cells(decide._load([_write(tmp_path, rows)]))
+    (g1,) = decide.head_to_head(table, "G1")
+    assert [r["regime"] for r in g1["regimes"]] == ["dsl"]
+    assert g1["regimes"][0]["arms"]["device"].startswith("C1-default")
+    assert g1["regimes"][0]["winner"] is None
+
+
+def test_rule_7_blocks_a_losing_path_whose_removal_raises_peak_memory(tmp_path):
+    rows = []
+    for rep in range(3):
+        rows += [_row(f"r1-C1-default#r{rep}", 3 + rep * 0.01, vram=9000),
+                 _row(f"r1-C1-esco-auto#r{rep}", 8 + rep * 0.01, vram=4000)]
+    table, _ = decide.cells(decide._load([_write(tmp_path, rows)]))
+    (g6,) = decide.head_to_head(table, "G6")
+    assert "BLOCKED by rule 7" in g6["decisions"]["esco-auto"] and "VRAM 2.25x" in g6["decisions"]["esco-auto"]
+    assert g6["decisions"]["dense"].startswith("wins r1")
+
+
+def test_a_cpu_path_is_not_guarded_on_vram_and_cpu_son_stays(tmp_path):
+    rows = []
+    for rep in range(3):
+        rows += [_row(f"r1-son-D1-default#r{rep}", 30 + rep * 0.01, vram=4),
+                 _row(f"r1-son-D1-ported#r{rep}", 3 + rep * 0.01, vram=1200),
+                 _row(f"r1-son-D1-boolean#r{rep}", 20 + rep * 0.01, vram=600)]
+    table, _ = decide.cells(decide._load([_write(tmp_path, rows)]))
+    (s1,) = decide.head_to_head(table, "S1")
+    assert "rule 9" in s1["decisions"]["cpu"]
+    assert "BLOCKED by rule 7" in s1["decisions"]["boolean"] and "VRAM 2.00x" in s1["decisions"]["boolean"]

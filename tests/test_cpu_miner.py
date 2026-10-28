@@ -231,29 +231,16 @@ def test_count_pairs_matches_a_brute_force(monkeypatch, seed, budget):
     assert np.array_equal(order, np.arange(len(pairs))), "pairs must come out lexsorted"
 
 
-@pytest.mark.parametrize("seed", [0, 1])
-def test_count_pairs_bitvec_matches_the_gram(monkeypatch, seed):
-    monkeypatch.setattr(cpu_miner, "AND_CHUNK_BYTES", 64)
-    dense, m = _random_csr(seed, n_rows=700, n_cols=20)
-    gen = np.flatnonzero(np.random.default_rng(seed).random(20) < 0.8)
-    mask = np.zeros(20, dtype=bool)
-    mask[gen] = True
-    p1, c1 = cpu_miner.count_pairs(m, mask, 12)
-    p2, c2 = cpu_miner.count_pairs_bitvec(cpu_miner.build_bitvecs(m.indptr, m.indices, 20), gen, 12)
-    assert np.array_equal(p1, p2) and np.array_equal(c1, c2)
-
-
 @pytest.mark.parametrize("ratio", [0.0, 1e12])
-def test_both_k2_paths_give_the_route_the_same_result(monkeypatch, ratio):
+def test_the_route_ignores_count_itemsets_k2_rule(monkeypatch, ratio):
+    """The mining route counts K=2 on the Gram whatever GRAM_BITVEC_RATIO says."""
     monkeypatch.setattr(cpu_miner, "GRAM_BITVEC_RATIO", ratio)
     df = pl.DataFrame({"items": _dense_rows(4, n_rows=500)})
     assert _mined(df, 0.05) == _brute_lattice(df["items"].to_list(), 0.05)[0]
 
 
-@pytest.mark.parametrize("ratio", [0.0, 1e12])
-def test_min_support_zero_keeps_the_occurring_itemsets_on_both_k2_paths(monkeypatch, ratio):
-    """At min_count 0 the bitvectors would keep pairs that never co-occur, which the Gram cannot see."""
-    monkeypatch.setattr(cpu_miner, "GRAM_BITVEC_RATIO", ratio)
+def test_min_support_zero_keeps_the_occurring_itemsets():
+    """At min_count 0 the Gram sees only pairs that co-occur, so a pair that never does is not emitted."""
     df = pl.DataFrame({"items": [[1], [2], [3, 4, 5]]})
     want = {s: 1 for s in [(1,), (2,), (3,), (4,), (5,), (3, 4), (3, 5), (4, 5), (3, 4, 5)]}
     assert _mined(df, 0.0) == want

@@ -96,7 +96,8 @@ class CpuSplit:
         for name, phase in (("build_transaction_csr", "matrix_build"), ("count_pairs", "k2_gram"),
                             ("count_pairs_bitvec", "k2_bitvec"), ("build_bitvecs", "bitvec_build"),
                             ("count_candidates", "count"), ("_emit", "emit")):
-            self._patch(cm, name, self._timed(phase, getattr(cm, name)))
+            if hasattr(cm, name):  # count_pairs_bitvec went with the route's bitvector K=2
+                self._patch(cm, name, self._timed(phase, getattr(cm, name)))
         self._patch(cm._Level, "subset_positions", self._timed("subsets", cm._Level.subset_positions))
         self._t_last = time.perf_counter()
 

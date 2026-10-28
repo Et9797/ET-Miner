@@ -43,8 +43,9 @@ Options (module constants, patched by tests):
                        the calling thread
     PARALLEL_GRAM_WORK pair occurrences (sum of squared row lengths) from which
                        the K=2 Gram is split into blocks for the thread pool
-    GRAM_BITVEC_RATIO  K=2 runs on bitvectors instead of the scipy Gram when
-                       candidate pairs x words <= this x pair occurrences
+    GRAM_BITVEC_RATIO  ``count_itemsets`` counts K=2 on bitvectors instead of
+                       the scipy Gram when candidate pairs x words <= this x
+                       pair occurrences (the mining route's K=2 is the Gram)
     PER_CANDIDATE_MAX_WORDS, PER_CANDIDATE_MEAN_GROUP
                        ``count_itemsets`` counts a K>=3 level per candidate
                        when its row space has at most this many words, or its
@@ -375,42 +376,6 @@ def count_pairs(
     c = np.concatenate([r[2] for r in results])
     order = np.lexsort((j, i))
     return np.stack([i[order], j[order]], axis=1), c[order]
-
-
-def count_pairs_bitvec(
-    bv: np.ndarray, gen: np.ndarray, min_count: int, pool: ThreadPoolExecutor | None = None
-) -> tuple[np.ndarray, np.ndarray]:
-    """count_pairs on column bitvectors: popcount(bv[a] & bv[b]) for every pair of generating columns.
-
-    ``gen`` holds the generating column ids, ascending. Returns the same
-    (pairs, counts) as ``count_pairs``. Steps per left member a (position i in
-    ``gen``): AND its bitvector with the contiguous block of the later members'
-    bitvectors (a view, no gather), in blocks whose AND stays within
-    ``AND_CHUNK_BYTES``, popcount, keep counts >= min_count. Left members are
-    independent, so a pool runs them concurrently.
-    """
-    m, w = len(gen), bv.shape[1]
-    if m < 2:
-        return np.empty((0, 2), dtype=np.int32), np.empty(0, dtype=np.int64)
-    sub = bv if (m == bv.shape[0] and np.array_equal(gen, np.arange(m))) else bv[gen]
-    block = max(1, AND_CHUNK_BYTES // (8 * w))
-
-    def left(i: int):
-        out_j, out_c = [], []
-        for j0 in range(i + 1, m, block):
-            j1 = min(m, j0 + block)
-            c = popcount_rows(sub[j0:j1] & sub[i])
-            keep = np.flatnonzero(c >= min_count)
-            out_j.append(keep + j0)
-            out_c.append(c[keep])
-        j = np.concatenate(out_j)
-        return np.full(len(j), i, dtype=np.int64), j, np.concatenate(out_c)
-
-    results = list(pool.map(left, range(m - 1))) if pool is not None else [left(i) for i in range(m - 1)]
-    i = np.concatenate([r[0] for r in results])
-    j = np.concatenate([r[1] for r in results])
-    pairs = np.stack([gen[i], gen[j]], axis=1).astype(np.int32)
-    return pairs, np.concatenate([r[2] for r in results]).astype(np.int64)
 
 
 def _pack(rows: np.ndarray, base: int) -> np.ndarray | None:
@@ -845,8 +810,8 @@ def count_per_candidate(cands: np.ndarray, bv: np.ndarray) -> np.ndarray:
 
 
 def _k2_on_bitvecs(indptr: np.ndarray, n_cols: int, n_pairs: int) -> bool:
-    """The in-core K=2 rule: column bitvectors of every row fit ``BITVEC_BUDGET_BYTES`` and pairs x words stay
-    within ``GRAM_BITVEC_RATIO`` x pair occurrences; otherwise the Gram counts K=2."""
+    """count_itemsets' K=2 rule: column bitvectors of every row fit ``BITVEC_BUDGET_BYTES`` and pairs x words
+    stay within ``GRAM_BITVEC_RATIO`` x pair occurrences; otherwise the Gram counts K=2."""
     words = (len(indptr) - 1 + 63) // 64
     if n_cols * words * 8 > BITVEC_BUDGET_BYTES:
         return False
@@ -886,7 +851,7 @@ def count_itemsets(
     1. K=1: a bincount of the columns.
     2. K=2: per candidate on column bitvectors of every row when they fit
        ``BITVEC_BUDGET_BYTES`` and candidate pairs x words stay within
-       ``GRAM_BITVEC_RATIO`` x pair occurrences (the in-core K=2 rule);
+       ``GRAM_BITVEC_RATIO`` x pair occurrences (``_k2_on_bitvecs``);
        otherwise read from the Gram of the candidates' columns
        (``gram_pairs``).
     3. K>=3, level by level: a row space of the rows holding at least k items,
@@ -1124,13 +1089,9 @@ def _mine_levels(
             if session:
                 session.record_phase("k2_candidate_gen", 0.0, n_candidates=len(gen) * (len(gen) - 1) // 2)
                 session.start_phase("k2_support_count")
-            if _k2_on_bitvecs(tc.indptr, n_cols, len(gen) * (len(gen) - 1) // 2):
-                space = RowSpace(tc.indptr, tc.indices, n_cols, None, pool)
-                sets, counts = count_pairs_bitvec(space.bitvecs, gen[:, 0], min_count, pool)
-            else:
-                gen_mask = np.zeros(n_cols, dtype=bool)
-                gen_mask[gen[:, 0]] = True
-                sets, counts = count_pairs(tc.to_scipy(), gen_mask, min_count, pool, workers)
+            gen_mask = np.zeros(n_cols, dtype=bool)
+            gen_mask[gen[:, 0]] = True
+            sets, counts = count_pairs(tc.to_scipy(), gen_mask, min_count, pool, workers)
             n_candidates = len(gen) * (len(gen) - 1) // 2
             # Pascal would infer the pairs holding a non-free item; the Gram counts them anyway.
             n_nonfree = int((~prev.free[gen[:, 0]]).sum()) if use_generator_pruning else 0

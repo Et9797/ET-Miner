@@ -158,7 +158,7 @@ def time_calls(root: Path, reps: int, timeout: float) -> None:
                 return cur[keep], cc[keep]
 
             size = {"rows": int(cur.shape[0]), "prev_rows": int(prev.shape[0]), "k": int(cur.shape[1])}
-        elif role.startswith("r5"):
+        elif role.startswith("r5") and hasattr(rust, "build_column_bitvecs_u64"):  # R5 left in round 2's H
             import cupy as cp
             from scipy.sparse import csr_matrix
 

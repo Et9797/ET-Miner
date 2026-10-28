@@ -13,7 +13,7 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
-from et_miner.backends import CUPY_INSTALLED, RUST_INSTALLED, get_rust_ext
+from et_miner.backends import CUPY_INSTALLED
 from et_miner.core.matrix import _polars_to_sparse_csr
 
 if TYPE_CHECKING:
@@ -26,60 +26,25 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
-def _build_gpu_bitvec_matrix(
-    csr: "CSRMatrix",
-    use_cuda_kernel: bool = True,
-) -> "cp.ndarray":
-    """Build column bitvecs on the current CUDA device.
-
-    Two paths available:
-    1. CUDA kernel (default): Transfer CSR to GPU, build bitvecs on GPU
-       - Faster for large matrices (avoids CPU→GPU bitvec transfer)
-       - CSR is ~30x smaller than bitvecs
-    2. Rust path: Build bitvecs on CPU, transfer to GPU
-       - Fallback if CUDA kernel unavailable
+def _build_gpu_bitvec_matrix(csr: "CSRMatrix") -> "cp.ndarray":
+    """Column bitvecs of a CSR on the current CUDA device, built there by the CSR→bitvec kernel.
 
     Args:
         csr: scipy CSR matrix (transactions × items).
-        use_cuda_kernel: Use CUDA CSR→bitvec kernel (default True).
 
     Returns:
         CuPy array of shape [n_cols, ceil(n_rows/64)] containing packed bitvecs.
 
     Raises:
-        RuntimeError: If CuPy or Rust extension not available.
+        RuntimeError: If CuPy is not available.
     """
     if not CUPY_INSTALLED:
         raise RuntimeError("CuPy not available")
     import cupy as cp
 
-    n_rows = csr.shape[0]
-    n_cols = csr.shape[1]
+    from et_miner.gpu.csr_bitvec import build_bitvecs_gpu_from_scipy
 
-    # CUDA kernel path first
-    if use_cuda_kernel:
-        try:
-            from et_miner.gpu.csr_bitvec import build_bitvecs_gpu_from_scipy
-
-            return build_bitvecs_gpu_from_scipy(csr, device_id=cp.cuda.Device().id)
-        except ImportError:
-            logger.debug("CUDA CSR→bitvec kernel not available, using Rust path")
-        except Exception as e:
-            logger.warning(f"CUDA kernel failed: {e}, falling back to Rust path")
-
-    # Fallback: Rust bitvec build + transfer
-    if not RUST_INSTALLED:
-        raise RuntimeError("Rust extension not available")
-
-    # Extract CSR components
-    indptr = csr.indptr.astype(np.int64)
-    indices = csr.indices.astype(np.int64)
-
-    # Build bitvecs in Rust (fast CSR→CSC→bitvec)
-    bitvecs_cpu = get_rust_ext().build_column_bitvecs_u64(indptr, indices, n_rows, n_cols)
-
-    # Transfer to GPU
-    return cp.asarray(bitvecs_cpu)
+    return build_bitvecs_gpu_from_scipy(csr, device_id=cp.cuda.Device().id)
 
 
 def count_support_gpu_bitvec(
@@ -89,9 +54,8 @@ def count_support_gpu_bitvec(
 ) -> dict[tuple[str, ...], int]:
     """Count itemset support on the current CUDA device.
 
-    Builds the bitvecs with the CUDA CSR→bitvec kernel (the Rust builder only
-    when that kernel fails), then counts every itemset in one batched
-    AND + popcount launch (count_itemsets_cuda).
+    Builds the bitvecs with the CUDA CSR→bitvec kernel, then counts every
+    itemset in one batched AND + popcount launch (count_itemsets_cuda).
 
     Args:
         matrix: Boolean DataFrame from build_boolean_matrix().

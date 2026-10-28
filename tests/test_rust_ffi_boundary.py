@@ -37,35 +37,35 @@ def _indptr(n_rows: int, per_row: int) -> np.ndarray:
 class TestBadShapesRaiseValueError:
     def test_n_cols_smaller_than_the_largest_column_index(self):
         with pytest.raises(ValueError, match=r"column index 5 is out of range for n_cols=1"):
-            rust.build_column_bitvecs_u64(
-                np.array([0, 2], dtype=np.int64), np.array([0, 5], dtype=np.int64), 1, 1
+            rust.apriori_from_csr(
+                np.array([0, 2], dtype=np.int64), np.array([0, 5], dtype=np.int64), 1, 1, 0.5, 3
             )
 
     def test_n_rows_larger_than_the_indptr(self):
         with pytest.raises(ValueError, match=r"n_rows=99 requires csr_indptr of length >= 100"):
-            rust.build_column_bitvecs_u64(
-                np.array([0, 1, 2], dtype=np.int64), np.array([0, 1], dtype=np.int64), 99, 4
+            rust.apriori_from_csr(
+                np.array([0, 1, 2], dtype=np.int64), np.array([0, 1], dtype=np.int64), 99, 4, 0.5, 3
             )
 
     def test_empty_indptr(self):
         with pytest.raises(ValueError, match="at least one element"):
-            rust.build_column_bitvecs_u64(
-                np.array([], dtype=np.int64), np.array([], dtype=np.int64), 0, 4
+            rust.apriori_from_csr(
+                np.array([], dtype=np.int64), np.array([], dtype=np.int64), 0, 4, 0.5, 3
             )
 
     def test_indptr_promising_more_nnz_than_indices_holds(self):
         with pytest.raises(ValueError, match="exceeds len"):
-            rust.build_column_bitvecs_u64(
-                np.array([0, 99], dtype=np.int64), np.array([0, 1], dtype=np.int64), 1, 4
+            rust.apriori_from_csr(
+                np.array([0, 99], dtype=np.int64), np.array([0, 1], dtype=np.int64), 1, 4, 0.5, 3
             )
 
     def test_zero_rows_is_a_legitimate_degenerate_input(self):
-        """build_boolean_matrix can produce an empty matrix. n_u64s is then 0 and
-        `chunks(0)` panics, so this needs an explicit path rather than a guard."""
-        out = rust.build_column_bitvecs_u64(
-            np.array([0], dtype=np.int64), np.array([], dtype=np.int64), 0, 4
+        """build_boolean_matrix can produce an empty matrix; zero rows return rather than panic, and no itemset
+        has a count above them."""
+        _, counts = rust.apriori_from_csr(
+            np.array([0], dtype=np.int64), np.array([], dtype=np.int64), 0, 4, 0.5, 3
         )
-        assert out.shape == (4, 0)
+        assert all(c == 0 for c in counts)
 
 
 class TestNonContiguousInputIsCopiedNotRejected:
@@ -105,11 +105,10 @@ class TestNonContiguousInputIsCopiedNotRejected:
         assert not view.flags["C_CONTIGUOUS"], "fixture must actually be non-contiguous"
         assert view.tolist() == values.tolist(), "the view must hold the valid CSR"
 
-        from_view = rust.build_column_bitvecs_u64(indptr, view, n_rows, n_cols)
-        from_copy = rust.build_column_bitvecs_u64(
-            indptr, np.ascontiguousarray(view), n_rows, n_cols
-        )
-        assert np.array_equal(from_view, from_copy)
+        from_view = rust.apriori_from_csr(indptr, view, n_rows, n_cols, 0.5, 3)
+        from_copy = rust.apriori_from_csr(indptr, np.ascontiguousarray(view), n_rows, n_cols, 0.5, 3)
+        assert [list(x) for x in from_view[0]] == [list(x) for x in from_copy[0]] == [[0], [1], [0, 1]]
+        assert list(from_view[1]) == list(from_copy[1]) == [n_rows] * 3
 
 
 def test_a_panic_is_catchable_rather_than_a_process_abort():
@@ -165,8 +164,6 @@ class TestValidateCsrCoversEveryMalformedShape:
         overflow-checks -- so `0 > indptr.len()` was false and the guard was
         skipped entirely."""
         with pytest.raises(ValueError, match="requires csr_indptr of length"):
-            rust.build_column_bitvecs_u64(self._i([0, 2]), self._i([0, 1]), 2**64 - 1, 2)
-        with pytest.raises(ValueError, match="requires csr_indptr of length"):
             rust.apriori_from_csr(self._i([0, 2]), self._i([0, 1]), 2**64 - 1, 2, 0.5, 3)
 
     @pytest.mark.parametrize(
@@ -182,16 +179,13 @@ class TestValidateCsrCoversEveryMalformedShape:
         slice `indices[indptr[i]..indptr[i+1]]` panicked on rows 0..n_rows-1.
         A negative interior entry was never cast-checked and wrapped."""
         with pytest.raises(ValueError, match="non-decreasing"):
-            rust.build_column_bitvecs_u64(self._i(indptr), self._i(indices), n_rows, 2)
-        with pytest.raises(ValueError, match="non-decreasing"):
             rust.apriori_from_csr(self._i(indptr), self._i(indices), n_rows, 2, 0.5, 3)
 
     def test_the_same_shape_is_rejected_by_every_guarded_entry_point(self):
         """It panicked on every guarded entry point, not just the one it was
-        first found on. Two remain since 0.4.0 removed the counting pair."""
+        first found on. One remains (apriori_from_csr) since route consolidation
+        round 2 removed the bitvector builder."""
         bad = (self._i([0, 5, 2]), self._i([0, 1]), 2)
-        with pytest.raises(ValueError):
-            rust.build_column_bitvecs_u64(bad[0], bad[1], bad[2], 2)
         with pytest.raises(ValueError):
             rust.apriori_from_csr(bad[0], bad[1], bad[2], 2, 0.5, 3)
 
@@ -201,12 +195,10 @@ class TestValidateCsrCoversEveryMalformedShape:
         negative. `[-1, 1]` with n_cols=2 cleared it (max = 1 < 2) and panicked
         in-kernel."""
         with pytest.raises(ValueError, match="negative"):
-            rust.build_column_bitvecs_u64(self._i([0, 2]), self._i([-1, 1]), 1, 2)
-        with pytest.raises(ValueError, match="negative"):
             rust.apriori_from_csr(self._i([0, 2]), self._i([-1, 1]), 1, 2, 0.5, 3)
         # control: an all-negative row was already caught
         with pytest.raises(ValueError):
-            rust.build_column_bitvecs_u64(self._i([0, 2]), self._i([-1, -2]), 1, 2)
+            rust.apriori_from_csr(self._i([0, 2]), self._i([-1, -2]), 1, 2, 0.5, 3)
 
     def test_an_unsorted_row_is_rejected_rather_than_undercounted(self):
         """The only hole that produced a WRONG NUMBER instead of a panic.
@@ -219,8 +211,6 @@ class TestValidateCsrCoversEveryMalformedShape:
         """
         indptr = self._i([0, 3, 6, 9])
         indices = self._i([0, 1, 2, 2, 1, 0, 0, 1, 2])  # row 1 descending
-        with pytest.raises(ValueError, match="strictly increasing"):
-            rust.build_column_bitvecs_u64(indptr, indices, 3, 3)
         with pytest.raises(ValueError, match="strictly increasing"):
             rust.apriori_from_csr(indptr, indices, 3, 3, 0.5, 3)
 

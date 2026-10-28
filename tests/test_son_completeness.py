@@ -146,22 +146,20 @@ class TestMultiGpuSon:
         with pytest.raises(RuntimeError, match="injected failure"):
             self._run(transactions)
 
-    def test_matches_in_core_without_the_rust_extension(self, transactions, monkeypatch):
+    def test_matches_in_core_without_the_rust_extension(self, transactions):
         from et_miner.gpu import bitvec
 
-        monkeypatch.setattr(bitvec, "RUST_INSTALLED", False)
-        monkeypatch.setattr(bitvec, "get_rust_ext", lambda: None)
+        assert not hasattr(bitvec, "get_rust_ext"), "the GPU bitvector build reads no Rust extension"
         got = self._run(transactions)
         assert _as_set(got) == _as_set(apriori(transactions, min_support=MIN_SUPPORT))
 
 
 @pytest.mark.gpu
-def test_gpu_bitvec_counting_needs_no_rust_extension(transactions, monkeypatch):
+def test_gpu_bitvec_counting_needs_no_rust_extension(transactions):
     from et_miner.core.matrix import build_boolean_matrix, count_support_vectorized
     from et_miner.gpu import bitvec
 
-    monkeypatch.setattr(bitvec, "RUST_INSTALLED", False)
-    monkeypatch.setattr(bitvec, "get_rust_ext", lambda: None)
+    assert not hasattr(bitvec, "get_rust_ext"), "the GPU bitvector build reads no Rust extension"
     matrix, col_to_item, _ = build_boolean_matrix(transactions.lazy(), MIN_SUPPORT)
     cols = list(col_to_item)
     itemsets = [(cols[0], cols[1]), (cols[1], cols[2], cols[3]), (cols[4],)]

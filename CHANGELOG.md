@@ -39,6 +39,12 @@ unchanged: every removal kept the tier-equivalence chain exact.
 - **GPU K=2:** a pair space within one chunk is always tiled (per-candidate
   K=2 stays for the multi-GPU sub-chunks), and row-wise K=2 runs on global
   atomics only (`count_pairs_k2_rows_shared` is gone).
+- **The Rust bitvector builder (`et_miner_rust.build_column_bitvecs_u64`) is
+  removed.** It was the fallback of the CUDA CSR→bitvec kernel, which built
+  the same bits 3.3-7x faster per call on the dumped SON and counting inputs;
+  `count_support_batched(use_gpu=True)` and SON's GPU passes now raise if the
+  CUDA build fails instead of falling back to the host build. The Rust group
+  build and free-set prune stay (their fallbacks are 11x and 25x slower).
 
 ### CPU route: one array miner
 

@@ -15,7 +15,7 @@
 //! - SIMD-friendly loops (auto-vectorized by LLVM)
 //! - **ZERO-COPY sparse CSR support**
 
-use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
+use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
@@ -167,47 +167,6 @@ fn validate_csr(indptr: &[i64], indices: &[i64], n_rows: usize, n_cols: usize) -
         }
     }
     Ok(())
-}
-
-/// Build column bitvecs as u64 arrays for GPU transfer.
-#[pyfunction]
-fn build_column_bitvecs_u64<'py>(
-    py: Python<'py>,
-    csr_indptr: PyReadonlyArray1<'py, i64>,
-    csr_indices: PyReadonlyArray1<'py, i64>,
-    n_rows: usize,
-    n_cols: usize,
-) -> PyResult<Bound<'py, PyArray2<u64>>> {
-    let indptr_c = contiguous(&csr_indptr);
-    let indices_c = contiguous(&csr_indices);
-    validate_csr(indptr_c.as_ref(), indices_c.as_ref(), n_rows, n_cols)?;
-    let bitvecs = core::bitvec::build_column_bitvecs_u64_raw(
-        indptr_c.as_ref(),
-        indices_c.as_ref(),
-        n_rows,
-        n_cols,
-    );
-
-    let n_u64s = core::bitvec::words_for_rows(n_rows);
-
-    // n_rows == 0 gives n_u64s == 0, and `chunks(0)` panics ("chunk size must
-    // be non-zero"). An empty transaction set is a legitimate degenerate input
-    // -- build_boolean_matrix can produce it -- so return the correctly shaped
-    // empty array rather than failing.
-    if n_u64s == 0 {
-        let empty: Vec<Vec<u64>> = vec![Vec::new(); n_cols];
-        return PyArray2::from_vec2(py, &empty)
-            .map_err(|e| PyValueError::new_err(format!("could not build empty bitvec array: {}", e)));
-    }
-
-    // Convert to 2D array [n_cols, n_u64s]
-    let bitvecs_2d: Vec<Vec<u64>> = bitvecs
-        .chunks(n_u64s)
-        .map(|chunk| chunk.to_vec())
-        .collect();
-
-    PyArray2::from_vec2(py, &bitvecs_2d)
-        .map_err(|e| PyValueError::new_err(format!("could not build bitvec array: {}", e)))
 }
 
 // =============================================================================
@@ -401,7 +360,6 @@ fn prune_non_free_flat<'py>(
 #[pymodule]
 fn et_miner_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // GPU acceleration support
-    m.add_function(wrap_pyfunction!(build_column_bitvecs_u64, m)?)?;
 
     // Thread control
 

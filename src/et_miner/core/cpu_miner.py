@@ -28,13 +28,11 @@ Options (module constants, patched by tests):
     PAIR_MASK_BYTES    largest n_items**2 for which the K=3 subset test reads
                        a boolean pair mask instead of binary-searching keys
     BITVEC_BUDGET_BYTES  largest column-bitvector array (n_items x rows/8 B);
-                       above it every K>=3 group is counted by projection
+                       above it every K>=3 group is counted by projection,
+                       below it every group on the bitvectors
     BITVEC_CHUNK       CSR entries turned into bitvector words, or gathered
                        for one projection Gram, per step
     INDPTR32_LIMIT     CSR entries from which the indptr is int64 (int32 below)
-    PROJ_MIN_SUFFIXES  (max words, min suffixes) steps: a prefix group with at
-                       least that many suffixes is counted by projection when
-                       the bitvectors have at most that many words
     COMPACT_RATIO      K>=3 counting moves to the rows holding >= k items once
                        they are at most this share of the current rows
     AND_CHUNK_BYTES    bytes of pair ANDs materialised at once
@@ -79,9 +77,6 @@ PAIR_MASK_BYTES = 64 << 20
 BITVEC_BUDGET_BYTES = 512 << 20
 BITVEC_CHUNK = 125_000
 INDPTR32_LIMIT = 2**31
-#: Measured by bench/cpu/l3_crossover.py on real prefix groups (K=3 and K=4): projection becomes
-#: faster at about 30-40 suffixes on 570-1,563 words and about 66-100 on 3,907-15,625 words.
-PROJ_MIN_SUFFIXES: tuple[tuple[float, int], ...] = ((2048, 40), (float("inf"), 80))
 COMPACT_RATIO = 0.5
 AND_CHUNK_BYTES = 4 << 20
 HEAVY_GROUP_WORK = 2_000_000
@@ -578,14 +573,6 @@ def build_bitvecs(
     return out.reshape(n_cols, w)
 
 
-def proj_min_suffixes(words: int) -> int:
-    """Suffixes from which a prefix group is counted by projection, at this bitvector width."""
-    for max_words, min_suffixes in PROJ_MIN_SUFFIXES:
-        if words <= max_words:
-            return min_suffixes
-    return PROJ_MIN_SUFFIXES[-1][1]
-
-
 class RowSpace:
     """The rows K>=3 counting runs on: a selection of the transaction CSR's rows and their bitvectors.
 
@@ -609,13 +596,8 @@ class RowSpace:
         self.words = (self.n_rows + 63) // 64
         fits = n_cols * self.words * 8 <= BITVEC_BUDGET_BYTES
         self.bitvecs = build_bitvecs(indptr, indices, n_cols, rows, pool) if fits else None
-        self.proj_min = proj_min_suffixes(self.words) if fits else 0
         self._csc: csr_matrix | None = None
         self._lock = threading.Lock()
-
-    def full_rows(self, local: np.ndarray) -> np.ndarray:
-        """Transaction-CSR ids of rows given as positions in this space."""
-        return local if self.rows is None else self.rows[local]
 
     def tidset(self, items: np.ndarray) -> np.ndarray:
         """Transaction-CSR ids of the rows holding every item (CSC column intersection)."""
@@ -732,10 +714,8 @@ def count_candidates(
     Steps per run of equal first k-2 items: the suffix columns are the union
     of the candidates' last two items. With bitvectors, AND the prefix's
     columns (the AND of all but its last item is reused across consecutive
-    groups); a group with at least ``space.proj_min`` suffixes is counted by
-    projection (its rows are the prefix AND's set bits), a smaller one on the
-    bitvectors. Without bitvectors every group is projected over the
-    prefix's CSC tidset. With a pool, the groups whose pairs x words reach
+    groups) and count the group on the bitvectors. Without bitvectors every
+    group is projected over the prefix's CSC tidset. With a pool, the groups whose pairs x words reach
     ``HEAVY_GROUP_WORK`` are cut into slices of about equal work, several per
     worker, and counted on the pool while the lighter groups are counted on
     the calling thread (many small numpy calls from several threads contend
@@ -784,11 +764,7 @@ def _count_groups(
                 for it in prefix[1:-1]:
                     parent_and &= bv[it]
             pre = parent_and & bv[prefix[-1]]
-        if len(suffix) >= space.proj_min:
-            local = np.flatnonzero(np.unpackbits(pre.view(np.uint8), bitorder="little"))
-            out[s:e] = _count_group_proj(space, space.full_rows(local), ia, ib, suffix, budget)
-        else:
-            out[s:e] = _count_group_bitvec(bv, pre, ia, ib, suffix)
+        out[s:e] = _count_group_bitvec(bv, pre, ia, ib, suffix)
 
 
 def count_per_candidate(cands: np.ndarray, bv: np.ndarray) -> np.ndarray:

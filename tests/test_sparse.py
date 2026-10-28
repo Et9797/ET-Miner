@@ -421,10 +421,9 @@ class TestSparseNonPairCounting:
         [
             {"BITVEC_BUDGET_BYTES": 0},
             {"PER_CANDIDATE_MAX_WORDS": -1, "PER_CANDIDATE_MEAN_GROUP": 0},
-            {"PER_CANDIDATE_MAX_WORDS": -1, "PER_CANDIDATE_MEAN_GROUP": 0, "PROJ_MIN_SUFFIXES": ((float("inf"), 1),)},
             {"GRAM_BITVEC_RATIO": -1.0, "COMPACT_RATIO": 1.0},
         ],
-        ids=["projection", "prefix-groups", "group-projection", "k2-gram-compaction"],
+        ids=["projection", "prefix-groups", "k2-gram-compaction"],
     )
     @pytest.mark.parametrize("n_jobs", [1, 3])
     def test_every_counter_branch_matches(self, monkeypatch, knobs, n_jobs):

@@ -360,15 +360,11 @@ def _all_candidates(n_cols: int, k: int) -> np.ndarray:
     return np.array(list(itertools.combinations(range(n_cols), k)), dtype=np.int32)
 
 
-@pytest.mark.parametrize("path", ["bitvec", "proj", "tidset", "compacted"])
+@pytest.mark.parametrize("path", ["bitvec", "tidset", "compacted"])
 @pytest.mark.parametrize("k", [3, 4, 5])
 def test_count_candidates_matches_a_brute_force(monkeypatch, path, k):
     dense, m = _random_csr(11, n_rows=700, n_cols=12)
     cands = _all_candidates(12, k)
-    if path == "bitvec":
-        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 10**9),))
-    if path == "proj":
-        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 0),))
     if path == "tidset":
         monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", 0)
     rows = None
@@ -380,14 +376,10 @@ def test_count_candidates_matches_a_brute_force(monkeypatch, path, k):
     assert np.array_equal(got, _brute_counts(dense, cands))
 
 
-@pytest.mark.parametrize("path", ["proj", "tidset"])
-def test_projection_under_a_tiny_gram_budget_matches_a_brute_force(monkeypatch, path):
+def test_projection_under_a_tiny_gram_budget_matches_a_brute_force(monkeypatch):
     """One Gram row per block bounds the projection's memory and leaves its counts unchanged."""
     monkeypatch.setattr(cpu_miner, "GRAM_BUDGET_BYTES", 1)
-    if path == "proj":
-        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 0),))
-    else:
-        monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", 0)
+    monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", 0)
     dense, m = _random_csr(13, n_rows=700, n_cols=12)
     for k in (3, 4):
         cands = _all_candidates(12, k)
@@ -397,20 +389,17 @@ def test_projection_under_a_tiny_gram_budget_matches_a_brute_force(monkeypatch, 
     assert _mined(pl.DataFrame({"items": rows}), 0.02) == _oracle(rows, 0.02)
 
 
-def test_count_candidates_on_a_group_with_an_empty_prefix():
-    """A prefix with no rows gives zero counts on both counters."""
+def test_count_candidates_on_a_group_with_an_empty_prefix(monkeypatch):
+    """A prefix with no rows gives zero counts on both counters (bitvectors, projection over the tidset)."""
     dense = np.zeros((70, 5), dtype=bool)
     dense[:, 1:] = True
     from scipy.sparse import csr_matrix
 
     m = csr_matrix(dense.astype(np.int32))
     cands = np.array([[0, 1, 2], [0, 1, 3], [0, 2, 4]], dtype=np.int32)
-    for steps in (((float("inf"), 10**9),), ((float("inf"), 0),)):
-        cpu_miner.PROJ_MIN_SUFFIXES, saved = steps, cpu_miner.PROJ_MIN_SUFFIXES
-        try:
-            got = cpu_miner.count_candidates(cands, 3, cpu_miner.RowSpace(m.indptr, m.indices, 5))
-        finally:
-            cpu_miner.PROJ_MIN_SUFFIXES = saved
+    for budget in (cpu_miner.BITVEC_BUDGET_BYTES, 0):
+        monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", budget)
+        got = cpu_miner.count_candidates(cands, 3, cpu_miner.RowSpace(m.indptr, m.indices, 5))
         assert got.tolist() == [0, 0, 0]
 
 
@@ -624,17 +613,15 @@ class _RecordingPool(ThreadPoolExecutor):
         return super().submit(fn, *args, **kwargs)
 
 
-@pytest.mark.parametrize("path", ["bitvec", "proj", "tidset"])
+@pytest.mark.parametrize("path", ["bitvec", "tidset"])
 def test_pool_variants_match_the_sequential_kernels(monkeypatch, path):
     """The thresholds that keep small inputs on the calling thread are lowered so every kernel uses the pool."""
     monkeypatch.setattr(cpu_miner, "PARALLEL_GRAM_WORK", 0)
     monkeypatch.setattr(cpu_miner, "HEAVY_GROUP_WORK", 0)
     monkeypatch.setattr(cpu_miner, "BITVEC_CHUNK", 50)
-    if path == "proj":
-        monkeypatch.setattr(cpu_miner, "PROJ_MIN_SUFFIXES", ((float("inf"), 0),))
-        monkeypatch.setattr(cpu_miner, "GRAM_BUDGET_BYTES", 12 * 16 * 4)
     if path == "tidset":
         monkeypatch.setattr(cpu_miner, "BITVEC_BUDGET_BYTES", 0)
+        monkeypatch.setattr(cpu_miner, "GRAM_BUDGET_BYTES", 12 * 16 * 4)
     dense, m = _random_csr(21, n_rows=900, n_cols=16)
     gen = np.ones(16, dtype=bool)
     with _RecordingPool(4) as pool:

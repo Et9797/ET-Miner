@@ -62,11 +62,9 @@ number is worth recording from a miner that disagrees with the oracle.
 
 ## Knobs the matrix drives (documented in `src/et_miner/_env.py`)
 
-ESCO's `sparse_from_k` argument is restored: `None` keeps dense bitvectors,
-`"auto"` switches below the measured n/32 mean-count crossover, and an int
-fixes the transition level (at least K=3). The transition is one-way.
-The `esco` and `esco-retail` comparison matrices and low-support Retail
-validation are described in [ESCO.md](ESCO.md).
+ESCO (`sparse_from_k`, the dense→sparse CSR transition) was removed in route
+consolidation G6: it won no workload. [ESCO.md](ESCO.md) records the `esco` and
+`esco-retail` matrices that measured it; they fail if run now.
 
 | Env | Values | Meaning |
 |---|---|---|

@@ -19,7 +19,6 @@ Guidance for Claude Code when working in this repository.
   row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain / forced chunks) ==
   row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; by the r3 dispatch) ==
   row-split 1 GPU, row order lex / keep (its no-room fallback) (plain / forced chunks / count inference) ==
-  ESCO 1 GPU (auto / K=3, plain / forced chunks, with / without count inference) ==
   SON 1 GPU, forced chunks ==
   row-split 2 GPUs == row-split 2 GPUs, forced chunks (per-candidate sub-chunks) ==
   row-split 2 GPUs, group kernel pinned (plain / forced chunks / count inference) ==
@@ -29,7 +28,6 @@ Guidance for Claude Code when working in this repository.
   row-split 2 GPUs, row-wise K=3 (plain / forced chunks / count inference) ==
   row-split 2 GPUs, row order lex / keep (its no-room fallback) (plain / forced chunks / count inference) ==
   row-split 2 GPUs, compacted (default) / dense-pinned reduce (plain / forced chunks, with / without count inference) ==
-  ESCO 2 GPUs (auto / K=3, forced chunks, with / without count inference) ==
   SON 2 GPUs, forced chunks == efficient-apriori
 
   It is enforced by `tests/test_tier_equivalence.py` (exact itemsets AND
@@ -56,9 +54,9 @@ Guidance for Claude Code when working in this repository.
   sm_86 (RTX 3090) as well as sm_90 (H100/H200).
 - The rule is the *intent*, not the list: an intrinsic is allowed if it is
   **sm_60+ and NVRTC-compilable with no arch flags**. What is in the tree today
-  is `__popcll`, the 32-bit `__popc` (`_src/csr_warp.cu`), `__shfl_down_sync`, `__shfl_sync`,
+  is `__popcll`, the 32-bit `__popc` (`_src/group_pairs.cu`), `__shfl_down_sync`,
   `__ballot_sync`, `__activemask`,
-  `__ffsll` (`_src/bitvec_extract_tids.cu`), and 64-bit atomics
+  `__ffsll` (`_src/k3_rows.cu`), and 64-bit atomics
   (`atomicAdd`/`atomicOr` on `unsigned long long`). No CUB, no templates, no
   cooperative groups, no `memcpy_async`. Check a new one against the rule; do
   not treat this enumeration as closed.

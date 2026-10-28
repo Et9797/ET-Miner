@@ -1,5 +1,8 @@
 # ESCO restoration and comparison
 
+> **Removed again** in route consolidation G6 (`bench/results/2026-10-27-routes-gpu/FINDINGS.md`):
+> dense won dsl, oom2ml3 and sk2ml3, ESCO won no regime. This page records what ran.
+
 Merge `8548716` removed ESCO in commit `fb0f28a` (DP5). The commit calls it
 the sparse CSR layout: at a fixed K, or when the previous frequent level's
 mean count drops below N/32, dense item bitvectors are converted into

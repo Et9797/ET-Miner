@@ -59,6 +59,17 @@ unchanged: every removal kept the tier-equivalence chain exact.
   workload and lost by 76x on oom_regression at max_length 3 (27.2 s against
   0.36 s) and 365x on stress_k2 (629 s against 1.7 s). The tier chain's
   "no subset test" legs go with it.
+- **ESCO, the GPU's dense→sparse CSR transition (`sparse_from_k`), is removed
+  again**: `apriori(sparse_from_k=...)` and `mine_two_phase(sparse_from_k=...)`
+  raise for any value but `None` (the default), and `ET_MINER_ESCO_MATERIALIZE`
+  stays refused. It won no workload: dense against `"auto"` 3.95 s against
+  7.93 s on dsl (fixed K=3 could not fit its tidsets on a 12 GB card), 0.36 s
+  against 18.7 s on oom_regression at max_length 3 and 1.72 s against 136 s on
+  stress_k2. Gone with it are `gpu/sparse_csr.py`, `gpu/density.py`, the CSR
+  kernels (`csr_warp.cu`, `bitvec_extract_tids.cu`) and
+  `upload_k3plus_groups(with_src_rows=)`; the group builders keep
+  `with_src_rows` (`bench/candidate_waste.py` reads it). The tier chain's ESCO
+  legs go with it.
 - **SON on the GPU runs the CPU passes' array skeleton only** (the partition
   bound over an array union; each chunk mined by the row-split miner, pass 2
   counted with the batched kernel, row-split over `n_gpus`). The per-chunk

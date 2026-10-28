@@ -122,33 +122,25 @@ def select_k3plus_groups(groups_info, keep):
     )
 
 
-def upload_k3plus_groups(groups_info, device_id, *, with_src_rows: bool = False):
+def upload_k3plus_groups(groups_info, device_id):
     """Upload K3+ group data to GPU once, keep resident across chunks — ~40 GB at K=8.
 
     Includes "ctp" (cumulative tile-pairs) for the shared/tiled kernel;
     negligible extra bytes (one int64 per group + 1) for the legacy path.
-    "tc" carries total_candidates for range checks. Sparse CSR kernels also
-    need "gsr", mapping each suffix slot to its previous-level tidset row.
     """
     import cupy as cp
 
     from .shared_tiled import compute_cumulative_tilepairs
 
     with cp.cuda.Device(device_id):
-        out = {
+        return {
             "gpi": cp.array(groups_info.prefix_items, dtype=cp.int32),
             "gpo": cp.array(groups_info.prefix_offsets, dtype=cp.int64),
             "gs": cp.array(groups_info.suffixes, dtype=cp.int32),
             "gso": cp.array(groups_info.suffix_offsets, dtype=cp.int64),
             "cp": cp.array(groups_info.cumulative_pairs, dtype=cp.int64),
             "ctp": cp.array(compute_cumulative_tilepairs(groups_info.suffix_offsets), dtype=cp.int64),
-            "tc": int(groups_info.total_candidates),
         }
-        if with_src_rows:
-            if groups_info.suffix_src_rows is None:
-                raise ValueError("with_src_rows=True needs groups built with with_src_rows=True")
-            out["gsr"] = cp.array(groups_info.suffix_src_rows, dtype=cp.int64)
-        return out
 
 
 def count_k3plus_per_candidate(
@@ -258,7 +250,7 @@ def build_k3plus_groups_from_flat(freq_flat, *, with_src_rows: bool = False):
     Args:
         freq_flat: numpy int32 array of shape (n_freq, k).
         with_src_rows: Preserve the original row index of each suffix slot
-            for the sparse CSR kernels (int64, 8 bytes per suffix).
+            (int64, 8 bytes per suffix).
 
     Returns:
         K3PlusGroups namedtuple or None if no valid groups.

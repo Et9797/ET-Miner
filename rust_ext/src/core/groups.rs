@@ -30,8 +30,8 @@ pub struct K3PlusGroupsResult {
     pub total_candidates: i64,
     /// Source row (index into the builder's input flat array) of each suffix
     /// slot; parallels `suffixes`. Empty unless requested (`with_src_rows`):
-    /// it costs 8 B per row and only the sparse-CSR GPU path needs it (its
-    /// kernels map a candidate's two suffix slots back to prev-level rows).
+    /// it costs 8 B per row (it maps a candidate's two suffix slots back to
+    /// prev-level rows).
     pub suffix_src_rows: Vec<i64>,
 }
 

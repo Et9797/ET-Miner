@@ -332,14 +332,32 @@ class TestPruneApriori:
         assert apriori(df, min_support=0.05, prune_apriori=True).equals(apriori(df, min_support=0.05))
 
 
+class TestSparseFromK:
+    """sparse_from_k (ESCO) is removed on every route; None is the only (default) behaviour."""
+
+    @pytest.mark.parametrize("value", [3, "auto"])
+    @pytest.mark.parametrize("kw", [{}, {"streaming": True, "chunk_size": 10}])
+    def test_any_value_raises(self, df, kw, value):
+        with pytest.raises(ValueError, match="sparse_from_k was removed"):
+            apriori(df, min_support=0.05, sparse_from_k=value, **kw)
+
+    def test_none_is_the_cpu_default(self, df):
+        assert apriori(df, min_support=0.05, sparse_from_k=None).equals(apriori(df, min_support=0.05))
+
+    def test_the_materialization_knob_is_refused_before_any_mining(self, df, monkeypatch):
+        monkeypatch.setenv("ET_MINER_ESCO_MATERIALIZE", "recount")
+        with pytest.raises(ValueError, match="ET_MINER_ESCO_MATERIALIZE was removed"):
+            apriori(df, min_support=0.05)
+
+
 class TestRemovedParametersRaise:
     """A removed parameter raises on every route, naming its replacement."""
 
     def test_mine_two_phase_refuses_before_creating_a_directory(self, df, tmp_path):
         from et_miner.gpu.row_split import mine_two_phase
 
-        with pytest.raises(ValueError, match="sparse_from_k"):
-            mine_two_phase(df, output_dir=str(tmp_path / "out"), sparse_from_k="bogus")
+        with pytest.raises(ValueError, match="sparse_from_k was removed"):
+            mine_two_phase(df, output_dir=str(tmp_path / "out"), sparse_from_k=3)
         assert not (tmp_path / "out").exists()
 
 

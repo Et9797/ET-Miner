@@ -225,7 +225,7 @@ fn apriori_from_csr<'py>(
 ///                    cumulative_pairs, suffix_src_rows, total_candidates) or None.
 /// `suffix_src_rows` (int64, parallel to `suffixes`) maps each suffix slot
 /// back to its row in `freq_flat`; it is empty unless `with_src_rows=True`
-/// (only the sparse-CSR GPU path needs it — 8 B per row otherwise wasted).
+/// (8 B per row).
 #[pyfunction]
 #[pyo3(signature = (freq_flat, with_src_rows = false))]
 fn build_k3plus_groups_from_flat<'py>(

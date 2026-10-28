@@ -87,9 +87,8 @@ Variables:
                                        candidate the subset test admits
                                        (the triangles of the frequent-pair
                                        graph; et_miner.gpu.kernels.k3_rows);
-                                       it needs the transactions input, a
-                                       dense level and rows of at most 64
-                                       active items, and
+                                       it needs the transactions input and
+                                       rows of at most 64 active items, and
                                        counts from the bitvectors otherwise.
                                        Unset: rows below the measured
                                        crossover in r3 = Σ_rows C(len, 2) /
@@ -111,9 +110,9 @@ Variables:
                                        level with a subset index. "compact"
                                        sums only the entries the kernels
                                        counted or inferred; K=2, levels
-                                       without an index, ESCO levels and
-                                       one GPU reduce dense whatever the
-                                       pin. Unset: compact
+                                       without an index and one GPU reduce
+                                       dense whatever the pin. Unset:
+                                       compact
     ET_MINER_INPUT_LAYER               "host" or "device": the row-split
                                        route's input layer. "device" copies
                                        the item ids to the GPUs and builds
@@ -257,8 +256,8 @@ def reject_removed_knobs() -> None:
         )
     if "ET_MINER_ESCO_MATERIALIZE" in os.environ:
         raise ValueError(
-            "ET_MINER_ESCO_MATERIALIZE was removed: an ESCO level counts its survivors' new tidsets "
-            "before writing them (sizing them from the count pass won no regime). Unset it."
+            "ET_MINER_ESCO_MATERIALIZE was removed with ESCO, the sparse CSR levels (route consolidation G6): "
+            "the GPU miner keeps dense bitvectors at every level. Unset it."
         )
 
 

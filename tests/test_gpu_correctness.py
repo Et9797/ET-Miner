@@ -193,7 +193,7 @@ class TestMineTwoPhase:
         p1, p2 = 0.20, 0.05
         _, _, anchors = mine_two_phase(
             nested_df, phase1_support=p1, phase2_support=p2, max_length=4,
-            n_gpus=1, output_dir=str(tmp_path), sparse_from_k=None,
+            n_gpus=1, output_dir=str(tmp_path),
         )
         assert anchors, "phase 1 found no anchors"
 

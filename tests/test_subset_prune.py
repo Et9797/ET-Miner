@@ -1,6 +1,6 @@
 """The counting kernels' (k-1)-subset test, against counts computed with NumPy.
 
-Each K>=3 counting kernel (per-candidate, group, tiled dense, tiled fused, sparse CSR)
+Each K>=3 counting kernel (per-candidate, group, tiled dense, tiled fused)
 counts one level of a small dataset in which items imply their parents, with an
 index of the complete previous level. With SUBSET_PRUNE a candidate with an
 infrequent (k-1)-subset is not counted; with SUBSET_INFER a candidate with a
@@ -72,7 +72,7 @@ def level(request):
     m = _dataset()
     prev, prev_counts = _level(m, k - 1)
     prev_free = _free(m, prev, prev_counts)
-    groups = build_k3plus_groups_from_flat(prev, with_src_rows=True)
+    groups = build_k3plus_groups_from_flat(prev)
     cands = decode_k3plus_flat(np.arange(groups.total_candidates), groups, k)
     lookup = {tuple(r): i for i, r in enumerate(prev.tolist())}
     true, prunable, inferable, inferred = [], [], [], []
@@ -132,26 +132,6 @@ def test_per_candidate_kernel(level, mode_name, write_inferred):
     np.testing.assert_array_equal(got, _expected_exact(labels, mode, write_inferred))
     plain = count_k3plus_per_candidate(bv, groups, bv.shape[1]).get()
     np.testing.assert_array_equal(plain, labels["true"])
-
-
-@pytest.mark.gpu
-@pytest.mark.parametrize("mode_name,write_inferred", MODES)
-def test_sparse_csr_kernel(level, mode_name, write_inferred):
-    import cupy as cp
-
-    from et_miner.gpu.kernels import SUBSET_INFER, SUBSET_PRUNE, count_csr_range, upload_k3plus_groups
-    from et_miner.gpu.sparse_csr import convert_shards_to_csr
-
-    k, m, prev, prev_counts, prev_free, groups, labels = level
-    mode = SUBSET_PRUNE | (SUBSET_INFER if mode_name == "infer" else 0)
-    bv = cp.asarray(_bitvecs(m))
-    (shard,) = convert_shards_to_csr([(bv, 0, N_ROWS)], prev, prev_counts)
-    groups_gpu = upload_k3plus_groups(groups, 0, with_src_rows=True)
-    got = count_csr_range(
-        shard.offsets, shard.indices, groups_gpu, 0, groups.total_candidates,
-        index=_index(prev, prev_counts, prev_free, mode, write_inferred),
-    ).get()
-    np.testing.assert_array_equal(got, _expected_exact(labels, mode, write_inferred))
 
 
 @pytest.mark.gpu

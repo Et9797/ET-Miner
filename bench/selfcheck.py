@@ -118,9 +118,6 @@ def _smoke_launch(cp) -> None:
     from et_miner.gpu.kernels import (
         K3PlusGroups,
         count_itemsets_cuda,
-        count_csr_range,
-        count_csr_gather,
-        write_csr_gather,
         count_group_pairs,
         count_k3plus_per_candidate,
         count_pairs_k2_per_candidate,
@@ -181,32 +178,8 @@ def _smoke_launch(cp) -> None:
     launched.add("count_group_pairs")
     assert count_shared_tiled_allcounts(full, groups, 4, index=bare).tolist() == [0, 0, 0]
     assert count_tiled_fused(full, groups, 4, 1, index=bare)[0].tolist() == []
-    # The sparse parents are {0,1}, {0,2}, {0,3}; all candidate
-    # intersections contain only transaction 0.
-    did = cp.cuda.Device().id
-    from et_miner.gpu.kernels import build_k3plus_groups_from_flat, get_cuda_kernel, upload_k3plus_groups
+    from et_miner.gpu.kernels import build_k3plus_groups_from_flat, get_cuda_kernel
 
-    sparse_groups = build_k3plus_groups_from_flat(np.array([[0, 1], [0, 2], [0, 3]], np.int32), with_src_rows=True)
-    uploaded = upload_k3plus_groups(sparse_groups, did, with_src_rows=True)
-    offsets = cp.array([0, 2, 4, 6], dtype=cp.int64)
-    tids = cp.array([0, 1, 0, 2, 0, 3], dtype=cp.int32)
-    assert count_csr_range(offsets, tids, uploaded, 0, 3).tolist() == [1, 1, 1]
-    assert count_csr_range(offsets, tids, uploaded, 0, 3, index=partial).tolist() == [1, 0, 1]
-    launched.add("csr_count_range")
-    ids = cp.array([2, 0, 1], dtype=cp.int64)
-    assert count_csr_gather(offsets, tids, uploaded, ids).tolist() == [1, 1, 1]
-    launched.add("csr_count_gather")
-    out_offsets = cp.arange(4, dtype=cp.int64)
-    out_tids = cp.empty(3, dtype=cp.int32)
-    write_csr_gather(offsets, tids, uploaded, ids, out_offsets, out_tids)
-    assert out_tids.tolist() == [0, 0, 0]
-    launched.add("csr_write_gather")
-    extracted = cp.empty(6, dtype=cp.int32)
-    get_cuda_kernel("bitvec_extract_tids")(
-        (1,), (256,), (bv, offsets, extracted, np.int64(3), np.int64(1), np.int64(0))
-    )
-    assert extracted.tolist() == [0, 2, 1, 2, 0, 2]
-    launched.add("bitvec_extract_tids")
     # ids_to_bitvec: csr_to_bitvec's rows as ids 5..7 minus 5, the third row unsorted with 5 twice;
     # id 3 is the null id
     id_bv = cp.zeros((3, 1), dtype=cp.uint64)

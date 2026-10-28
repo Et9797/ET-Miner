@@ -1,6 +1,6 @@
 """Device index of a mining level for the counting kernels' (k-1)-subset test.
 
-The K>=3 counting kernels (per-candidate, tiled dense and fused, sparse CSR)
+The K>=3 counting kernels (per-candidate, tiled dense and fused, group)
 take the previous level as sorted int32 rows with per-row counts and free
 flags (``_src/_subset_index.cu``). With ``SUBSET_PRUNE`` a candidate with a
 (k-1)-subset missing from the index is not counted and keeps the output's fill

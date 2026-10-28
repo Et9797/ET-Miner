@@ -6,7 +6,6 @@ Import-safe without CuPy.
 """
 
 from .batch import count_itemsets_cuda, count_itemsets_flat
-from .csr_warp import count_csr_gather, count_csr_range, write_csr_gather
 from .decode import decode_k2_pairs_flat, decode_k3plus_flat
 from .filter import UNTOUCHED, threshold_filter
 from .shared_tiled import (
@@ -37,9 +36,6 @@ from .loader import (
 )
 
 __all__ = [
-    "count_csr_gather",
-    "count_csr_range",
-    "write_csr_gather",
     "count_itemsets_cuda",
     "count_itemsets_flat",
     "get_cuda_kernel",

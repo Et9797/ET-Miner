@@ -168,7 +168,6 @@ def test_classifier_matches_the_host_reference(k, seed):
             {"ET_MINER_TILED_MIN_GROUP_PAIRS": str(10**12), "ET_MINER_SMALL_GROUP_KERNEL": "group"}, id="group"
         ),
         pytest.param({"ET_MINER_MAX_CHUNK_CANDS": "37", "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"}, id="forced-chunks"),
-        pytest.param({"sparse_from_k": "3"}, id="esco"),
     ],
 )
 @pytest.mark.parametrize("n_gpus", [1, pytest.param(2, marks=pytest.mark.multigpu)])
@@ -187,15 +186,13 @@ def test_mining_with_the_bounds_matches_the_oracle(monkeypatch, pin, n_gpus, see
     s = c / len(rows)
     while _min_count(s, len(rows)) > c:
         s = np.nextafter(s, 0.0)
-    sparse = {"sparse_from_k": int(pin["sparse_from_k"])} if "sparse_from_k" in pin else {}
     for name, value in pin.items():
-        if name.startswith("ET_"):
-            monkeypatch.setenv(name, value)
+        monkeypatch.setenv(name, value)
     df = pl.DataFrame({"items": pl.Series(rows, dtype=pl.List(pl.Int64))})
     results = {}
     for bounds in ("0", "1"):
         monkeypatch.setenv("ET_MINER_DEDUCTION", bounds)
-        res = apriori(df, min_support=float(s), use_gpu=True, n_gpus=n_gpus, use_generator_pruning=True, **sparse)
+        res = apriori(df, min_support=float(s), use_gpu=True, n_gpus=n_gpus, use_generator_pruning=True)
         results[bounds] = mined_counts(res, len(rows))
     assert results["1"] == results["0"] == ea_counts(rows, float(s))
 

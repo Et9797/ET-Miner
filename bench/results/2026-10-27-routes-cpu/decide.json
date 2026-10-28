@@ -543,9 +543,9 @@
   "G1": [
    {
     "decisions": {
-     "device": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "host": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "rebuilt": "wins no regime (rule 4: goes, subject to rules 7 and 9)"
+     "device": "wins no regime (rule 4: goes, subject to rule 9)",
+     "host": "wins no regime (rule 4: goes, subject to rule 9)",
+     "rebuilt": "wins no regime (rule 4: goes, subject to rule 9)"
     },
     "regimes": []
    }
@@ -553,8 +553,8 @@
   "G2": [
    {
     "decisions": {
-     "lex": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "keep": "wins no regime (rule 4: goes, subject to rules 7 and 9)"
+     "lex": "wins no regime (rule 4: goes, subject to rule 9)",
+     "keep": "wins no regime (rule 4: goes, subject to rule 9)"
     },
     "regimes": []
    }
@@ -562,9 +562,9 @@
   "G6": [
    {
     "decisions": {
-     "dense": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "esco-auto": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "esco3": "wins no regime (rule 4: goes, subject to rules 7 and 9)"
+     "dense": "wins no regime (rule 4: goes, subject to rule 9)",
+     "esco-auto": "wins no regime (rule 4: goes, subject to rule 9)",
+     "esco3": "wins no regime (rule 4: goes, subject to rule 9)"
     },
     "regimes": []
    }
@@ -582,7 +582,10 @@
        "cpu": "F1-default: 2.68 [2.54, 2.80]",
        "rust": "R1-default: 0.89 [0.88, 0.93]"
       },
-      "winner": "rust"
+      "winner": "rust",
+      "guard": {
+       "cpu": "peak RSS 1.44x without cpu"
+      }
      },
      {
       "regime": "deepk20",
@@ -590,7 +593,10 @@
        "cpu": "F1-default: 65.41 [65.02, 67.18]",
        "rust": "R1-default: FAIL (timeout)"
       },
-      "winner": "cpu"
+      "winner": "cpu",
+      "guard": {
+       "cpu": "cpu ran where no other path did"
+      }
      },
      {
       "regime": "dsl",
@@ -598,7 +604,10 @@
        "cpu": "F1-default: FAIL (timeout)",
        "rust": "R1-default: 226.83 [225.75, 227.70]"
       },
-      "winner": "rust"
+      "winner": "rust",
+      "guard": {
+       "rust": "rust ran where no other path did"
+      }
      },
      {
       "regime": "or0001k2",
@@ -606,7 +615,10 @@
        "cpu": "F1-default: 0.74 [0.69, 0.75]",
        "rust": "R1-default: 18.10 [17.82, 18.12]"
       },
-      "winner": "cpu"
+      "winner": "cpu",
+      "guard": {
+       "cpu": "peak RSS 1.47x without cpu"
+      }
      },
      {
       "regime": "or002",
@@ -614,7 +626,8 @@
        "cpu": "F1-default: 6.58 [6.44, 7.00]",
        "rust": "R1-default: 93.61 [93.37, 95.65]"
       },
-      "winner": "cpu"
+      "winner": "cpu",
+      "guard": {}
      },
      {
       "regime": "or003",
@@ -622,7 +635,8 @@
        "cpu": "F1-default: 1.38 [1.35, 1.47]",
        "rust": "R1-default: 3.31 [3.28, 3.40]"
       },
-      "winner": "cpu"
+      "winner": "cpu",
+      "guard": {}
      },
      {
       "regime": "or005",
@@ -630,7 +644,8 @@
        "cpu": "F1-default: 0.39 [0.39, 0.47]",
        "rust": "R1-default: 0.37 [0.35, 0.41]"
       },
-      "winner": null
+      "winner": null,
+      "guard": {}
      },
      {
       "regime": "skew",
@@ -638,7 +653,8 @@
        "cpu": "F1-default: 2.63 [2.59, 2.71]",
        "rust": "R1-default: 1.04 [1.00, 1.05]"
       },
-      "winner": "rust"
+      "winner": "rust",
+      "guard": {}
      },
      {
       "regime": "smoke",
@@ -646,7 +662,8 @@
        "cpu": "F1-default: 0.09 [0.09, 0.11]",
        "rust": "R1-default: 0.03 [0.03, 0.03]"
       },
-      "winner": null
+      "winner": null,
+      "guard": {}
      },
      {
       "regime": "wide",
@@ -654,7 +671,8 @@
        "cpu": "F1-default: 0.39 [0.38, 0.45]",
        "rust": "R1-default: 0.60 [0.58, 0.66]"
       },
-      "winner": null
+      "winner": null,
+      "guard": {}
      }
     ]
    }
@@ -662,9 +680,9 @@
   "S1": [
    {
     "decisions": {
-     "cpu": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "boolean": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "ported": "wins no regime (rule 4: goes, subject to rules 7 and 9)"
+     "cpu": "wins no regime; stays (rule 9: SON is never removed as a strategy)",
+     "boolean": "wins no regime (rule 4: goes, subject to rule 9)",
+     "ported": "wins no regime (rule 4: goes, subject to rule 9)"
     },
     "regimes": []
    }
@@ -672,8 +690,8 @@
   "S2": [
    {
     "decisions": {
-     "boolean": "wins no regime (rule 4: goes, subject to rules 7 and 9)",
-     "ported": "wins no regime (rule 4: goes, subject to rules 7 and 9)"
+     "boolean": "wins no regime (rule 4: goes, subject to rule 9)",
+     "ported": "wins no regime (rule 4: goes, subject to rule 9)"
     },
     "regimes": []
    }

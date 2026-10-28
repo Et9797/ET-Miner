@@ -1,0 +1,1896 @@
+{
+ "must_fix": [],
+ "dps": {
+  "G3": [
+   {
+    "member": "rows",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "oom2 (C1)",
+     "oom2 (C2)",
+     "sk2ml2 (C1)",
+     "sk2ml2 (C2)"
+    ],
+    "regimes": [
+     {
+      "regime": "oom2 (C1)",
+      "full": "0.30 [0.27, 0.34]",
+      "without": "8.51 [8.50, 8.51]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 28.733108108108112,
+      "capability": true
+     },
+     {
+      "regime": "oom2 (C2)",
+      "full": "0.66 [0.66, 0.66]",
+      "without": "4.75 [4.74, 4.78]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 7.149096385542168,
+      "capability": false
+     },
+     {
+      "regime": "or0001k2 (C1)",
+      "full": "0.51 [0.50, 0.51]",
+      "without": "0.51 [0.50, 0.53]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9921414538310412,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C1)",
+      "full": "0.28 [0.27, 0.28]",
+      "without": "0.28 [0.28, 0.29]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0178571428571426,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml2 (C1)",
+      "full": "1.10 [1.10, 1.14]",
+      "without": "45.18 [45.10, 45.21]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 40.88597285067873,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml2 (C2)",
+      "full": "1.32 [1.29, 1.46]",
+      "without": "23.38 [23.37, 23.39]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 17.661631419939578,
+      "capability": false
+     },
+     {
+      "regime": "wide (C1)",
+      "full": "0.07 [0.07, 0.10]",
+      "without": "0.07 [0.07, 0.07]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.96,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "percand",
+    "decision": "goes (rule 3): neither wins anywhere",
+    "rule11": [],
+    "regimes": [
+     {
+      "regime": "deepk15 (C1)",
+      "full": "0.11 [0.11, 0.12]",
+      "without": "0.13 [0.13, 0.13]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.1592920353982301,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "tiled",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "oom2-bv (C1)",
+     "oom2-bv (C2)",
+     "or0001k2 (C1)",
+     "or002 (C1)",
+     "wide (C1)"
+    ],
+    "regimes": [
+     {
+      "regime": "dsl (C1)",
+      "full": "3.95 [3.90, 4.00]",
+      "without": "3.97 [3.92, 4.03]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0053191489361701,
+      "capability": false
+     },
+     {
+      "regime": "dsl (C2)",
+      "full": "3.26 [3.08, 3.28]",
+      "without": "3.13 [3.13, 3.42]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9601349279362158,
+      "capability": false
+     },
+     {
+      "regime": "dslxl (C1)",
+      "full": "10.42 [10.05, 10.45]",
+      "without": "10.33 [10.26, 10.39]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9915514592933947,
+      "capability": false
+     },
+     {
+      "regime": "oom2-bv (C1)",
+      "full": "8.47 [8.44, 8.50]",
+      "without": "82.56 [82.55, 82.57]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 9.744128407883865,
+      "capability": false
+     },
+     {
+      "regime": "oom2-bv (C2)",
+      "full": "5.22 [5.22, 5.23]",
+      "without": "42.37 [42.34, 42.38]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 8.119202759678037,
+      "capability": false
+     },
+     {
+      "regime": "or0001k2 (C1)",
+      "full": "0.51 [0.50, 0.51]",
+      "without": "0.84 [0.84, 0.85]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.6581532416502947,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C1)",
+      "full": "0.28 [0.27, 0.28]",
+      "without": "0.41 [0.41, 0.44]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.464285714285714,
+      "capability": false
+     },
+     {
+      "regime": "wide (C1)",
+      "full": "0.07 [0.07, 0.10]",
+      "without": "0.17 [0.16, 0.19]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 2.3066666666666666,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "fused",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "sk2ml2-bv (C1)"
+    ],
+    "regimes": [
+     {
+      "regime": "sk2ml2-bv (C1)",
+      "full": "44.94 [44.85, 45.24]",
+      "without": "451.79 [451.77, 451.83]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 10.053764158711084,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "shared",
+    "decision": "goes (rule 3): neither wins anywhere",
+    "rule11": [],
+    "regimes": [
+     {
+      "regime": "dsl (C1)",
+      "full": "5.02 [4.99, 5.03]",
+      "without": "4.87 [4.82, 4.95]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9699023320709586,
+      "capability": false
+     }
+    ]
+   }
+  ],
+  "G5": [
+   {
+    "member": "percand",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "deepk20 (C1)",
+     "dsl (C1)",
+     "dsl (C2)",
+     "dsl-bv (C1)",
+     "dsl-bv (C2)",
+     "dsl-noprune (C1)",
+     "dslxl (C1)"
+    ],
+    "regimes": [
+     {
+      "regime": "deepk (C1)",
+      "full": "0.17 [0.16, 0.17]",
+      "without": "0.18 [0.18, 0.20]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0705882352941176,
+      "capability": false
+     },
+     {
+      "regime": "deepk20 (C1)",
+      "full": "4.96 [4.89, 4.96]",
+      "without": "8.94 [8.89, 9.07]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.8024193548387095,
+      "capability": true
+     },
+     {
+      "regime": "dsl (C1)",
+      "full": "3.95 [3.90, 4.00]",
+      "without": "6.87 [6.85, 6.96]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.7403748733535969,
+      "capability": false
+     },
+     {
+      "regime": "dsl (C2)",
+      "full": "3.26 [3.08, 3.28]",
+      "without": "4.63 [4.52, 4.70]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.4201165286721864,
+      "capability": false
+     },
+     {
+      "regime": "dsl-bv (C1)",
+      "full": "8.92 [8.88, 8.92]",
+      "without": "23.84 [23.83, 23.92]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 2.673508299685958,
+      "capability": false
+     },
+     {
+      "regime": "dsl-bv (C2)",
+      "full": "5.13 [5.13, 5.14]",
+      "without": "12.55 [12.46, 12.59]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 2.444985394352483,
+      "capability": false
+     },
+     {
+      "regime": "dsl-free (C1)",
+      "full": "2.84 [2.71, 2.89]",
+      "without": "3.33 [3.32, 3.34]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.1734226295382446,
+      "capability": false
+     },
+     {
+      "regime": "dsl-infer (C1)",
+      "full": "2.49 [2.48, 2.52]",
+      "without": "2.55 [2.54, 2.67]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0220529270248595,
+      "capability": false
+     },
+     {
+      "regime": "dsl-noprune (C1)",
+      "full": "3.71 [3.69, 3.71]",
+      "without": "6.47 [6.45, 6.53]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.7466954410574589,
+      "capability": false
+     },
+     {
+      "regime": "dslxl (C1)",
+      "full": "10.42 [10.05, 10.45]",
+      "without": "18.93 [18.89, 18.97]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.8170122887864821,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-bv (C1)",
+      "full": "10.05 [10.02, 10.22]",
+      "without": "10.06 [10.02, 10.06]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0004973639709538,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-bv (C2)",
+      "full": "6.52 [6.52, 6.84]",
+      "without": "6.46 [6.46, 6.49]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9909564684242795,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-noprune (C1)",
+      "full": "27.21 [27.18, 27.22]",
+      "without": "27.29 [27.25, 27.39]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0029035577771244,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C1)",
+      "full": "0.28 [0.27, 0.28]",
+      "without": "0.26 [0.25, 0.27]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9428571428571428,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C2)",
+      "full": "0.57 [0.56, 0.58]",
+      "without": "0.52 [0.51, 0.52]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.902608695652174,
+      "capability": false
+     },
+     {
+      "regime": "or003 (C1)",
+      "full": "0.11 [0.10, 0.12]",
+      "without": "0.09 [0.08, 0.09]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.8165137614678899,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml3-bv (C1)",
+      "full": "72.78 [72.64, 73.00]",
+      "without": "72.80 [72.74, 72.97]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0003023016145653,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml3-bv (C2)",
+      "full": "FAIL (error: OutOfMemoryError: Out of memory allocating 4,375,000,)",
+      "without": "FAIL (error: OutOfMemoryError: Out of memory allocating 4,375,000,)",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": false
+     },
+     {
+      "regime": "skew (C1)",
+      "full": "0.17 [0.17, 0.18]",
+      "without": "0.17 [0.17, 0.18]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9885714285714285,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "group",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "dsl (C1)",
+     "dsl (C2)",
+     "dsl-bv (C1)",
+     "dsl-bv (C2)",
+     "dsl-free (C1)",
+     "dsl-noprune (C1)",
+     "dslxl (C1)"
+    ],
+    "regimes": [
+     {
+      "regime": "deepk (C1)",
+      "full": "0.17 [0.16, 0.17]",
+      "without": "0.17 [0.15, 0.18]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0,
+      "capability": false
+     },
+     {
+      "regime": "deepk20 (C1)",
+      "full": "4.96 [4.89, 4.96]",
+      "without": "5.54 [5.41, 5.55]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.1165322580645163,
+      "capability": false
+     },
+     {
+      "regime": "dsl (C1)",
+      "full": "3.95 [3.90, 4.00]",
+      "without": "5.92 [5.87, 5.99]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.500759878419453,
+      "capability": false
+     },
+     {
+      "regime": "dsl (C2)",
+      "full": "3.26 [3.08, 3.28]",
+      "without": "4.12 [4.06, 4.17]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.2634161300214657,
+      "capability": false
+     },
+     {
+      "regime": "dsl-bv (C1)",
+      "full": "8.92 [8.88, 8.92]",
+      "without": "13.59 [13.56, 13.62]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.5243382682817406,
+      "capability": false
+     },
+     {
+      "regime": "dsl-bv (C2)",
+      "full": "5.13 [5.13, 5.14]",
+      "without": "7.46 [7.45, 7.48]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.453748782862707,
+      "capability": false
+     },
+     {
+      "regime": "dsl-free (C1)",
+      "full": "2.84 [2.71, 2.89]",
+      "without": "3.62 [3.59, 3.62]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.2759957701797673,
+      "capability": false
+     },
+     {
+      "regime": "dsl-infer (C1)",
+      "full": "2.49 [2.48, 2.52]",
+      "without": "3.00 [3.00, 3.07]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.2036888532477945,
+      "capability": false
+     },
+     {
+      "regime": "dsl-noprune (C1)",
+      "full": "3.71 [3.69, 3.71]",
+      "without": "5.82 [5.80, 5.89]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.5710817372538441,
+      "capability": false
+     },
+     {
+      "regime": "dslxl (C1)",
+      "full": "10.42 [10.05, 10.45]",
+      "without": "16.46 [16.44, 16.65]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.5798771121351765,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-bv (C1)",
+      "full": "10.05 [10.02, 10.22]",
+      "without": "10.07 [10.06, 10.10]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0016910375012433,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-bv (C2)",
+      "full": "6.52 [6.52, 6.84]",
+      "without": "6.45 [6.45, 6.47]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9885039852851011,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-noprune (C1)",
+      "full": "27.21 [27.18, 27.22]",
+      "without": "27.32 [27.32, 27.34]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0041531902381653,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C1)",
+      "full": "0.28 [0.27, 0.28]",
+      "without": "0.30 [0.27, 0.31]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0785714285714285,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C2)",
+      "full": "0.57 [0.56, 0.58]",
+      "without": "0.56 [0.55, 0.56]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9669565217391306,
+      "capability": false
+     },
+     {
+      "regime": "or003 (C1)",
+      "full": "0.11 [0.10, 0.12]",
+      "without": "0.09 [0.09, 0.09]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.8256880733944953,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml3-bv (C1)",
+      "full": "72.78 [72.64, 73.00]",
+      "without": "72.89 [72.86, 73.00]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0015252490553073,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml3-bv (C2)",
+      "full": "FAIL (error: OutOfMemoryError: Out of memory allocating 4,375,000,)",
+      "without": "FAIL (error: OutOfMemoryError: Out of memory allocating 4,375,000,)",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": false
+     },
+     {
+      "regime": "skew (C1)",
+      "full": "0.17 [0.17, 0.18]",
+      "without": "0.18 [0.17, 0.18]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0114285714285713,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "tiled",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "oom2ml3-bv (C1)",
+     "oom2ml3-bv (C2)",
+     "oom2ml3-noprune (C1)",
+     "or002 (C1)",
+     "or002 (C2)",
+     "or003 (C1)",
+     "sk2ml3-bv (C1)"
+    ],
+    "regimes": [
+     {
+      "regime": "deepk (C1)",
+      "full": "0.17 [0.16, 0.17]",
+      "without": "0.17 [0.16, 0.19]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9882352941176471,
+      "capability": false
+     },
+     {
+      "regime": "deepk20 (C1)",
+      "full": "4.96 [4.89, 4.96]",
+      "without": "4.88 [4.78, 4.94]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9838709677419355,
+      "capability": false
+     },
+     {
+      "regime": "dsl (C1)",
+      "full": "3.95 [3.90, 4.00]",
+      "without": "3.94 [3.85, 3.94]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.997467071935157,
+      "capability": false
+     },
+     {
+      "regime": "dsl (C2)",
+      "full": "3.26 [3.08, 3.28]",
+      "without": "3.09 [3.03, 3.24]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9463354799141367,
+      "capability": false
+     },
+     {
+      "regime": "dsl-bv (C1)",
+      "full": "8.92 [8.88, 8.92]",
+      "without": "8.88 [8.87, 8.90]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9954015253476896,
+      "capability": false
+     },
+     {
+      "regime": "dsl-bv (C2)",
+      "full": "5.13 [5.13, 5.14]",
+      "without": "5.11 [5.11, 5.11]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9955209347614411,
+      "capability": false
+     },
+     {
+      "regime": "dsl-free (C1)",
+      "full": "2.84 [2.71, 2.89]",
+      "without": "2.71 [2.69, 2.77]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9566443426154387,
+      "capability": false
+     },
+     {
+      "regime": "dsl-infer (C1)",
+      "full": "2.49 [2.48, 2.52]",
+      "without": "2.48 [2.48, 2.52]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9927826784282276,
+      "capability": false
+     },
+     {
+      "regime": "dsl-noprune (C1)",
+      "full": "3.71 [3.69, 3.71]",
+      "without": "3.57 [3.55, 3.65]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9619638521715673,
+      "capability": false
+     },
+     {
+      "regime": "dslxl (C1)",
+      "full": "10.42 [10.05, 10.45]",
+      "without": "10.13 [10.09, 10.21]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9726382488479263,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-bv (C1)",
+      "full": "10.05 [10.02, 10.22]",
+      "without": "79.48 [79.43, 79.73]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 7.906296627872276,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-bv (C2)",
+      "full": "6.52 [6.52, 6.84]",
+      "without": "74.64 [74.58, 74.87]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 11.44068056407112,
+      "capability": false
+     },
+     {
+      "regime": "oom2ml3-noprune (C1)",
+      "full": "27.21 [27.18, 27.22]",
+      "without": "209.23 [208.85, 211.06]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 7.689870626286387,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C1)",
+      "full": "0.28 [0.27, 0.28]",
+      "without": "0.69 [0.60, 0.70]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 2.4535714285714287,
+      "capability": false
+     },
+     {
+      "regime": "or002 (C2)",
+      "full": "0.57 [0.56, 0.58]",
+      "without": "0.88 [0.86, 0.89]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.5321739130434784,
+      "capability": false
+     },
+     {
+      "regime": "or003 (C1)",
+      "full": "0.11 [0.10, 0.12]",
+      "without": "0.18 [0.17, 0.18]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.6330275229357798,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml3-bv (C1)",
+      "full": "72.78 [72.64, 73.00]",
+      "without": "333.95 [333.84, 334.51]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 4.588787358296118,
+      "capability": false
+     },
+     {
+      "regime": "sk2ml3-bv (C2)",
+      "full": "FAIL (error: OutOfMemoryError: Out of memory allocating 4,375,000,)",
+      "without": "FAIL (error: OutOfMemoryError: Out of memory allocating 4,375,000,)",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": false
+     },
+     {
+      "regime": "skew (C1)",
+      "full": "0.17 [0.17, 0.18]",
+      "without": "0.17 [0.16, 0.17]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.942857142857143,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "fused",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "sk2ml3-bv (C1)"
+    ],
+    "regimes": [
+     {
+      "regime": "sk2ml3-bv (C1)",
+      "full": "72.78 [72.64, 73.00]",
+      "without": "293.69 [293.33, 293.99]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 4.03558914462384,
+      "capability": false
+     }
+    ]
+   }
+  ],
+  "C1": [
+   {
+    "member": "gram",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "or0001k2 (F1)",
+     "or003 (F1)",
+     "or005 (F1)",
+     "wide (F1)"
+    ],
+    "regimes": [
+     {
+      "regime": "deepk (F1)",
+      "full": "2.68 [2.54, 2.80]",
+      "without": "2.66 [2.53, 2.76]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9951420029895365,
+      "capability": false
+     },
+     {
+      "regime": "deepk20 (F1)",
+      "full": "65.41 [65.02, 67.18]",
+      "without": "63.46 [63.07, 65.56]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9702037883536409,
+      "capability": false
+     },
+     {
+      "regime": "dsl (F1)",
+      "full": "FAIL (timeout)",
+      "without": "FAIL (timeout)",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": false
+     },
+     {
+      "regime": "or0001k2 (F1)",
+      "full": "0.74 [0.69, 0.75]",
+      "without": "2.81 [2.81, 2.88]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 3.816576086956522,
+      "capability": false
+     },
+     {
+      "regime": "or002 (F1)",
+      "full": "6.58 [6.44, 7.00]",
+      "without": "7.02 [6.89, 7.25]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0663730255164034,
+      "capability": false
+     },
+     {
+      "regime": "or003 (F1)",
+      "full": "1.38 [1.35, 1.47]",
+      "without": "2.00 [1.82, 2.01]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.4509803921568627,
+      "capability": false
+     },
+     {
+      "regime": "or005 (F1)",
+      "full": "0.39 [0.39, 0.47]",
+      "without": "0.69 [0.64, 0.71]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.7659033078880406,
+      "capability": true
+     },
+     {
+      "regime": "skew (F1)",
+      "full": "2.63 [2.59, 2.71]",
+      "without": "2.57 [2.56, 2.58]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9745537409798708,
+      "capability": false
+     },
+     {
+      "regime": "smoke (F1)",
+      "full": "0.09 [0.09, 0.11]",
+      "without": "0.11 [0.10, 0.11]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.1914893617021276,
+      "capability": false
+     },
+     {
+      "regime": "wide (F1)",
+      "full": "0.39 [0.38, 0.45]",
+      "without": "2.76 [2.62, 2.85]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 7.166233766233765,
+      "capability": true
+     }
+    ]
+   },
+   {
+    "member": "bitvec",
+    "decision": "goes (rule 3): neither wins anywhere",
+    "rule11": [],
+    "regimes": [
+     {
+      "regime": "deepk (F1)",
+      "full": "2.68 [2.54, 2.80]",
+      "without": "2.85 [2.79, 2.89]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0650224215246638,
+      "capability": false
+     },
+     {
+      "regime": "deepk20 (F1)",
+      "full": "65.41 [65.02, 67.18]",
+      "without": "65.16 [64.50, 65.88]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9961168610784118,
+      "capability": false
+     },
+     {
+      "regime": "dsl (F1)",
+      "full": "FAIL (timeout)",
+      "without": "FAIL (timeout)",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": false
+     },
+     {
+      "regime": "or0001k2 (F1)",
+      "full": "0.74 [0.69, 0.75]",
+      "without": "0.72 [0.65, 0.75]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9755434782608695,
+      "capability": false
+     },
+     {
+      "regime": "or002 (F1)",
+      "full": "6.58 [6.44, 7.00]",
+      "without": "6.32 [6.20, 6.34]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9600546780072904,
+      "capability": false
+     },
+     {
+      "regime": "or003 (F1)",
+      "full": "1.38 [1.35, 1.47]",
+      "without": "1.30 [1.28, 1.47]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9455337690631809,
+      "capability": false
+     },
+     {
+      "regime": "or005 (F1)",
+      "full": "0.39 [0.39, 0.47]",
+      "without": "0.38 [0.36, 0.45]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9694656488549618,
+      "capability": false
+     },
+     {
+      "regime": "skew (F1)",
+      "full": "2.63 [2.59, 2.71]",
+      "without": "2.82 [2.63, 2.88]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.06950246866692,
+      "capability": false
+     },
+     {
+      "regime": "smoke (F1)",
+      "full": "0.09 [0.09, 0.11]",
+      "without": "0.10 [0.09, 0.10]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0106382978723405,
+      "capability": false
+     },
+     {
+      "regime": "wide (F1)",
+      "full": "0.39 [0.38, 0.45]",
+      "without": "0.42 [0.38, 0.44]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0805194805194804,
+      "capability": false
+     }
+    ]
+   }
+  ],
+  "C2": [
+   {
+    "member": "popcount",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [
+     "deepk (F1)",
+     "or002 (F1)",
+     "or003 (F1)",
+     "or005 (F1)",
+     "skew (F1)",
+     "smoke (F1)"
+    ],
+    "regimes": [
+     {
+      "regime": "deepk (F1)",
+      "full": "2.68 [2.54, 2.80]",
+      "without": "27.43 [27.36, 27.64]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 10.249626307922272,
+      "capability": false
+     },
+     {
+      "regime": "deepk20 (F1)",
+      "full": "65.41 [65.02, 67.18]",
+      "without": "FAIL (timeout)",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": true
+     },
+     {
+      "regime": "dsl (F1)",
+      "full": "FAIL (timeout)",
+      "without": "FAIL (timeout)",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": false
+     },
+     {
+      "regime": "or002 (F1)",
+      "full": "6.58 [6.44, 7.00]",
+      "without": "37.65 [37.25, 37.75]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 5.718256379100851,
+      "capability": false
+     },
+     {
+      "regime": "or003 (F1)",
+      "full": "1.38 [1.35, 1.47]",
+      "without": "5.81 [5.76, 5.91]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 4.220043572984749,
+      "capability": false
+     },
+     {
+      "regime": "or005 (F1)",
+      "full": "0.39 [0.39, 0.47]",
+      "without": "1.33 [1.24, 1.37]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 3.39440203562341,
+      "capability": false
+     },
+     {
+      "regime": "skew (F1)",
+      "full": "2.63 [2.59, 2.71]",
+      "without": "16.81 [16.70, 16.95]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 6.385491834409418,
+      "capability": false
+     },
+     {
+      "regime": "smoke (F1)",
+      "full": "0.09 [0.09, 0.11]",
+      "without": "0.15 [0.15, 0.19]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.6170212765957446,
+      "capability": false
+     },
+     {
+      "regime": "wide (F1)",
+      "full": "0.39 [0.38, 0.45]",
+      "without": "0.44 [0.42, 0.49]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.1324675324675324,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "proj",
+    "decision": "goes (rule 3): neither wins anywhere",
+    "rule11": [],
+    "regimes": [
+     {
+      "regime": "deepk (F1)",
+      "full": "2.68 [2.54, 2.80]",
+      "without": "2.21 [2.14, 2.22]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.8239910313901345,
+      "capability": false
+     },
+     {
+      "regime": "deepk20 (F1)",
+      "full": "65.41 [65.02, 67.18]",
+      "without": "64.92 [64.64, 66.37]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9925241931785173,
+      "capability": false
+     },
+     {
+      "regime": "dsl (F1)",
+      "full": "FAIL (timeout)",
+      "without": "FAIL (timeout)",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": null,
+      "capability": false
+     },
+     {
+      "regime": "or002 (F1)",
+      "full": "6.58 [6.44, 7.00]",
+      "without": "5.67 [5.49, 6.20]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.8610267314702309,
+      "capability": false
+     },
+     {
+      "regime": "or003 (F1)",
+      "full": "1.38 [1.35, 1.47]",
+      "without": "1.15 [1.13, 1.32]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.8366013071895424,
+      "capability": false
+     },
+     {
+      "regime": "or005 (F1)",
+      "full": "0.39 [0.39, 0.47]",
+      "without": "0.37 [0.31, 0.39]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9338422391857506,
+      "capability": false
+     },
+     {
+      "regime": "skew (F1)",
+      "full": "2.63 [2.59, 2.71]",
+      "without": "1.79 [1.75, 1.84]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.6798328902392708,
+      "capability": false
+     },
+     {
+      "regime": "smoke (F1)",
+      "full": "0.09 [0.09, 0.11]",
+      "without": "0.07 [0.07, 0.08]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.7978723404255319,
+      "capability": false
+     },
+     {
+      "regime": "wide (F1)",
+      "full": "0.39 [0.38, 0.45]",
+      "without": "0.38 [0.37, 0.39]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9922077922077922,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "son-percand",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [],
+    "regimes": [
+     {
+      "regime": "deepk-son (D1)",
+      "full": "3.77 [3.76, 3.82]",
+      "without": "3.75 [3.57, 3.76]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.993372216330859,
+      "capability": false
+     },
+     {
+      "regime": "dsl-son (D1)",
+      "full": "1091.21 [1085.16, 1092.05]",
+      "without": "1089.57 [1088.05, 1090.65]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9984934224694492,
+      "capability": false
+     },
+     {
+      "regime": "or005-son (D1)",
+      "full": "5.72 [5.45, 6.25]",
+      "without": "6.99 [6.62, 6.99]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.2224165063822345,
+      "capability": false
+     },
+     {
+      "regime": "skew-son (D1)",
+      "full": "18.83 [18.80, 18.98]",
+      "without": "18.97 [18.50, 19.07]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.00738222953954,
+      "capability": false
+     },
+     {
+      "regime": "wide-son (D1)",
+      "full": "1.06 [1.06, 1.08]",
+      "without": "1.04 [1.02, 1.09]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9849198868991518,
+      "capability": false
+     }
+    ]
+   },
+   {
+    "member": "son-groups",
+    "decision": "stays (rule 3: the full dispatch wins a regime)",
+    "rule11": [],
+    "regimes": [
+     {
+      "regime": "deepk-son (D1)",
+      "full": "3.77 [3.76, 3.82]",
+      "without": "3.80 [3.77, 3.95]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.007423117709438,
+      "capability": false
+     },
+     {
+      "regime": "dsl-son (D1)",
+      "full": "1091.21 [1085.16, 1092.05]",
+      "without": "1090.02 [1089.21, 1092.07]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9989039740106213,
+      "capability": false
+     },
+     {
+      "regime": "or005-son (D1)",
+      "full": "5.72 [5.45, 6.25]",
+      "without": "5.77 [5.71, 5.88]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 1.0094422101766043,
+      "capability": false
+     },
+     {
+      "regime": "skew-son (D1)",
+      "full": "18.83 [18.80, 18.98]",
+      "without": "21.84 [21.83, 22.11]",
+      "full_wins": true,
+      "without_wins": false,
+      "slowdown": 1.1601784481385096,
+      "capability": false
+     },
+     {
+      "regime": "wide-son (D1)",
+      "full": "1.06 [1.06, 1.08]",
+      "without": "1.01 [0.99, 1.07]",
+      "full_wins": false,
+      "without_wins": false,
+      "slowdown": 0.9500471253534402,
+      "capability": false
+     }
+    ]
+   }
+  ],
+  "G1": [
+   {
+    "decisions": {
+     "device": "wins dsl, dsl-str, dsl-wide, dslxl, sk2ml3",
+     "host": "wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (deepk: peak VRAM 1.44x without host; skew: peak VRAM 1.31x without host)",
+     "rebuilt": "wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (deepk: peak VRAM 1.30x without rebuilt; dsl-wide: peak VRAM 1.28x without rebuilt; or002: peak RSS 1.29x without rebuilt; or002-str: peak RSS 1.28x without rebuilt; skew: peak VRAM 1.31x without rebuilt)"
+    },
+    "regimes": [
+     {
+      "regime": "deepk",
+      "arms": {
+       "device": "C1-default: 0.17 [0.16, 0.17]",
+       "host": "C1-host: 1.02 [0.99, 1.04]",
+       "rebuilt": "C1-rebuilt: 0.60 [0.58, 0.60]"
+      },
+      "winner": null,
+      "guard": {
+       "host": "peak VRAM 1.44x without host",
+       "rebuilt": "peak VRAM 1.30x without rebuilt"
+      }
+     },
+     {
+      "regime": "dsl",
+      "arms": {
+       "device": "C1-default: 3.95 [3.90, 4.00]",
+       "host": "C1-host: 28.00 [27.93, 31.59]",
+       "rebuilt": "C1-rebuilt: 20.59 [20.47, 22.79]"
+      },
+      "winner": "device",
+      "guard": {
+       "device": "peak RSS 2.79x without device"
+      }
+     },
+     {
+      "regime": "dsl-str",
+      "arms": {
+       "device": "C1-coded: 18.30 [18.01, 18.50]",
+       "host": "C1-host: 30.56 [30.45, 32.91]",
+       "rebuilt": "C1-rebuilt: 56.28 [55.90, 57.49]"
+      },
+      "winner": "device",
+      "guard": {}
+     },
+     {
+      "regime": "dsl-wide",
+      "arms": {
+       "device": "C1-coded: 10.70 [10.49, 10.98]",
+       "host": "C1-host: 29.05 [28.46, 30.38]",
+       "rebuilt": "C1-rebuilt: 34.33 [33.29, 36.06]"
+      },
+      "winner": "device",
+      "guard": {
+       "rebuilt": "peak VRAM 1.28x without rebuilt"
+      }
+     },
+     {
+      "regime": "dslxl",
+      "arms": {
+       "device": "C1-default: 10.42 [10.05, 10.45]",
+       "host": "C1-host: 99.55 [99.09, 124.49]",
+       "rebuilt": "C1-rebuilt: 77.63 [68.64, 132.89]"
+      },
+      "winner": "device",
+      "guard": {
+       "device": "peak RSS 3.70x without device"
+      }
+     },
+     {
+      "regime": "oom2ml3",
+      "arms": {
+       "device": "C1-default: 0.36 [0.36, 0.38]",
+       "host": "C1-host: 1.71 [1.68, 1.72]",
+       "rebuilt": "C1-rebuilt: 1.12 [1.03, 1.22]"
+      },
+      "winner": null,
+      "guard": {
+       "device": "peak VRAM 1.98x without device"
+      }
+     },
+     {
+      "regime": "or002",
+      "arms": {
+       "device": "C1-default: 0.28 [0.27, 0.28]",
+       "host": "C1-host: 0.43 [0.38, 0.45]",
+       "rebuilt": "C1-rebuilt: 0.37 [0.32, 0.39]"
+      },
+      "winner": null,
+      "guard": {
+       "rebuilt": "peak RSS 1.29x without rebuilt"
+      }
+     },
+     {
+      "regime": "or002-str",
+      "arms": {
+       "device": "C1-coded: 0.40 [0.39, 0.51]",
+       "host": "C1-host: 0.43 [0.43, 0.45]",
+       "rebuilt": "C1-rebuilt: 0.54 [0.53, 0.64]"
+      },
+      "winner": null,
+      "guard": {
+       "rebuilt": "peak RSS 1.28x without rebuilt"
+      }
+     },
+     {
+      "regime": "sk2ml3",
+      "arms": {
+       "device": "C1-default: 1.72 [1.71, 1.74]",
+       "host": "C1-host: 5.99 [5.97, 6.00]",
+       "rebuilt": "C1-rebuilt: 3.51 [3.43, 3.53]"
+      },
+      "winner": "device",
+      "guard": {
+       "device": "peak RSS 1.28x without device"
+      }
+     },
+     {
+      "regime": "skew",
+      "arms": {
+       "device": "C1-default: 0.17 [0.17, 0.18]",
+       "host": "C1-host: 1.36 [1.31, 1.36]",
+       "rebuilt": "C1-rebuilt: 0.69 [0.68, 0.69]"
+      },
+      "winner": null,
+      "guard": {
+       "host": "peak VRAM 1.31x without host",
+       "rebuilt": "peak VRAM 1.31x without rebuilt"
+      }
+     }
+    ]
+   }
+  ],
+  "G2": [
+   {
+    "decisions": {
+     "lex": "wins dsl, dsl-free, dslxl",
+     "keep": "wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (dsl: peak VRAM 1.74x without keep; dslxl: peak VRAM 1.79x without keep)"
+    },
+    "regimes": [
+     {
+      "regime": "deepk",
+      "arms": {
+       "lex": "C1-default: 0.17 [0.16, 0.17]",
+       "keep": "C1-keep: 0.15 [0.15, 0.17]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "deepk20",
+      "arms": {
+       "lex": "C1-default: 4.96 [4.89, 4.96]",
+       "keep": "C1-keep: 4.09 [4.04, 4.11]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "dsl",
+      "arms": {
+       "lex": "C1-default: 3.95 [3.90, 4.00]",
+       "keep": "C1-keep: 10.03 [10.02, 10.04]"
+      },
+      "winner": "lex",
+      "guard": {
+       "keep": "peak VRAM 1.74x without keep"
+      }
+     },
+     {
+      "regime": "dsl-free",
+      "arms": {
+       "lex": "C1-default: 2.84 [2.71, 2.89]",
+       "keep": "C1-keep: 4.63 [4.59, 4.64]"
+      },
+      "winner": "lex",
+      "guard": {
+       "lex": "peak VRAM 1.85x without lex"
+      }
+     },
+     {
+      "regime": "dsl-infer",
+      "arms": {
+       "lex": "C1-default: 2.49 [2.48, 2.52]",
+       "keep": "C1-keep: 3.02 [2.99, 3.02]"
+      },
+      "winner": null,
+      "guard": {
+       "lex": "peak VRAM 1.85x without lex"
+      }
+     },
+     {
+      "regime": "dslxl",
+      "arms": {
+       "lex": "C1-default: 10.42 [10.05, 10.45]",
+       "keep": "C1-keep: 28.28 [28.21, 28.48]"
+      },
+      "winner": "lex",
+      "guard": {
+       "keep": "peak VRAM 1.79x without keep"
+      }
+     },
+     {
+      "regime": "oom2ml3",
+      "arms": {
+       "lex": "C1-default: 0.36 [0.36, 0.38]",
+       "keep": "C1-keep: 0.36 [0.35, 0.36]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "or002",
+      "arms": {
+       "lex": "C1-default: 0.28 [0.27, 0.28]",
+       "keep": "C1-keep: 0.28 [0.27, 0.29]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "or003",
+      "arms": {
+       "lex": "C1-default: 0.11 [0.10, 0.12]",
+       "keep": "C1-keep: 0.10 [0.09, 0.13]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "or005",
+      "arms": {
+       "lex": "C1-default: 0.06 [0.06, 0.06]",
+       "keep": "C1-keep: 0.05 [0.05, 0.06]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "sk2ml3",
+      "arms": {
+       "lex": "C1-default: 1.72 [1.71, 1.74]",
+       "keep": "C1-keep: 1.69 [1.68, 1.80]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "skew",
+      "arms": {
+       "lex": "C1-default: 0.17 [0.17, 0.18]",
+       "keep": "C1-keep: 0.17 [0.17, 0.17]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "smoke",
+      "arms": {
+       "lex": "C1-default: 0.05 [0.05, 0.06]",
+       "keep": "C1-keep: 0.05 [0.04, 0.05]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "wide",
+      "arms": {
+       "lex": "C1-default: 0.07 [0.07, 0.10]",
+       "keep": "C1-keep: 0.07 [0.07, 0.07]"
+      },
+      "winner": null,
+      "guard": {}
+     }
+    ]
+   }
+  ],
+  "G6": [
+   {
+    "decisions": {
+     "dense": "wins dsl, oom2ml3, sk2ml3",
+     "esco-auto": "wins no regime (rule 4: goes, subject to rule 9)",
+     "esco3": "wins no regime (rule 4: goes, subject to rule 9)"
+    },
+    "regimes": [
+     {
+      "regime": "deepk",
+      "arms": {
+       "dense": "C1-default: 0.17 [0.16, 0.17]",
+       "esco-auto": "C1-esco-auto: 0.32 [0.30, 0.33]",
+       "esco3": "C1-esco3: 0.48 [0.47, 0.48]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "dsl",
+      "arms": {
+       "dense": "C1-default: 3.95 [3.90, 4.00]",
+       "esco-auto": "C1-esco-auto: 7.93 [7.84, 7.99]",
+       "esco3": "C1-esco3: FAIL (error: TidsetFitError: dense\u2192sparse transition: the tidsets )"
+      },
+      "winner": "dense",
+      "guard": {
+       "dense": "peak VRAM 4.53x without dense"
+      }
+     },
+     {
+      "regime": "oom2ml3",
+      "arms": {
+       "dense": "C1-default: 0.36 [0.36, 0.38]",
+       "esco-auto": "C1-esco-auto: 18.68 [18.64, 19.05]",
+       "esco3": "C1-esco3: 18.71 [18.69, 18.74]"
+      },
+      "winner": "dense",
+      "guard": {
+       "dense": "peak VRAM 3.78x without dense"
+      }
+     },
+     {
+      "regime": "or002",
+      "arms": {
+       "dense": "C1-default: 0.28 [0.27, 0.28]",
+       "esco-auto": "C1-esco-auto: 0.48 [0.45, 0.49]",
+       "esco3": "C1-esco3: 0.45 [0.45, 0.46]"
+      },
+      "winner": null,
+      "guard": {
+       "dense": "peak VRAM 1.91x without dense"
+      }
+     },
+     {
+      "regime": "or003",
+      "arms": {
+       "dense": "C1-default: 0.11 [0.10, 0.12]",
+       "esco-auto": "C1-esco-auto: 0.12 [0.12, 0.12]",
+       "esco3": "C1-esco3: 0.12 [0.12, 0.12]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "sk2ml3",
+      "arms": {
+       "dense": "C1-default: 1.72 [1.71, 1.74]",
+       "esco-auto": "C1-esco-auto: 136.00 [135.62, 136.29]",
+       "esco3": "C1-esco3: 135.99 [135.66, 136.16]"
+      },
+      "winner": "dense",
+      "guard": {}
+     },
+     {
+      "regime": "skew",
+      "arms": {
+       "dense": "C1-default: 0.17 [0.17, 0.18]",
+       "esco-auto": "C1-esco-auto: 0.31 [0.29, 0.31]",
+       "esco3": "C1-esco3: 0.59 [0.57, 0.59]"
+      },
+      "winner": null,
+      "guard": {}
+     }
+    ]
+   }
+  ],
+  "C3": [
+   {
+    "decisions": {
+     "cpu": "wins deepk20, or0001k2, or002, or003",
+     "rust": "wins deepk, dsl, skew"
+    },
+    "regimes": [
+     {
+      "regime": "deepk",
+      "arms": {
+       "cpu": "F1-default: 2.68 [2.54, 2.80]",
+       "rust": "R1-default: 0.89 [0.88, 0.93]"
+      },
+      "winner": "rust",
+      "guard": {
+       "cpu": "peak RSS 1.44x without cpu"
+      }
+     },
+     {
+      "regime": "deepk20",
+      "arms": {
+       "cpu": "F1-default: 65.41 [65.02, 67.18]",
+       "rust": "R1-default: FAIL (timeout)"
+      },
+      "winner": "cpu",
+      "guard": {
+       "cpu": "cpu ran where no other path did"
+      }
+     },
+     {
+      "regime": "dsl",
+      "arms": {
+       "cpu": "F1-default: FAIL (timeout)",
+       "rust": "R1-default: 226.83 [225.75, 227.70]"
+      },
+      "winner": "rust",
+      "guard": {
+       "rust": "rust ran where no other path did"
+      }
+     },
+     {
+      "regime": "or0001k2",
+      "arms": {
+       "cpu": "F1-default: 0.74 [0.69, 0.75]",
+       "rust": "R1-default: 18.10 [17.82, 18.12]"
+      },
+      "winner": "cpu",
+      "guard": {
+       "cpu": "peak RSS 1.47x without cpu"
+      }
+     },
+     {
+      "regime": "or002",
+      "arms": {
+       "cpu": "F1-default: 6.58 [6.44, 7.00]",
+       "rust": "R1-default: 93.61 [93.37, 95.65]"
+      },
+      "winner": "cpu",
+      "guard": {}
+     },
+     {
+      "regime": "or003",
+      "arms": {
+       "cpu": "F1-default: 1.38 [1.35, 1.47]",
+       "rust": "R1-default: 3.31 [3.28, 3.40]"
+      },
+      "winner": "cpu",
+      "guard": {}
+     },
+     {
+      "regime": "or005",
+      "arms": {
+       "cpu": "F1-default: 0.39 [0.39, 0.47]",
+       "rust": "R1-default: 0.37 [0.35, 0.41]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "skew",
+      "arms": {
+       "cpu": "F1-default: 2.63 [2.59, 2.71]",
+       "rust": "R1-default: 1.04 [1.00, 1.05]"
+      },
+      "winner": "rust",
+      "guard": {}
+     },
+     {
+      "regime": "smoke",
+      "arms": {
+       "cpu": "F1-default: 0.09 [0.09, 0.11]",
+       "rust": "R1-default: 0.03 [0.03, 0.03]"
+      },
+      "winner": null,
+      "guard": {}
+     },
+     {
+      "regime": "wide",
+      "arms": {
+       "cpu": "F1-default: 0.39 [0.38, 0.45]",
+       "rust": "R1-default: 0.60 [0.58, 0.66]"
+      },
+      "winner": null,
+      "guard": {}
+     }
+    ]
+   }
+  ],
+  "S1": [
+   {
+    "decisions": {
+     "cpu": "wins no regime; stays (rule 9: SON is never removed as a strategy)",
+     "boolean": "wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (dsl-son: peak VRAM 1.89x without boolean; dslxl-son: peak VRAM 2.02x without boolean)",
+     "ported": "wins deepk-son, dsl-son, dslxl-son"
+    },
+    "regimes": [
+     {
+      "regime": "deepk-son",
+      "arms": {
+       "cpu": "D1-default: 3.77 [3.76, 3.82]",
+       "boolean": "D1-boolean: 3.71 [3.68, 3.76]",
+       "ported": "D1-ported: 0.43 [0.36, 0.46]"
+      },
+      "winner": "ported",
+      "guard": {
+       "cpu": "peak RSS 1.52x without cpu"
+      }
+     },
+     {
+      "regime": "dsl-son",
+      "arms": {
+       "cpu": "D1-default: 1091.21 [1085.16, 1092.05]",
+       "boolean": "D1-boolean: 176.25 [175.65, 176.42]",
+       "ported": "D1-ported: 8.08 [8.04, 8.20]"
+      },
+      "winner": "ported",
+      "guard": {
+       "boolean": "peak VRAM 1.89x without boolean",
+       "ported": "peak RSS 2.01x without ported"
+      }
+     },
+     {
+      "regime": "dslxl-son",
+      "arms": {
+       "boolean": "D1-boolean: 504.07 [486.86, 506.98]",
+       "ported": "D1-ported: 14.87 [14.74, 14.96]"
+      },
+      "winner": "ported",
+      "guard": {
+       "boolean": "peak VRAM 2.02x without boolean",
+       "ported": "peak RSS 2.46x without ported"
+      }
+     }
+    ]
+   }
+  ],
+  "S2": [
+   {
+    "decisions": {
+     "boolean": "wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (deepk-son (2 GPUs): peak VRAM 1.84x without boolean)",
+     "ported": "wins deepk-son (2 GPUs), dsl-son (2 GPUs), dslxl-son (2 GPUs)"
+    },
+    "regimes": [
+     {
+      "regime": "deepk-son (2 GPUs)",
+      "arms": {
+       "boolean": "E2-boolean: 3.29 [3.17, 3.38]",
+       "ported": "E2-ported: 1.15 [1.11, 1.23]"
+      },
+      "winner": "ported",
+      "guard": {
+       "boolean": "peak VRAM 1.84x without boolean"
+      }
+     },
+     {
+      "regime": "dsl-son (2 GPUs)",
+      "arms": {
+       "boolean": "E2-boolean: 118.75 [118.29, 118.79]",
+       "ported": "E2-ported: 7.93 [7.70, 8.21]"
+      },
+      "winner": "ported",
+      "guard": {
+       "ported": "peak VRAM 1.75x without ported"
+      }
+     },
+     {
+      "regime": "dslxl-son (2 GPUs)",
+      "arms": {
+       "boolean": "E2-boolean: 305.89 [298.90, 306.49]",
+       "ported": "E2-ported: 12.68 [12.50, 12.94]"
+      },
+      "winner": "ported",
+      "guard": {
+       "ported": "peak VRAM 1.52x without ported"
+      }
+     }
+    ]
+   }
+  ],
+  "G7": [
+   {
+    "decisions": {
+     "prune": "wins oom2ml3 (C1), sk2ml3 (C1)",
+     "noprune": "wins no regime (rule 4)"
+    },
+    "regimes": [
+     {
+      "regime": "deepk (C1)",
+      "arms": {
+       "prune": "0.17 [0.16, 0.17]",
+       "noprune": "0.17 [0.15, 0.17]"
+      },
+      "winner": null
+     },
+     {
+      "regime": "dsl (C1)",
+      "arms": {
+       "prune": "3.95 [3.90, 4.00]",
+       "noprune": "3.71 [3.69, 3.71]"
+      },
+      "winner": null
+     },
+     {
+      "regime": "oom2ml3 (C1)",
+      "arms": {
+       "prune": "0.36 [0.36, 0.38]",
+       "noprune": "27.21 [27.18, 27.22]"
+      },
+      "winner": "prune"
+     },
+     {
+      "regime": "or002 (C1)",
+      "arms": {
+       "prune": "0.28 [0.27, 0.28]",
+       "noprune": "0.21 [0.18, 0.21]"
+      },
+      "winner": null
+     },
+     {
+      "regime": "sk2ml3 (C1)",
+      "arms": {
+       "prune": "1.72 [1.71, 1.74]",
+       "noprune": "628.70 [627.25, 629.65]"
+      },
+      "winner": "prune"
+     }
+    ]
+   }
+  ]
+ }
+}

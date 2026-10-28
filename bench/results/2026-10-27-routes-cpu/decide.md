@@ -110,20 +110,20 @@
 
 ## G1
 
-- **device**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **host**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **rebuilt**: wins no regime (rule 4: goes, subject to rules 7 and 9)
+- **device**: wins no regime (rule 4: goes, subject to rule 9)
+- **host**: wins no regime (rule 4: goes, subject to rule 9)
+- **rebuilt**: wins no regime (rule 4: goes, subject to rule 9)
 
 ## G2
 
-- **lex**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **keep**: wins no regime (rule 4: goes, subject to rules 7 and 9)
+- **lex**: wins no regime (rule 4: goes, subject to rule 9)
+- **keep**: wins no regime (rule 4: goes, subject to rule 9)
 
 ## G6
 
-- **dense**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **esco-auto**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **esco3**: wins no regime (rule 4: goes, subject to rules 7 and 9)
+- **dense**: wins no regime (rule 4: goes, subject to rule 9)
+- **esco-auto**: wins no regime (rule 4: goes, subject to rule 9)
+- **esco3**: wins no regime (rule 4: goes, subject to rule 9)
 
 ## C3
 
@@ -145,14 +145,14 @@
 
 ## S1
 
-- **cpu**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **boolean**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **ported**: wins no regime (rule 4: goes, subject to rules 7 and 9)
+- **cpu**: wins no regime; stays (rule 9: SON is never removed as a strategy)
+- **boolean**: wins no regime (rule 4: goes, subject to rule 9)
+- **ported**: wins no regime (rule 4: goes, subject to rule 9)
 
 ## S2
 
-- **boolean**: wins no regime (rule 4: goes, subject to rules 7 and 9)
-- **ported**: wins no regime (rule 4: goes, subject to rules 7 and 9)
+- **boolean**: wins no regime (rule 4: goes, subject to rule 9)
+- **ported**: wins no regime (rule 4: goes, subject to rule 9)
 
 ## G7
 

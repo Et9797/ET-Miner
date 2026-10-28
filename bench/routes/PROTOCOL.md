@@ -225,3 +225,18 @@ digest (`runner._git_rev`). No tracked file is edited and nothing is committed w
   support, so it checks none and rests on its signature, equal across arms.
 - The census is a harness check and is not budgeted. Everything else Phase 2b runs counts against the
   GPU-hours (the H dumps and R5's timing at one device each; R2 and R4 time host code but run in 2b).
+
+## Owner decisions after the measurements (2026-10-28)
+
+Taken on the Phase 2a and 2b rows (`bench/results/2026-10-27-routes-gpu/FINDINGS.md`); they change no row.
+
+1. **Rule 7 floor.** A peak VRAM or RSS rise blocks a removal only when it is both above 1.25x and at least
+   1 GB (`decide.RISE_FLOOR_MB`): rises of 46-58 MB of VRAM or 0.2 GB of RSS (G1 host and rebuilt, S2
+   boolean) do not block.
+2. **S1.** SON's boolean GPU passes go although the ported skeleton peaks 2.0x (+1.7 GB) VRAM on dslxl-son:
+   ported is 22-34x faster and peaks 2.5x less RSS; its VRAM scales with `chunk_size`.
+3. **G2.** `keep` stays as the named fallback of the lex row order, chosen when the lex order does not fit
+   (lex peaks +3.2 GB VRAM on dslxl); the `ET_MINER_ROW_ORDER` pin goes.
+4. **C3.** `apriori_from_csr` stays: without it the CPU route fails dsl (timeout) where Rust mines it in
+   227 s (rule 7), although the geomean favours the CPU route.
+

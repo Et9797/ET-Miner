@@ -214,8 +214,8 @@
 ## G1
 
 - **device**: wins dsl, dsl-str, dsl-wide, dslxl, sk2ml3
-- **host**: wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (deepk: peak VRAM 1.44x without host; skew: peak VRAM 1.31x without host)
-- **rebuilt**: wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (deepk: peak VRAM 1.30x without rebuilt; dsl-wide: peak VRAM 1.28x without rebuilt; or002: peak RSS 1.29x without rebuilt; or002-str: peak RSS 1.28x without rebuilt; skew: peak VRAM 1.31x without rebuilt)
+- **host**: wins no regime (rule 4: goes, subject to rule 9)
+- **rebuilt**: wins no regime (rule 4: goes, subject to rule 9)
 
 | regime | device | host | rebuilt | winner |
 |---|---|---|---|---|
@@ -233,7 +233,7 @@
 ## G2
 
 - **lex**: wins dsl, dsl-free, dslxl
-- **keep**: wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (dsl: peak VRAM 1.74x without keep; dslxl: peak VRAM 1.79x without keep)
+- **keep**: wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (dsl: peak VRAM 1.74x (+1.1 GB) without keep; dslxl: peak VRAM 1.79x (+3.2 GB) without keep)
 
 | regime | lex | keep | winner |
 |---|---|---|---|
@@ -289,7 +289,7 @@
 ## S1
 
 - **cpu**: wins no regime; stays (rule 9: SON is never removed as a strategy)
-- **boolean**: wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (dsl-son: peak VRAM 1.89x without boolean; dslxl-son: peak VRAM 2.02x without boolean)
+- **boolean**: wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (dslxl-son: peak VRAM 2.02x (+1.7 GB) without boolean)
 - **ported**: wins deepk-son, dsl-son, dslxl-son
 
 | regime | cpu | boolean | ported | winner |
@@ -300,7 +300,7 @@
 
 ## S2
 
-- **boolean**: wins no regime (rule 4: goes, subject to rule 9); BLOCKED by rule 7 (deepk-son (2 GPUs): peak VRAM 1.84x without boolean)
+- **boolean**: wins no regime (rule 4: goes, subject to rule 9)
 - **ported**: wins deepk-son (2 GPUs), dsl-son (2 GPUs), dslxl-son (2 GPUs)
 
 | regime | boolean | ported | winner |

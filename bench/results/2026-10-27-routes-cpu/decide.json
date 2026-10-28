@@ -122,7 +122,7 @@
       "full_wins": false,
       "without_wins": false,
       "slowdown": 1.7659033078880406,
-      "capability": true
+      "capability": false
      },
      {
       "regime": "skew (F1)",
@@ -149,7 +149,7 @@
       "full_wins": true,
       "without_wins": false,
       "slowdown": 7.166233766233765,
-      "capability": true
+      "capability": false
      }
     ]
    },
@@ -583,9 +583,7 @@
        "rust": "R1-default: 0.89 [0.88, 0.93]"
       },
       "winner": "rust",
-      "guard": {
-       "cpu": "peak RSS 1.44x without cpu"
-      }
+      "guard": {}
      },
      {
       "regime": "deepk20",
@@ -616,9 +614,7 @@
        "rust": "R1-default: 18.10 [17.82, 18.12]"
       },
       "winner": "cpu",
-      "guard": {
-       "cpu": "peak RSS 1.47x without cpu"
-      }
+      "guard": {}
      },
      {
       "regime": "or002",

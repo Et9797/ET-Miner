@@ -46,6 +46,9 @@ LEAVE_ONE_OUT = {
 }
 #: A path whose peak VRAM stays below this used no GPU memory of its own (rule 7 compares RSS only).
 GPU_FLOOR_MB = 64
+#: Rule 7's memory guard counts a rise only above this absolute amount as well as 1.25x (owner, 2026-10-28,
+#: after Phase 2b: 46-58 MB of VRAM or 0.2 GB of RSS does not block a removal).
+RISE_FLOOR_MB = 1024
 #: Paths rule 9 keeps whatever their head-to-head says: SON on the CPU is the CPU route's streaming strategy.
 RULE_9 = {("S1", "cpu")}
 #: Head-to-head decision points: DP -> {path: [arm labels that run it]} (route tag + name, no GPU count).
@@ -171,9 +174,9 @@ def leave_one_out(table: dict, dp: str) -> list[dict]:
                     "full_wins": wins(c_full, c_without), "without_wins": wins(c_without, c_full),
                     "slowdown": (c_without.median / c_full.median) if c_full.ok and c_without.ok else None,
                     "capability": (not c_without.ok and c_full.ok) or (
-                        c_full.ok and c_without.ok and (
-                            max(c_without.vram) > 1.25 * max(c_full.vram) + 1
-                            or max(c_without.rss) > 1.25 * max(c_full.rss) + 1)),
+                        c_full.ok and c_without.ok and any(
+                            max(w) > 1.25 * max(f) + 1 and max(w) - max(f) >= RISE_FLOOR_MB
+                            for w, f in ((c_without.vram, c_full.vram), (c_without.rss, c_full.rss)))),
                 })
         if not regimes:
             out.append({"member": member, "decision": "no regime ran", "regimes": []})
@@ -203,8 +206,8 @@ def _guard(path: str, c: Cell, replacement: Cell | None) -> str | None:
     for what, mine, theirs in (("VRAM", c.vram, replacement.vram), ("RSS", c.rss, replacement.rss)):
         if what == "VRAM" and max(mine) < GPU_FLOOR_MB:
             continue  # a CPU path: its "VRAM" is the context of other processes, no capability to lose
-        if max(theirs) > 1.25 * max(mine) + 1:
-            return f"peak {what} {max(theirs) / max(max(mine), 1):.2f}x without {path}"
+        if max(theirs) > 1.25 * max(mine) + 1 and max(theirs) - max(mine) >= RISE_FLOOR_MB:
+            return f"peak {what} {max(theirs) / max(max(mine), 1):.2f}x (+{(max(theirs) - max(mine)) / 1024:.1f} GB) without {path}"
     return None
 
 

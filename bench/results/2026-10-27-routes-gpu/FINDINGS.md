@@ -69,15 +69,16 @@ boolean SON peaks 18.3 / 25.6 GB RSS on dslxl-son 1 / 2 GPUs (ported 7.4 / 7.8 G
    before any allocation, with advice. ESCO goes by G6 either way.
 8. (nice) `cargo clippy -- -D warnings`: 2 errors on main (div_ceil, complex type), unchanged.
 
-## Waiting for the owner
+## Owner decisions (2026-10-28)
 
-1. Rule 7 on small absolute rises: apply as written (host, rebuilt, boolean SON stay as named fallbacks),
-   or add a floor so 58 MB of VRAM or 0.2 GB of RSS does not block a removal.
-2. G2 keep: lex costs 3.2 GB more VRAM on dslxl and is 2.7x faster there. Keep `keep` as the fallback
-   for inputs whose lex order does not fit, port a bounded lex (<= ~150 lines), or drop it.
-3. C3: Rust wins 3 regimes and loses 4; the geomean favours the CPU route, but without Rust the CPU route
-   fails dsl (timeout) where Rust mines it in 227 s (rule 7).
-4. H: extra GPU budget for the Rust host-role microbenchmarks (estimate 0.3-0.5 GPU-hours), or decide
-   H without them.
-5. G6 and G7 remove public parameters (`sparse_from_k` and the sparse CSR path; `prune_apriori`). The rule
-   says both go; confirm the API removal.
+1. Rule 7 counts a memory rise only at >= 1 GB as well as > 1.25x: G1 host and rebuilt go, S2 boolean goes.
+2. S1 boolean goes (accepted: ported +1.7 GB VRAM on dslxl-son, -10.9 GB RSS, 34x faster).
+3. G2 `keep` stays as the named fallback of lex, chosen when lex does not fit; the env pin goes.
+4. C3: `apriori_from_csr` stays (rule 7 on dsl). Finding 2 (the CPU route on dsl) is the follow-up.
+
+## Still open
+
+1. H: extra GPU budget for the Rust host-role microbenchmarks (estimate 0.3-0.5 GPU-hours), or decide H
+   without them.
+2. G6 and G7 remove public parameters (`sparse_from_k` and the sparse CSR path; `prune_apriori`). The rule
+   says both go; the API removal needs the owner's word.

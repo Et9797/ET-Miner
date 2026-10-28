@@ -291,17 +291,6 @@ def _coded_items(column: pl.Series) -> tuple[pl.Series, pl.Series]:
     return column.list.eval(pl.element().replace_strict(items, ranks, default=None)), items
 
 
-def _rebuilt_csr(lf: pl.LazyFrame, min_support: float, item_col: str, check_items) -> tuple | None:
-    """``_build_csr_from_transactions``'s answer from ``cpu_miner.build_transaction_csr``."""
-    from .cpu_miner import build_transaction_csr
-
-    tc = build_transaction_csr(lf, min_support, item_col)
-    if tc is None:
-        return None
-    check_items(tc.items)
-    return tc.to_scipy(), dict(enumerate(tc.items.to_list())), tc.n_rows
-
-
 def _release_cached_blocks(n_gpus: int, device: int = 0) -> None:
     """Hand CuPy's cached blocks back to the driver on the devices a GPU run uses.
 
@@ -652,8 +641,12 @@ def apriori(
                     "without those options."
                 )
 
+        # Input layer: the device layer for the integer ids it serves; any other column coded to integer ids
+        # (Polars, item order) and mined there too; the host CSR only where neither can (more distinct items
+        # than INT_SPAN_LIMIT, or output_dir / resume_from_k / anchor_items on a column the device layer does
+        # not serve), or when ET_MINER_INPUT_LAYER=host pins it.
         layer = _env.input_layer()
-        if layer not in ("host", "rebuilt") and item_dtype in _INT64_ITEM_DTYPES:
+        if layer != "host" and item_dtype in _INT64_ITEM_DTYPES:
             from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
 
             column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
@@ -692,7 +685,7 @@ def apriori(
                 )
             lf = column.to_frame().lazy()
 
-        if layer == "coded" and not stores:
+        if layer != "host" and not stores:
             from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
 
             from .cpu_miner import INT_SPAN_LIMIT
@@ -733,10 +726,7 @@ def apriori(
                     return _as_item_dtype(result, items, column_ids=True)
             lf = column.to_frame().lazy()
 
-        if layer == "rebuilt":
-            csr_result = _rebuilt_csr(lf, min_support, item_col, stores_ids)
-        else:
-            csr_result = _build_csr_from_transactions(lf, min_support, item_col, check_items=stores_ids)
+        csr_result = _build_csr_from_transactions(lf, min_support, item_col, check_items=stores_ids)
         if csr_result is None:
             if profile:
                 return _empty_result(item_dtype), ProfilingSession()

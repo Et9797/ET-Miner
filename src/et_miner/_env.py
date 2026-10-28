@@ -119,19 +119,15 @@ Variables:
                                        the item ids to the GPUs and builds
                                        the K=1 counts, the bitvectors and
                                        the row-wise K=2 rows there
-                                       (et_miner.gpu.input_layer); it
-                                       serves integer ids spanning at most
-                                       2**22 values, and any other column
-                                       takes the host CSR whatever the pin.
-                                       Bench only: "rebuilt" builds the host
-                                       CSR with core.cpu_miner.
-                                       build_transaction_csr for every
-                                       column; "coded" codes a column the
-                                       device layer does not serve to
-                                       integer ids in item order (Polars)
-                                       and mines it on the device layer,
-                                       without output_dir, resume_from_k
-                                       or anchor_items.
+                                       (et_miner.gpu.input_layer); integer
+                                       ids spanning at most 2**22 values go
+                                       as they are, any other column coded
+                                       to integer ids in item order, and
+                                       the host CSR takes what neither
+                                       serves (more distinct items than
+                                       2**22, or output_dir, resume_from_k
+                                       or anchor_items on such a column).
+                                       "host" pins the host CSR.
                                        Unset: device where it serves
     ET_MINER_ROW_ORDER                 "keep" or "lex": the device input
                                        layer's row order. "lex" sorts each
@@ -340,7 +336,7 @@ def reduce_mode() -> str | None:
     return v
 
 
-INPUT_LAYERS = ("host", "device", "rebuilt", "coded")
+INPUT_LAYERS = ("host", "device")
 
 
 def input_layer() -> str | None:

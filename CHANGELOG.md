@@ -39,6 +39,15 @@ unchanged: every removal kept the tier-equivalence chain exact.
 - **GPU K=2:** a pair space within one chunk is always tiled (per-candidate
   K=2 stays for the multi-GPU sub-chunks), and row-wise K=2 runs on global
   atomics only (`count_pairs_k2_rows_shared` is gone).
+- **The GPU route mines every item column on the device input layer.** A
+  column it did not serve (strings, floats, categoricals, integer ids spanning
+  more than 2**22 values) used to take the host CSR; it is now coded to integer
+  ids in item order by Polars and mined on the device layer (dsl as strings
+  18.3 s against 30.6 s, dsl with ids spread over Int64 10.7 s against 29.1 s).
+  The host CSR remains the fallback where the coded layer cannot serve (more
+  distinct items than 2**22, or `output_dir` / `resume_from_k` /
+  `anchor_items` on such a column) and under `ET_MINER_INPUT_LAYER=host`.
+  The bench-only `rebuilt` and `coded` values of that variable are gone.
 - **SON on the GPU runs the CPU passes' array skeleton only** (the partition
   bound over an array union; each chunk mined by the row-split miner, pass 2
   counted with the batched kernel, row-split over `n_gpus`). The per-chunk

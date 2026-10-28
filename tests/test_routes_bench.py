@@ -159,3 +159,11 @@ def test_a_cpu_path_is_not_guarded_on_vram_and_cpu_son_stays(tmp_path):
     (s1,) = decide.head_to_head(table, "S1")
     assert "rule 9" in s1["decisions"]["cpu"]
     assert "BLOCKED by rule 7" in s1["decisions"]["boolean"] and "VRAM 2.00x" in s1["decisions"]["boolean"]
+
+
+def test_the_final_matrix_joins_phase_2_by_id_and_pins_nothing():
+    final = routes_matrix.build_routes_matrix("routes-final", 2)
+    phase2 = {c["base_id"] for mode in ("routes", "routes-cpu") for c in routes_matrix.build_routes_matrix(mode, 2)}
+    assert {c["base_id"] for c in final} <= phase2
+    assert not [c["id"] for c in final if any(k.startswith("ET_MINER") for k in c["env"]) or c["overrides"]]
+    assert len({c["id"] for c in final}) == len(final)

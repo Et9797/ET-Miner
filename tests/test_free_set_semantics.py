@@ -228,22 +228,22 @@ def _gpu_count() -> int:
         return 0
 
 
-#: (prune_apriori, use_generator_pruning): no subset test, the subset test, and count inference.
-SUBSET_TEST = [(False, False), (True, False), (True, True)]
+#: use_generator_pruning: the subset test alone, and with count inference.
+INFER = [False, True]
 
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, 2])
 @pytest.mark.parametrize("prune", [False, True])
 @pytest.mark.parametrize("sparse_from_k", [None, 3, "auto"])
-@pytest.mark.parametrize("subset_test", SUBSET_TEST)
-def test_row_split_matches_the_reference(n_gpus, prune, sparse_from_k, subset_test):
+@pytest.mark.parametrize("infer", INFER)
+def test_row_split_matches_the_reference(n_gpus, prune, sparse_from_k, infer):
     if n_gpus > _gpu_count():
         pytest.skip(f"needs {n_gpus} GPUs")
     df, matrix = _fixture()
     counts, free = _brute_force(matrix)
     mined = _mined(df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=prune, sparse_from_k=sparse_from_k,
-                   prune_apriori=subset_test[0], use_generator_pruning=subset_test[1])
+                   use_generator_pruning=infer)
     assert set(mined) == (free if prune else set(counts))
     assert all(mined[c] == pytest.approx(counts[c] / len(matrix), abs=1e-12) for c in mined)
     _assert_emit_equals_generate(mined)
@@ -269,30 +269,28 @@ def _efficient_apriori_free_sets(df: pl.DataFrame, n_rows: int):
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, 2])
 @pytest.mark.parametrize("sparse_from_k", [None, 3])
-@pytest.mark.parametrize("subset_test", SUBSET_TEST[:2])
-def test_free_sets_match_the_efficient_apriori_lattice(n_gpus, sparse_from_k, subset_test):
+def test_free_sets_match_the_efficient_apriori_lattice(n_gpus, sparse_from_k):
     """The free-sets of a GPU run equal those derived from the oracle's complete lattice."""
     if n_gpus > _gpu_count():
         pytest.skip(f"needs {n_gpus} GPUs")
     df, matrix = _fixture()
     counts, free = _efficient_apriori_free_sets(df, len(matrix))
     assert len(free) < len(counts), "fixture must actually exercise the prune"
-    mined = _mined(df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=True, sparse_from_k=sparse_from_k,
-                   prune_apriori=subset_test[0])
+    mined = _mined(df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=True, sparse_from_k=sparse_from_k)
     assert set(mined) == free, f"extra: {sorted(set(mined) - free)[:3]} missing: {sorted(free - set(mined))[:3]}"
     assert all(round(mined[c] * len(matrix)) == counts[c] for c in mined)
 
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("prune", [False, True])
-@pytest.mark.parametrize("subset_test", SUBSET_TEST)
-def test_row_split_matches_the_reference_across_chunks(monkeypatch, prune, subset_test):
+@pytest.mark.parametrize("infer", INFER)
+def test_row_split_matches_the_reference_across_chunks(monkeypatch, prune, infer):
     """Several candidate chunks per level must not change the answer."""
     monkeypatch.setenv("ET_MINER_MAX_CHUNK_CANDS", "37")
     df, matrix = _fixture()
     counts, free = _brute_force(matrix)
     mined = _mined(df, use_gpu=True, n_gpus=min(2, _gpu_count()), prune_equal_support=prune,
-                   prune_apriori=subset_test[0], use_generator_pruning=subset_test[1])
+                   use_generator_pruning=infer)
     assert set(mined) == (free if prune else set(counts))
 
 
@@ -343,7 +341,7 @@ def _hidden_witness_fixture():
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("n_gpus", [1, 2])
-@pytest.mark.parametrize("path", ["dispatch", "tiled", "per-candidate", "group", "no index", "no subset test", "esco"])
+@pytest.mark.parametrize("path", ["dispatch", "tiled", "per-candidate", "group", "no index", "esco"])
 def test_free_sets_with_hidden_witnesses(monkeypatch, n_gpus, path):
     """{1, 2, 3, 4} must not be emitted on any path: the tiled kernels count it
     whenever its tile-pair holds a pair to count ({1, 2, 3, 5}), a level whose
@@ -369,8 +367,6 @@ def test_free_sets_with_hidden_witnesses(monkeypatch, n_gpus, path):
         monkeypatch.setenv("ET_MINER_SMALL_GROUP_KERNEL", "group")
     elif path == "no index":
         monkeypatch.setattr(row_split, "_device_available_bytes", lambda did: (0, 1 << 34))
-    elif path == "no subset test":
-        kwargs["prune_apriori"] = False
     elif path == "esco":
         kwargs["sparse_from_k"] = 3
     assert set(_mined(df, use_gpu=True, n_gpus=n_gpus, prune_equal_support=True, **kwargs)) == free

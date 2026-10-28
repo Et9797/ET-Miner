@@ -12,9 +12,8 @@ Guidance for Claude Code when working in this repository.
   Tier 1 Polars == Tier 2 Rust (`apriori_from_csr`) == row-split 1 GPU ==
   row-split 1 GPU, tiled kernel pinned == row-split 1 GPU, per-candidate
   kernel pinned ==
-  row-split 1 GPU, group kernel pinned (plain / forced chunks / count inference / no subset test) ==
+  row-split 1 GPU, group kernel pinned (plain / forced chunks / count inference) ==
   row-split 1 GPU, forced chunks (fused tiled) ==
-  row-split 1 GPU, no subset test (`prune_apriori=False`) ==
   row-split 1 GPU, count inference (dispatch / tiled / per-candidate / forced chunks; deduction bounds on / off) ==
   row-split 1 GPU, row-wise K=2 (plain / forced chunks; by the r dispatch) ==
   row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain / forced chunks) ==

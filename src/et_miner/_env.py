@@ -87,9 +87,9 @@ Variables:
                                        candidate the subset test admits
                                        (the triangles of the frequent-pair
                                        graph; et_miner.gpu.kernels.k3_rows);
-                                       it needs the transactions input,
-                                       prune_apriori, a dense level and
-                                       rows of at most 64 active items, and
+                                       it needs the transactions input, a
+                                       dense level and rows of at most 64
+                                       active items, and
                                        counts from the bitvectors otherwise.
                                        Unset: rows below the measured
                                        crossover in r3 = Σ_rows C(len, 2) /

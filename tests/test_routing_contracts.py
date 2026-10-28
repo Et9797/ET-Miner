@@ -317,15 +317,12 @@ class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
 
 
 class TestPruneApriori:
-    """prune_apriori=False is honoured by the row-split miner alone and refused elsewhere."""
+    """prune_apriori=False is removed on every route; True is the only (default) behaviour."""
 
-    def test_false_is_refused_off_the_row_split_miner(self, df):
-        with pytest.raises(ValueError, match="requires the row-split miner"):
-            apriori(df, min_support=0.05, prune_apriori=False)
-
-    def test_false_is_refused_on_son(self, df):
-        with pytest.raises(ValueError, match="requires the row-split miner"):
-            apriori(df, min_support=0.05, prune_apriori=False, streaming=True, chunk_size=10)
+    @pytest.mark.parametrize("kw", [{}, {"streaming": True, "chunk_size": 10}])
+    def test_false_raises(self, df, kw):
+        with pytest.raises(ValueError, match="prune_apriori=False was removed"):
+            apriori(df, min_support=0.05, prune_apriori=False, **kw)
 
     def test_non_bool_raises(self, df):
         with pytest.raises(TypeError, match="prune_apriori must be bool"):

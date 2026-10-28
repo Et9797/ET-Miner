@@ -9,7 +9,6 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 1 GPU, group kernel pinned (plain, forced chunks, count inference, no subset
            test)
         == row-split 1 GPU, forced chunks (the fused tiled kernel)
-        == row-split 1 GPU, no subset test
         == row-split 1 GPU, count inference (measured dispatch, tiled, per-candidate,
            forced chunks; with and without the deduction bounds)
         == row-split 1 GPU, row-wise K=2 (plain / forced chunks; and selected by the r dispatch)
@@ -52,7 +51,7 @@ its crossover raised), ET_MINER_INPUT_LAYER pins the host CSR or the device inpu
 the device layer, so every unpinned leg runs on it), and a chunk_size below the row count forces
 SON to four chunks.
 Every row-split leg also asserts which previous-level index its K>=3 levels
-were given: the subset test by default, none with ``prune_apriori=False``, and
+were given: the subset test by default, and
 the inferring index, written by exactly one device per level, with
 ``use_generator_pruning=True``.
 
@@ -394,7 +393,7 @@ def test_row_split_one_gpu_per_candidate_matches_oracle(smoke_dataset, oracle_se
 
 
 @pytest.mark.gpu
-@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference", "no subset test"])
+@pytest.mark.parametrize("variant", ["plain", "forced chunks", "count inference"])
 def test_row_split_one_gpu_group_kernel_matches_oracle(smoke_dataset, oracle_set, monkeypatch, variant):
     """The group kernel for every prefix group of at most 64 suffixes; with forced chunks a group
     beyond one chunk runs per-candidate sub-chunks (and the K=2 pair space fused)."""
@@ -405,8 +404,6 @@ def test_row_split_one_gpu_group_kernel_matches_oracle(smoke_dataset, oracle_set
         pins = {"runs": ("count_group_pairs", "count_k3plus_per_candidate")}
     elif variant == "count inference":
         kwargs = {"index_mode": "infer", "use_generator_pruning": True}
-    elif variant == "no subset test":
-        kwargs = {"index_mode": None, "prune_apriori": False}
     _gpu_leg(
         smoke_dataset, oracle_set, monkeypatch, f"row-split 1 GPU, group kernel ({variant})", env, **pins, **kwargs
     )
@@ -418,12 +415,6 @@ def test_row_split_one_gpu_forced_chunks_matches_oracle(smoke_dataset, oracle_se
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, forced chunks",
              {"ET_MINER_MAX_CHUNK_CANDS": _TINY_CHUNK, "ET_MINER_TILED_MIN_GROUP_PAIRS": "0"},
              runs=("count_tiled_fused",), never=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"))
-
-
-@pytest.mark.gpu
-def test_row_split_one_gpu_without_subset_test_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
-    _gpu_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, no subset test", {}, index_mode=None,
-             prune_apriori=False)
 
 
 @pytest.mark.gpu

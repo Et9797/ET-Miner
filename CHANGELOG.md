@@ -54,6 +54,11 @@ unchanged: every removal kept the tier-equivalence chain exact.
   order (dslxl +3.2 GB): each shard now needs `LEX_BYTES_PER_ROW` (56 B) per row
   free on its device, or every shard keeps its row order. `ET_MINER_ROW_ORDER`
   is gone.
+- **`prune_apriori=False` is removed**: `apriori(prune_apriori=False)` raises
+  (True, the default, is the only behaviour). Skipping the subset test won no
+  workload and lost by 76x on oom_regression at max_length 3 (27.2 s against
+  0.36 s) and 365x on stress_k2 (629 s against 1.7 s). The tier chain's
+  "no subset test" legs go with it.
 - **SON on the GPU runs the CPU passes' array skeleton only** (the partition
   bound over an array union; each chunk mined by the row-split miner, pass 2
   counted with the batched kernel, row-split over `n_gpus`). The per-chunk

@@ -96,6 +96,11 @@ def _validate_parameters(
     validate_sparse_from_k(sparse_from_k)
     if not isinstance(prune_apriori, bool):
         raise TypeError(f"prune_apriori must be bool, got {type(prune_apriori).__name__}")
+    if not prune_apriori:
+        raise ValueError(
+            "prune_apriori=False was removed (route consolidation G7): it won no workload and every route "
+            "tests each candidate's (k-1)-subsets. Drop the argument."
+        )
 
 
 def _validate_route_support(
@@ -112,7 +117,6 @@ def _validate_route_support(
     output_dir: str | None,
     resume_from_k: int | None,
     memory_budget_gb: float | None,
-    prune_apriori: bool = True,
 ) -> None:
     """Reject parameter/route combinations the chosen route cannot honour.
 
@@ -190,20 +194,6 @@ def _validate_route_support(
     # The row-split miner serves bitvecs= (that branch runs first) and use_gpu
     # without streaming.
     reaches_row_split = has_bitvecs or (use_gpu and not streaming)
-
-    # The CPU route generates candidates with the subset test built in, and SON
-    # mines its chunks with the test on; only the row-split miner can skip it.
-    if use_generator_pruning and not prune_apriori:
-        raise ValueError(
-            "use_generator_pruning needs prune_apriori=True: on the row-split miner the count "
-            "inference runs inside the same subset test, and without it every candidate is counted."
-        )
-    if not prune_apriori and not reaches_row_split:
-        raise ValueError(
-            "prune_apriori=False requires the row-split miner, reached with bitvecs= or with "
-            "use_gpu=True and streaming=False: the CPU route and SON always test every "
-            "candidate's (k-1)-subsets, so the flag would be ignored there."
-        )
 
     # output_dir / resume_from_k are the row-split miner's per-K parquet flush.
     if output_dir is not None or resume_from_k is not None:
@@ -378,17 +368,13 @@ def apriori(
             is itself non-free and its support is exactly the minimum of its
             (k-1)-subset supports, so it never has to be counted. Exact, no
             impact on results. CPU route and the row-split GPU miner; on the
-            GPU it needs ``prune_apriori`` and applies to complete-lattice
-            runs (in a free-set run such candidates are not free and are
-            skipped anyway).
-        prune_apriori: Skip candidates with an infrequent (k-1)-subset before
-            counting them (Apriori's subset test; exact, no impact on results).
-            The row-split GPU miner tests every K>=3 candidate on the device
-            against the previous level and leaves the ones it settles
-            uncounted; in a free-set run the test runs against the free level,
-            which also skips every candidate that cannot be free. False counts
-            every candidate the prefix groups generate, and is honoured only by
-            the row-split miner (the CPU route and SON always test).
+            GPU it applies to complete-lattice runs (in a free-set run such
+            candidates are not free and are skipped anyway).
+        prune_apriori: Removed; only True is accepted (False raises). Every
+            route skips candidates with an infrequent (k-1)-subset before
+            counting them; the row-split GPU miner tests every K>=3 candidate
+            on the device against the previous level (in a free-set run, the
+            free level).
         sparse: Removed; only None is accepted (any other value raises).
         n_jobs: Parallel workers for counting. 1 = sequential, -1 = all CPUs.
         enable_length_filter: Skip transactions shorter than k when counting
@@ -409,7 +395,7 @@ def apriori(
             The CPU path applies the full per-candidate subset test before
             counting, so it reports candidates that survived it. The GPU path
             reports every candidate its prefix groups generate, including the
-            ones its device-side subset test (``prune_apriori``) then leaves
+            ones its device-side subset test then leaves
             uncounted, so it reports more candidates than the CPU path for the
             same input at the same level. Both are honest counts of what that
             route enumerated; neither is "the" candidate count. A consumer
@@ -479,7 +465,6 @@ def apriori(
         gpu_resident=gpu_resident,
         prune_equal_support=prune_equal_support,
         use_generator_pruning=use_generator_pruning,
-        prune_apriori=prune_apriori,
         anchor_items=anchor_items,
         output_dir=output_dir,
         resume_from_k=resume_from_k,
@@ -554,7 +539,6 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,
-            prune_apriori=prune_apriori,
             infer_counts=use_generator_pruning,
             sparse_from_k=sparse_from_k,
             profile=profile,
@@ -674,7 +658,6 @@ def apriori(
                     output_dir=output_dir,
                     resume_from_k=resume_from_k,
                     prune_non_free=prune_equal_support,
-                    prune_apriori=prune_apriori,
                     infer_counts=use_generator_pruning,
                     sparse_from_k=sparse_from_k,
                     anchor_items=anchor_items,
@@ -715,7 +698,6 @@ def apriori(
                         max(1, n_gpus),
                         level_callback,
                         prune_non_free=prune_equal_support,
-                        prune_apriori=prune_apriori,
                         infer_counts=use_generator_pruning,
                         sparse_from_k=sparse_from_k,
                         profile=profile,
@@ -753,7 +735,6 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,  # free-sets: emit == generate
-            prune_apriori=prune_apriori,
             infer_counts=use_generator_pruning,
             sparse_from_k=sparse_from_k,
             anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering

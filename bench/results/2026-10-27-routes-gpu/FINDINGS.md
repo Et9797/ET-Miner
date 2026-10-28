@@ -24,7 +24,7 @@ Rule 1 (signature mismatch, logged fallback): none, in either phase.
 | S1 SON, 1 device | ported wins deepk, dsl, dslxl (dsl 8.1 s vs boolean 176 s vs CPU 1091 s); boolean **blocked by rule 7** (ported peaks 1.9x / 2.0x VRAM on dsl / dslxl); SON on the CPU stays (rule 9) | 4, 7, 9: owner |
 | S2 SON, 2 GPUs | ported wins deepk, dsl, dslxl (dslxl 12.7 s vs 306 s); boolean **blocked by rule 7** on deepk only (281 vs 153 MB) | 4, 7: owner |
 | G4 | not re-measured: G5 changed no kernel K=3 falls back to | — |
-| H Rust host roles | **not run**: its dumps and R5 timing count against the GPU budget, 0.05 GPU-hours left | owner |
+| H Rust host roles | R2 (prefix-group build) stays: numpy 10.6-11.3x slower per call in every source; R4 (free-set prune) stays: Python 25x slower; **R5 (`build_column_bitvecs_u64`) goes**: the CUDA build it backs is 3.3-7x faster per call (dsl-son 2.1 s vs 7.0 s over 8 calls), bit-identical. `h.jsonl`, 155 calls, 271 s at one device | 10 |
 
 ## Rule 7 blocks, absolute numbers (largest device, max over reps)
 

@@ -8,7 +8,6 @@ from typing import NamedTuple
 
 import numpy as np
 
-from et_miner import _env
 
 from .loader import _assert_bitvecs, _assert_dtype, _assert_home, _grid_dims, get_cuda_kernel
 
@@ -69,12 +68,6 @@ def count_pairs_k2_per_candidate(bitvecs_gpu, freq_item_cols, n_u64s, chunk_star
 
 
 
-#: Pair range up to which ``count_pairs_k2_rows`` privatizes the counters in
-#: shared memory (``K2_ROWS_SHARED_PAIRS`` in ``_src/pairs_k2_rows.cu``: 44 KB
-#: of int32, under the 48 KB static limit). A larger range uses global atomics.
-K2_ROWS_SHARED_PAIRS = 11264
-
-
 class K2Rows(NamedTuple):
     """One shard's rows as frequent-column positions, on its device."""
 
@@ -106,8 +99,7 @@ def count_pairs_k2_rows(rows: K2Rows, chunk_start: int, chunk_size: int):
     Every row of the shard adds 1 to each pair of its positions inside the
     range; the counts are chunk-relative, in the pair layout of
     ``count_pairs_k2_per_candidate``, so the per-GPU arrays sum to the global
-    counts the same way. A range of at most ``K2_ROWS_SHARED_PAIRS`` pairs is
-    counted in shared memory per block, a larger one with global atomics.
+    counts the same way, with global atomics.
 
     Returns:
         CuPy int32 array of shape (chunk_size,) on the shard's device.
@@ -120,11 +112,10 @@ def count_pairs_k2_rows(rows: K2Rows, chunk_start: int, chunk_size: int):
         out = cp.zeros(chunk_size, dtype=cp.int32)
         if chunk_size <= 0 or rows.n_rows == 0:
             return out
-        shared = chunk_size <= K2_ROWS_SHARED_PAIRS and "k2-shared" not in _env.leave_out()
-        kernel = get_cuda_kernel("count_pairs_k2_rows_shared" if shared else "count_pairs_k2_rows")
+        kernel = get_cuda_kernel("count_pairs_k2_rows")
         n_sm = cp.cuda.Device().attributes["MultiProcessorCount"]
         warps_per_block = 256 // 32
-        blocks = max(1, min(-(-rows.n_rows // warps_per_block), n_sm * (2 if shared else 32)))
+        blocks = max(1, min(-(-rows.n_rows // warps_per_block), n_sm * 32))
         kernel(
             (blocks,),
             (256,),

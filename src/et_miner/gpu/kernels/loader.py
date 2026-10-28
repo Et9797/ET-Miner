@@ -160,7 +160,6 @@ _KERNEL_FILES: dict[str, str] = {
     "count_itemsets_batch": "itemset_count.cu",
     "count_pairs_k2_dense": "pairs_k2_dense.cu",
     "count_pairs_k2_rows": "pairs_k2_rows.cu",
-    "count_pairs_k2_rows_shared": "pairs_k2_rows.cu",
     "count_k3plus_dense": "k3plus_dense.cu",
     "count_shared_tiled_dense": "shared_tiled.cu",
     "count_shared_tiled_fused": "shared_tiled.cu",

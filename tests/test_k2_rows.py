@@ -47,22 +47,17 @@ def _ranges(n_pairs: int, rng) -> list[tuple[int, int]]:
 
 
 @pytest.mark.gpu
-@pytest.mark.parametrize("variant", ["shared", "global"])
 @pytest.mark.parametrize("n_pos", [40, 200])
-def test_row_wise_counts_match_numpy(monkeypatch, variant, n_pos):
+def test_row_wise_counts_match_numpy(n_pos):
     pytest.importorskip("cupy")
     from et_miner.gpu.kernels import k2
 
-    if variant == "global":
-        monkeypatch.setattr(k2, "K2_ROWS_SHARED_PAIRS", 0)
     rng = np.random.default_rng(n_pos)
     row_ptr, pos = _random_rows(rng, 3_000, n_pos, 30)
     expected = _numpy_pair_counts(row_ptr, pos, n_pos)
     n_pairs = _tri(n_pos)
     rows = k2.upload_k2_rows(row_ptr, pos, 0)
     for lo, size in _ranges(n_pairs, rng):
-        if variant == "shared" and size > k2.K2_ROWS_SHARED_PAIRS:
-            continue
         got = k2.count_pairs_k2_rows(rows, lo, size)
         assert got.dtype == np.int32
         np.testing.assert_array_equal(got.get(), expected[lo:lo + size], err_msg=f"range [{lo}, {lo + size})")

@@ -30,8 +30,9 @@ _CHUNK = {"ET_MINER_MAX_CHUNK_CANDS": "40"}
 
 #: case -> (ET_MINER_LEAVE_OUT, extra env, max_length, wrappers that must run, wrappers that must not)
 CASES = {
-    "k2-percand": ("k2-percand", {"ET_MINER_TILED_MIN_GROUP_PAIRS": "100000"}, 2, ("count_pairs_k2_shared",),
-                   ("count_pairs_k2_per_candidate",)),
+    # No arm left out: K=2 within one chunk is tiled however small the pair space (no per-candidate arm).
+    "none": ("", {"ET_MINER_TILED_MIN_GROUP_PAIRS": "1000000"}, 2, ("count_pairs_k2_shared",),
+             ("count_pairs_k2_per_candidate",)),
     "k2-tiled": ("k2-tiled", {}, 2, ("count_pairs_k2_per_candidate",), ("count_pairs_k2_shared",)),
     "k2-fused": ("k2-fused", _CHUNK, 2, ("count_pairs_k2_per_candidate",), ("count_tiled_fused",)),
     "percand": ("percand", {}, None, ("count_group_pairs",), ("count_k3plus_per_candidate",)),
@@ -71,24 +72,6 @@ def test_leave_one_arm_out_mines_the_same_lattice(smoke, monkeypatch, arm):
     assert got == want, f"{arm}: {len(got ^ want)} itemsets differ"
     assert all(calls[n] for n in runs), f"{arm}: {calls}"
     assert not any(calls[n] for n in never), f"{arm}: {calls}"
-
-
-def test_row_wise_k2_without_shared_memory_uses_global_atomics(smoke, monkeypatch):
-    from et_miner.gpu.kernels import k2
-
-    df, lattices = smoke
-    want = lattices[None]
-    launched = []
-
-    def kernel_spy(name, _real=k2.get_cuda_kernel):
-        launched.append(name)
-        return _real(name)
-
-    monkeypatch.setattr(k2, "get_cuda_kernel", kernel_spy)
-    monkeypatch.setenv("ET_MINER_K2_KERNEL", "rows")
-    monkeypatch.setenv("ET_MINER_LEAVE_OUT", "k2-shared")
-    assert _counted(apriori(df, min_support=SPEC.min_support, use_gpu=True)) == want
-    assert set(launched) == {"count_pairs_k2_rows"}
 
 
 def test_an_unknown_arm_raises(monkeypatch):

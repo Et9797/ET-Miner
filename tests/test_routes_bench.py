@@ -21,8 +21,6 @@ _spec.loader.exec_module(decide)
 
 @pytest.mark.parametrize("mode", ["routes-cpu", "routes", "routes-census"])
 def test_matrix_ids_are_unique_and_every_arm_is_pinned(mode):
-    from et_miner import _env
-
     configs = routes_matrix.build_routes_matrix(mode, 2)
     ids = [c["id"] for c in configs]
     assert len(ids) == len(set(ids))
@@ -32,7 +30,7 @@ def test_matrix_ids_are_unique_and_every_arm_is_pinned(mode):
         if c["route"] in ("C", "C-bitvecs", "E") and c["n_gpus"] == 1:
             assert c["env"]["CUDA_VISIBLE_DEVICES"] == "0"
         if (v := c["env"].get("ET_MINER_LEAVE_OUT")) is not None:
-            assert set(v.split(",")) <= set(_env.LEAVE_OUT)
+            assert set(v.split(",")) <= set(routes_matrix.PHASE2_LEAVE_OUT)
         if c["route"] in ("D", "E"):
             assert c["expect_chunks"] == 4
         assert c["id"].startswith(c["regime"] + "-")

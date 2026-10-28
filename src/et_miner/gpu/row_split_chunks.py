@@ -48,8 +48,8 @@ COMPACT_MASK_BITS_PER_CANDIDATE = 1
 #: not depend on the row count, since both kernels scale with the words, and
 #: it falls with K, since the per-candidate kernel reads every prefix word for
 #: every candidate. K=7 sits between its measured neighbours; beyond K=8 the
-#: K=8 value holds. K=2 is one group with an empty prefix, counted as K=3.
-TILED_MIN_GROUP_PAIRS = {2: 120, 3: 120, 4: 91, 5: 66, 6: 45, 7: 32, 8: 23}
+#: K=8 value holds.
+TILED_MIN_GROUP_PAIRS = {3: 120, 4: 91, 5: 66, 6: 45, 7: 32, 8: 23}
 
 
 #: Pairs per prefix group at which the tiled kernel becomes faster than the
@@ -73,7 +73,7 @@ def _per_k(table: dict[int, int], k: int) -> int:
 
 def tiled_min_group_pairs(k: int) -> int:
     """Pairs a prefix group needs to be counted by the tiled kernel at level ``k``
-    when the per-candidate kernel takes the smaller groups (K=2, and K>=3 with
+    when the per-candidate kernel takes the smaller groups (K>=3 with
     ``ET_MINER_SMALL_GROUP_KERNEL=percand``).
 
     ``ET_MINER_TILED_MIN_GROUP_PAIRS`` pins it for every level (0 = tiled for

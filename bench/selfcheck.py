@@ -131,7 +131,6 @@ def _smoke_launch(cp) -> None:
         get_popcount_kernel,
         upload_k2_rows,
     )
-    from et_miner.gpu.kernels import k2 as k2_mod
     from et_miner.gpu.kernels.loader import _KERNEL_FILES
 
     launched = set()
@@ -150,12 +149,7 @@ def _smoke_launch(cp) -> None:
     # the same rows as frequent positions: pairs (0,1), (0,2), (1,2) occur 1, 2, 1 times
     rows = upload_k2_rows(np.array([0, 2, 3, 6, 6]), np.array([0, 2, 1, 0, 1, 2]), cp.cuda.Device().id)
     assert count_pairs_k2_rows(rows, 0, 3).tolist() == [1, 2, 1]
-    launched.add("count_pairs_k2_rows_shared")
-    shared_pairs, k2_mod.K2_ROWS_SHARED_PAIRS = k2_mod.K2_ROWS_SHARED_PAIRS, 0
-    try:
-        assert count_pairs_k2_rows(rows, 1, 2).tolist() == [2, 1]
-    finally:
-        k2_mod.K2_ROWS_SHARED_PAIRS = shared_pairs
+    assert count_pairs_k2_rows(rows, 1, 2).tolist() == [2, 1]
     launched.add("count_pairs_k2_rows")
     groups = K3PlusGroups(np.array([0], np.int32), np.array([0, 1], np.int64), np.array([1, 2, 3], np.int32),
                           np.array([0, 3], np.int64), np.array([0, 3], np.int64), 3, None)

@@ -146,12 +146,9 @@ Variables:
     ET_MINER_LEAVE_OUT                 bench only: a comma-separated list of
                                        counting arms the row-split miner
                                        does without, for leave-one-out
-                                       measurements. "k2-shared": row-wise
-                                       K=2 on global atomics only.
-                                       "k2-percand": K=2 pair spaces below
-                                       the tiled crossover are tiled.
-                                       "k2-tiled": K=2 within one chunk is
-                                       counted per candidate. "k2-fused": a
+                                       measurements. "k2-tiled": K=2 within
+                                       one chunk is counted per candidate.
+                                       "k2-fused": a
                                        one-GPU pair space beyond one chunk
                                        is counted in per-candidate
                                        sub-chunks. "percand": K>=3 groups
@@ -379,7 +376,7 @@ def row_order() -> str | None:
     return v
 
 
-LEAVE_OUT = ("k2-shared", "k2-percand", "k2-tiled", "k2-fused", "percand", "group", "tiled", "fused")
+LEAVE_OUT = ("k2-tiled", "k2-fused", "percand", "group", "tiled", "fused")
 
 
 def leave_out() -> frozenset[str]:

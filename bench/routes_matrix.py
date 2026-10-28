@@ -149,6 +149,8 @@ def build_cpu() -> list[dict]:
 # ── Phase 2b: GPU ───────────────────────────────────────────────────────────
 
 #: Integer regimes on the device layer, their default config (every knob unset).
+#: The ET_MINER_LEAVE_OUT values Phase 2 ran with (Phase 3 removed some; the matrices are the record of what ran).
+PHASE2_LEAVE_OUT = ("k2-shared", "k2-percand", "k2-tiled", "k2-fused", "percand", "group", "tiled", "fused")
 GPU_DEFAULT = ("smoke", "deepk", "deepk15", "skew", "wide", "deepk20", "or005", "or003", "or002", "or0001k2",
                "oom2", "oom2ml3", "sk2ml2", "sk2ml3", "dsl", "dslxl")
 LEAVE = {

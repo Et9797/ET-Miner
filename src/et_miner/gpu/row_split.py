@@ -52,7 +52,6 @@ from et_miner.gpu.row_split_chunks import (
     plan_candidate_chunks,
     plan_group_chunks,
     run_chunked_dense_level,
-    tiled_min_group_pairs,
 )
 from et_miner.io.flush import _flush_k_parquet
 from et_miner.io.gcs import (
@@ -952,8 +951,8 @@ def _apriori_row_split_multi_gpu(
 
                 # Row-wise needs the rows, one shard per device, and r below the
                 # measured crossover (k2_counts_rows). Otherwise one synthetic
-                # group over the frequent items: tiled when it is large enough
-                # and fits one chunk; a pair space chunked across several GPUs
+                # group over the frequent items: tiled when it fits one chunk;
+                # a pair space chunked across several GPUs
                 # runs per-candidate sub-chunks; on one GPU a pair space beyond
                 # one chunk is counted fused (survivors only).
                 _k2_counted = None
@@ -990,13 +989,10 @@ def _apriori_row_split_multi_gpu(
                             bitvecs_list[0][0], k2_groups(freq_cols), bitvecs_list[0][0].shape[1], min_count_threshold
                         )
                 else:
-                    _left_out = _env.leave_out()
-                    if "k2-percand" in _left_out or (
-                        n_pairs >= tiled_min_group_pairs(2) and "k2-tiled" not in _left_out
-                    ):
-                        k2_chunks = plan_group_chunks(np.array([0, n_pairs], dtype=np.int64), _k2_budget)
-                    else:
+                    if "k2-tiled" in _env.leave_out():
                         k2_chunks = plan_candidate_chunks(n_pairs, _k2_budget)
+                    else:
+                        k2_chunks = plan_group_chunks(np.array([0, n_pairs], dtype=np.int64), _k2_budget)
                     logger.info(
                         f"  K=2: {n_pairs:,} total pairs, {len(k2_chunks)} chunk(s), "
                         f"dense output {min(_k2_budget, n_pairs) * 4 / (1 << 30):.2f} GB/GPU per chunk"

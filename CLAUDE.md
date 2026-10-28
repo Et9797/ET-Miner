@@ -16,7 +16,7 @@ Guidance for Claude Code when working in this repository.
   row-split 1 GPU, forced chunks (fused tiled) ==
   row-split 1 GPU, no subset test (`prune_apriori=False`) ==
   row-split 1 GPU, count inference (dispatch / tiled / per-candidate / forced chunks; deduction bounds on / off) ==
-  row-split 1 GPU, row-wise K=2 (shared / global atomics, plain / forced chunks; by the r dispatch) ==
+  row-split 1 GPU, row-wise K=2 (plain / forced chunks; by the r dispatch) ==
   row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain / forced chunks) ==
   row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; by the r3 dispatch) ==
   row-split 1 GPU, row order keep / lex pinned (plain / forced chunks / count inference) ==

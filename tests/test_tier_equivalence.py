@@ -12,8 +12,7 @@ Every smoke/validation run asserts, on the ``smoke`` synthetic preset:
         == row-split 1 GPU, no subset test
         == row-split 1 GPU, count inference (measured dispatch, tiled, per-candidate,
            forced chunks; with and without the deduction bounds)
-        == row-split 1 GPU, row-wise K=2 (shared-memory / global atomics, plain / forced chunks;
-           and selected by the r dispatch)
+        == row-split 1 GPU, row-wise K=2 (plain / forced chunks; and selected by the r dispatch)
         == row-split 1 GPU, host / device input layer pinned (K=2 by dispatch; row-wise, plain /
            forced chunks)
         == row-split 1 GPU, row-wise K=3 (plain / forced chunks / count inference; and selected by
@@ -377,14 +376,17 @@ def test_row_split_one_gpu_tiled_matches_oracle(smoke_dataset, oracle_set, monke
 
 @pytest.mark.gpu
 def test_row_split_one_gpu_per_candidate_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
+    """K>=3 on the per-candidate kernel; K=2 within one chunk is tiled on one GPU whatever the pin (the K=2
+    per-candidate kernel's role is the multi-GPU sub-chunks, covered by the two-GPU forced-chunks leg)."""
     _gpu_leg(
         smoke_dataset,
         oracle_set,
         monkeypatch,
         "row-split 1 GPU, per-candidate",
         _PER_CANDIDATE,
-        runs=("count_pairs_k2_per_candidate", "count_k3plus_per_candidate"),
-        never=("count_pairs_k2_shared", "count_shared_tiled_allcounts", "count_group_pairs", "count_tiled_fused"),
+        runs=("count_pairs_k2_shared", "count_k3plus_per_candidate"),
+        never=("count_pairs_k2_per_candidate", "count_shared_tiled_allcounts", "count_group_pairs",
+               "count_tiled_fused"),
     )
 
 
@@ -442,9 +444,8 @@ def test_row_split_one_gpu_count_inference_matches_oracle(smoke_dataset, oracle_
 _K2_DENSE = ("count_pairs_k2_shared", "count_pairs_k2_per_candidate")
 
 
-def _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, *, atomics, chunked, dispatch=False,
-                     **kwargs):
-    """A leg with K=2 on the row-wise kernel, on shared-memory or global atomics.
+def _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, *, chunked, dispatch=False, **kwargs):
+    """A leg with K=2 on the row-wise kernel.
 
     Pinned by ET_MINER_K2_KERNEL, or with ``dispatch`` picked by the r dispatch
     with its crossover raised above smoke's r (0.14).
@@ -452,8 +453,6 @@ def _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, *, atomics, 
     from et_miner.gpu import row_split_chunks
     from et_miner.gpu.kernels import k2
 
-    if atomics == "global":
-        monkeypatch.setattr(k2, "K2_ROWS_SHARED_PAIRS", 0)
     launched = []
 
     def kernel_spy(name, _real=k2.get_cuda_kernel):
@@ -470,23 +469,20 @@ def _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, *, atomics, 
         env["ET_MINER_MAX_CHUNK_CANDS"] = _TINY_CHUNK
     _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, env, runs=("count_pairs_k2_rows",), never=_K2_DENSE,
              **kwargs)
-    want = "count_pairs_k2_rows_shared" if atomics == "shared" else "count_pairs_k2_rows"
-    assert set(launched) == {want}, f"{label}: row-wise kernels launched: {sorted(set(launched))}"
+    assert set(launched) == {"count_pairs_k2_rows"}, f"{label}: row-wise kernels launched: {sorted(set(launched))}"
 
 
 @pytest.mark.gpu
-@pytest.mark.parametrize("atomics", ["shared", "global"])
 @pytest.mark.parametrize("chunked", [False, True])
-def test_row_split_one_gpu_row_wise_k2_matches_oracle(smoke_dataset, oracle_set, monkeypatch, atomics, chunked):
-    _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch,
-                     f"row-split 1 GPU, row-wise K=2 ({atomics} atomics, chunks={chunked})",
-                     atomics=atomics, chunked=chunked)
+def test_row_split_one_gpu_row_wise_k2_matches_oracle(smoke_dataset, oracle_set, monkeypatch, chunked):
+    _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split 1 GPU, row-wise K=2 (chunks={chunked})",
+                     chunked=chunked)
 
 
 @pytest.mark.gpu
 def test_row_split_one_gpu_row_wise_k2_by_dispatch_matches_oracle(smoke_dataset, oracle_set, monkeypatch):
     _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, "row-split 1 GPU, row-wise K=2 by the r dispatch",
-                     atomics="shared", chunked=False, dispatch=True)
+                     chunked=False, dispatch=True)
 
 
 def _input_layer_leg(smoke_dataset, oracle_set, monkeypatch, layer, k2, n_gpus):
@@ -507,8 +503,8 @@ def _input_layer_leg(smoke_dataset, oracle_set, monkeypatch, layer, k2, n_gpus):
     if k2 == "dispatch":
         _gpu_leg(smoke_dataset, oracle_set, monkeypatch, label, {}, n_gpus=n_gpus)
     else:
-        _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, atomics="shared",
-                         chunked=k2 == "rows, forced chunks", n_gpus=n_gpus)
+        _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, label, chunked=k2 == "rows, forced chunks",
+                         n_gpus=n_gpus)
     assert built == [layer], f"{label}: the bitvectors came from {built}"
 
 
@@ -702,7 +698,7 @@ def test_row_split_two_gpus_row_wise_k2_matches_oracle(smoke_dataset, oracle_set
     """Each GPU counts its own rows; the per-chunk reduce sums the pair arrays."""
     _needs_two_gpus()
     _row_wise_k2_leg(smoke_dataset, oracle_set, monkeypatch, f"row-split 2 GPUs, row-wise K=2 (chunks={chunked})",
-                     atomics="shared", chunked=chunked, n_gpus=2)
+                     chunked=chunked, n_gpus=2)
 
 
 @pytest.mark.gpu

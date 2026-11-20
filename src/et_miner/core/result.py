@@ -79,6 +79,19 @@ def _min_count(min_support: float, n_transactions: int) -> int:
     return math.ceil(Fraction(str(min_support)) * n_transactions)
 
 
+def _emitted_items(items: pl.Series) -> pl.Series:
+    """``items`` as a result emits them: integers as ``_result_item_dtype`` gives them, floats as Float64,
+    categoricals and enums as String, any other kind as it is."""
+    dtype = items.dtype
+    if (out := _result_item_dtype(dtype)) is not None:
+        return items.cast(out)
+    if dtype.is_float():
+        return items.cast(pl.Float64)
+    if dtype.base_type() in (pl.Categorical, pl.Enum):
+        return items.cast(pl.String)
+    return items
+
+
 def _empty_result(item_dtype: pl.DataType | pl.datatypes.DataTypeClass | None = None) -> pl.DataFrame:
     """An empty result frame: itemsets as ``_result_item_dtype(item_dtype)`` for integer items, else Int64."""
     return pl.DataFrame(schema={"itemset": pl.List(_result_item_dtype(item_dtype) or pl.Int64), "support": pl.Float64})

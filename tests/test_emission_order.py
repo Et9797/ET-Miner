@@ -55,9 +55,8 @@ class TestColumnNaming:
 
 
 class TestEmissionOrder:
-    @pytest.mark.parametrize("kwargs", [{}, {"sparse": True}])
-    def test_itemsets_are_emitted_in_ascending_item_id_order(self, kwargs):
-        res = apriori(_wide_frame(), min_support=0.05, **kwargs)
+    def test_itemsets_are_emitted_in_ascending_item_id_order(self):
+        res = apriori(_wide_frame(), min_support=0.05)
         bad = [list(x) for x in res["itemset"].to_list() if list(x) != sorted(x)]
         assert not bad, f"{len(bad)} non-ascending itemsets, e.g. {bad[:5]}"
 
@@ -128,7 +127,7 @@ class TestMixedTierParquetJoins:
         (tmp_path / "a").mkdir()
         (tmp_path / "b").mkdir()
         clean = self._write_levels(tmp_path / "a", df, {}, {})
-        mixed = self._write_levels(tmp_path / "b", df, {}, {"sparse": True})
+        mixed = self._write_levels(tmp_path / "b", df, {}, {"streaming": True, "chunk_size": 100})
 
         n_clean = len(generate_rules_drop1(clean[3], clean[2], min_confidence=0.0))
         n_mixed = len(generate_rules_drop1(mixed[3], mixed[2], min_confidence=0.0))
@@ -140,7 +139,7 @@ class TestMixedTierParquetJoins:
         (tmp_path / "a").mkdir()
         (tmp_path / "b").mkdir()
         clean = self._write_levels(tmp_path / "a", df, {}, {})
-        mixed = self._write_levels(tmp_path / "b", df, {}, {"sparse": True})
+        mixed = self._write_levels(tmp_path / "b", df, {}, {"streaming": True, "chunk_size": 100})
 
         a = compute_self_sufficiency(clean[3], clean[2]).sort("itemset")
         b = compute_self_sufficiency(mixed[3], mixed[2]).sort("itemset")

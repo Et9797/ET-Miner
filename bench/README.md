@@ -62,11 +62,9 @@ number is worth recording from a miner that disagrees with the oracle.
 
 ## Knobs the matrix drives (documented in `src/et_miner/_env.py`)
 
-ESCO's `sparse_from_k` argument is restored: `None` keeps dense bitvectors,
-`"auto"` switches below the measured n/32 mean-count crossover, and an int
-fixes the transition level (at least K=3). The transition is one-way.
-The `esco` and `esco-retail` comparison matrices and low-support Retail
-validation are described in [ESCO.md](ESCO.md).
+ESCO (`sparse_from_k`, the dense→sparse CSR transition) was removed in route
+consolidation G6: it won no workload. [ESCO.md](ESCO.md) records the `esco` and
+`esco-retail` matrices that measured it; they fail if run now.
 
 | Env | Values | Meaning |
 |---|---|---|
@@ -75,6 +73,22 @@ validation are described in [ESCO.md](ESCO.md).
 | `ET_MINER_TILED_MIN_GROUP_PAIRS` | int | pins the pairs a prefix group needs for the tiled kernel (0 = tiled everywhere; unset = the measured crossover per K) |
 | `ET_MINER_SMALL_GROUP_KERNEL` | `percand`, `group` | pins the kernel for the K≥3 groups below the tiled crossover (unset = the measured three-way dispatch) |
 | `ET_MINER_DISABLE_RUST` | `1` | every Rust role takes its fallback (read once, at import) |
+| `ET_MINER_INPUT_LAYER` | `host`, `device`, `rebuilt`, `coded` | the input layer; `rebuilt` and `coded` are bench only |
+| `ET_MINER_SON_GPU` | `boolean`, `ported` | bench only: SON's GPU passes |
+
+## Route consolidation, round 2
+
+`routes/PROTOCOL.md` (decision points, arms, rule), `routes/INVENTORY.md` (the route map it started from).
+
+```bash
+uv run python -m et_miner.synthetic --preset deep_sparse_xl --out datasets/synth   # the scale regime
+uv run python bench/runner.py --mode routes-cpu --out bench/results/<date>-routes-cpu --max-hours 8
+uv run python bench/runner.py --mode routes --out bench/results/<date>-routes-gpu --max-gpu-hours 6
+uv run python bench/routes/decide.py bench/results/<date>-routes-*/raw.jsonl --md decisions.md
+```
+
+The microbenchmarks (`bench/microbench_rust.py` for the Rust host roles, `bench/routes/count_api.py` for
+the public counting API) dump and time as their docstrings say.
 
 ## Consolidation campaign
 

@@ -31,7 +31,7 @@ def test_aggregates_with_min_not_max(tmp_path):
     must score the same.
 
     The predicate is `support_K == min(subset supports)` -- the same test as
-    `core/apriori.py::_prune_equal_support` and `groups.rs`. Both itemsets below
+    `core/cpu_miner.py::_non_free` and `groups.rs`. Both itemsets below
     satisfy it, so both are maximally redundant and both must score 1.0. Under
     `max` they score 0.30/0.32 = 0.9375 and 0.30/0.95 = 0.3157894736842105:
     identical redundancy, opposite readings, opposite recommended actions. That

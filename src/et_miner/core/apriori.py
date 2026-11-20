@@ -3,9 +3,8 @@
 Routes: the CPU miner (et_miner.core.cpu_miner, the default), the row-split
 GPU miner (et_miner.gpu.row_split; use_gpu=True or bitvecs=), and SON
 streaming on one or more devices (et_miner.streaming; streaming=True). This
-module validates the parameters, rejects combinations a route cannot honour,
-and holds list-based reference implementations of the free-set test and
-Pascal inference (core.cpu_miner applies both to arrays).
+module validates the parameters and rejects combinations a route cannot
+honour.
 
 Usage:
     from et_miner import apriori
@@ -16,21 +15,21 @@ Usage:
 from __future__ import annotations
 
 import math
+import numbers
 import warnings
 from collections.abc import Callable
 from math import comb
-from typing import Any, Literal
+from typing import Any
 
 import polars as pl
-from loguru import logger
 
 from et_miner import _env
-from et_miner.gpu.density import validate_sparse_from_k
 
 from .profiling import ProfilingSession
 from .result import (
     _INT64_ITEM_DTYPES,
-    _WIDE_ITEM_DTYPES,
+    _INT_ITEM_DTYPES,
+    _emitted_items,
     _empty_result,
     _item_dtype,
 )
@@ -93,127 +92,18 @@ def _validate_parameters(
         if batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 
-    validate_sparse_from_k(sparse_from_k)
+    if sparse_from_k is not None:
+        raise ValueError(
+            "sparse_from_k was removed (route consolidation G6): the GPU miner keeps dense bitvectors at "
+            "every level, and the sparse CSR tidsets (ESCO) won no workload. Drop the argument."
+        )
     if not isinstance(prune_apriori, bool):
         raise TypeError(f"prune_apriori must be bool, got {type(prune_apriori).__name__}")
-
-
-def _prune_equal_support(
-    current_frequent: list[tuple[str, ...]],
-    current_counts: dict[tuple[str, ...], int],
-    prev_counts: dict[tuple[str, ...], int],
-) -> list[tuple[str, ...]]:
-    """Keep only the free-sets (generators) of a level (reference implementation).
-
-    The CPU miner applies the same test to arrays (``core.cpu_miner``), and
-    ``tests/test_cpu_miner.py`` checks its free-sets against a brute force;
-    nothing calls this function on a mining route.
-
-    An itemset is a *free-set* when no proper subset has the same support
-    [Bastide et al. 2000, Pascal]. If support({A,B,C}) == support({A,B}) then C
-    is implied by {A,B} and {A,B,C} is not free. Free-sets are anti-monotone —
-    every subset of a free-set is free — so the next level can be generated
-    from the survivors alone without losing a single free-set.
-
-    NOT closed-itemset mining: closed asks about equal-support *supersets*,
-    this asks about equal-support *subsets*, and the two select different
-    itemsets. ``prev_counts`` must hold every frequent candidate of the
-    previous level, not just its free-sets (the caller never prunes it): an
-    equal-count (k-1)-subset of a candidate generated from free parents is
-    always among those candidates, while the free level alone can miss it and
-    under-prune.
-
-    Compares raw integer counts, exactly as the GPU path does — a float
-    comparison with a tolerance made the two tiers disagree at the boundary.
-
-    Args:
-        current_frequent: Frequent k-itemsets from current iteration.
-        current_counts: Integer counts for the current k-itemsets.
-        prev_counts: Integer counts of every frequent candidate of the previous level.
-
-    Returns:
-        The free-sets, in input order.
-    """
-    if not prev_counts:
-        return current_frequent
-
-    free = []
-    for itemset in current_frequent:
-        is_free = True
-        current_count = current_counts[itemset]
-
-        # Not free if the count equals any (k-1)-subset's count
-        for i in range(len(itemset)):
-            subset = itemset[:i] + itemset[i + 1 :]
-            if prev_counts.get(subset) == current_count:
-                is_free = False
-                break
-
-        if is_free:
-            free.append(itemset)
-
-    return free
-
-
-
-
-def _infer_count_from_subsets(
-    candidate: tuple[str, ...],
-    prev_counts: dict[tuple[str, ...], int],
-    prev_free: set[tuple[str, ...]] | None,
-) -> int | None:
-    """Infer a candidate's exact count from its (k-1)-subsets, or None (reference implementation).
-
-    The CPU miner applies the same rule to arrays (``core.cpu_miner``).
-
-    Pascal [Bastide et al. 2000]: if a (k-1)-subset Y of X is *not* free — some
-    Z ⊊ Y has rows(Z) = rows(Y) — then for X = Y ∪ {a} we have
-    rows(X) = rows(Z ∪ {a}), and any (k-1)-subset W with Z ∪ {a} ⊆ W ⊂ X
-    satisfies rows(W) = rows(X). So X is not free either and
-
-        count(X) = min{count(W) : W ⊂ X, |W| = k-1}
-
-    exactly — no counting pass needed. When every (k-1)-subset is free nothing
-    can be inferred and the candidate must be counted.
-
-    This replaces an earlier rule that inferred whenever ALL subsets happened to
-    share a count, which is unsound: support({A,B}) = support({A,C}) =
-    support({B,C}) = 30 with support({A,B,C}) = 15 was its own documented
-    counterexample. Here all three pairs are free, so no inference is made.
-
-    Args:
-        candidate: Candidate k-itemset to check.
-        prev_counts: Integer counts of every frequent candidate of the previous level.
-        prev_free: The free (generator) (k-1)-itemsets. None disables inference.
-
-    Returns:
-        The exact count, or None when the candidate has to be counted.
-    """
-    k = len(candidate)
-    if k < 2 or prev_free is None:
-        return None
-
-    subset_counts: list[int] = []
-    licensed = False
-    for i in range(k):
-        subset = candidate[:i] + candidate[i + 1 :]
-        count = prev_counts.get(subset)
-        if count is None:
-            # A subset is not frequent — the candidate cannot be either, and we
-            # have no minimum to take. Let the caller count it.
-            return None
-        subset_counts.append(count)
-        if subset not in prev_free:
-            licensed = True
-
-    if not licensed:
-        return None
-
-    inferred = min(subset_counts)
-    logger.debug(f"INFERRED {candidate}: non-free subset licenses count={inferred}")
-    return inferred
-
-
+    if not prune_apriori:
+        raise ValueError(
+            "prune_apriori=False was removed (route consolidation G7): it won no workload and every route "
+            "tests each candidate's (k-1)-subsets. Drop the argument."
+        )
 
 
 def _validate_route_support(
@@ -230,7 +120,6 @@ def _validate_route_support(
     output_dir: str | None,
     resume_from_k: int | None,
     memory_budget_gb: float | None,
-    prune_apriori: bool = True,
 ) -> None:
     """Reject parameter/route combinations the chosen route cannot honour.
 
@@ -309,20 +198,6 @@ def _validate_route_support(
     # without streaming.
     reaches_row_split = has_bitvecs or (use_gpu and not streaming)
 
-    # The CPU route generates candidates with the subset test built in, and SON
-    # mines its chunks with the test on; only the row-split miner can skip it.
-    if use_generator_pruning and not prune_apriori:
-        raise ValueError(
-            "use_generator_pruning needs prune_apriori=True: on the row-split miner the count "
-            "inference runs inside the same subset test, and without it every candidate is counted."
-        )
-    if not prune_apriori and not reaches_row_split:
-        raise ValueError(
-            "prune_apriori=False requires the row-split miner, reached with bitvecs= or with "
-            "use_gpu=True and streaming=False: the CPU route and SON always test every "
-            "candidate's (k-1)-subsets, so the flag would be ignored there."
-        )
-
     # output_dir / resume_from_k are the row-split miner's per-K parquet flush.
     if output_dir is not None or resume_from_k is not None:
         which = " and ".join(
@@ -382,14 +257,14 @@ def _beyond_int64(items: pl.Series) -> bool:
 
 
 def _as_item_dtype(result: Any, items: pl.Series, column_ids: bool) -> Any:
-    """The GPU route's result (a frame, or (frame, session)) with its itemsets as ``items.dtype``.
+    """The GPU route's result (a frame, or (frame, session)) with its itemsets as the CPU route emits ``items``.
 
-    With ``column_ids`` the route mined column ids, which map to ``items``;
-    otherwise it emitted the item ids as Int64, which are cast back. Either way
-    the itemsets are copied once: the frame's peak briefly gains 8 (UInt64) or
-    16 (Int128, UInt128) bytes per emitted item id.
+    With ``column_ids`` the route mined column ids, which map to ``items``
+    (cast as ``_emitted_items`` does); otherwise it emitted the item ids as
+    Int64, which are cast back. Either way the itemsets are copied once.
     """
     df, session = result if isinstance(result, tuple) else (result, None)
+    items = _emitted_items(items)
     if column_ids:
         cols = pl.Series(range(len(items)), dtype=pl.Int64)
         itemset = pl.col("itemset").list.eval(pl.element().replace_strict(cols, items, return_dtype=items.dtype))
@@ -397,6 +272,16 @@ def _as_item_dtype(result: Any, items: pl.Series, column_ids: bool) -> Any:
         itemset = pl.col("itemset").cast(pl.List(items.dtype))
     df = df.with_columns(itemset)
     return df if session is None else (df, session)
+
+
+def _coded_items(column: pl.Series) -> tuple[pl.Series, pl.Series]:
+    """(the list column with every item replaced by its rank among the distinct items as Int32, those items sorted).
+
+    Nulls stay null. The ranks follow the item order, so ascending codes are ascending items.
+    """
+    items = column.explode().drop_nulls().unique().sort()
+    ranks = pl.Series(range(len(items)), dtype=pl.Int32)
+    return column.list.eval(pl.element().replace_strict(items, ranks, default=None)), items
 
 
 def _release_cached_blocks(n_gpus: int, device: int = 0) -> None:
@@ -449,8 +334,8 @@ def apriori(
     # Memory guard limits for exhaustive mining
     max_ram_gb: float = 800.0,
     max_vram_gb: float = 70.0,
-    # ESCO: dense→sparse CSR transition, fixed K or measured density
-    sparse_from_k: int | Literal["auto"] | None = None,
+    # Removed: any value but None raises
+    sparse_from_k: int | str | None = None,
     # V3 B6: restrict candidates to anchor neighborhoods (two-phase mining)
     anchor_items: set | None = None,
 ) -> pl.DataFrame | tuple[pl.DataFrame, ProfilingSession]:
@@ -486,20 +371,14 @@ def apriori(
             is itself non-free and its support is exactly the minimum of its
             (k-1)-subset supports, so it never has to be counted. Exact, no
             impact on results. CPU route and the row-split GPU miner; on the
-            GPU it needs ``prune_apriori`` and applies to complete-lattice
-            runs (in a free-set run such candidates are not free and are
-            skipped anyway).
-        prune_apriori: Skip candidates with an infrequent (k-1)-subset before
-            counting them (Apriori's subset test; exact, no impact on results).
-            The row-split GPU miner tests every K>=3 candidate on the device
-            against the previous level and leaves the ones it settles
-            uncounted; in a free-set run the test runs against the free level,
-            which also skips every candidate that cannot be free. False counts
-            every candidate the prefix groups generate, and is honoured only by
-            the row-split miner (the CPU route and SON always test).
-        sparse: Deprecated. It selects no counting engine on the CPU route or
-            in SON's CPU passes (a non-None value warns and is ignored there),
-            and the GPU routes do not read it.
+            GPU it applies to complete-lattice runs (in a free-set run such
+            candidates are not free and are skipped anyway).
+        prune_apriori: Removed; only True is accepted (False raises). Every
+            route skips candidates with an infrequent (k-1)-subset before
+            counting them; the row-split GPU miner tests every K>=3 candidate
+            on the device against the previous level (in a free-set run, the
+            free level).
+        sparse: Removed; only None is accepted (any other value raises).
         n_jobs: Parallel workers for counting. 1 = sequential, -1 = all CPUs.
         enable_length_filter: Skip transactions shorter than k when counting
             k-itemsets. Set to False to disable (results are the same).
@@ -519,7 +398,7 @@ def apriori(
             The CPU path applies the full per-candidate subset test before
             counting, so it reports candidates that survived it. The GPU path
             reports every candidate its prefix groups generate, including the
-            ones its device-side subset test (``prune_apriori``) then leaves
+            ones its device-side subset test then leaves
             uncounted, so it reports more candidates than the CPU path for the
             same input at the same level. Both are honest counts of what that
             route enumerated; neither is "the" candidate count. A consumer
@@ -532,11 +411,8 @@ def apriori(
             The array is READ-ONLY to the engine: ET-Miner writes only to
             bitvectors it builds itself, never to one it is handed, so the
             caller may reuse it after the call without copying it first.
-        sparse_from_k: In-core GPU paths only — an int switches to sparse CSR
-            tidsets from that K (at least 3); "auto" switches when the previous
-            level's mean count falls below n_transactions/32. None (default)
-            keeps dense bitvectors. The transition is one-way. CPU mining
-            ignores this GPU setting; SON streaming rejects it.
+        sparse_from_k: Removed; any value other than None raises ValueError.
+            The GPU miner keeps dense bitvectors at every level.
         max_ram_gb / max_vram_gb: Memory guards for the GPU routes
             (use_gpu=True without streaming, or bitvecs=): MemoryError between
             K-levels once host RSS or the largest device's CuPy pool exceeds
@@ -572,9 +448,11 @@ def apriori(
     """
     _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)
     _env.reject_removed_knobs()
-
-    if streaming and bitvecs is None and sparse_from_k is not None:
-        raise ValueError("sparse_from_k requires in-core GPU mining; SON streaming does not implement the transition")
+    if sparse is not None:
+        raise ValueError(
+            "sparse= was removed with the scipy sparse counter (route consolidation C4): no route reads it. "
+            "Drop the argument."
+        )
 
     # Every parameter/route mismatch is rejected here, ABOVE the routing, so a
     # route cannot silently drop something the caller asked for. This has to run
@@ -589,7 +467,6 @@ def apriori(
         gpu_resident=gpu_resident,
         prune_equal_support=prune_equal_support,
         use_generator_pruning=use_generator_pruning,
-        prune_apriori=prune_apriori,
         anchor_items=anchor_items,
         output_dir=output_dir,
         resume_from_k=resume_from_k,
@@ -635,6 +512,13 @@ def apriori(
                 f"col_to_item has {len(col_to_item)} keys but bitvecs_gpu has {bitvecs_gpu.shape[0]} columns"
             )
 
+        # The route holds item ids as 64-bit integers; a float would be truncated.
+        if not all(isinstance(v, numbers.Integral) for v in col_to_item.values()):
+            raise ValueError(
+                "col_to_item must map every column to an integer item id: the bitvecs route holds item ids as "
+                "64-bit integers. Map the items to integer ids first."
+            )
+
         # The kernels index the array as col * n_u64s + word.
         if bitvecs_gpu.dtype != "uint64" or not bitvecs_gpu.flags.c_contiguous:
             raise ValueError(
@@ -657,9 +541,7 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,
-            prune_apriori=prune_apriori,
             infer_counts=use_generator_pruning,
-            sparse_from_k=sparse_from_k,
             profile=profile,
             max_ram_gb=max_ram_gb,
             max_vram_gb=max_vram_gb,
@@ -668,15 +550,6 @@ def apriori(
     # Validate transactions is provided when bitvecs is not
     if transactions is None:
         raise ValueError("Either 'transactions' or 'bitvecs' must be provided")
-
-    if sparse is not None and not use_gpu and not (streaming and n_gpus > 1):
-        warnings.warn(
-            "sparse= no longer selects a counting engine on the CPU: the CPU route and SON's CPU passes "
-            "count from a CSR whatever its value, and the argument is ignored there. It will be removed "
-            "in a future release.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
     # Route to streaming implementation if requested
     if streaming:
@@ -726,20 +599,33 @@ def apriori(
     if use_gpu:
         from .matrix import _build_csr_from_transactions
 
-        # The route holds item ids in 64 bits. Ids of a wider dtype mine as
-        # column ids when one lies outside Int64, and the result keeps their dtype.
+        # The route holds item ids as 64-bit integers. Other items (strings,
+        # floats, categoricals) and ids of a wider dtype that lie outside Int64
+        # mine as column ids, and the result maps them back.
         item_dtype = _item_dtype(lf, item_col)
-        wide = item_dtype in _WIDE_ITEM_DTYPES
+        integer = item_dtype in _INT_ITEM_DTYPES
+        stores = output_dir or resume_from_k is not None or anchor_items is not None
+        if stores and not integer:
+            raise ValueError(
+                f"items of {item_dtype} are not integer ids: output_dir, resume_from_k and anchor_items store "
+                "item ids as 64-bit integers on the GPU route. Map the items to integer ids, or mine without "
+                "those options."
+            )
 
         def stores_ids(items: pl.Series) -> None:
-            if wide and (output_dir or resume_from_k is not None or anchor_items is not None) and _beyond_int64(items):
+            if stores and item_dtype not in _INT64_ITEM_DTYPES and _beyond_int64(items):
                 raise ValueError(
                     f"item ids of {item_dtype} lie outside the Int64 range: output_dir, resume_from_k and "
                     "anchor_items store item ids in 64 bits on the GPU route. Map the ids to Int64, or mine "
                     "without those options."
                 )
 
-        if _env.input_layer() != "host" and item_dtype in _INT64_ITEM_DTYPES:
+        # Input layer: the device layer for the integer ids it serves; any other column coded to integer ids
+        # (Polars, item order) and mined there too; the host CSR only where neither can (more distinct items
+        # than INT_SPAN_LIMIT, or output_dir / resume_from_k / anchor_items on a column the device layer does
+        # not serve), or when ET_MINER_INPUT_LAYER=host pins it.
+        layer = _env.input_layer()
+        if layer != "host" and item_dtype in _INT64_ITEM_DTYPES:
             from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
 
             column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
@@ -749,7 +635,7 @@ def apriori(
                 min_support,
                 max(1, n_gpus),
                 keep_rows=_env.k2_kernel() != "dense" or _env.k3_kernel() != "dense",
-                row_order=_env.row_order() or "lex",
+                row_order="lex",
             )
             if built is None:
                 return (_empty_result(item_dtype), ProfilingSession()) if profile else _empty_result(item_dtype)
@@ -767,15 +653,52 @@ def apriori(
                     output_dir=output_dir,
                     resume_from_k=resume_from_k,
                     prune_non_free=prune_equal_support,
-                    prune_apriori=prune_apriori,
                     infer_counts=use_generator_pruning,
-                    sparse_from_k=sparse_from_k,
                     anchor_items=anchor_items,
                     profile=profile,
                     max_ram_gb=max_ram_gb,
                     max_vram_gb=max_vram_gb,
                     device_input=built,
                 )
+            lf = column.to_frame().lazy()
+
+        if layer != "host" and not stores:
+            from et_miner.gpu.input_layer import NOT_SERVED, build_device_input
+
+            from .cpu_miner import INT_SPAN_LIMIT
+
+            column = lf.select(pl.col(item_col)).collect(engine="in-memory").get_column(item_col)
+            coded, items = _coded_items(column)
+            if len(items) <= INT_SPAN_LIMIT:
+                _release_cached_blocks(n_gpus)
+                built = build_device_input(
+                    coded,
+                    min_support,
+                    max(1, n_gpus),
+                    keep_rows=_env.k2_kernel() != "dense" or _env.k3_kernel() != "dense",
+                    row_order="lex",
+                )
+                if built is None:
+                    return (_empty_result(item_dtype), ProfilingSession()) if profile else _empty_result(item_dtype)
+                if built is not NOT_SERVED:
+                    from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
+
+                    result = _apriori_row_split_multi_gpu(
+                        None,
+                        built.col_to_item,
+                        built.n_transactions,
+                        min_support,
+                        max_length,
+                        max(1, n_gpus),
+                        level_callback,
+                        prune_non_free=prune_equal_support,
+                        infer_counts=use_generator_pruning,
+                        profile=profile,
+                        max_ram_gb=max_ram_gb,
+                        max_vram_gb=max_vram_gb,
+                        device_input=built,
+                    )
+                    return _as_item_dtype(result, items, column_ids=True)
             lf = column.to_frame().lazy()
 
         csr_result = _build_csr_from_transactions(lf, min_support, item_col, check_items=stores_ids)
@@ -786,8 +709,8 @@ def apriori(
 
         csr, idx_to_item, n_trans = csr_result
 
-        items = pl.Series(list(idx_to_item.values()), dtype=item_dtype) if wide else None
-        column_ids = items is not None and _beyond_int64(items)
+        items = pl.Series(list(idx_to_item.values()), dtype=item_dtype) if item_dtype not in _INT64_ITEM_DTYPES else None
+        column_ids = items is not None and (not integer or _beyond_int64(items))
         if column_ids:
             idx_to_item = {c: c for c in idx_to_item}
 
@@ -805,9 +728,7 @@ def apriori(
             output_dir=output_dir,
             resume_from_k=resume_from_k,
             prune_non_free=prune_equal_support,  # free-sets: emit == generate
-            prune_apriori=prune_apriori,
             infer_counts=use_generator_pruning,
-            sparse_from_k=sparse_from_k,
             anchor_items=anchor_items,  # V3 B6: two-phase anchor filtering
             profile=profile,
             max_ram_gb=max_ram_gb,

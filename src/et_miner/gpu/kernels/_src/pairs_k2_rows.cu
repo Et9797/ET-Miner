@@ -9,13 +9,7 @@
 //
 // Input per shard: row_ptr (n_rows + 1, int64) and pos (int32), each row's
 // frequent-column positions strictly ascending. One warp per row, lanes
-// striding over the row's pairs; grid-stride over rows.
-//
-// count_pairs_k2_rows adds with global atomics. count_pairs_k2_rows_shared
-// privatizes the range in shared memory (n_out <= K2_ROWS_SHARED_PAIRS,
-// checked on the host) and flushes each block's nonzero counters once.
-
-#define K2_ROWS_SHARED_PAIRS 11264
+// striding over the row's pairs; grid-stride over rows; global atomics.
 
 static __device__ long long _k2_tri(long long t) { return t * (t - 1) / 2; }
 
@@ -72,32 +66,4 @@ void count_pairs_k2_rows(
     const int lane = threadIdx.x % 32;
     for (long long r = warp; r < n_rows; r += n_warps)
         _k2_count_row(row_ptr, pos, r, pair_lo, n_out, b_lo, b_hi, lane, out);
-}
-
-extern "C" __global__
-void count_pairs_k2_rows_shared(
-    const long long* __restrict__ row_ptr,
-    const int* __restrict__ pos,
-    const long long n_rows,
-    const long long pair_lo,
-    const long long n_out,
-    const long long b_lo,
-    const long long b_hi,
-    int* __restrict__ out
-) {
-    __shared__ int hist[K2_ROWS_SHARED_PAIRS];
-    for (long long x = threadIdx.x; x < n_out; x += blockDim.x) hist[x] = 0;
-    __syncthreads();
-
-    const long long warp = ((long long)blockIdx.x * blockDim.x + threadIdx.x) / 32;
-    const long long n_warps = ((long long)gridDim.x * blockDim.x) / 32;
-    const int lane = threadIdx.x % 32;
-    for (long long r = warp; r < n_rows; r += n_warps)
-        _k2_count_row(row_ptr, pos, r, pair_lo, n_out, b_lo, b_hi, lane, hist);
-    __syncthreads();
-
-    for (long long x = threadIdx.x; x < n_out; x += blockDim.x) {
-        const int c = hist[x];
-        if (c) atomicAdd(out + x, c);
-    }
 }

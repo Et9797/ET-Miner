@@ -1,5 +1,5 @@
 """CPU tests for ``K3PlusGroups.suffix_src_rows`` — the suffix-slot → prev-row
-permutation the sparse-CSR kernels use to enumerate candidates in-kernel.
+permutation that maps each candidate's suffix slots back to the previous level.
 
 Every builder (Rust, numpy fallback, the public function with Rust absent)
 and group selection must satisfy:

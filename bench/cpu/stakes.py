@@ -13,8 +13,7 @@ Levers and variants:
                        gram_dense (the same product densified), polars_pairs
                        (self-join of the exploded table on the row, group_by pair)
     L4  K>=3 gen       array (lexsorted int32 (n, k) arrays, vectorised prefix-group
-                       join, subset test by binary search on packed keys),
-                       pyref (core.candidates._generate_candidates on the column names)
+                       join, subset test by binary search on packed keys)
     L3  K>=3 count     rust_simd (count_itemsets_simd, as the sparse route called it; skipped,
                        with a "skipped" row, when the extension lacks it: et_miner_rust
                        >= 0.4.0 removed it, and ET_MINER_DISABLE_RUST=1 hides it),
@@ -34,7 +33,7 @@ Options:
     --threads    thread budget (env pools, Rust n_threads); numpy and scipy run single-threaded
     --baseline   campaign raw.jsonl; the stake lattice must match its signature
     --out        jsonl file to append the rows to
-    --skip       comma-separated variants to leave out (e.g. pyref,polars_pairs)
+    --skip       comma-separated variants to leave out (e.g. polars_pairs)
 """
 
 from __future__ import annotations
@@ -269,19 +268,6 @@ def gen_array(prev: np.ndarray, k: int, base: int) -> np.ndarray:
     return cands[keep]
 
 
-def gen_pyref(prev: np.ndarray, k: int, names: list[str], name_idx: dict[str, int]) -> np.ndarray:
-    from et_miner.core.candidates import _generate_candidates
-
-    tuples = [tuple(names[c] for c in row) for row in prev.tolist()]
-    t0 = time.perf_counter()
-    out = _generate_candidates(tuples, k)
-    dt = time.perf_counter() - t0
-    arr = np.array([[name_idx[c] for c in t] for t in out], dtype=np.int32).reshape(-1, k)
-    if len(arr):
-        arr = arr[np.lexsort(arr.T[::-1])]
-    return arr, dt
-
-
 # ── L3: K>=3 counting ───────────────────────────────────────────────────────
 
 
@@ -500,16 +486,9 @@ def mine(workload: str, threads: int, rec: Recorder, raw: Path | None) -> dict:
         bv = rec.run("L3", "bitvec_build", build_bitvecs, csc, n_rows, words=(n_rows + 63) // 64,
                      bytes=n_cols * ((n_rows + 63) // 64) * 8)
 
-    width = len(str(n_cols))
-    names = [f"i_{i:0{width}d}" for i in range(n_cols)]
-    name_idx = {nm: i for i, nm in enumerate(names)}
     k = 3
     while prev is not None and k <= max_k and len(prev) >= k - 1:
         cands = rec.run("L4", "array", gen_array, prev, k, n_cols, k=k, n_prev=len(prev))
-        if "pyref" not in rec.skip:
-            ref_c, dt = gen_pyref(prev, k, names, name_idx)
-            rec.emit({"lever": "L4", "variant": "pyref", "k": k, "s": round(dt, 6), "n_prev": len(prev)})
-            assert np.array_equal(ref_c, cands), f"L4: array candidates differ from _generate_candidates at K={k}"
         if k in camp_cands:
             assert camp_cands[k] == len(cands), f"L4: {len(cands)} candidates at K={k}, campaign {camp_cands[k]}"
         if len(cands) == 0:

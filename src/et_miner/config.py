@@ -54,9 +54,6 @@ class AprioriConfig:
     max_length: int | None = None
     """Maximum itemset length. None means no limit."""
 
-    sparse: bool = True
-    """Use sparse matrix operations when beneficial."""
-
     n_jobs: int = -1
     """Number of parallel workers. -1 means use all CPUs."""
 
@@ -257,7 +254,6 @@ class Config:
             # Apriori
             f"{prefix}_APRIORI_MIN_SUPPORT": ("apriori", "min_support", float),
             f"{prefix}_APRIORI_MAX_LENGTH": ("apriori", "max_length", lambda x: None if x == "" else int(x)),
-            f"{prefix}_APRIORI_SPARSE": ("apriori", "sparse", lambda x: x.lower() in ("true", "1", "yes")),
             f"{prefix}_APRIORI_N_JOBS": ("apriori", "n_jobs", int),
             # Streaming
             f"{prefix}_STREAMING_CHUNK_SIZE": ("streaming", "chunk_size", int),
@@ -294,7 +290,6 @@ class Config:
             "apriori": {
                 "min_support": self.apriori.min_support,
                 "max_length": self.apriori.max_length,
-                "sparse": self.apriori.sparse,
                 "n_jobs": self.apriori.n_jobs,
             },
             "streaming": {

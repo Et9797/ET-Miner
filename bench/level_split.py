@@ -35,8 +35,9 @@ Phases:
     count_tiled    tiled kernel launches (dense chunks)
     count_fused    count_tiled_fused (one-GPU oversize groups; includes its filter)
     transition     convert_shards_to_csr (the dense-to-ESCO switch: tidsets
-                   built from the bitvecs)
-    count_csr      CSR kernel launches of an ESCO level (sparse chunks)
+                   built from the bitvecs; an older src/ only, ESCO is gone)
+    count_csr      CSR kernel launches of an ESCO level (sparse chunks; an
+                   older src/ only)
     compact        compact_written (the compacted reduce moving each GPU's
                    written entries to the front of its chunk array)
     reduce         reduce_sum_to_gpu0 (no-op on one GPU)
@@ -47,9 +48,10 @@ Phases:
     free_prune     _prune_non_free_mask
     other          the level's time minus every phase above
     level          the level's time as level_callback reports it
-    materialize    materialize_survivors (an ESCO level's survivors' tidsets),
-                   which runs after the level's callback: outside ``level``
-                   and ``other``, added to the level it materializes
+    materialize    materialize_survivors (an ESCO level's survivors' tidsets;
+                   an older src/ only), which runs after the level's
+                   callback: outside ``level`` and ``other``, added to the
+                   level it materializes
 
 Span phases (``span``, transactions input on the row-split route; the call
 starts at ``start()`` and ends at ``finish()``):
@@ -342,7 +344,10 @@ class LevelSplit:
         import et_miner.gpu.kernels.filter as filter_mod
         import et_miner.gpu.nccl as nccl
         import et_miner.gpu.row_split as row_split
-        import et_miner.gpu.sparse_csr as sparse_csr
+        try:
+            import et_miner.gpu.sparse_csr as sparse_csr
+        except ImportError:
+            sparse_csr = None
 
         for name in ("build_k3plus_groups_from_flat", "select_k3plus_groups"):
             self._patch(kernels, name, self._timed("group_build", getattr(kernels, name)))
@@ -364,16 +369,19 @@ class LevelSplit:
         self._patch(row_split, "_k2_row_pairs", self._timed("k2_dispatch", row_split._k2_row_pairs))
         self._patch(row_split, "_k2_row_shards", self._timed("k2_input", row_split._k2_row_shards))
         self._patch(row_split, "_upload_k2_rows", self._timed("k2_input", row_split._upload_k2_rows))
-        self._patch(row_split, "convert_shards_to_csr", self._timed("transition", row_split.convert_shards_to_csr))
-        self._patch(
-            row_split, "materialize_survivors", self._timed_after_level("materialize", row_split.materialize_survivors)
-        )
         self._patch(row_split, "run_chunked_dense_level", self._timed_dense_level(row_split.run_chunked_dense_level))
-        self._patch(
-            sparse_csr,
-            "run_chunked_dense_level",
-            self._timed_dense_level(sparse_csr.run_chunked_dense_level, "count_csr"),
-        )
+        if sparse_csr is not None:
+            self._patch(row_split, "convert_shards_to_csr", self._timed("transition", row_split.convert_shards_to_csr))
+            self._patch(
+                row_split,
+                "materialize_survivors",
+                self._timed_after_level("materialize", row_split.materialize_survivors),
+            )
+            self._patch(
+                sparse_csr,
+                "run_chunked_dense_level",
+                self._timed_dense_level(sparse_csr.run_chunked_dense_level, "count_csr"),
+            )
         self._patch(row_split, "_rows_sorted", self._timed("sort", row_split._rows_sorted))
         self._patch(row_split, "_prune_non_free_mask", self._timed("free_prune", row_split._prune_non_free_mask))
         self._patch(np, "lexsort", self._timed_lexsort(np.lexsort))

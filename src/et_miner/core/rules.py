@@ -500,7 +500,7 @@ def compute_self_sufficiency(
     redundant by the engine's own predicate scored 0.9375 and 0.3158. It was the
     wrong *kind* of aggregation, not a mis-scaled one. The package already
     implements the correct predicate twice, both as the min test --
-    ``core/apriori.py::_prune_equal_support`` and ``groups.rs`` -- so this was a
+    ``core/cpu_miner.py::_non_free`` and ``groups.rs`` -- so this was a
     third copy of one rule that had drifted to the other aggregate.
 
     Processes K parquet in chunks via PyArrow row-group iteration to

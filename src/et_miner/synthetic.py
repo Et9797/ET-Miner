@@ -72,6 +72,12 @@ class SynthSpec:
     #: The support threshold benchmarks/tests mine this preset at.
     min_support: float = 0.01
     seed: int = 42
+    #: Rows per block generated on its own (0: one block). Block b draws its
+    #: rows from ``seed + 7919 * b`` (the motifs' items come from ``seed``) and
+    #: plants every motif and tier in its own rows at the preset's
+    #: penetration, so a planted count is the sum over blocks. Bounds the
+    #: generator's peak memory to one block's.
+    block_rows: int = 0
 
     @property
     def min_count(self) -> int:
@@ -116,8 +122,25 @@ def _motif_items(spec: SynthSpec) -> list[np.ndarray]:
 
 
 def generate_csr(spec: SynthSpec) -> GeneratedData:
-    """Generate the dataset as CSR arrays (vectorized; ~seconds at 2M rows)."""
-    rng = np.random.default_rng(spec.seed)
+    """Generate the dataset as CSR arrays (vectorized; ~seconds at 2M rows), block by block with ``block_rows``."""
+    if 0 < spec.block_rows < spec.n_rows:
+        parts = []
+        for b, start in enumerate(range(0, spec.n_rows, spec.block_rows)):
+            n = min(spec.block_rows, spec.n_rows - start)
+            parts.append(_generate_block(dataclasses.replace(spec, n_rows=n, block_rows=0), spec.seed + 7919 * b))
+        indptr = np.zeros(spec.n_rows + 1, dtype=np.int64)
+        np.cumsum(np.concatenate([np.diff(p.indptr) for p in parts]), out=indptr[1:])
+        planted = [(items, sum(p.planted[i][1] for p in parts)) for i, (items, _) in enumerate(parts[0].planted)]
+        indices = np.concatenate([p.indices for p in parts])
+        return GeneratedData(indptr, indices, spec.n_rows, spec.vocab_size, planted)
+    return _generate_block(spec)
+
+
+def _generate_block(spec: SynthSpec, row_seed: int | None = None) -> GeneratedData:
+    """One block of ``generate_csr``: the rows drawn from ``row_seed`` (default ``spec.seed``), the motifs'
+    items from ``spec.seed``."""
+    row_seed = spec.seed if row_seed is None else row_seed
+    rng = np.random.default_rng(row_seed)
     weights = _item_weights(spec)
 
     lens = rng.poisson(spec.row_len_mean, size=spec.n_rows)
@@ -141,7 +164,7 @@ def generate_csr(spec: SynthSpec) -> GeneratedData:
     motifs = _motif_items(spec)
     for m_idx, motif in enumerate(motifs):
         n_planted = int(round(spec.motif_penetration * spec.n_rows))
-        m_rng = np.random.default_rng(spec.seed + 100 + m_idx)
+        m_rng = np.random.default_rng(row_seed + 100 + m_idx)
         rows = m_rng.choice(spec.n_rows, size=n_planted, replace=False).astype(np.int64)
         extra_rows.append(np.repeat(rows, len(motif)))
         extra_items.append(np.tile(motif, n_planted))
@@ -150,7 +173,7 @@ def generate_csr(spec: SynthSpec) -> GeneratedData:
         for m_idx, motif in enumerate(motifs):
             prefix = motif[:prefix_len]
             n_planted = int(round(penetration * spec.n_rows))
-            t_rng = np.random.default_rng(spec.seed + 1000 + 100 * t_idx + m_idx)
+            t_rng = np.random.default_rng(row_seed + 1000 + 100 * t_idx + m_idx)
             rows = t_rng.choice(spec.n_rows, size=n_planted, replace=False).astype(np.int64)
             extra_rows.append(np.repeat(rows, len(prefix)))
             extra_items.append(np.tile(prefix, n_planted))
@@ -234,6 +257,25 @@ def check_preset_purpose(spec: SynthSpec) -> None:
             raise AssertionError(
                 f"deep_sparse_large's dense bitvecs must fit one 12 GB card: ~{dense_bytes / 2**30:.1f} GiB"
             )
+    if spec.name == "deep_sparse_xl":
+        base = PRESETS["deep_sparse_large"]
+        if spec.n_rows < 3 * base.n_rows:
+            raise AssertionError(f"deep_sparse_xl must hold at least 3x deep_sparse_large's rows, got {spec.n_rows:,}")
+        shape = ("vocab_size", "zipf_a", "row_len_mean", "row_len_max", "motif_count", "motif_size",
+                 "motif_penetration", "motif_tiers", "min_support")
+        if any(getattr(spec, f) != getattr(base, f) for f in shape):
+            raise AssertionError(f"deep_sparse_xl must keep deep_sparse_large's shape ({', '.join(shape)})")
+        words = math.ceil(spec.n_rows / 64)
+        dense_bytes = est["expected_k1_survivors"] * words * 8
+        planted_per_row = spec.motif_count * (
+            spec.motif_size * spec.motif_penetration + sum(n * p for n, p in spec.motif_tiers)
+        )
+        entry_bytes = 4 * spec.n_rows * (spec.row_len_mean + planted_per_row)
+        if dense_bytes > 6 * 2**30 or dense_bytes + entry_bytes > 9 * 2**30:
+            raise AssertionError(
+                f"deep_sparse_xl must fit one 12 GB card: ~{dense_bytes / 2**30:.1f} GiB of bitvectors and "
+                f"~{entry_bytes / 2**30:.1f} GiB of device-layer entries"
+            )
     if spec.name == "wide_vocab":
         if est["expected_k1_survivors"] < 1_000:
             raise AssertionError(
@@ -284,6 +326,8 @@ def check_preset_purpose(spec: SynthSpec) -> None:
 # falls below the n/32 crossover around K=5-6, and mining to K=16.
 # wide_vocab has >1,000 frequent items, so the CPU tier's auto strategy picks
 # sparse counting, and is small enough for the CPU tiers to finish in minutes.
+# deep_sparse_xl is deep_sparse_large's shape at 3x its rows (60M), generated in
+# 20M-row blocks: the scale regime of one 12 GB card.
 # deep_k20 plants two 20-item motifs that no background item joins, so the
 # lattice reaches K=20 as two components of 20 items each from K=6
 # (2,097,793 itemsets): the AlphaFold base-vocab regime of long motifs.
@@ -373,6 +417,21 @@ PRESETS: dict[str, SynthSpec] = {
         row_len_max=80,
         min_support=0.004,
         seed=31,
+    ),
+    "deep_sparse_xl": SynthSpec(
+        name="deep_sparse_xl",
+        n_rows=60_000_000,
+        vocab_size=1_000,
+        zipf_a=1.3,
+        row_len_mean=6,
+        row_len_max=48,
+        motif_count=4,
+        motif_size=12,
+        motif_penetration=0.018,
+        motif_tiers=((5, 0.22), (8, 0.09)),
+        min_support=0.015,
+        seed=4343,
+        block_rows=20_000_000,
     ),
     "deep_k20": SynthSpec(
         name="deep_k20",

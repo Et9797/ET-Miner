@@ -174,8 +174,12 @@ def test_mining_under_the_lex_order_matches_keep_and_the_oracle(monkeypatch, opt
     s = _tie_support(column)
     kw = {"use_generator_pruning": option == "count inference", "prune_equal_support": option == "free sets"}
     results = {}
+    from et_miner.gpu import input_layer
+
+    lex_bytes = input_layer.LEX_BYTES_PER_ROW
     for order in ("keep", "lex"):
-        monkeypatch.setenv("ET_MINER_ROW_ORDER", order)
+        # keep: the lex sort's no-room fallback, forced by leaving it no room
+        monkeypatch.setattr(input_layer, "LEX_BYTES_PER_ROW", 1 << 50 if order == "keep" else lex_bytes)
         res = apriori(column.to_frame(), min_support=s, use_gpu=True, n_gpus=n_gpus, **kw)
         results[order] = sorted(zip(map(tuple, res["itemset"].to_list()), res["support"].to_list()))
     assert results["lex"] == results["keep"]
@@ -209,7 +213,6 @@ def test_without_room_for_the_occupancy_every_tile_is_counted(monkeypatch):
     monkeypatch.setattr(kernels, "tile_occupancy", no_room)
     for name, value in _PINS["per-candidate"].items():
         monkeypatch.setenv(name, value)
-    monkeypatch.setenv("ET_MINER_ROW_ORDER", "lex")
     column = _random_column(11, 4_099, repeats=True)
     s = _tie_support(column)
     res = apriori(column.to_frame(), min_support=s, use_gpu=True)
@@ -217,11 +220,111 @@ def test_without_room_for_the_occupancy_every_tile_is_counted(monkeypatch):
     assert mined_counts(res, len(column)) == ea_counts(column.to_list(), s)
 
 
-def test_row_order_knob_is_validated(monkeypatch):
-    from et_miner import _env
+@pytest.mark.gpu
+def test_the_lex_order_keeps_the_rows_where_its_sort_does_not_fit(monkeypatch):
+    from et_miner.gpu import input_layer
+    from et_miner.gpu.input_layer import build_device_input
 
-    monkeypatch.setenv("ET_MINER_ROW_ORDER", "sorted")
-    with pytest.raises(ValueError, match="ET_MINER_ROW_ORDER"):
-        _env.row_order()
-    monkeypatch.setenv("ET_MINER_ROW_ORDER", "LEX")
-    assert _env.row_order() == "lex"
+    column = _random_column(11, 4_099, repeats=True)
+    assert build_device_input(column, 0.01, 1, keep_rows=False, row_order="lex").row_order == "lex"
+    monkeypatch.setattr(input_layer, "LEX_BYTES_PER_ROW", 1 << 50)
+    assert build_device_input(column, 0.01, 1, keep_rows=False, row_order="lex").row_order == "keep"
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("error", ["MemoryError", "OutOfMemoryError"])
+def test_the_lex_order_keeps_the_rows_where_its_sort_runs_out_of_memory(monkeypatch, error):
+    import cupy as cp
+
+    from et_miner import apriori
+    from et_miner.gpu import input_layer
+    from et_miner.gpu.input_layer import build_device_input
+
+    def no_room(*args):
+        # Thrust's sort raises a plain MemoryError (std::bad_alloc), the CuPy pool an OutOfMemoryError
+        raise MemoryError("std::bad_alloc") if error == "MemoryError" else cp.cuda.memory.OutOfMemoryError(1 << 40, 0)
+
+    monkeypatch.setattr(input_layer, "_row_order", no_room)
+    column = _random_column(11, 4_099, repeats=True)
+    assert build_device_input(column, 0.01, 1, keep_rows=False, row_order="lex").row_order == "keep"
+    s = _tie_support(column)
+    res = apriori(column.to_frame(), min_support=s, use_gpu=True)
+    assert mined_counts(res, len(column)) == ea_counts(column.to_list(), s)
+
+
+class _PeakHook:
+    """Device bytes held at the peak of a block, counted from the CuPy allocator's malloc and free."""
+
+    def __init__(self):
+        from cupy.cuda import memory_hook
+
+        outer = self
+
+        class Hook(memory_hook.MemoryHook):
+            name = "lex_peak"
+
+            def malloc_postprocess(self, **kw):
+                outer.sizes[kw["mem_ptr"]] = kw["mem_size"]
+                outer.held += kw["mem_size"]
+                outer.peak = max(outer.peak, outer.held)
+
+            def free_postprocess(self, **kw):
+                outer.held -= outer.sizes.pop(kw["mem_ptr"], 0)
+
+        self.hook, self.sizes, self.held, self.peak = Hook(), {}, 0, 0
+
+
+def _poisson_column(n_rows: int, n_items: int, mean: float, seed: int) -> pl.Series:
+    import pyarrow as pa
+
+    rng = np.random.default_rng(seed)
+    lens = rng.poisson(mean, size=n_rows)
+    ids = rng.integers(0, n_items, size=int(lens.sum())).astype(np.int64)
+    offsets = np.concatenate([[0], np.cumsum(lens)]).astype(np.int64)
+    return pl.Series("items", pl.from_arrow(pa.ListArray.from_arrays(pa.array(offsets), pa.array(ids))))
+
+
+@pytest.mark.gpu
+def test_lex_bytes_per_row_covers_the_peak_of_the_sort():
+    import cupy as cp
+
+    from et_miner.core.cpu_miner import _IntIds
+    from et_miner.gpu import input_layer as il
+
+    n_rows = 1_000_000
+    pieces, lo, hi = il._read_chunks(_poisson_column(n_rows, 1_000, 6.0, 0))
+    ids = _IntIds(lo, hi - lo + 1, pl.Int64)
+    shards = il._upload_shards(pieces, ids, [(0, n_rows)])
+    occurrences = il._occurrences(shards, ids.span)
+    freq = np.flatnonzero(occurrences >= 1)
+    lut = np.full(ids.span + 1, -1, dtype=np.int32)
+    lut[freq] = np.arange(len(freq), dtype=np.int32)
+    rank = np.empty(len(freq), dtype=np.int32)
+    rank[np.argsort(-occurrences[freq], kind="stable")] = np.arange(len(freq), dtype=np.int32)
+    cp.get_default_memory_pool().free_all_blocks()
+    peak = _PeakHook()
+    with peak.hook:
+        il._row_order(shards, lut, rank)
+        cp.cuda.Device().synchronize()
+    assert peak.peak <= il.LEX_BYTES_PER_ROW * n_rows, f"{peak.peak / n_rows:.1f} B per row"
+
+
+@pytest.mark.gpu
+def test_a_lex_sort_past_its_room_check_falls_back_under_a_pool_limit(monkeypatch):
+    import cupy as cp
+
+    from et_miner import apriori
+    from et_miner.gpu import input_layer
+
+    column = _poisson_column(2_000_000, 100, 5.0, 1)
+    expected = mined_counts(apriori(column.to_frame(), min_support=0.002, max_length=2), len(column))
+    # Below the sort's real peak: the room check passes, then the sort itself runs out of the pool
+    monkeypatch.setattr(input_layer, "LEX_BYTES_PER_ROW", 56)
+    pool = cp.get_default_memory_pool()
+    pool.free_all_blocks()
+    pool.set_limit(size=170 << 20)
+    try:
+        res = apriori(column.to_frame(), min_support=0.002, max_length=2, use_gpu=True, n_gpus=1)
+    finally:
+        pool.set_limit(size=0)
+    assert mined_counts(res, len(column)) == expected

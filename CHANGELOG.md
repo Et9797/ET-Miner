@@ -12,6 +12,90 @@ All notable changes to ET-Miner are recorded here. Versions follow
 
 ## [Unreleased] — 0.2.0
 
+### Route consolidation, round 2
+
+Every mining path measured and every loser removed, decided by
+`bench/results/2026-10-27-routes-gpu/FINDINGS.md` (2x RTX 3060 12 GB, 17
+threads; rule and arms in `bench/routes/PROTOCOL.md`). Mined output is
+unchanged: every removal kept the tier-equivalence chain exact.
+
+- **`count_support_sparse` is removed, and with it `core/sparse.py`.** The
+  scipy counter won none of 28 measured batches against the Polars counter
+  (dsl levels: 0.2-7.2 s Polars, 10-48 s scipy) and ran out of the 34.8 GiB
+  limit on a K=2 batch over 20M rows. `count_support_batched` counts with
+  Polars on the CPU; its `sparse=` and `n_jobs=` (which only the scipy counter
+  read) raise `ValueError` unless left at their defaults (`None`, `1`).
+  `apriori(sparse=...)`, `apriori_streaming(sparse=...)` and
+  `apriori_streaming_multi_gpu(sparse=...)` raise for any value but `None`
+  (they were deprecated and ignored). `Config.apriori.sparse` and
+  `ET_APRIORI_SPARSE` are gone (nothing read them).
+- **The CPU route counts K=2 on the Gram only** (`count_pairs_bitvec` is
+  gone): its bitvector K=2 won no workload. `count_itemsets` (SON's pass 2)
+  keeps its own K=2 rule.
+- **GPU K=2:** a pair space within one chunk is always tiled (per-candidate
+  K=2 stays for the multi-GPU sub-chunks), and row-wise K=2 runs on global
+  atomics only (`count_pairs_k2_rows_shared` is gone).
+- **The GPU route mines every item column on the device input layer.** A
+  column it did not serve (strings, floats, categoricals, integer ids spanning
+  more than 2**22 values) used to take the host CSR; it is now coded to integer
+  ids in item order by Polars and mined on the device layer (dsl as strings
+  18.3 s against 30.6 s, dsl with ids spread over Int64 10.7 s against 29.1 s).
+  The host CSR remains the fallback where the coded layer cannot serve (more
+  distinct items than 2**22, or `output_dir` / `resume_from_k` /
+  `anchor_items` on such a column) and under `ET_MINER_INPUT_LAYER=host`.
+  The bench-only `rebuilt` and `coded` values of that variable are gone.
+- **The lex row order falls back to the kept order where its sort does not
+  fit.** Lex stays the device layer's order (dsl 3.9 s against 10.0 s, dslxl
+  10.4 s against 28.3 s), but its sort peaks at 64.3 B per row (a CuPy memory
+  hook; about 3.9 GB on dslxl's 60M rows): each shard now needs
+  `LEX_BYTES_PER_ROW` (65 B) per row free on its device, or every shard keeps
+  its row order, as it also does when the sort runs out of device memory all
+  the same. `ET_MINER_ROW_ORDER` is gone.
+- **`prune_apriori=False` is removed**: `apriori(prune_apriori=False)` raises
+  (True, the default, is the only behaviour). Skipping the subset test won no
+  workload and lost by 76x on oom_regression at max_length 3 (27.2 s against
+  0.36 s) and 365x on stress_k2 (629 s against 1.7 s). The tier chain's
+  "no subset test" legs go with it.
+- **ESCO, the GPU's dense→sparse CSR transition (`sparse_from_k`), is removed
+  again**: `apriori(sparse_from_k=...)` and `mine_two_phase(sparse_from_k=...)`
+  raise for any value but `None` (the default), and `ET_MINER_ESCO_MATERIALIZE`
+  stays refused. It won no workload: dense against `"auto"` 3.95 s against
+  7.93 s on dsl (fixed K=3 could not fit its tidsets on a 12 GB card), 0.36 s
+  against 18.7 s on oom_regression at max_length 3 and 1.72 s against 136 s on
+  stress_k2. Gone with it are `gpu/sparse_csr.py`, `gpu/density.py`, the CSR
+  kernels (`csr_warp.cu`, `bitvec_extract_tids.cu`) and
+  `upload_k3plus_groups(with_src_rows=)`; the group builders keep
+  `with_src_rows` (`bench/candidate_waste.py` reads it). The tier chain's ESCO
+  legs go with it.
+- **The bench-only `ET_MINER_LEAVE_OUT` is gone**: Phase 2's leave-one-out
+  pins of the row-split counting arms. No tier leg used it;
+  `bench/routes_matrix.py::PHASE2_LEAVE_OUT` keeps the record of what ran.
+- **SON on the GPU runs the CPU passes' array skeleton only** (the partition
+  bound over an array union; each chunk mined by the row-split miner, pass 2
+  counted with the batched kernel, row-split over `n_gpus`). The per-chunk
+  Polars boolean matrices, the set union and the multi-GPU waves are gone:
+  22-34x slower on one GPU (dslxl-son 504 s against 15 s) and 24x on two
+  (306 s against 12.7 s), and 2.5x more RAM (18.3 GB against 7.4 GB). The
+  skeleton peaks higher in VRAM on one GPU (dslxl-son 3.4 GB against 1.7 GB;
+  accepted by the owner, it scales with `chunk_size`).
+- **The Rust bitvector builder (`et_miner_rust.build_column_bitvecs_u64`) is
+  removed.** It was the fallback of the CUDA CSR→bitvec kernel, which built
+  the same bits 3.3-7x faster per call on the dumped SON and counting inputs;
+  `count_support_batched(use_gpu=True)` and SON's GPU passes now raise if the
+  CUDA build fails instead of falling back to the host build. The Rust group
+  build and free-set prune stay (their fallbacks are 11x and 25x slower).
+
+### Fixed (route consolidation, round 2)
+
+- **`bitvecs=` on several GPUs no longer runs out of memory on an input that
+  fits.** The row split made each shard contiguous on the input device before
+  copying it, so the input device held the caller's array, a temporary copy of
+  its shard and the shard itself: a 6 GB input failed on a 12 GB card. The
+  shard on the input device is now written from the caller's array directly
+  and the others are copied through host memory in 256 MB row blocks; an input
+  whose device cannot also hold its own shard (8.75 GB on 12 GB) raises a
+  `MemoryError` naming the sizes before any allocation, instead of CuPy's.
+
 ### CPU route: one array miner
 
 - **The CPU route of `apriori()` mines every level from one CSR of the

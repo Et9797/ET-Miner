@@ -201,29 +201,6 @@ def test_o5_calibration_pins_threads_and_devices_and_leaves_the_knobs_at_their_d
             assert "CUDA_VISIBLE_DEVICES" not in c["env"] and "ET_MINER_DISABLE_NCCL" not in c["env"]
 
 
-def test_level_split_times_csr_launches_as_count_csr(monkeypatch):
-    import et_miner.gpu.sparse_csr as sparse_csr
-
-    class Chunk:
-        per_candidate = False
-
-    def chunk_loop(bitvecs_list, chunks, launch_chunk, *args, **kwargs):
-        for chunk in chunks:
-            launch_chunk(None, 0, chunk)
-
-    monkeypatch.setattr(sparse_csr, "run_chunked_dense_level", chunk_loop)
-    split = LevelSplit()
-    split.install()
-    try:
-        sparse_csr.run_chunked_dense_level([], [Chunk(), Chunk()], lambda bv, did, chunk: time.sleep(0.01))
-        split.callback()(3, 2, 1, 100.0)
-    finally:
-        split.uninstall()
-    assert sparse_csr.run_chunked_dense_level is chunk_loop
-    assert split.levels[3]["count_csr"] >= 0.02
-    assert split.levels[3]["count_tiled"] == split.levels[3]["count_percand"] == 0
-
-
 @pytest.mark.gpu
 def test_copy_bandwidth_is_positive_on_a_device():
     pytest.importorskip("cupy")

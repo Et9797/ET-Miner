@@ -5,6 +5,8 @@ stderr (loguru default); the single RESULT json line goes to stdout.
 Exit codes: 0 ok, 3 correctness failure (motif recovery), other = crash.
 
 Configs with ``"mode": "cpu"`` go to ``bench/cpu/child.py`` (CPU-tier baseline).
+Configs with ``"mode": "routes"`` go to ``routes_run.py`` (the route
+consolidation, ``bench/routes/PROTOCOL.md``).
 Configs with ``"mode": "consolidation"`` name their route explicitly (C,
 C-bitvecs, D, E, F; see ``run_consolidation``), warm up on every device they
 use, and record per-level (or per-pass) times, per-device peak VRAM, peak RSS,
@@ -140,6 +142,10 @@ def main() -> int:
         from consolidation_run import run_consolidation
 
         return run_consolidation(cfg)
+    if cfg.get("mode") == "routes":
+        from routes_run import run_routes
+
+        return run_routes(cfg)
     if cfg.get("mode") == "cpu":
         sys.path.insert(0, str(REPO / "bench" / "cpu"))
         from child import run_cpu

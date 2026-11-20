@@ -48,8 +48,8 @@ COMPACT_MASK_BITS_PER_CANDIDATE = 1
 #: not depend on the row count, since both kernels scale with the words, and
 #: it falls with K, since the per-candidate kernel reads every prefix word for
 #: every candidate. K=7 sits between its measured neighbours; beyond K=8 the
-#: K=8 value holds. K=2 is one group with an empty prefix, counted as K=3.
-TILED_MIN_GROUP_PAIRS = {2: 120, 3: 120, 4: 91, 5: 66, 6: 45, 7: 32, 8: 23}
+#: K=8 value holds.
+TILED_MIN_GROUP_PAIRS = {3: 120, 4: 91, 5: 66, 6: 45, 7: 32, 8: 23}
 
 
 #: Pairs per prefix group at which the tiled kernel becomes faster than the
@@ -73,7 +73,7 @@ def _per_k(table: dict[int, int], k: int) -> int:
 
 def tiled_min_group_pairs(k: int) -> int:
     """Pairs a prefix group needs to be counted by the tiled kernel at level ``k``
-    when the per-candidate kernel takes the smaller groups (K=2, and K>=3 with
+    when the per-candidate kernel takes the smaller groups (K>=3 with
     ``ET_MINER_SMALL_GROUP_KERNEL=percand``).
 
     ``ET_MINER_TILED_MIN_GROUP_PAIRS`` pins it for every level (0 = tiled for
@@ -96,12 +96,13 @@ class GroupKernels(NamedTuple):
 def group_kernels(k: int, pairs, sizes) -> GroupKernels:
     """The kernel of each prefix group of level ``k`` from its pairs and suffixes.
 
-    Groups of more than ``GROUP_MAX_SUFFIXES`` suffixes are tiled. Below the
-    tiled crossover, ``ET_MINER_SMALL_GROUP_KERNEL`` pins the per-candidate
-    kernel (with ``TILED_MIN_GROUP_PAIRS``) or the group kernel (with
-    ``GROUP_TILED_MIN_PAIRS``); unset, groups below ``GROUP_MIN_PAIRS`` go
-    per-candidate and the rest to the group kernel. ``ET_MINER_TILED_MIN_GROUP_PAIRS``
-    pins the tiled crossover in every mode.
+    ``ET_MINER_SMALL_GROUP_KERNEL=percand``: tiled from
+    ``TILED_MIN_GROUP_PAIRS``, per-candidate below. Otherwise groups of more
+    than ``GROUP_MAX_SUFFIXES`` suffixes or from ``GROUP_TILED_MIN_PAIRS``
+    pairs are tiled; below that, groups under ``GROUP_MIN_PAIRS`` go
+    per-candidate (unless the pin says ``group``) and the rest to the group
+    kernel.
+    ``ET_MINER_TILED_MIN_GROUP_PAIRS`` pins the tiled crossover in every mode.
     """
     from et_miner.gpu.kernels.group_pairs import GROUP_MAX_SUFFIXES
 

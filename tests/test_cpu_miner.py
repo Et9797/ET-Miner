@@ -4,7 +4,6 @@ and the route end to end against efficient-apriori (oracle convention, CLAUDE.md
 from __future__ import annotations
 
 import itertools
-import warnings
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -231,29 +230,16 @@ def test_count_pairs_matches_a_brute_force(monkeypatch, seed, budget):
     assert np.array_equal(order, np.arange(len(pairs))), "pairs must come out lexsorted"
 
 
-@pytest.mark.parametrize("seed", [0, 1])
-def test_count_pairs_bitvec_matches_the_gram(monkeypatch, seed):
-    monkeypatch.setattr(cpu_miner, "AND_CHUNK_BYTES", 64)
-    dense, m = _random_csr(seed, n_rows=700, n_cols=20)
-    gen = np.flatnonzero(np.random.default_rng(seed).random(20) < 0.8)
-    mask = np.zeros(20, dtype=bool)
-    mask[gen] = True
-    p1, c1 = cpu_miner.count_pairs(m, mask, 12)
-    p2, c2 = cpu_miner.count_pairs_bitvec(cpu_miner.build_bitvecs(m.indptr, m.indices, 20), gen, 12)
-    assert np.array_equal(p1, p2) and np.array_equal(c1, c2)
-
-
 @pytest.mark.parametrize("ratio", [0.0, 1e12])
-def test_both_k2_paths_give_the_route_the_same_result(monkeypatch, ratio):
+def test_the_route_ignores_count_itemsets_k2_rule(monkeypatch, ratio):
+    """The mining route counts K=2 on the Gram whatever GRAM_BITVEC_RATIO says."""
     monkeypatch.setattr(cpu_miner, "GRAM_BITVEC_RATIO", ratio)
     df = pl.DataFrame({"items": _dense_rows(4, n_rows=500)})
     assert _mined(df, 0.05) == _brute_lattice(df["items"].to_list(), 0.05)[0]
 
 
-@pytest.mark.parametrize("ratio", [0.0, 1e12])
-def test_min_support_zero_keeps_the_occurring_itemsets_on_both_k2_paths(monkeypatch, ratio):
-    """At min_count 0 the bitvectors would keep pairs that never co-occur, which the Gram cannot see."""
-    monkeypatch.setattr(cpu_miner, "GRAM_BITVEC_RATIO", ratio)
+def test_min_support_zero_keeps_the_occurring_itemsets():
+    """At min_count 0 the Gram sees only pairs that co-occur, so a pair that never does is not emitted."""
     df = pl.DataFrame({"items": [[1], [2], [3, 4, 5]]})
     want = {s: 1 for s in [(1,), (2,), (3,), (4,), (5,), (3, 4), (3, 5), (4, 5), (3, 4, 5)]}
     assert _mined(df, 0.0) == want
@@ -275,13 +261,11 @@ def _random_level(seed: int, k: int, n_cols: int = 14, n: int = 300) -> np.ndarr
     return arr
 
 
-def _reference_candidates(level: np.ndarray, k: int) -> np.ndarray:
-    from et_miner.core.candidates import _generate_candidates
-
-    names = [f"i_{i:02d}" for i in range(64)]
-    out = _generate_candidates([tuple(names[c] for c in row) for row in level.tolist()], k)
-    arr = np.array([[int(c[2:]) for c in t] for t in out], dtype=np.int32).reshape(-1, k)
-    return arr[np.lexsort(arr.T[::-1])] if len(arr) else arr
+def _reference_candidates(level: np.ndarray, k: int, n_cols: int = 14) -> np.ndarray:
+    """Every k-set of the columns whose (k-1)-subsets all lie in ``level``, ascending (brute force)."""
+    prev = {tuple(row) for row in level.tolist()}
+    out = [c for c in itertools.combinations(range(n_cols), k) if all(s in prev for s in itertools.combinations(c, k - 1))]
+    return np.array(out, dtype=np.int32).reshape(-1, k)
 
 
 @pytest.mark.parametrize("chunk", [cpu_miner.CAND_CHUNK, 7, 1])
@@ -702,26 +686,19 @@ def test_cpu_route_keeps_string_items():
     assert got == _oracle(rows, 0.3)
 
 
-def test_sparse_is_deprecated_on_the_cpu_route_and_changes_nothing():
+@pytest.mark.parametrize("value", [True, False])
+@pytest.mark.parametrize("streaming", [False, True])
+def test_sparse_raises_on_every_route(value, streaming):
     df = pl.DataFrame({"items": _random_rows(7, messy=False)})
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        plain = _mined(df, 0.03)
-    for value in (True, False):
-        with pytest.warns(DeprecationWarning, match="sparse= no longer selects"):
-            assert _mined(df, 0.03, sparse=value) == plain
+    with pytest.raises(ValueError, match="sparse= was removed"):
+        _mined(df, 0.03, streaming=streaming, sparse=value)
 
 
-def test_streaming_single_chunk_fallback_warns_about_sparse_once_and_changes_nothing():
-    df = pl.DataFrame({"items": _random_rows(7, messy=False)})
-    plain = _mined(df, 0.03)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        assert _mined(df, 0.03, streaming=True, sparse=None) == plain
-    for value in (True, False):
-        with pytest.warns(DeprecationWarning, match="sparse= no longer selects") as record:
-            assert _mined(df, 0.03, streaming=True, sparse=value) == plain
-        assert sum(issubclass(w.category, DeprecationWarning) for w in record) == 1
+@pytest.mark.parametrize("value", [True, False, "scipy"])
+def test_sparse_raises_before_the_bitvecs_route(value):
+    # The bitvecs route returns before the transactions' checks; the bitvecs are never read here
+    with pytest.raises(ValueError, match="sparse= was removed"):
+        apriori(bitvecs=object(), min_support=0.05, use_gpu=True, sparse=value)
 
 
 def test_map_rows_raises_when_explode_and_lengths_disagree(monkeypatch):

@@ -280,10 +280,12 @@ class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
 
         took_shortcut = False
 
-        def _spy(*a, **kw):
+        def _spy(transactions, *a, **kw):
+            """The shortcut mines the whole frame; the chunked path mines each chunk through apriori() too."""
             nonlocal took_shortcut
-            took_shortcut = True
-            raise RuntimeError("single-chunk shortcut taken")
+            lf = transactions.lazy() if isinstance(transactions, pl.DataFrame) else transactions
+            took_shortcut |= lf.select(pl.len()).collect().item() == n_rows
+            raise RuntimeError("apriori reached")
 
         # `from et_miner.core.apriori import apriori` runs INSIDE the function,
         # so patch the attribute on the module object. `et_miner.core.apriori`
@@ -315,15 +317,12 @@ class TestMemoryBudgetIsResolvedBeforeTheSingleChunkShortcut:
 
 
 class TestPruneApriori:
-    """prune_apriori=False is honoured by the row-split miner alone and refused elsewhere."""
+    """prune_apriori=False is removed on every route; True is the only (default) behaviour."""
 
-    def test_false_is_refused_off_the_row_split_miner(self, df):
-        with pytest.raises(ValueError, match="requires the row-split miner"):
-            apriori(df, min_support=0.05, prune_apriori=False)
-
-    def test_false_is_refused_on_son(self, df):
-        with pytest.raises(ValueError, match="requires the row-split miner"):
-            apriori(df, min_support=0.05, prune_apriori=False, streaming=True, chunk_size=10)
+    @pytest.mark.parametrize("kw", [{}, {"streaming": True, "chunk_size": 10}])
+    def test_false_raises(self, df, kw):
+        with pytest.raises(ValueError, match="prune_apriori=False was removed"):
+            apriori(df, min_support=0.05, prune_apriori=False, **kw)
 
     def test_non_bool_raises(self, df):
         with pytest.raises(TypeError, match="prune_apriori must be bool"):
@@ -333,14 +332,32 @@ class TestPruneApriori:
         assert apriori(df, min_support=0.05, prune_apriori=True).equals(apriori(df, min_support=0.05))
 
 
+class TestSparseFromK:
+    """sparse_from_k (ESCO) is removed on every route; None is the only (default) behaviour."""
+
+    @pytest.mark.parametrize("value", [3, "auto"])
+    @pytest.mark.parametrize("kw", [{}, {"streaming": True, "chunk_size": 10}])
+    def test_any_value_raises(self, df, kw, value):
+        with pytest.raises(ValueError, match="sparse_from_k was removed"):
+            apriori(df, min_support=0.05, sparse_from_k=value, **kw)
+
+    def test_none_is_the_cpu_default(self, df):
+        assert apriori(df, min_support=0.05, sparse_from_k=None).equals(apriori(df, min_support=0.05))
+
+    def test_the_materialization_knob_is_refused_before_any_mining(self, df, monkeypatch):
+        monkeypatch.setenv("ET_MINER_ESCO_MATERIALIZE", "recount")
+        with pytest.raises(ValueError, match="ET_MINER_ESCO_MATERIALIZE was removed"):
+            apriori(df, min_support=0.05)
+
+
 class TestRemovedParametersRaise:
     """A removed parameter raises on every route, naming its replacement."""
 
     def test_mine_two_phase_refuses_before_creating_a_directory(self, df, tmp_path):
         from et_miner.gpu.row_split import mine_two_phase
 
-        with pytest.raises(ValueError, match="sparse_from_k"):
-            mine_two_phase(df, output_dir=str(tmp_path / "out"), sparse_from_k="bogus")
+        with pytest.raises(ValueError, match="sparse_from_k was removed"):
+            mine_two_phase(df, output_dir=str(tmp_path / "out"), sparse_from_k=3)
         assert not (tmp_path / "out").exists()
 
 

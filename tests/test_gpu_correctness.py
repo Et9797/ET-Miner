@@ -193,7 +193,7 @@ class TestMineTwoPhase:
         p1, p2 = 0.20, 0.05
         _, _, anchors = mine_two_phase(
             nested_df, phase1_support=p1, phase2_support=p2, max_length=4,
-            n_gpus=1, output_dir=str(tmp_path), sparse_from_k=None,
+            n_gpus=1, output_dir=str(tmp_path),
         )
         assert anchors, "phase 1 found no anchors"
 
@@ -319,6 +319,15 @@ class TestRowSplitInputEdges:
         bv = cp.zeros((8, 4), dtype=cp.uint64)
         with pytest.raises(ValueError, match="C-contiguous uint64"):
             apriori(bitvecs=(bv[::2], {i: i for i in range(4)}, 256), min_support=0.1, use_gpu=True)
+
+    @pytest.mark.parametrize("item", [1.5, "a"])
+    def test_non_integer_col_to_item_is_refused(self, item):
+        """The route holds item ids as 64-bit integers: a float id was truncated, a string raised mid-run."""
+        import cupy as cp
+
+        bv = cp.zeros((2, 4), dtype=cp.uint64)
+        with pytest.raises(ValueError, match="integer item id"):
+            apriori(bitvecs=(bv, {0: 1, 1: item}, 256), min_support=0.1)
 
     def test_the_memory_guard_does_not_discard_a_finished_lattice(self, nested_df):
         """After the last level nothing more is mined, so a tripped guard would only throw the result away."""

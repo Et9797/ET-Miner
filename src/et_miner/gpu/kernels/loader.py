@@ -2,30 +2,14 @@
 
 Kernel sources live as .cu files in the adjacent _src/ directory (shipped as
 package data) and are compiled on first use via cupy.RawKernel, keyed by the
-CUDA entry-point name. Also holds the per-device locks and grid-dimension
-helpers shared by every kernel-wrapper module.
+CUDA entry-point name. Also holds the grid-dimension helpers shared by
+every kernel-wrapper module.
 """
 
 from __future__ import annotations
 
 import threading
 from importlib import resources
-
-
-# Per-device locks for thread-safe CUDA operations on each GPU independently.
-# Allows true parallel kernel execution across GPUs (the old single global lock
-# serialized ALL GPU work, making multi-GPU slower than single-GPU).
-_cuda_device_locks: dict = {}
-_cuda_locks_init = threading.Lock()
-
-
-def _get_device_lock(device_id: int) -> threading.Lock:
-    """Get or create a lock for a specific CUDA device."""
-    if device_id not in _cuda_device_locks:
-        with _cuda_locks_init:
-            if device_id not in _cuda_device_locks:
-                _cuda_device_locks[device_id] = threading.Lock()
-    return _cuda_device_locks[device_id]
 
 
 #: Host-side cap on K for every K>=3 kernel. The group kernels cache the
@@ -169,14 +153,9 @@ def _grid_dims(n_blocks):
 
 # CUDA entry point -> .cu file in _src/ (cache keys are the entry-point names)
 _KERNEL_FILES: dict[str, str] = {
-    "csr_count_range": "csr_warp.cu",
-    "csr_count_gather": "csr_warp.cu",
-    "csr_write_gather": "csr_warp.cu",
-    "bitvec_extract_tids": "bitvec_extract_tids.cu",
     "count_itemsets_batch": "itemset_count.cu",
     "count_pairs_k2_dense": "pairs_k2_dense.cu",
     "count_pairs_k2_rows": "pairs_k2_rows.cu",
-    "count_pairs_k2_rows_shared": "pairs_k2_rows.cu",
     "count_k3plus_dense": "k3plus_dense.cu",
     "count_shared_tiled_dense": "shared_tiled.cu",
     "count_shared_tiled_fused": "shared_tiled.cu",
@@ -192,7 +171,6 @@ _KERNEL_FILES: dict[str, str] = {
 # kernels (the candidate decode that mirrors decode.py::decode_k3plus_flat, and
 # the (k-1)-subset test of the counting kernels).
 _KERNEL_PRELUDES: dict[str, list[str]] = {
-    "csr_warp.cu": ["_decode_common.cu", "_subset_index.cu"],
     "k3plus_dense.cu": ["_decode_common.cu", "_subset_index.cu"],
     "shared_tiled.cu": ["_subset_index.cu"],
     "group_pairs.cu": ["_subset_index.cu"],

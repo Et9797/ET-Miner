@@ -12,9 +12,14 @@ belong to the caller regardless -- it forwards the user's own `bitvecs=` array.
 This is a logging and ownership fix, NOT a memory-behaviour fix: the
 `free_all_blocks()` call is not scoped to allocations made in these functions,
 and the sibling `try/finally` around the K>=3 group arrays depends on it. So
-the test pins that the call is still made on both branches, and that only the
-claim differs. A "cleanup" that quietly changed VRAM pressure would be a
-different commit with a VRAM measurement behind it.
+the test pinned that the call was still made on both branches, and that only
+the claim differed.
+
+The release sat in the dense-to-sparse transition, which went with ESCO
+(route consolidation G6): the route now releases no bitvecs, owned or not.
+What stays pinned is the contract the fix was about: the caller's array is
+forwarded by identity and comes back unchanged, and a caller's list is not
+mutated.
 """
 
 from __future__ import annotations
@@ -49,26 +54,6 @@ def _dense_csr(n_rows=4000, n_cols=14, seed=5):
             cols.append(c)
     data = np.ones(len(rows), dtype=np.int8)
     return csr_matrix((data, (rows, cols)), shape=(n_rows, n_cols))
-
-
-class _PoolSpy:
-    """Delegates to the real pool, counts free_all_blocks() calls.
-
-    Wrapping rather than replacing: other code on this path legitimately uses
-    the pool, and a stub that answered differently would change what is being
-    measured.
-    """
-
-    def __init__(self, real):
-        self._real = real
-        self.free_calls = 0
-
-    def free_all_blocks(self, *a, **kw):
-        self.free_calls += 1
-        return self._real.free_all_blocks(*a, **kw)
-
-    def __getattr__(self, name):
-        return getattr(self._real, name)
 
 
 @pytest.mark.gpu
@@ -114,7 +99,6 @@ class TestBorrowedBitvecsAreNotFreed:
             bitvecs=(bitvecs, col_to_item, csr.shape[0]),
             use_gpu=True,
             prune_equal_support=True,
-            sparse_from_k=3,
         )
 
         assert seen.get("called"), "expected the row-split route (core/apriori.py:600)"
@@ -122,7 +106,7 @@ class TestBorrowedBitvecsAreNotFreed:
         assert seen["first"] is bitvecs, "the route must forward the CALLER'S array, by identity"
         assert cp is not None
 
-    def test_callers_array_survives_the_density_transition(self, monkeypatch):
+    def test_callers_array_survives_the_run(self, monkeypatch):
         """The array must still be usable, with the same contents, after a run
         that used to log that it had been freed."""
         import cupy as cp
@@ -141,19 +125,14 @@ class TestBorrowedBitvecsAreNotFreed:
             bitvecs=(bitvecs, col_to_item, csr.shape[0]),
             use_gpu=True,
             prune_equal_support=True,
-            sparse_from_k=3,
         )
 
         after = int(cp.sum(cp.unpackbits(bitvecs.view(cp.uint8))))
         assert after == before, "the caller's bitvecs were mutated or released"
         assert int(bitvecs.sum()) > 0
 
-    def test_caller_list_is_not_mutated_and_the_claim_is_honest(self, monkeypatch, caplog):
-        """CONTROL: pre-fix this list is emptied by .clear() and the log claims
-        the VRAM was freed."""
-        import cupy as cp
-        from loguru import logger
-
+    def test_caller_list_is_not_mutated(self):
+        """CONTROL: pre-fix this list was emptied by .clear() at the transition."""
         from et_miner.gpu.bitvec import _build_gpu_bitvec_matrix
         from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
 
@@ -162,70 +141,16 @@ class TestBorrowedBitvecsAreNotFreed:
         col_to_item = {c: c + 100 for c in range(csr.shape[1])}
         caller_list = [(bitvecs, int(bitvecs.device.id), csr.shape[0])]
 
-        real_pool = cp.get_default_memory_pool()
-        spy = _PoolSpy(real_pool)
-        monkeypatch.setattr(cp, "get_default_memory_pool", lambda: spy)
-
-        messages: list[str] = []
-        sink = logger.add(lambda m: messages.append(str(m)), level="DEBUG")
-        try:
-            _apriori_row_split_multi_gpu(
-                None,
-                col_to_item,
-                csr.shape[0],
-                0.05,
-                None,
-                1,
-                bitvecs_list=caller_list,
-                prune_non_free=True,
-                sparse_from_k=3,
-            )
-        finally:
-            logger.remove(sink)
-
-        joined = "".join(messages)
-        assert "DENSITY TRANSITION" in joined, "fixture must reach the transition"
-
-        assert len(caller_list) == 1, "a caller-supplied list must not be mutated"
-        assert caller_list[0][0] is bitvecs
-
-        assert "caller-owned and were not released" in joined
-        assert "Freed bitvec VRAM across all GPUs" not in joined
-
-        # The pool call is NOT removed -- see the module docstring.
-        assert spy.free_calls > 0, "free_all_blocks() must still run on the borrowed branch"
-
-
-@pytest.mark.gpu
-def test_owned_bitvecs_are_freed_and_say_so(monkeypatch):
-    """The internally-built path does own the arrays, and its message is the
-    one that is now true."""
-    import cupy as cp
-    from loguru import logger
-
-    from et_miner.gpu.row_split import _apriori_row_split_multi_gpu
-
-    csr = _dense_csr()
-    col_to_item = {c: c + 100 for c in range(csr.shape[1])}
-
-    messages: list[str] = []
-    sink = logger.add(lambda m: messages.append(str(m)), level="DEBUG")
-    try:
         _apriori_row_split_multi_gpu(
-            csr,
+            None,
             col_to_item,
             csr.shape[0],
             0.05,
             None,
             1,
+            bitvecs_list=caller_list,
             prune_non_free=True,
-            sparse_from_k=3,
         )
-    finally:
-        logger.remove(sink)
 
-    joined = "".join(messages)
-    assert "DENSITY TRANSITION" in joined
-    assert "Freed bitvec VRAM across all GPUs" in joined
-    assert "caller-owned" not in joined
-    assert cp is not None
+        assert len(caller_list) == 1, "a caller-supplied list must not be mutated"
+        assert caller_list[0][0] is bitvecs

@@ -87,8 +87,7 @@ Variables:
                                        candidate the subset test admits
                                        (the triangles of the frequent-pair
                                        graph; et_miner.gpu.kernels.k3_rows);
-                                       it needs the transactions input,
-                                       prune_apriori, a dense level and
+                                       it needs the transactions input and
                                        rows of at most 64 active items, and
                                        counts from the bitvectors otherwise.
                                        Unset: rows below the measured
@@ -111,29 +110,24 @@ Variables:
                                        level with a subset index. "compact"
                                        sums only the entries the kernels
                                        counted or inferred; K=2, levels
-                                       without an index, ESCO levels and
-                                       one GPU reduce dense whatever the
-                                       pin. Unset: compact
+                                       without an index and one GPU reduce
+                                       dense whatever the pin. Unset:
+                                       compact
     ET_MINER_INPUT_LAYER               "host" or "device": the row-split
                                        route's input layer. "device" copies
                                        the item ids to the GPUs and builds
                                        the K=1 counts, the bitvectors and
                                        the row-wise K=2 rows there
-                                       (et_miner.gpu.input_layer); it
-                                       serves integer ids spanning at most
-                                       2**22 values, and any other column
-                                       takes the host CSR whatever the pin.
+                                       (et_miner.gpu.input_layer); integer
+                                       ids spanning at most 2**22 values go
+                                       as they are, any other column coded
+                                       to integer ids in item order, and
+                                       the host CSR takes what neither
+                                       serves (more distinct items than
+                                       2**22, or output_dir, resume_from_k
+                                       or anchor_items on such a column).
+                                       "host" pins the host CSR.
                                        Unset: device where it serves
-    ET_MINER_ROW_ORDER                 "keep" or "lex": the device input
-                                       layer's row order. "lex" sorts each
-                                       shard's rows by their most frequent
-                                       items before the bitvectors are
-                                       built, and the per-candidate and
-                                       group kernels skip the 2,048-row
-                                       tiles an item does not occupy.
-                                       Counts do not depend on it; the host
-                                       CSR and bitvecs= keep their order.
-                                       Unset: lex
     ET_MINER_DISABLE_RUST              "1" runs as if the Rust extension were
                                        not built: every Rust role takes its
                                        fallback. Read once, at import of
@@ -240,8 +234,8 @@ def reject_removed_knobs() -> None:
         )
     if "ET_MINER_ESCO_MATERIALIZE" in os.environ:
         raise ValueError(
-            "ET_MINER_ESCO_MATERIALIZE was removed: an ESCO level counts its survivors' new tidsets "
-            "before writing them (sizing them from the count pass won no regime). Unset it."
+            "ET_MINER_ESCO_MATERIALIZE was removed with ESCO, the sparse CSR levels (route consolidation G6): "
+            "the GPU miner keeps dense bitvectors at every level. Unset it."
         )
 
 
@@ -318,18 +312,6 @@ def input_layer() -> str | None:
         return None
     if v not in INPUT_LAYERS:
         raise ValueError(f"ET_MINER_INPUT_LAYER must be one of {INPUT_LAYERS}, got {v!r}")
-    return v
-
-
-ROW_ORDERS = ("keep", "lex")
-
-
-def row_order() -> str | None:
-    v = os.environ.get("ET_MINER_ROW_ORDER", "").strip().lower()
-    if not v:
-        return None
-    if v not in ROW_ORDERS:
-        raise ValueError(f"ET_MINER_ROW_ORDER must be one of {ROW_ORDERS}, got {v!r}")
     return v
 
 

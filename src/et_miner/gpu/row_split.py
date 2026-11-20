@@ -23,7 +23,6 @@ from et_miner.core.result import (
     _empty_result,
     _min_count,
 )
-from et_miner.gpu.density import DENSITY_CROSSOVER, SPARSE_AUTO, should_transition_to_sparse, validate_sparse_from_k
 from et_miner.gpu.mining import (
     _all_subsets_in,
     _anchor_keep_mask,
@@ -31,16 +30,6 @@ from et_miner.gpu.mining import (
     _rows_sorted,
 )
 from et_miner.gpu.nccl import _destroy_nccl, _init_nccl
-from et_miner.gpu.sparse_csr import (
-    SparseMiningState,
-    TidsetFitError,
-    convert_shards_to_csr,
-    free_groups,
-    log_new_shards,
-    materialize_survivors,
-    run_sparse_level,
-    upload_groups_to_shards,
-)
 from et_miner.gpu.row_split_chunks import (
     K2_ROWS_MAX_R,
     _device_available_bytes,
@@ -51,7 +40,6 @@ from et_miner.gpu.row_split_chunks import (
     plan_candidate_chunks,
     plan_group_chunks,
     run_chunked_dense_level,
-    tiled_min_group_pairs,
 )
 from et_miner.io.flush import _flush_k_parquet
 from et_miner.io.gcs import (
@@ -65,18 +53,6 @@ if TYPE_CHECKING:
     # numpy is imported inside the functions that use it, alongside the
     # optional cupy import; this binds the name for annotations only.
     import numpy as np
-
-
-def _release_level_state(groups_gpu, sparse_state) -> None:
-    """Release groups and CSR shards independently, preserving any original error."""
-    for label, release in (
-        ("group arrays", lambda: free_groups(groups_gpu)),
-        ("CSR shards", lambda: sparse_state.release()),
-    ):
-        try:
-            release()
-        except Exception as exc:
-            logger.warning(f"    Cleanup failed while releasing {label}: {exc!r}")
 
 
 def _k2_row_shards(csr, freq_cols, shard_rows) -> list[tuple["np.ndarray", "np.ndarray"]]:
@@ -183,14 +159,24 @@ class _HostRows:
         self._csr = None
 
 
+#: Bytes of a strided shard slice staged through host memory at once: bounds the contiguous copy the staging
+#: makes on the input device.
+SHARD_COPY_BYTES = 256 << 20
+
+
 def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, devices=None):
     """Row-split a caller's (n_cols, n_u64s) bitvecs across up to ``n_gpus`` devices.
 
-    Shards are cut at 64-row word boundaries and copied onto their devices
-    through host memory (``gpu.nccl.copy_between_devices``; a direct
+    Shards are cut at 64-row word boundaries. A shard on the input device is
+    written there from the caller's array directly; a shard on another device
+    is copied through host memory in row blocks of at most
+    ``SHARD_COPY_BYTES`` (``gpu.nccl.copy_between_devices``; a direct
     device-to-device copy only with ``ET_MINER_DIRECT_D2D=1``). The caller's
-    array is read-only to the engine. On one device the caller's array is the
-    only shard. ``devices`` names the shard devices explicitly, repeats allowed.
+    array is read-only to the engine and stays resident, so before any
+    allocation every device must have room for its shards beside what it
+    already holds, or ``MemoryError`` names the sizes. On one device the
+    caller's array is the only shard. ``devices`` names the shard devices
+    explicitly, repeats allowed.
 
     Returns:
         ``bitvecs_list`` for ``_apriori_row_split_multi_gpu``: (array, device, rows).
@@ -200,23 +186,41 @@ def shard_prebuilt_bitvecs(bitvecs_gpu, n_transactions: int, n_gpus: int, device
 
     from et_miner.gpu.nccl import copy_between_devices
 
-    n_u64s = bitvecs_gpu.shape[1]
+    n_cols, n_u64s = bitvecs_gpu.shape
+    home = int(bitvecs_gpu.device.id)
     if devices is None:
         n_dev = max(1, min(int(n_gpus), cp.cuda.runtime.getDeviceCount(), n_u64s))
-        devices = [int(bitvecs_gpu.device.id)] if n_dev == 1 else list(range(n_dev))
+        devices = [home] if n_dev == 1 else list(range(n_dev))
     n_dev = len(devices)
-    if n_dev == 1 and devices[0] == bitvecs_gpu.device.id:
-        return [(bitvecs_gpu, int(bitvecs_gpu.device.id), n_transactions)]
+    if n_dev == 1 and devices[0] == home:
+        return [(bitvecs_gpu, home, n_transactions)]
     cuts = np.linspace(0, n_u64s, n_dev + 1).astype(np.int64)
+    need: dict[int, int] = {}
+    for i, dev in enumerate(devices):
+        need[dev] = need.get(dev, 0) + n_cols * int(cuts[i + 1] - cuts[i]) * 8
+    if any(dev != home for dev in devices):
+        need[home] = need.get(home, 0) + SHARD_COPY_BYTES
+    for dev, nbytes in need.items():
+        free, _ = _device_available_bytes(dev)
+        if nbytes > free:
+            beside = " beside the caller's bitvectors" if dev == home else ""
+            raise MemoryError(
+                f"bitvecs= on {n_dev} GPUs: device {dev} needs {nbytes / (1 << 30):.2f} GB for its row shard(s)"
+                f"{beside} and has {free / (1 << 30):.2f} GB free. Mine with n_gpus=1, or pass the transactions "
+                "instead of bitvecs= (the device input layer builds each shard on its own GPU)."
+            )
     shards = []
     for i, dev in enumerate(devices):
         lo, hi = int(cuts[i]), int(cuts[i + 1])
-        with cp.cuda.Device(bitvecs_gpu.device.id):
-            src = cp.ascontiguousarray(bitvecs_gpu[:, lo:hi])
         with cp.cuda.Device(dev):
-            dst = cp.empty(src.shape, dtype=src.dtype)
-        copy_between_devices(dst, src)
-        del src
+            dst = cp.empty((n_cols, hi - lo), dtype=bitvecs_gpu.dtype)
+        if dev == home:
+            with cp.cuda.Device(dev):
+                dst[...] = bitvecs_gpu[:, lo:hi]
+        else:
+            step = max(1, SHARD_COPY_BYTES // max(1, (hi - lo) * 8))
+            for r0 in range(0, n_cols, step):
+                copy_between_devices(dst[r0 : r0 + step], bitvecs_gpu[r0 : r0 + step, lo:hi])
         shards.append((dst, dev, min(hi * 64, n_transactions) - lo * 64))
     logger.info(f"  Pre-built bitvecs: split into {n_dev} row shards")
     return shards
@@ -234,9 +238,7 @@ def _apriori_row_split_multi_gpu(
     output_dir=None,  # Per-K Parquet flush: write frequent_k{k}.parquet per level
     resume_from_k: int | None = None,  # Resume from K=N+1, loading K=N from parquet
     prune_non_free: bool = False,  # keep only free-sets (generators) per level
-    prune_apriori: bool = True,  # skip candidates with a (k-1)-subset missing from the previous level
     infer_counts: bool = False,  # infer counts of candidates with a non-free (k-1)-subset (complete lattice)
-    sparse_from_k: int | str | None = None,  # ESCO, fixed K or "auto"
     anchor_items: set | None = None,  # V3 B6: two-phase anchor filtering
     profile: bool = False,
     max_ram_gb: float | None = None,
@@ -271,8 +273,8 @@ def _apriori_row_split_multi_gpu(
     in the same dense pair array, so the reduce, the filter and the decode are
     unchanged.
 
-    ``prune_apriori`` gives the K>=3 counting kernels an index of the previous
-    level (sorted rows, counts, free flags; ``kernels/subset_index.py``): a
+    The K>=3 counting kernels get an index of the previous level (sorted
+    rows, counts, free flags; ``kernels/subset_index.py``): a
     candidate with a (k-1)-subset missing from it is not counted and keeps a
     zero count, which the threshold filter drops. Candidate indices never
     change. In a complete-lattice run the index is the complete level and a
@@ -295,11 +297,8 @@ def _apriori_row_split_multi_gpu(
         apriori-valid itemsets from K=5 on: the output advertised itemsets the
         run would never extend.
       * ``prev_full_flat`` — the level the next level's free-set test resolves
-        against. Without ``prune_apriori`` it is every frequent candidate the
-        level counted (generated from free-sets); an equal-count witness of a
-        frequent non-free candidate always lies in it, while the free level
-        alone can miss one and under-prune. With ``prune_apriori`` the index
-        is the free level itself: a candidate with a subset outside it is
+        against. The index is the free level itself: a candidate with a subset
+        outside it is
         infrequent or not free, the kernels skip most of them, and the
         survivors among the rest (a counted tile-pair counts all of its pairs)
         are dropped on the host before the test, so every candidate the test
@@ -364,10 +363,7 @@ def _apriori_row_split_multi_gpu(
 
     _env.reject_removed_knobs()
     min_count_threshold = _min_count(min_support, n_transactions)
-    validate_sparse_from_k(sparse_from_k)
     session = ProfilingSession() if profile else None
-    sparse_state = SparseMiningState()
-    _sparse_groups_gpu = None
 
     def _result(df):
         return (df, session) if profile else df
@@ -377,11 +373,9 @@ def _apriori_row_split_multi_gpu(
     )
 
     # Phase 0: Build row-split bitvecs across GPUs.
-    _owns_bitvecs = bitvecs_list is None
     if device_input is not None:
         bitvecs_list = device_input.bitvecs_list
         _rows_src = device_input.rows
-        _owns_bitvecs = True
         logger.info(f"  Device-built bitvecs: {len(bitvecs_list)} GPUs")
     elif bitvecs_list is None:
         t0 = time.perf_counter()
@@ -425,7 +419,7 @@ def _apriori_row_split_multi_gpu(
     )
     # Row-wise K=3 counts the candidates the subset test admits, from the rows
     # row-wise K=2 reads, so they are kept past K=2 when it may run.
-    _k3_rows = _env.k3_kernel() != "dense" and prune_apriori and effective_max_length >= 3
+    _k3_rows = _env.k3_kernel() != "dense" and effective_max_length >= 3
 
     # int32 vocab IDs (V5=149, AlphaFold=35K) halve items_flat in the parquet
     # flush; ids beyond int32 keep int64.
@@ -587,9 +581,9 @@ def _apriori_row_split_multi_gpu(
             supports_np = table.column("support").combine_chunks().to_numpy(zero_copy_only=False)
             prev_counts_flat = np.rint(supports_np.astype(np.float64) * n_transactions).astype(np.int64)
         else:
-            prev_counts_flat = None  # counts unknown — the prune and auto transition wait one level
+            prev_counts_flat = None  # counts unknown — the prune waits one level
         del table, itemsets_col, flat_item_ids, flat_col_ids, item_to_col
-        if (prune_non_free or prune_apriori) and not _rows_sorted(prev_frequent_flat):
+        if not _rows_sorted(prev_frequent_flat):
             # Parquet order is not row-sorted; the binary searches need it.
             _order = np.lexsort(prev_frequent_flat[:, ::-1].T)
             prev_frequent_flat = prev_frequent_flat[_order]
@@ -604,12 +598,6 @@ def _apriori_row_split_multi_gpu(
         prev_full_flat = prev_frequent_flat
         prev_full_counts = prev_counts_flat
         prev_full_free = None  # free flags of the loaded level are unknown: no inference on the first level
-        if prune_non_free and not prune_apriori:
-            logger.warning(
-                f"  RESUME: K={resume_from_k} parquet holds the free-sets, not the complete level — "
-                f"the K={resume_from_k + 1} free-set test may under-prune slightly. "
-                "Levels after that are exact."
-            )
 
         resume_time = time.perf_counter() - t_resume
         logger.info(f"  RESUME: {n_loaded:,} itemsets → col indices in {resume_time:.1f}s")
@@ -626,7 +614,7 @@ def _apriori_row_split_multi_gpu(
 
     def _subset_index(k_level):
         """Per-device index of the previous level for level ``k_level``'s subset test, or None."""
-        if not prune_apriori or k_level < 3:
+        if k_level < 3:
             return None
         if prune_non_free:
             rows, counts = prev_frequent_flat, prev_counts_flat
@@ -843,8 +831,7 @@ def _apriori_row_split_multi_gpu(
                     f"    Free-set pruning K=1: {len(prev_full_flat):,} → {len(prev_frequent_flat):,} "
                     "(items present in every transaction)"
                 )
-            if prune_apriori:
-                prev_full_flat, prev_full_counts = prev_frequent_flat, prev_counts_flat
+            prev_full_flat, prev_full_counts = prev_frequent_flat, prev_counts_flat
 
         if len(prev_frequent_flat) > 0:
             # K=1 is emit-filtered too. _anchor_keep_mask used to return None
@@ -885,73 +872,18 @@ def _apriori_row_split_multi_gpu(
             _k_start = time.perf_counter()
             if session:
                 session.start_phase(f"k{k}")
-            _surv = None
             _n_cands_cb = 0
             _index_gpu = None
 
-            _mean_count = None
-            if sparse_from_k == SPARSE_AUTO and not sparse_state.active and prev_counts_flat is not None:
-                if len(prev_counts_flat):
-                    _mean_count = float(prev_counts_flat.mean())
-            _sparse_mode = sparse_state.active or should_transition_to_sparse(
-                sparse_from_k, k, n_transactions=n_transactions, mean_count=_mean_count
-            )
-
-            if _sparse_mode and not sparse_state.active:
-                trigger = (
-                    f"measured mean support {_mean_count / n_transactions:.4%} < {DENSITY_CROSSOVER:.4%} crossover"
-                    if sparse_from_k == SPARSE_AUTO else f"fixed sparse_from_k={sparse_from_k}"
-                )
-                try:
-                    sparse_state.shards = convert_shards_to_csr(bitvecs_list, prev_frequent_flat, prev_counts_flat)
-                except TidsetFitError as e:
-                    if sparse_from_k != SPARSE_AUTO:
-                        raise
-                    _sparse_mode = False
-                    logger.info(f"  K={k} stays dense ({trigger}): {e}")
-                else:
-                    logger.info(f"  DENSITY TRANSITION at K={k} ({trigger}): dense bitvec → sparse CSR (ESCO)")
-                    # Drop only owned references. Caller arrays and containers
-                    # remain usable after the one-way transition.
-                    if _owns_bitvecs:
-                        bitvecs_list.clear()
-                    else:
-                        bitvecs_list = []
-                    for did in device_ids:
-                        with cp.cuda.Device(did):
-                            cp.get_default_memory_pool().free_all_blocks()
-                    logger.debug(
-                        "    Freed bitvec VRAM across all GPUs" if _owns_bitvecs else
-                        "    Bitvecs are caller-owned and were not released; returned this route's pool blocks"
-                    )
-
-            if _sparse_mode:
-                _drop_rows()
-                groups_info = build_k3plus_groups_from_flat(prev_frequent_flat, with_src_rows=True)
-                n_freq = 0
-                current_flat = np.empty((0, k), dtype=np.int32)
-                current_counts_raw = np.empty(0, dtype=np.int64)
-                if groups_info is not None:
-                    _n_cands_cb = groups_info.total_candidates
-                    _index_gpu = _subset_index(k)
-                    _sparse_groups_gpu = upload_groups_to_shards(groups_info, sparse_state.shards)
-                    _surv, current_counts_raw = run_sparse_level(
-                        sparse_state.shards, groups_info, _sparse_groups_gpu, min_count_threshold,
-                        nccl_comms=nccl_comms, use_nccl=_use_nccl, level_label=f"K={k}", index_gpu=_index_gpu,
-                    )
-                    n_freq = len(_surv)
-                    if n_freq:
-                        current_flat = decode_k3plus_flat(_surv, groups_info, k)
-
-            elif k == 2:
+            if k == 2:
                 freq_cols = sorted(prev_frequent_flat[:, 0])
                 n_pairs = len(freq_cols) * (len(freq_cols) - 1) // 2
                 _n_cands_cb = n_pairs
 
                 # Row-wise needs the rows, one shard per device, and r below the
                 # measured crossover (k2_counts_rows). Otherwise one synthetic
-                # group over the frequent items: tiled when it is large enough
-                # and fits one chunk; a pair space chunked across several GPUs
+                # group over the frequent items: tiled when it fits one chunk;
+                # a pair space chunked across several GPUs
                 # runs per-candidate sub-chunks; on one GPU a pair space beyond
                 # one chunk is counted fused (survivors only).
                 _k2_counted = None
@@ -988,10 +920,7 @@ def _apriori_row_split_multi_gpu(
                             bitvecs_list[0][0], k2_groups(freq_cols), bitvecs_list[0][0].shape[1], min_count_threshold
                         )
                 else:
-                    if n_pairs >= tiled_min_group_pairs(2):
-                        k2_chunks = plan_group_chunks(np.array([0, n_pairs], dtype=np.int64), _k2_budget)
-                    else:
-                        k2_chunks = plan_candidate_chunks(n_pairs, _k2_budget)
+                    k2_chunks = plan_group_chunks(np.array([0, n_pairs], dtype=np.int64), _k2_budget)
                     logger.info(
                         f"  K=2: {n_pairs:,} total pairs, {len(k2_chunks)} chunk(s), "
                         f"dense output {min(_k2_budget, n_pairs) * 4 / (1 << 30):.2f} GB/GPU per chunk"
@@ -1023,9 +952,6 @@ def _apriori_row_split_multi_gpu(
                 if n_freq > 0:
                     current_flat = decode_k2_pairs_flat(freq_pair_indices, freq_cols)
                     current_counts_raw = freq_pair_counts  # already int64
-
-
-                    # Pair cache disabled — not yet wired to K>=3 kernels (saves ~13.6 GB VRAM)
                 else:
                     current_flat = np.empty((0, 2), dtype=np.int32)
                     current_counts_raw = np.empty(0, dtype=np.int64)
@@ -1135,12 +1061,10 @@ def _apriori_row_split_multi_gpu(
             # order ((0,1),(0,2),(1,2),(0,3),...), which is not lex order once a
             # group has >= 4 suffixes. Skipped when already sorted
             # (_rows_sorted is O(n·k), no sort), and when nothing needs it.
-            if n_freq > 0 and (k == 2 or prune_non_free or prune_apriori) and not _rows_sorted(current_flat):
+            if n_freq > 0 and not _rows_sorted(current_flat):
                 sort_idx = np.lexsort(current_flat[:, ::-1].T)
                 current_flat = current_flat[sort_idx]
                 current_counts_raw = current_counts_raw[sort_idx]
-                if _surv is not None:
-                    _surv = _surv[sort_idx]
 
             # The free-set test below resolves against the free level only, so a
             # survivor with a (k-1)-subset outside it has to go first: it is not
@@ -1148,12 +1072,10 @@ def _apriori_row_split_multi_gpu(
             # too. The index skips most of them on the device, but a counted
             # tile-pair counts all of its pairs and a level without the index
             # counts every candidate.
-            if prune_non_free and prune_apriori and k >= 3 and n_freq > 0:
+            if prune_non_free and k >= 3 and n_freq > 0:
                 _keep = _all_subsets_in(current_flat, prev_frequent_flat)
                 current_flat = current_flat[_keep]
                 current_counts_raw = current_counts_raw[_keep]
-                if _surv is not None:
-                    _surv = _surv[_keep]
                 n_freq = len(current_flat)
 
             # Every frequent candidate of the level — what the free-set test of
@@ -1163,7 +1085,7 @@ def _apriori_row_split_multi_gpu(
             full_flat = current_flat
             full_counts = current_counts_raw
             full_free = None
-            if infer_counts and prune_apriori and not prune_non_free and n_freq > 0 and prev_full_counts is not None:
+            if infer_counts and not prune_non_free and n_freq > 0 and prev_full_counts is not None:
                 full_free = _prune_non_free_mask(full_flat, full_counts, prev_full_flat, prev_full_counts)
 
             # Free-set (generator) pruning: drop itemsets whose count equals a
@@ -1175,8 +1097,6 @@ def _apriori_row_split_multi_gpu(
                 _keep = _prune_non_free_mask(current_flat, current_counts_raw, prev_full_flat, prev_full_counts)
                 current_flat = current_flat[_keep]
                 current_counts_raw = current_counts_raw[_keep]
-                if _surv is not None:
-                    _surv = _surv[_keep]
                 n_freq = len(current_flat)
 
             if n_freq > 0:
@@ -1226,20 +1146,9 @@ def _apriori_row_split_multi_gpu(
             if k < effective_max_length and n_freq > k:  # another level follows
                 _check_memory_guard(k)
 
-            if _sparse_groups_gpu is not None:
-                # Keep tidsets in the same row order as the generation base,
-                # including every sort and free-set mask above.
-                if k < effective_max_length and n_freq > k and _surv is not None:
-                    sparse_state.replace(materialize_survivors(
-                        sparse_state.shards, _sparse_groups_gpu, _surv, current_counts_raw, level_label=f"K={k}"
-                    ))
-                    log_new_shards(sparse_state.shards, n_freq)
-                free_groups(_sparse_groups_gpu)
-                _sparse_groups_gpu = None
-
             prev_frequent_flat = current_flat
             prev_counts_flat = current_counts_raw
-            if prune_non_free and prune_apriori:
+            if prune_non_free:
                 prev_full_flat, prev_full_counts = current_flat, current_counts_raw
             else:
                 prev_full_flat, prev_full_counts = full_flat, full_counts
@@ -1250,7 +1159,6 @@ def _apriori_row_split_multi_gpu(
             _index_gpu = None
             k += 1
     finally:
-        _release_level_state(_sparse_groups_gpu, sparse_state)
         # Emergency uploader shutdown (happy path does ordered drain below)
         try:
             uploader.close(wait=False)
@@ -1573,9 +1481,7 @@ def mine_two_phase(
         n_gpus: Number of GPUs to use.
         output_dir: Directory for per-K Parquet output. Phase 1 writes to
             output_dir/phase1/, Phase 2 to output_dir/phase2/.
-        sparse_from_k: ESCO dense→sparse transition. "auto" switches below the
-            measured n/32 mean-count crossover; an int fixes the K-level
-            (at least 3); None (default) keeps dense bitvectors.
+        sparse_from_k: Removed; any value other than None raises ValueError.
         level_callback: Optional callback(k, n_candidates, n_frequent, ms).
 
     Returns:
@@ -1616,7 +1522,6 @@ def mine_two_phase(
             use_gpu=True,
             n_gpus=n_gpus,
             output_dir=phase1_dir,
-            sparse_from_k=sparse_from_k,
             prune_equal_support=True,
             level_callback=level_callback,
         )
@@ -1655,7 +1560,6 @@ def mine_two_phase(
             use_gpu=True,
             n_gpus=n_gpus,
             output_dir=phase2_dir,
-            sparse_from_k=sparse_from_k,
             prune_equal_support=True,
             anchor_items=anchor_items if anchor_items else None,
             level_callback=level_callback,

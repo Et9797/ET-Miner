@@ -140,16 +140,11 @@ def build_boolean_matrix(
 
     # Step 3: Item -> column mapping
     #
-    # The names are ZERO-PADDED, and that is load-bearing rather than cosmetic.
-    # Every ordering decision on the CPU path is a *string* comparison over
-    # these names -- sorted(...) in core.candidates._generate_candidates_k2 and
-    # the pl.col("a") < pl.col("b") prefix-join filters -- and item_ids comes
-    # from freq_1.sort("item"), so the column index is monotone in item id.
-    # Unpadded, "i_10" < "i_2" from 11 frequent items on, and the emitted
-    # itemsets stop being ascending item-id tuples. Padded, lexicographic order
-    # over the names IS numeric order over the indices, which IS item-id order,
-    # so the CPU route agrees with the GPU route by construction rather than by
-    # a second sort bolted on at emission.
+    # The names are ZERO-PADDED: item_ids comes from freq_1.sort("item"), so
+    # with padding the lexicographic order over the names is the numeric order
+    # over the indices, which is item-id order, for any caller that orders
+    # itemsets by their column names. Unpadded, "i_10" < "i_2" from 11
+    # frequent items on.
     #
     # The width depends on how many items were frequent, so it varies from run
     # to run. That is harmless and deliberate: ordering only needs the width to
@@ -290,14 +285,10 @@ def count_support_batched(
 
     GPU mode: Uses custom CUDA kernels via count_support_gpu_bitvec() for
     maximum throughput (~130M+ rows/sec on H200).
-    CPU mode: Batched processing to control memory, with optional sparse mode.
-    Sparse mode: Uses scipy CSR for extreme sparse workloads (auto-detected):
-        pairs by a sparse matmul, every other itemset on the CPU array miner's
-        counter, both threaded at n_jobs != 1.
-
-    For extreme sparse workloads (>500 items, <10% density, or >1GB estimated size),
-    the function automatically switches to scipy sparse matrices which can reduce
-    memory usage by 25-50x.
+    CPU mode: Polars boolean ANDs (``count_support_vectorized``), in batches to
+    control memory. The scipy sparse counter is gone: it won no batch of the
+    route consolidation's C4 (bench/results/2026-10-27-routes-gpu/FINDINGS.md)
+    and ran out of memory on 20M rows.
 
     Args:
         matrix: Boolean DataFrame from build_boolean_matrix().
@@ -312,15 +303,10 @@ def count_support_batched(
             For backward compatibility, also accepts string values:
             - "gpu": equivalent to use_gpu=True
             - "streaming" or other: equivalent to use_gpu=False
-        show_progress: If True, display progress bar (requires tqdm). No effect
-            in sparse mode.
-        sparse: If True, force scipy sparse. If False, force Polars.
-            If None (default), auto-detect based on workload characteristics.
-        n_jobs: Number of parallel workers for sparse counting.
-            - -1: Use all available CPUs
-            - 1: Sequential execution
-            - >1: Use that many workers
-            Only used in sparse mode.
+        show_progress: If True, display progress bar (requires tqdm).
+        sparse: Removed with the sparse counter; only None is accepted.
+        n_jobs: Removed with the sparse counter (its only user); only 1 is
+            accepted. Polars sizes its own pool (POLARS_MAX_THREADS).
         min_transaction_length: Minimum transaction length filter (k).
             If provided, filters out transactions with fewer than k items
             before support counting. Auto-detected from itemsets if None.
@@ -332,7 +318,13 @@ def count_support_batched(
 
     Raises:
         ImportError: If use_gpu=True but CuPy is not installed.
+        ValueError: If ``sparse`` is not None or ``n_jobs`` is not 1.
     """
+    if sparse is not None or n_jobs != 1:
+        raise ValueError(
+            "count_support_batched: sparse= and n_jobs= were removed with the scipy sparse counter (route "
+            "consolidation C4); the CPU counts with Polars. Drop both arguments."
+        )
     # Backward compatibility: accept string "engine" values
     # "gpu" -> use_gpu=True, anything else -> use_gpu=False
     if isinstance(use_gpu, str):
@@ -391,21 +383,6 @@ def count_support_batched(
         from et_miner.gpu.bitvec import count_support_gpu_bitvec
 
         return count_support_gpu_bitvec(filtered_matrix, itemsets, show_progress)
-
-    from et_miner.core.sparse import _choose_counting_strategy, _estimate_density, count_support_sparse
-
-    # Determine counting strategy for CPU path
-    if sparse is None:
-        # Auto-detect based on workload
-        n_items = len(filtered_matrix.columns)
-        density = _estimate_density(filtered_matrix)
-        strategy = _choose_counting_strategy(n_items, actual_n_transactions, density)
-    else:
-        strategy = "sparse" if sparse else "polars"
-
-    # Use sparse strategy if selected
-    if strategy == "sparse":
-        return count_support_sparse(filtered_matrix, itemsets, show_progress, n_jobs)
 
     # Resolve batch_size: "auto" calculates based on memory budget
     effective_batch_size: int | None

@@ -13,10 +13,9 @@ route's host steps. Every route returns the same itemsets and counts;
 | Streaming | SON two-pass chunked mining, memory bounded by the chunk size | `streaming=True`, `chunk_size=` |
 
 On the GPU, K≥3 candidates are enumerated inside the kernels from prefix
-groups. A candidate with an infrequent (k−1)-subset is skipped on the device
-(`prune_apriori`, on by default), a candidate whose count follows from a
-non-free subset can be inferred instead of counted (`use_generator_pruning`),
-and deep levels can switch from bitvectors to sparse tidsets (`sparse_from_k`).
+groups. A candidate with an infrequent (k−1)-subset is skipped on the device,
+and a candidate whose count follows from a non-free subset can be inferred
+instead of counted (`use_generator_pruning`).
 
 ## Installation
 
@@ -75,8 +74,7 @@ and UInt128 ids keep their dtype) and `support` (`Float64`). The main options
 | `use_gpu`, `n_gpus`, `bitvecs=` | GPU route; prebuilt bitvectors skip the CSR build |
 | `streaming`, `chunk_size` | SON on chunks, on the CPU or the GPU |
 | `prune_equal_support` | return the free-sets (generators) instead of the complete lattice |
-| `prune_apriori`, `use_generator_pruning` | device-side subset test (default on), count inference |
-| `sparse_from_k` | GPU dense→sparse transition (`"auto"` or a level) |
+| `use_generator_pruning` | count inference (the device-side subset test always runs) |
 | `output_dir`, `resume_from_k` | flush each level to parquet, resume from a flushed level |
 
 `et_miner.HAS_RUST`, `et_miner.HAS_GPU`, `et_miner.has_cupy()` and

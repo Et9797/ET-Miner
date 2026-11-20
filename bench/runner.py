@@ -11,6 +11,9 @@ signatures — kernel variant, filter impl, GPU count, NCCL mode, row
 balance, and density mode are all result-preserving by contract. Any
 divergence fails the campaign.
 
+`routes`, `routes-cpu`, `routes-census` and `routes-final` run the route
+consolidation's matrices (bench/routes_matrix.py, bench/routes/PROTOCOL.md).
+
 Usage: python bench/runner.py --mode smoke|full|consolidation|supplement|verify|esco|esco-retail|waste|pruning|
                                      optimizations-calibration|optimizations|optimizations-final|o5-calibration
                                      [--out DIR]
@@ -187,6 +190,10 @@ def build_matrix(mode: str, n_dev: int, rows: list[dict] | None = None) -> list[
         from consolidation_matrix import build_moonshots_teardown
 
         return build_moonshots_teardown(n_dev)
+    if mode in ("routes", "routes-cpu", "routes-census", "routes-final"):
+        from routes_matrix import build_routes_matrix
+
+        return build_routes_matrix(mode, n_dev)
     if mode == "moonshots-teardown-after":
         from consolidation_matrix import build_moonshots_teardown
 
@@ -534,7 +541,8 @@ def main() -> int:
                                          "moonshots-baseline", "moonshots-m1", "moonshots-m1-final", "moonshots-m2",
                                          "moonshots-m2-final", "moonshots-x0", "moonshots-m7", "moonshots-m5b", "moonshots-polish",
                                          "moonshots-phase3", "moonshots-teardown", "moonshots-teardown-after",
-                                         "cpu-baseline"], required=True)
+                                         "cpu-baseline", "routes", "routes-cpu", "routes-census", "routes-final"],
+                    required=True)
     ap.add_argument("--out", default=None, help="results dir (default: per-revision, see _campaign_out)")
     ap.add_argument("--max-hours", type=float, default=None)
     ap.add_argument("--max-gpu-hours", type=float, default=None,
@@ -575,7 +583,7 @@ def main() -> int:
                 pass
 
     n_dev = _gpu_count()
-    if n_dev == 0 and not args.cpu_only and args.mode != "cpu-baseline":
+    if n_dev == 0 and not args.cpu_only and args.mode not in ("cpu-baseline", "routes-cpu"):
         print("no CUDA devices — nothing to run")
         return 2
     try:
@@ -584,7 +592,7 @@ def main() -> int:
         print(e)
         return 2
     if args.cpu_only:
-        matrix = [c for c in matrix if c.get("route") in ("F", "EA", "cpu")]
+        matrix = [c for c in matrix if c.get("route") in ("F", "EA", "cpu", "RUST") or c.get("cpu_config")]
         if not matrix:
             print("selected matrix contains no CPU/oracle configs")
             return 2
@@ -630,6 +638,10 @@ def main() -> int:
             from cpu.matrix import rep_budget_skip
 
             skip_reason = rep_budget_skip(cfg, rows)
+        if skip_reason is None and cfg.get("mode") == "routes":
+            from routes_matrix import rep0_failed_skip
+
+            skip_reason = rep0_failed_skip(cfg, rows)
         if skip_reason:
             print(f"{skip_reason}: {cfg['id']}")
             result = {"id": cfg["id"], "config": cfg, "status": skip_reason, "rev": _git_rev()}
@@ -638,7 +650,7 @@ def main() -> int:
                 f.write(json.dumps(result) + "\n")
             continue
         result = run_config(cfg, out_dir)
-        devices = 1 if cfg.get("route") == "F" else int(cfg.get("n_gpus", 1))
+        devices = 1 if cfg.get("route") in ("F", "RUST") or cfg.get("cpu_config") else int(cfg.get("n_gpus", 1))
         gpu_seconds += (result.get("proc_s") or 0) * devices
         if result.get("status") != "ok":
             failed_here.append(f"{cfg['id']} ({result.get('status')})")

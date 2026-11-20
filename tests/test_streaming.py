@@ -319,18 +319,15 @@ class TestStreamingAPI:
         assert result.height > 0
 
     @pytest.mark.parametrize("sparse", [True, False])
-    def test_sparse_is_deprecated_and_changes_nothing(self, medium_transactions, sparse):
-        """SON's CPU passes select no counter by sparse=: a value warns and mines the same lattice."""
-        plain = apriori(medium_transactions, min_support=0.05, streaming=True, chunk_size=200)
-        with pytest.warns(DeprecationWarning, match="sparse= no longer selects"):
-            result = apriori(medium_transactions, min_support=0.05, streaming=True, chunk_size=200, sparse=sparse)
-        assert result.height > 0
-        assert result.sort("itemset").equals(plain.sort("itemset"))
+    def test_sparse_raises_on_every_son_entry(self, medium_transactions, sparse):
+        from et_miner.streaming.multi_gpu import apriori_streaming_multi_gpu
 
-    def test_sparse_warns_once_on_a_direct_call(self, medium_transactions):
-        with pytest.warns(DeprecationWarning, match="sparse= no longer selects") as record:
-            apriori_streaming(medium_transactions, min_support=0.05, chunk_size=200, sparse=True, show_progress=False)
-        assert sum(issubclass(w.category, DeprecationWarning) for w in record) == 1
+        with pytest.raises(ValueError, match="sparse= was removed"):
+            apriori(medium_transactions, min_support=0.05, streaming=True, chunk_size=200, sparse=sparse)
+        with pytest.raises(ValueError, match="sparse= was removed"):
+            apriori_streaming(medium_transactions, min_support=0.05, chunk_size=200, sparse=sparse, show_progress=False)
+        with pytest.raises(ValueError, match="sparse= was removed"):
+            apriori_streaming_multi_gpu(medium_transactions, min_support=0.05, chunk_size=200, sparse=sparse)
 
     @pytest.mark.parametrize("factor", [0.0, -0.5, 1.0000001, 5.0, float("nan")])
     def test_a_local_support_factor_outside_0_1_raises(self, small_transactions, factor):

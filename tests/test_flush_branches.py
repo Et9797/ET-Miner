@@ -221,3 +221,21 @@ def test_uploader_disabled_is_noop(tmp_path: Path):
     u.upload(str(tmp_path / "nonexistent.parquet"))
     u.upload_to_uri(str(tmp_path / "nonexistent.parquet"), "gs://bucket/x")
     assert u._futures == []
+
+
+class TestResumeCountRoundTrip:
+    """Counts reconstructed from the parquet support column must be exact.
+
+    The flush writes support = count / n_transactions (float64); resume
+    recovers count = rint(support * n_transactions). Verify the float64
+    round trip is lossless across the int32 transaction-count range."""
+
+    @pytest.mark.parametrize("n_transactions", [4, 1_000, 205_000_000, 2_147_483_647])
+    def test_round_trip_exact(self, n_transactions):
+        rng = np.random.default_rng(42)
+        counts = rng.integers(1, n_transactions + 1, size=1_000, dtype=np.int64)
+        # Include boundary values
+        counts[:3] = (1, n_transactions, max(1, n_transactions // 32))
+        supports = counts / n_transactions  # what _flush_k_parquet stores
+        recovered = np.rint(supports * n_transactions).astype(np.int64)
+        np.testing.assert_array_equal(recovered, counts)

@@ -681,6 +681,13 @@ def test_sparse_raises_on_every_route(value, streaming):
         _mined(df, 0.03, streaming=streaming, sparse=value)
 
 
+@pytest.mark.parametrize("value", [True, False, "scipy"])
+def test_sparse_raises_before_the_bitvecs_route(value):
+    # The bitvecs route returns before the transactions' checks; the bitvecs are never read here
+    with pytest.raises(ValueError, match="sparse= was removed"):
+        apriori(bitvecs=object(), min_support=0.05, use_gpu=True, sparse=value)
+
+
 def test_map_rows_raises_when_explode_and_lengths_disagree(monkeypatch):
     """The row starts are read at the list lengths' offsets; an explode that emits a null per empty list must fail loudly."""
     explode = pl.Series.explode

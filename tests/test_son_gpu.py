@@ -33,13 +33,19 @@ def _ordered(res: pl.DataFrame) -> list:
 
 
 @pytest.mark.parametrize("n_gpus", [1, 2])
-@pytest.mark.parametrize("cast", [None, pl.String])
+@pytest.mark.parametrize("cast", [None, pl.String, "enum"])
 def test_gpu_son_matches_the_cpu_route(smoke, monkeypatch, n_gpus, cast):
     if n_gpus > _gpu_count():
         pytest.skip(f"needs {n_gpus} CUDA devices")
     from et_miner.streaming import son
 
-    df = smoke if cast is None else smoke.select(pl.col("items").list.eval(pl.element().cast(cast)))
+    if cast == "enum":
+        # categories against the strings' order: an itemset's items follow the categories on every route
+        names = smoke["items"].explode().drop_nulls().unique().cast(pl.String).sort(descending=True)
+        cast = pl.Enum(names.to_list())
+        df = smoke.select(pl.col("items").list.eval(pl.element().cast(pl.String).cast(cast)))
+    else:
+        df = smoke if cast is None else smoke.select(pl.col("items").list.eval(pl.element().cast(cast)))
     calls = {"mine": [], "count": []}
     for name, key in (("_local_levels_gpu", "mine"), ("_count_chunk_gpu", "count")):
         def spy(*a, _real=getattr(son, name), _key=key, **k):

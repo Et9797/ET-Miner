@@ -448,6 +448,11 @@ def apriori(
     """
     _validate_parameters(min_support, max_length, batch_size, sparse_from_k, prune_apriori)
     _env.reject_removed_knobs()
+    if sparse is not None:
+        raise ValueError(
+            "sparse= was removed with the scipy sparse counter (route consolidation C4): no route reads it. "
+            "Drop the argument."
+        )
 
     # Every parameter/route mismatch is rejected here, ABOVE the routing, so a
     # route cannot silently drop something the caller asked for. This has to run
@@ -545,12 +550,6 @@ def apriori(
     # Validate transactions is provided when bitvecs is not
     if transactions is None:
         raise ValueError("Either 'transactions' or 'bitvecs' must be provided")
-
-    if sparse is not None:
-        raise ValueError(
-            "sparse= was removed with the scipy sparse counter (route consolidation C4): no route reads it. "
-            "Drop the argument."
-        )
 
     # Route to streaming implementation if requested
     if streaming:

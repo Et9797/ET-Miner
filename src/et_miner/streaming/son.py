@@ -508,7 +508,9 @@ def _local_levels_gpu(
         return None
     lens = res.get_column("itemset").list.len().to_numpy()
     counts = (res.get_column("support") * n_rows).round().cast(pl.Int64).to_numpy()
-    flat = res.get_column("itemset").explode()
+    # The route emits enums as String (and floats as Float64); in the column's own dtype the items sort in the
+    # order the CPU passes give them (an Enum's category order, not the strings').
+    flat = res.get_column("itemset").explode().cast(column.dtype.inner)
     items = flat.unique().sort()
     cols = flat.replace_strict(items, pl.Series(np.arange(len(items), dtype=np.int32))).to_numpy()
     starts = np.zeros(len(lens) + 1, dtype=np.int64)

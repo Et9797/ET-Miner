@@ -50,10 +50,11 @@ unchanged: every removal kept the tier-equivalence chain exact.
   The bench-only `rebuilt` and `coded` values of that variable are gone.
 - **The lex row order falls back to the kept order where its sort does not
   fit.** Lex stays the device layer's order (dsl 3.9 s against 10.0 s, dslxl
-  10.4 s against 28.3 s), but its sort peaks about 55 B per row above the kept
-  order (dslxl +3.2 GB): each shard now needs `LEX_BYTES_PER_ROW` (56 B) per row
-  free on its device, or every shard keeps its row order. `ET_MINER_ROW_ORDER`
-  is gone.
+  10.4 s against 28.3 s), but its sort peaks at 64.3 B per row (a CuPy memory
+  hook; about 3.9 GB on dslxl's 60M rows): each shard now needs
+  `LEX_BYTES_PER_ROW` (65 B) per row free on its device, or every shard keeps
+  its row order, as it also does when the sort runs out of device memory all
+  the same. `ET_MINER_ROW_ORDER` is gone.
 - **`prune_apriori=False` is removed**: `apriori(prune_apriori=False)` raises
   (True, the default, is the only behaviour). Skipping the subset test won no
   workload and lost by 76x on oom_regression at max_length 3 (27.2 s against

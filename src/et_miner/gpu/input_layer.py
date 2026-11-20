@@ -23,7 +23,8 @@ Steps:
    each row at its own position or, with the lex row order, at its rank in
    its shard's rows sorted by their most frequent items (``_row_order``).
    The lex order needs ``LEX_BYTES_PER_ROW`` per row on each shard's device
-   for its sort; where that does not fit, the rows keep their order.
+   for its sort; where that does not fit, or the sort runs out of device
+   memory all the same, the rows keep their order.
 
 With ``keep_rows`` each shard's entries stay on its device (``DeviceRows``)
 when they fit, and the row-wise K=2 and K=3 kernels' rows are cut from them
@@ -71,9 +72,9 @@ CHUNK_ENTRIES = 1 << 24
 KEEP_ROWS_BYTES = 28
 CANON_BLOCK_ENTRIES = 1 << 22
 CANON_ENTRY_BYTES = 48
-#: Measured peak of the lex order over the kept one (two uint64 keys, the argsorts and their radix buffers, the
-#: int32 positions): +1,090 MB on dsl's 20M rows and +3,250 MB on dslxl's 60M (route consolidation G2), 54-55 B.
-LEX_BYTES_PER_ROW = 56
+#: Peak device bytes of ``_row_order`` per row (two uint64 keys, the argsorts and their radix buffers, the int32
+#: positions): 64.3 B, measured with a CuPy memory hook at 1M, 4M and 20M rows (``tests/test_row_order.py``).
+LEX_BYTES_PER_ROW = 65
 
 #: ``build_device_input``'s answer for a column it does not serve.
 NOT_SERVED = object()
@@ -474,7 +475,8 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
     for the row-wise kernels when they fit (``KEEP_ROWS_BYTES``). With
     ``row_order="lex"`` each shard's rows take the lex row order
     (``_row_order``) in the bitvectors when its sort fits every shard's device
-    (``LEX_BYTES_PER_ROW``), and keep their order otherwise; the returned
+    (``LEX_BYTES_PER_ROW``) and runs without an out-of-memory error, and keep
+    their order otherwise; the returned
     ``row_order`` says which. Counts do not depend on it.
     """
     import cupy as cp
@@ -513,7 +515,18 @@ def build_device_input(column: pl.Series, min_support: float, n_gpus: int, *, ke
     if row_order == "lex":
         rank_of_col = np.empty(len(freq), dtype=np.int32)
         rank_of_col[np.argsort(-occurrences[freq], kind="stable")] = np.arange(len(freq), dtype=np.int32)
-        new_pos = _row_order(shards, lut, rank_of_col)
+        try:
+            new_pos = _row_order(shards, lut, rank_of_col)
+        except MemoryError:
+            # The check above reads free VRAM once; another process or the pool's blocks can still take the room.
+            # Thrust's sort raises a plain MemoryError (std::bad_alloc), the pool an OutOfMemoryError.
+            new_pos = None
+        if new_pos is None:
+            for device in sorted({sh.device for sh in shards}):
+                with cp.cuda.Device(device):
+                    cp.get_default_memory_pool().free_all_blocks()
+            logger.info("Device input: the lex row order's sort ran out of device memory; the rows keep their order")
+            row_order = "keep"
     bitvecs_list = _scatter_bitvecs(shards, lut, len(freq), new_pos)
     del new_pos
 

@@ -32,10 +32,6 @@ unchanged: every removal kept the tier-equivalence chain exact.
 - **The CPU route counts K=2 on the Gram only** (`count_pairs_bitvec` is
   gone): its bitvector K=2 won no workload. `count_itemsets` (SON's pass 2)
   keeps its own K=2 rule.
-- **K>=3 prefix groups on the CPU are counted on the bitvectors whenever they
-  exist** (`PROJ_MIN_SUFFIXES` is gone). Projection remains the counter when
-  the bitvectors exceed `BITVEC_BUDGET_BYTES`. SON's CPU pass 2 got faster
-  with it (skewed_rows 18.4 s -> 10.8 s).
 - **GPU K=2:** a pair space within one chunk is always tiled (per-candidate
   K=2 stays for the multi-GPU sub-chunks), and row-wise K=2 runs on global
   atomics only (`count_pairs_k2_rows_shared` is gone).

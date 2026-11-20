@@ -14,7 +14,7 @@ Rule 1 (signature mismatch, logged fallback): none, in either phase.
 | G3 K=2 | `rows`, `tiled`, `fused` stay; **`percand` (K=2 per-candidate) goes**, **`shared` (row-wise K=2 in shared memory) goes** | 3 |
 | G5 K>=3 | `percand`, `group`, `tiled`, `fused` all stay | 3 |
 | C1 CPU K=2 | `gram` stays; **`bitvec` goes** | 3 |
-| C2 CPU K>=3 | `popcount` stays; **the `PROJ_MIN_SUFFIXES` dispatch to projection goes**; projection stays by role (the only K>=3 path when bitvectors exceed `BITVEC_BUDGET_BYTES`, e.g. dslxl: 637 MB > 512 MB); SON pass 2 `percand` and `groups` both stay | 3, 7 |
+| C2 CPU K>=3 | `popcount` stays; **the `PROJ_MIN_SUFFIXES` dispatch to projection goes**; projection stays by role (the only K>=3 path when bitvectors exceed `BITVEC_BUDGET_BYTES`, e.g. dslxl: 637 MB > 512 MB); SON pass 2 `percand` and `groups` both stay; **reverted by owner decision 7** | 3, 7: owner |
 | C3 Rust miner | partial winner: Rust wins deepk, skew, dsl; the CPU route wins deepk20, or0001k2, or002, or003; geomean CPU 2.87 s vs Rust 4.84 s (timeouts at their bound) | 5, 7: owner |
 | C4 counting API | `polars` (`count_support_vectorized`) wins all 15 dsl batches; **`sparse` (`count_support_sparse`) goes** (wins nothing, OOM on dsl K=2); `arrays` wins nothing | 4 |
 | G1 input layer | device wins dsl, dslxl, sk2ml3, dsl-str, dsl-wide; host and rebuilt win nothing, **blocked by rule 7** (small absolute rises, below) | 4, 7: owner |
@@ -79,3 +79,13 @@ boolean SON peaks 18.3 / 25.6 GB RSS on dslxl-son 1 / 2 GPUs (ported 7.4 / 7.8 G
 5. H runs with 0.5 more GPU-hours (hard stop).
 6. G6 and G7: ESCO (`sparse_from_k`, the sparse CSR path) and `prune_apriori` go; their tier-equivalence legs
    go with them, with a CHANGELOG entry.
+
+## Owner decisions (2026-11-20)
+
+7. C2 is reverted: the `PROJ_MIN_SUFFIXES` dispatch to projection is back as on `main`. The council review
+   of PR #40 found a dense shape where counting every K>=3 group on the bitvectors is twice as slow:
+   `count_candidates` on 2M rows x 100 items at 8% density, all 161,700 triples, 11 workers, takes
+   10.0 / 10.0 / 10.1 s without the dispatch against 5.2 / 5.2 / 5.2 s with it, with the same counts
+   (review box, 11.5 CPUs; the reviewer measured 10.4 / 9.9 / 10.7 s against `main`'s 5.2 / 5.3 / 5.1 s).
+   That is a rule-11 regime outside the measured workloads. The gains C2 measured (SON pass 2 on skewed_rows 18.4 -> 10.8 s, skew,
+   or002) go with it.
